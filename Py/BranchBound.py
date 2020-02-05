@@ -3,7 +3,7 @@ Branch and Bound simulation example
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 # from numpy import array, arange, empty
 from numpy.random import rand
