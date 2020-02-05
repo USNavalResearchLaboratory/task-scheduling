@@ -5,7 +5,7 @@ Branch and Bound simulation example
 import numpy as np
 import matplotlib.pyplot as plt
 
-from numpy import array, arange, empty
+# from numpy import array, arange, empty
 from numpy.random import rand
 
 from functools import partial
@@ -21,12 +21,12 @@ mode_stack = 'LIFO'
 # Tasks
 N = 10  # number of tasks
 
-d_task = 1 + 2 * rand(N, 1)
+d_task = 1 + 2 * rand(N)
 
-t_start = 30 * rand(N, 1)
-w = 0.8 + 0.4 * rand(N, 1)
-t_drop = t_start + d_task * (3 + 2 * rand(N, 1))
-l_drop = (2 + rand(N, 1)) * w * (t_drop - t_start)
+t_start = 30 * rand(N)
+w = 0.8 + 0.4 * rand(N)
+t_drop = t_start + d_task * (3 + 2 * rand(N))
+l_drop = (2 + rand(N)) * w * (t_drop - t_start)
 
 l_task = []
 for n in range(N):
