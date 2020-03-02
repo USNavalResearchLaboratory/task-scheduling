@@ -13,21 +13,22 @@ seed = 12307;
 rng(seed)
 
 addpath('./functions/')
+addpath('./TaskSelectionSchedulingMultichannelRadar/')
 
 
 approach_string{1} = 'EST';
 approach_string{2} = 'BB';
 approach_string{3} = 'NN_Single';
-% approach_string{2} = 'NN'; % BB, EST, NN
+% approach_string{3} = 'NN'; % BB, EST, NN
 % approach_string{3} = 'BB';
 
-K = 2; % Number of timelines
+K = 1; % Number of timelines
 
 
 %% Setup Supervised Learning Function
 
 mode_stack = 'LIFO';
-fcn_search = {@(s_task,d_task,l_task,refTime) fcn_BB_NN(s_task,d_task,l_task,mode_stack,refTime);};
+% fcn_search = {@(s_task,d_task,l_task,refTime) fcn_BB_NN(s_task,d_task,l_task,mode_stack,refTime);};
 
 
 % fcn_BB_NN(s_task,d_task,l_task,'LIFO',refTime);
@@ -35,7 +36,7 @@ fcn_search = {@(s_task,d_task,l_task,refTime) fcn_BB_NN(s_task,d_task,l_task,mod
 
 
 RP = 0.040; % Resourse Period in ms
-Tmax = 2; % Maximum time of simulation in secondes
+Tmax = 1; % Maximum time of simulation in secondes
 
 %% Generate Search Tasks
 Nsearch = 40;
@@ -67,7 +68,7 @@ t_drop_track = zeros(Ntrack,1);
 
 % Create Tiered Revisit rates
 % Tier 1 anything close by
-tier_RR = [0.5 1 4];
+% tier_RR = [0.5 1 4];
 tier_RR = [RP*1,RP*2,RP*4];
 t_drop_track( truth.rangeNmi <= 50 ) = tier_RR(1); % 1 second revisit rate
 
@@ -94,6 +95,9 @@ if plot_en
     pretty_plot(gcf)
 end
 
+
+loss_mc = zeros(Tmax/(RP/K),length(approach_string));
+t_run_mc = zeros(Tmax/(RP/K),length(approach_string));
 
 for IterAlg = 1:length(approach_string)
     
@@ -143,10 +147,10 @@ for IterAlg = 1:length(approach_string)
     N_mc = 1;
     i_mc = 1; % Used for Monte Carlo index. set to 1 initially later add loop
     
-    N_alg = numel(fcn_search);
+%     N_alg = numel(fcn_search);
+    N_alg = 1;
     
-    loss_mc = zeros(N_mc,N_alg);
-    t_run_mc = zeros(N_mc,N_alg);
+    
     X = [];
     Y = [];
     
@@ -229,14 +233,14 @@ for IterAlg = 1:length(approach_string)
                     t_run = toc(t_ES);
                     %                     [t_ex,loss,t_run] = fcn_ES_linear(s_task,d_task,w_task,timeSec);
                 case 'BB'
-                    if K == 1 && ChannelAvailableTime ~= timeSec
+                    if K == 1 && abs( ChannelAvailableTime(1)  - timeSec ) > 1e-4
                         keyboard
                     end
                     
                     t_BB = tic;
                     [T,~,~] = BBschedulerQueueVersion(K,s_task,deadline_task,d_task,drop_task,w_task,ChannelAvailableTime);
-                    [t_ex,loss2] = fcn_BB_NN_linear_FAST(s_task,d_task,w_task,mode_stack,timeSec);
-                    [~,T2] = sort(t_ex);    
+%                     [t_ex,loss2] = fcn_BB_NN_linear_FAST(s_task,d_task,w_task,mode_stack,timeSec);
+%                     [~,T2] = sort(t_ex);    
                     
                     [loss,t_ex,ChannelAvailableTime] = FunctionMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime);
                     t_run = toc(t_BB);
@@ -267,8 +271,8 @@ for IterAlg = 1:length(approach_string)
             
             %         [t_ex,loss,t_run,Xnow,Ynow] = fcn_search{i_a}(s_task,d_task,l_task,timeSec);
             
-            loss_mc(i_mc,i_a) = loss;
-            t_run_mc(i_mc,i_a) = t_run;
+            loss_mc(iter,IterAlg) = loss;
+            t_run_mc(iter,IterAlg) = t_run;
             
             if exist('Xnow')
                 X = cat(3,X,Xnow);
@@ -446,6 +450,31 @@ if FLAG.save
     saveas(gcf,[fname '.fig'])
     saveas(gcf,[fname '.epsc'])
 end
+
+
+figure(7); clf;
+AvgCost = mean(loss_mc);
+AvgTime = mean(t_run_mc)*1000;
+clf;
+hold all; grid on
+for jj = 1:length(approach_string)
+    plot(AvgTime(jj),AvgCost(jj),shape(jj),'MarkerSize',10,'LineWidth',3)
+end
+% plot(time_vec(2),-penalty_vec(2),'x','MarkerSize',10,'LineWidth',3)
+% plot(time_vec(3),-penalty_vec(3),'s','MarkerSize',10,'LineWidth',3)
+legend(leg_str,'Location','best')
+ylabel('Cost')
+xlabel('Computation Time (ms)')
+title('Computation Time vs. Cost')
+
+pretty_plot(gcf)
+if FLAG.save
+    fname = ['.\Figures\' 'Cost_vs_Time'];
+    saveas(gcf,[fname '.fig'])
+    saveas(gcf,[fname '.epsc'])
+end
+
+
 
 %%
 

@@ -20,14 +20,14 @@ FLAG.constrained = 1; % Confines input paramters to be much simplier start times
 
 
 % N = 8; % Number of Tasks
-K = 2; % Number of identical channels or machines
+K = 4; % Number of identical channels or machines
 % K = 1; % Number of identical channels or machines
 % K = 4; % Number of identical channels or machines
 T = 100; % Time window of all tasks
 
 
 % N_vec = 20:5:30;
-N_vec = 8;
+N_vec = 6;
 % N_vec = 16;
 % N_vec = 12;
 

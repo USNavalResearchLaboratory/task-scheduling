@@ -16,17 +16,17 @@ rng(seed)
 MONTE = 100;
 
 N = 16; % Number of Tasks
-K = 1; % Number of identical channels or machines
+K = 4; % Number of identical channels or machines
 T = 100; % Time window of all tasks
 
 
-<<<<<<< HEAD
+% <<<<<<< HEAD
 N_vec = 10:5:20;
-=======
-N_vec = 10:5:30;
-N_vec = 16;
+% =======
+N_vec = 10:5:20;
+% N_vec = 16;
 
->>>>>>> 7820678eed649ed87b79d4e8f080ff9acef3f601
+% >>>>>>> 7820678eed649ed87b79d4e8f080ff9acef3f601
 NumN = length(N_vec);
 
 RunTime.EST = zeros(MONTE,NumN);
