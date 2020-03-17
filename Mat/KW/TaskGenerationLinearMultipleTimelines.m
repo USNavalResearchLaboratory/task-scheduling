@@ -3,6 +3,7 @@ close all
 
 FLAG.profile = 1;
 FLAG.save = 0;
+FLAG.check = 0;
 
 if FLAG.profile
     profile clear
@@ -17,8 +18,8 @@ addpath('./TaskSelectionSchedulingMultichannelRadar/')
 
 
 approach_string{1} = 'EST';
-approach_string{2} = 'BB';
-approach_string{3} = 'NN_Single';
+% approach_string{2} = 'BB';
+approach_string{2} = 'NN_Single';
 % approach_string{3} = 'NN'; % BB, EST, NN
 % approach_string{3} = 'BB';
 
@@ -253,13 +254,28 @@ for IterAlg = 1:length(approach_string)
                     t_run = toc(t_NN);
                     %                     [loss,t_ex,t_run] =  fcn_Inference_BB_NN_linear(s_task,d_task,w_task,N,net,timeSec);
                 case 'NN_Single'
+                                          
+                    
+                    if FLAG.check
+                        ChannelAvailableTimeInput = ChannelAvailableTime;
+                         [T,~,~] = BBschedulerQueueVersion(K,s_task,deadline_task,d_task,drop_task,w_task,ChannelAvailableTimeInput);
+%                     [t_ex,loss2] = fcn_BB_NN_linear_FAST(s_task,d_task,w_task,mode_stack,timeSec);
+%                     [~,T2] = sort(t_ex);                        
+                        [loss_BB(iter),t_ex,~] = FunctionMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTimeInput);
+                    end
+                           
                     t_NN = tic;
                     [~,t_ex,~] =  fcn_Inference_BB_NN_linear(s_task,d_task,w_task,N,net,timeSec);
-                    [~,T] = sort(t_ex);                    
+                    [~,T] = sort(t_ex);
+                    
                     [loss,t_ex,ChannelAvailableTime] = FunctionMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime);
                     t_run = toc(t_NN);
                     
-                    
+                    if FLAG.check
+                        if loss_BB(iter) > loss
+                            keyboard
+                        end
+                    end                    
                     
                     
                     %         [t_ex,loss,t_run] = fcn_ES_linear(s_task,d_task,w_task,timeSec);
