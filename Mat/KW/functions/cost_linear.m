@@ -15,7 +15,7 @@ if N  > 1
     c(t<t_start) = Inf; % If current time is before task start time there is an infinite cost
 else
    if t < t_start
-       c = Inf;
+       c = Inf; % KW - 3/17/20. This may need to be changed to -INF, may depend on application
 %        keyboard
    end
 end

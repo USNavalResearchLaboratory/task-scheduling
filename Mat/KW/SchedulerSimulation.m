@@ -19,7 +19,7 @@ addpath('./TaskSelectionSchedulingMultichannelRadar/')
 
 approach_string{1} = 'EST';
 % approach_string{2} = 'BB';
-approach_string{2} = 'NN_Single';
+% approach_string{2} = 'NN_Single';
 % approach_string{3} = 'NN'; % BB, EST, NN
 % approach_string{3} = 'BB';
 
@@ -30,22 +30,34 @@ K = 1; % Number of timelines
 
 mode_stack = 'LIFO';
 RP = 0.040; % Resourse Period in ms
-Tmax = 2; % Maximum time of simulation in secondes
+Tmax = 20; % Maximum time of simulation in secondes
 
 %% Generate Search Tasks
-Nsearch = 40;
-search.duration = 5e-3; % 4.5 ms (maybe 9 ms)
+SearchParams.NbeamsPerRow = [28 29 14 9 10 9 8 7 6];
+SearchParams.DwellTime = [36 36 36 18 18 18 18 18 18]*1e-3;
+SearchParams.RevistRate = [2.5 5 5 5 5 5 5 5 5]; 
+SearchParams.Slope = 1./SearchParams.RevistRate;
+Nsearch = sum(SearchParams.NbeamsPerRow);
+SearchParams.JobDuration = [];
+SearchParams.JobSlope = [];
+for jj = 1:length(SearchParams.NbeamsPerRow)
+   SearchParams.JobDuration = [ SearchParams.JobDuration  ; repmat( SearchParams.DwellTime(jj), SearchParams.NbeamsPerRow(jj), 1)];
+   SearchParams.JobSlope = [ SearchParams.JobSlope  ; repmat( SearchParams.Slope(jj), SearchParams.NbeamsPerRow(jj), 1)];; 
+end
 
-% Search_RR = Nsearch*search.duration;
-Search_RR = 10*RP;
-% Search_RR = (Nsearch+4)*search.duration; % Desired Search revisit rate
 
-slope_search = 1/Search_RR; % Set slope so that cost is equal to 1 at revisit rate
+% Nsearch = 40;
+% search.duration = 5e-3; % 4.5 ms (maybe 9 ms)
+% 
+% Search_RR = 10*RP;
+% % Search_RR = (Nsearch+4)*search.duration; % Desired Search revisit rate
+% 
+% slope_search = 1/Search_RR; % Set slope so that cost is equal to 1 at revisit rate
 
 
 
 %% Generate Track Tasks
-Ntrack = 7;
+Ntrack = 0;
 
 % Spawn tracks with uniformly distributed ranges and velocity
 MaxRangeNmi = 200; %
@@ -55,15 +67,15 @@ MaxRangeRateMps = 343; % Mach 1 in Mps is 343
 truth.rangeNmi = MaxRangeNmi*rand(Ntrack,1);
 truth.rangeRateMps = 2*MaxRangeRateMps*rand(Ntrack,1) - MaxRangeRateMps ;
 
-track.duration = 5e-3; % 5 ms (maybe 9 ms)
+track.duration = 9e-3; % 5 ms (maybe 9 ms)
 t_drop_track = zeros(Ntrack,1);
 % w_track = 1;
 % c_drop_search = 10;
 
 % Create Tiered Revisit rates
 % Tier 1 anything close by
-% tier_RR = [0.5 1 4];
-tier_RR = [RP*1,RP*2,RP*4];
+tier_RR = [0.5 1 4];
+% tier_RR = [RP*1,RP*2,RP*4];
 t_drop_track( truth.rangeNmi <= 50 ) = tier_RR(1); % 1 second revisit rate
 
 % Tier 2 far away and fast
@@ -78,7 +90,7 @@ plot_en = 1;
 if plot_en
     figure(1); clf; hold all; grid on;
     tt = 0:01:3;
-    plot(tt,cost_linear(tt, slope_search ,0))
+    plot(tt,cost_linear(tt, SearchParams.Slope' ,0))
     plot(tt,cost_linear(tt, 1/tier_RR(1), 0))
     plot(tt,cost_linear(tt, 1/tier_RR(2), 0))
     plot(tt,cost_linear(tt, 1/tier_RR(3), 0))
@@ -106,13 +118,13 @@ for IterAlg = 1:length(approach_string)
     cnt = 1;
     for jj = 1:Nsearch
         job.Id = cnt;
-        job.slope = slope_search;
+        job.slope = SearchParams.JobSlope(jj);
         job.StartTime = 0;
         %     job.DropTime = t_drop_search;
         %     job.DropCost = c_drop_search;
-        job.Duration = search.duration;
+        job.Duration = SearchParams.JobDuration(jj);
         job.Type = 'S';
-        job.Priority = cost_linear(0,slope_search,job.StartTime); % Initially clock is 0
+        job.Priority = cost_linear(0,job.slope,job.StartTime); % Initially clock is 0
         stack.push(job);
         job_master(cnt) = job; cnt = cnt + 1;
     end
@@ -127,7 +139,7 @@ for IterAlg = 1:length(approach_string)
         %     job.DropCost = c_drop_search;
         job.Duration = track.duration;
         job.Type = 'T';
-        job.Priority = cost_linear(0,slope_search,job.StartTime); % Initially clock is 0
+        job.Priority = cost_linear(0,job.slope,job.StartTime); % Initially clock is 0
         stack.push(job);
         job_master(cnt) = job; cnt = cnt + 1;
     end
@@ -136,8 +148,8 @@ for IterAlg = 1:length(approach_string)
     
     %% Begin Simulation Loop
     % Specify number of task to process at any given time
-    N = RP/search.duration;
-    % N = 8;
+%     N = RP/search.duration;
+    N = 8;
     N_mc = 1;
     i_mc = 1; % Used for Monte Carlo index. set to 1 initially later add loop
     
@@ -163,6 +175,10 @@ for IterAlg = 1:length(approach_string)
     for timeSec = 0:RP/K:Tmax
         
         
+        if min(ChannelAvailableTime) > timeSec % Don't schedule unless a channel is free
+            continue
+        end
+        
         if mod(timeSec,RP*10) == 0
             fprintf('Time = %0.2f \n', timeSec)
         end
@@ -171,8 +187,19 @@ for IterAlg = 1:length(approach_string)
         % of each delayed task )
         for n = 1:size(job_master,2)
             job_master(n).Priority = cost_linear(timeSec,job_master(n).slope,job_master(n).StartTime);
-        end
+            if job_master(n).Priority == Inf
+                job_master(n).Priority = -Inf; % Reassign to make lower priority
+            end
+        end        
         
+        
+        
+        
+        if sum([job_master.Priority] ~= -Inf) < N 
+%             keyboard
+            continue
+        end
+            
 %         figure(111); clf; hold all;
 %         plot([job_master.StartTime])
 %         plot([job_master.Priority])
@@ -223,12 +250,13 @@ for IterAlg = 1:length(approach_string)
                 case 'EST'
                     t_ES = tic;
                     [~,T] = sort(s_task); % Sort jobs based on starting times
-                    [loss,t_ex,ChannelAvailableTime] = FunctionMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime);
+                    [loss,t_ex,ChannelAvailableTime] = FlexDARMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime,RP);
+%                     [loss,t_ex,ChannelAvailableTime] = FunctionMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime);
                     t_run = toc(t_ES);
                     %                     [t_ex,loss,t_run] = fcn_ES_linear(s_task,d_task,w_task,timeSec);
                 case 'BB'
                     if K == 1 && abs( ChannelAvailableTime(1)  - timeSec ) > 1e-4
-                        keyboard
+%                         keyboard
                     end
                     
                     t_BB = tic;
