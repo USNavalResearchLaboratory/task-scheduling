@@ -19,7 +19,7 @@ addpath('./TaskSelectionSchedulingMultichannelRadar/')
 
 approach_string{1} = 'EST';
 % approach_string{2} = 'BB';
-% approach_string{2} = 'NN_Single';
+approach_string{2} = 'NN_Single';
 % approach_string{3} = 'NN'; % BB, EST, NN
 % approach_string{3} = 'BB';
 
