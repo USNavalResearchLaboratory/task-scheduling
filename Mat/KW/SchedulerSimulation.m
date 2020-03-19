@@ -4,7 +4,10 @@ close all
 FLAG.profile = 1;
 FLAG.save = 0;
 FLAG.check = 0;
-
+FLAG.FixedPriority = 1; % Used to keep same inputs to sequence-schedulers for all algorithms
+                        % Something is broken here. EST is doing better
+                        % than BB, but checked for same inputs get same
+                        % answer.
 if FLAG.profile
     profile clear
     profile on -history
@@ -18,8 +21,8 @@ addpath('./TaskSelectionSchedulingMultichannelRadar/')
 
 
 approach_string{1} = 'EST';
-% approach_string{2} = 'BB';
-approach_string{2} = 'NN_Single';
+approach_string{2} = 'BB';
+% approach_string{3} = 'NN_Single';
 % approach_string{3} = 'NN'; % BB, EST, NN
 % approach_string{3} = 'BB';
 
@@ -30,7 +33,7 @@ K = 1; % Number of timelines
 
 mode_stack = 'LIFO';
 RP = 0.040; % Resourse Period in ms
-Tmax = 20; % Maximum time of simulation in secondes
+Tmax = 6; % Maximum time of simulation in secondes
 
 %% Generate Search Tasks
 SearchParams.NbeamsPerRow = [28 29 14 9 10 9 8 7 6];
@@ -102,8 +105,14 @@ if plot_en
 end
 
 
+N = 8;
+
 loss_mc = zeros(Tmax/(RP/K),length(approach_string));
 t_run_mc = zeros(Tmax/(RP/K),length(approach_string));
+
+TaskSequence = zeros(N,Tmax/(RP/K),length(approach_string));
+TaskExecution = zeros(N,Tmax/(RP/K),length(approach_string));
+ChannelRecord = zeros(K,Tmax/(RP/K),length(approach_string));
 
 for IterAlg = 1:length(approach_string)
     
@@ -149,7 +158,7 @@ for IterAlg = 1:length(approach_string)
     %% Begin Simulation Loop
     % Specify number of task to process at any given time
 %     N = RP/search.duration;
-    N = 8;
+%     N = 8;
     N_mc = 1;
     i_mc = 1; % Used for Monte Carlo index. set to 1 initially later add loop
     
@@ -204,10 +213,14 @@ for IterAlg = 1:length(approach_string)
 %         plot([job_master.StartTime])
 %         plot([job_master.Priority])
         
-        
-        [~,priorityIdx] = sort([job_master.Priority],'descend');
+
+        if FLAG.FixedPriority == 1
+            priorityIdx = [1:length(job_master)];
+        else        
+            [~,priorityIdx] = sort([job_master.Priority],'descend');
+        end
         job_master = job_master(priorityIdx);
-        
+       
         fprintf('Iteration %i \n',iter)
         T = struct2table(job_master);
         if mod(timeSec,RP*10) == 0
@@ -230,7 +243,8 @@ for IterAlg = 1:length(approach_string)
         end
         
         
-        
+        queueID(:,iter,IterAlg)= [queue.Id];
+        queueRecord{iter,IterAlg} = queue;
         
         %     metrics.JobRevistTime( [queue.Id] ,metrics.JobRevistCount([queue.Id]) ) = timeSec;
         
@@ -263,15 +277,16 @@ for IterAlg = 1:length(approach_string)
                     [T,~,~] = BBschedulerQueueVersion(K,s_task,deadline_task,d_task,drop_task,w_task,ChannelAvailableTime);
 %                     [t_ex,loss2] = fcn_BB_NN_linear_FAST(s_task,d_task,w_task,mode_stack,timeSec);
 %                     [~,T2] = sort(t_ex);    
-                    
-                    [loss,t_ex,ChannelAvailableTime] = FunctionMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime);
+                    [loss,t_ex,ChannelAvailableTime] = FlexDARMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime,RP);                   
+%                     [loss,t_ex,ChannelAvailableTime] = FunctionMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime);
                     t_run = toc(t_BB);
                     %                     [t_ex,loss,t_run,Xnow,Ynow] = fcn_BB_NN_linear(s_task,d_task,w_task,mode_stack,timeSec);
                     %                 [t_ex,loss,t_run,Xnow,Ynow] = fcn_search{i_a}(s_task,d_task,l_task,timeSec);
                 case 'NN_Multiple'
                     t_NN = tic;
                     T = fcn_InferenceMultipleTimelines_BB_NN(s_task,deadline_task,d_task,drop_task,w_task,N,net);
-                    [loss,t_ex,ChannelAvailableTime] = FunctionMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime);
+%                     [loss,t_ex,ChannelAvailableTime] = FunctionMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime);
+                    [loss,t_ex,ChannelAvailableTime] = FlexDARMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime,RP);
                     t_run = toc(t_NN);
                     %                     [loss,t_ex,t_run] =  fcn_Inference_BB_NN_linear(s_task,d_task,w_task,N,net,timeSec);
                 case 'NN_Single'
@@ -282,14 +297,15 @@ for IterAlg = 1:length(approach_string)
                          [T,~,~] = BBschedulerQueueVersion(K,s_task,deadline_task,d_task,drop_task,w_task,ChannelAvailableTimeInput);
 %                     [t_ex,loss2] = fcn_BB_NN_linear_FAST(s_task,d_task,w_task,mode_stack,timeSec);
 %                     [~,T2] = sort(t_ex);                        
-                        [loss_BB(iter),t_ex,~] = FunctionMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTimeInput);
+                        [loss_BB(iter),t_ex,~] = FlexDARMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTimeInput,RP);
                     end
                            
                     t_NN = tic;
                     [~,t_ex,~] =  fcn_Inference_BB_NN_linear(s_task,d_task,w_task,N,net,timeSec);
                     [~,T] = sort(t_ex);
                     
-                    [loss,t_ex,ChannelAvailableTime] = FunctionMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime);
+                    [loss,t_ex,ChannelAvailableTime] = FlexDARMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime,RP);
+%                     [loss,t_ex,ChannelAvailableTime] = FunctionMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime);
                     t_run = toc(t_NN);
                     
                     if FLAG.check
@@ -310,6 +326,9 @@ for IterAlg = 1:length(approach_string)
             
             loss_mc(iter,IterAlg) = loss;
             t_run_mc(iter,IterAlg) = t_run;
+            TaskSequence(:,iter,IterAlg) = T;
+            TaskExecution(:,iter,IterAlg) = t_ex;
+            ChannelRecord(:,iter,IterAlg) = ChannelAvailableTime;
             
             if exist('Xnow')
                 X = cat(3,X,Xnow);
@@ -370,6 +389,7 @@ for IterAlg = 1:length(approach_string)
     for n = 1:size(JobRevistTime,2)
         metrics.RevisitRate(n) =  mean( diff(JobRevistTime{n} ));
     end
+%     LastSearchId = min(LastSearchId,length(JobRevistTime));
     SurvFrameTime = JobRevistTime{LastSearchId};
     AvgSurvFrameTime = mean(diff(SurvFrameTime));
     
@@ -459,7 +479,7 @@ for IterAlg = 1:length(approach_string)
     end
 end
 
-
+%% Final Plots
 % leg_str{1} = 'EST';
 % leg_str{2} = 'NN';
 % leg_str{3} = 'BB';
@@ -491,6 +511,9 @@ end
 
 figure(7); clf;
 AvgCost = mean(loss_mc);
+for jj = 1:size(loss_mc,2)
+    AvgCost(jj) = mean( loss_mc( loss_mc(:,jj) > 0,jj));
+end
 AvgTime = mean(t_run_mc)*1000;
 clf;
 hold all; grid on
