@@ -1,5 +1,5 @@
 """
-Branch and Bound simulation example
+Branch and Bound simulation example.
 """
 
 import numpy as np
