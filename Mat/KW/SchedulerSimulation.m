@@ -4,7 +4,7 @@ close all
 FLAG.profile = 1;
 FLAG.save = 0;
 FLAG.check = 0;
-FLAG.FixedPriority = 1; % Used to keep same inputs to sequence-schedulers for all algorithms
+FLAG.FixedPriority = 0; % Used to keep same inputs to sequence-schedulers for all algorithms
                         % Something is broken here. EST is doing better
                         % than BB, but checked for same inputs get same
                         % answer.
@@ -21,8 +21,9 @@ addpath('./TaskSelectionSchedulingMultichannelRadar/')
 
 
 approach_string{1} = 'EST';
-approach_string{2} = 'BB';
-% approach_string{3} = 'NN_Single';
+% approach_string{2} = 'BB';
+approach_string{2} = 'NN_Single';
+% approach_string{2} = 'MCTS';
 % approach_string{3} = 'NN'; % BB, EST, NN
 % approach_string{3} = 'BB';
 
@@ -33,12 +34,14 @@ K = 1; % Number of timelines
 
 mode_stack = 'LIFO';
 RP = 0.040; % Resourse Period in ms
-Tmax = 6; % Maximum time of simulation in secondes
+Tmax = 30; % Maximum time of simulation in secondes
 
 %% Generate Search Tasks
 SearchParams.NbeamsPerRow = [28 29 14 9 10 9 8 7 6];
 SearchParams.DwellTime = [36 36 36 18 18 18 18 18 18]*1e-3;
 SearchParams.RevistRate = [2.5 5 5 5 5 5 5 5 5]; 
+SearchParams.RevistRateUB = SearchParams.RevistRate + 1; % Upper Bound on Revisit Rate
+SearchParams.Penalty = 100*ones(size(SearchParams.RevistRate)); % Penalty for exceeding UB
 SearchParams.Slope = 1./SearchParams.RevistRate;
 Nsearch = sum(SearchParams.NbeamsPerRow);
 SearchParams.JobDuration = [];
@@ -49,18 +52,8 @@ for jj = 1:length(SearchParams.NbeamsPerRow)
 end
 
 
-% Nsearch = 40;
-% search.duration = 5e-3; % 4.5 ms (maybe 9 ms)
-% 
-% Search_RR = 10*RP;
-% % Search_RR = (Nsearch+4)*search.duration; % Desired Search revisit rate
-% 
-% slope_search = 1/Search_RR; % Set slope so that cost is equal to 1 at revisit rate
-
-
-
 %% Generate Track Tasks
-Ntrack = 0;
+Ntrack = 10;
 
 % Spawn tracks with uniformly distributed ranges and velocity
 MaxRangeNmi = 200; %
@@ -70,10 +63,30 @@ MaxRangeRateMps = 343; % Mach 1 in Mps is 343
 truth.rangeNmi = MaxRangeNmi*rand(Ntrack,1);
 truth.rangeRateMps = 2*MaxRangeRateMps*rand(Ntrack,1) - MaxRangeRateMps ;
 
-track.duration = 9e-3; % 5 ms (maybe 9 ms)
+TrackParams.DwellTime = [18 18 18]*1e-3;
+TrackParams.RevisitRate = [0.5 1 4];
+TrackParams.RevisitRateUB = TrackParams.RevisitRate * 1.5;
+TrackParams.Penalty = 100*ones(size(TrackParams.DwellTime));
+TrackParams.Slope = 1./TrackParams.RevisitRate;
+TrackParams.JobDuration = [];
+TrackParams.JobSlope = [];
+for jj = 1:Ntrack
+    if  truth.rangeNmi(jj) <= 50
+        TrackParams.JobDuration = [TrackParams.JobDuration; TrackParams.DwellTime(1)   ];
+        TrackParams.JobSlope = [TrackParams.JobSlope;  TrackParams.Slope(1) ];
+    elseif truth.rangeNmi(jj) > 50 &&  abs(truth.rangeRateMps(jj)) >= 100
+        
+    else
+        
+    end
+    
+end  
+
+
+
+track.duration = 18e-3; % 5 ms (maybe 9 ms)
 t_drop_track = zeros(Ntrack,1);
-% w_track = 1;
-% c_drop_search = 10;
+
 
 % Create Tiered Revisit rates
 % Tier 1 anything close by
@@ -105,7 +118,7 @@ if plot_en
 end
 
 
-N = 8;
+N = 4;
 
 loss_mc = zeros(Tmax/(RP/K),length(approach_string));
 t_run_mc = zeros(Tmax/(RP/K),length(approach_string));
@@ -113,6 +126,17 @@ t_run_mc = zeros(Tmax/(RP/K),length(approach_string));
 TaskSequence = zeros(N,Tmax/(RP/K),length(approach_string));
 TaskExecution = zeros(N,Tmax/(RP/K),length(approach_string));
 ChannelRecord = zeros(K,Tmax/(RP/K),length(approach_string));
+
+% Load Required Neural Network
+NNstring = sprintf('./NN_REPO/net_task_%i_K_%i_FINAL.mat',N,K);
+if any(strcmpi(approach_string,'NN_single'))
+    load(NNstring)
+elseif any(strcmpi( approach_string ,'NN_Multiple'))
+    load('./NN_REPO/net_task_8_K_2_FINAL.mat')
+elseif any(strcmpi(approach_string,'MCTS'))
+    load(NNstring)    
+end
+
 
 for IterAlg = 1:length(approach_string)
     
@@ -132,7 +156,11 @@ for IterAlg = 1:length(approach_string)
         %     job.DropTime = t_drop_search;
         %     job.DropCost = c_drop_search;
         job.Duration = SearchParams.JobDuration(jj);
-        job.Type = 'S';
+        if job.slope == 0.4 %Horizon Search
+            job.Type = 'HS';
+        else % Above horizon search (AHS)
+            job.Type = 'AHS';
+        end
         job.Priority = cost_linear(0,job.slope,job.StartTime); % Initially clock is 0
         stack.push(job);
         job_master(cnt) = job; cnt = cnt + 1;
@@ -146,8 +174,9 @@ for IterAlg = 1:length(approach_string)
         job.StartTime = 0;
         %     job.DropTime = t_drop_track(jj);
         %     job.DropCost = c_drop_search;
-        job.Duration = track.duration;
-        job.Type = 'T';
+        job.Duration = track.duration;        
+        TrackIndex = find(w_track(jj) == unique(w_track));
+        job.Type = ['T' num2str(TrackIndex)];
         job.Priority = cost_linear(0,job.slope,job.StartTime); % Initially clock is 0
         stack.push(job);
         job_master(cnt) = job; cnt = cnt + 1;
@@ -169,13 +198,10 @@ for IterAlg = 1:length(approach_string)
     X = [];
     Y = [];
     
-    
+%     JobRevistTime = cell(size(job_master,2),1);
     metrics.JobRevistCount = zeros(size(job_master,2),1);
-    if strcmp( approach_string{IterAlg} ,'NN_Single')
-        load('./NN_REPO/net_task_8_FINAL.mat')
-    elseif strcmp( approach_string{IterAlg} ,'NN_Multiple')
-        load('./NN_REPO/net_task_8_K_2_TEMP.mat')
-    end
+    metrics.JobType = {job_master.Type};
+ 
     
     tstart = tic;
     
@@ -258,75 +284,15 @@ for IterAlg = 1:length(approach_string)
         
         % Schedule Tasks using BB and generate relevant sampled data
         for i_a = 1:N_alg
-            
+                       
             drop_task = zeros(N,1); deadline_task = 100*ones(N,1);
-            switch approach_string{IterAlg}
-                case 'EST'
-                    t_ES = tic;
-                    [~,T] = sort(s_task); % Sort jobs based on starting times
-                    [loss,t_ex,ChannelAvailableTime] = FlexDARMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime,RP);
-%                     [loss,t_ex,ChannelAvailableTime] = FunctionMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime);
-                    t_run = toc(t_ES);
-                    %                     [t_ex,loss,t_run] = fcn_ES_linear(s_task,d_task,w_task,timeSec);
-                case 'BB'
-                    if K == 1 && abs( ChannelAvailableTime(1)  - timeSec ) > 1e-4
-%                         keyboard
-                    end
-                    
-                    t_BB = tic;
-                    [T,~,~] = BBschedulerQueueVersion(K,s_task,deadline_task,d_task,drop_task,w_task,ChannelAvailableTime);
-%                     [t_ex,loss2] = fcn_BB_NN_linear_FAST(s_task,d_task,w_task,mode_stack,timeSec);
-%                     [~,T2] = sort(t_ex);    
-                    [loss,t_ex,ChannelAvailableTime] = FlexDARMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime,RP);                   
-%                     [loss,t_ex,ChannelAvailableTime] = FunctionMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime);
-                    t_run = toc(t_BB);
-                    %                     [t_ex,loss,t_run,Xnow,Ynow] = fcn_BB_NN_linear(s_task,d_task,w_task,mode_stack,timeSec);
-                    %                 [t_ex,loss,t_run,Xnow,Ynow] = fcn_search{i_a}(s_task,d_task,l_task,timeSec);
-                case 'NN_Multiple'
-                    t_NN = tic;
-                    T = fcn_InferenceMultipleTimelines_BB_NN(s_task,deadline_task,d_task,drop_task,w_task,N,net);
-%                     [loss,t_ex,ChannelAvailableTime] = FunctionMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime);
-                    [loss,t_ex,ChannelAvailableTime] = FlexDARMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime,RP);
-                    t_run = toc(t_NN);
-                    %                     [loss,t_ex,t_run] =  fcn_Inference_BB_NN_linear(s_task,d_task,w_task,N,net,timeSec);
-                case 'NN_Single'
-                                          
-                    
-                    if FLAG.check
-                        ChannelAvailableTimeInput = ChannelAvailableTime;
-                         [T,~,~] = BBschedulerQueueVersion(K,s_task,deadline_task,d_task,drop_task,w_task,ChannelAvailableTimeInput);
-%                     [t_ex,loss2] = fcn_BB_NN_linear_FAST(s_task,d_task,w_task,mode_stack,timeSec);
-%                     [~,T2] = sort(t_ex);                        
-                        [loss_BB(iter),t_ex,~] = FlexDARMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTimeInput,RP);
-                    end
-                           
-                    t_NN = tic;
-                    [~,t_ex,~] =  fcn_Inference_BB_NN_linear(s_task,d_task,w_task,N,net,timeSec);
-                    [~,T] = sort(t_ex);
-                    
-                    [loss,t_ex,ChannelAvailableTime] = FlexDARMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime,RP);
-%                     [loss,t_ex,ChannelAvailableTime] = FunctionMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime);
-                    t_run = toc(t_NN);
-                    
-                    if FLAG.check
-                        if loss_BB(iter) > loss
-                            keyboard
-                        end
-                    end                    
-                    
-                    
-                    %         [t_ex,loss,t_run] = fcn_ES_linear(s_task,d_task,w_task,timeSec);
-                    %         [t_ex,loss,t_run,Xnow,Ynow] = fcn_BB_NN_linear(s_task,d_task,w_task,mode_stack,timeSec);
-                    %         [loss,t_ex,t_run] =  fcn_Inference_BB_NN_linear(s_task,d_task,w_task,N,net,timeSec);
-                    
-            end
-            
-            
+            [loss,t_run,T,t_ex,ChannelAvailableTime] = PerformTaskAssignment(approach_string,IterAlg,N,K,s_task,w_task,d_task,deadline_task,drop_task,RP,ChannelAvailableTime);
+                        
             %         [t_ex,loss,t_run,Xnow,Ynow] = fcn_search{i_a}(s_task,d_task,l_task,timeSec);
             
             loss_mc(iter,IterAlg) = loss;
             t_run_mc(iter,IterAlg) = t_run;
-            TaskSequence(:,iter,IterAlg) = T;
+            TaskSequence(:,iter,IterAlg) = T(1:N);
             TaskExecution(:,iter,IterAlg) = t_ex;
             ChannelRecord(:,iter,IterAlg) = ChannelAvailableTime;
             
@@ -385,10 +351,23 @@ for IterAlg = 1:length(approach_string)
     fprintf('Elapsed Time %f \n\n',TimeElapsed(IterAlg))
     
     
-    %% Diagnostics
-    for n = 1:size(JobRevistTime,2)
-        metrics.RevisitRate(n) =  mean( diff(JobRevistTime{n} ));
+    %% Diagnostics    
+    for n = 1:length(metrics.JobRevistCount)
+        try 
+            metrics.RevisitRate(n) =  mean( diff([JobRevistTime{n}] ));
+        catch
+            metrics.RevisitRate(n) = 0;
+        end
     end
+    
+
+    metrics.UniqueJobTypes = unique(metrics.JobType);       
+    for jj = 1:length(metrics.UniqueJobTypes)
+       JobIndex = find( strcmpi(metrics.JobType,metrics.UniqueJobTypes(jj)) );
+       metrics.JobTypeRR(jj) = mean(metrics.RevisitRate(JobIndex));
+    end
+    
+    
 %     LastSearchId = min(LastSearchId,length(JobRevistTime));
     SurvFrameTime = JobRevistTime{LastSearchId};
     AvgSurvFrameTime = mean(diff(SurvFrameTime));
@@ -444,7 +423,7 @@ for IterAlg = 1:length(approach_string)
     figure(4 + (IterAlg-1)*4); clf;
     % subplot(2,2,[3]);
     cla; hold all;
-    plot(metrics.RevisitRate,[1:size(JobRevistTime,2)],'bd','MarkerSize',8,'LineWidth',3)
+    plot(metrics.RevisitRate,[1:size(metrics.RevisitRate,2)],'bd','MarkerSize',8,'LineWidth',3)
     plot(1./[job_master.slope],[job_master.Id],'ro')
     
     xlabel('Revist Rate (s)')
