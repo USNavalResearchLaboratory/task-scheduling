@@ -16,12 +16,12 @@ addpath(genpath('C:\Users\wagnerk\Desktop\WU_6B72_CRM\CRM_REPO\Mat\KW'))
 %% Implementation and Comparison
 
 
-MONTE = 10;
+MONTE = 20;
 % NumSamps = 1*1e3; 
 clear Cost DropPercent RunTime
 tstart = tic;
 cnt.N = 1;
-N_vec = 6;
+N_vec = 4;
 K = 1;
 
 
@@ -116,7 +116,14 @@ for N = N_vec
         % MCTS with Policy NN
         tic
         M = 10; % Number of roll-outs
-        [Cost.MCTS(monte,cnt.N),t_ex,NumDropTask,T] = MctsNeuralNetSchedulerAlgorithm(data,net,M);
+        [Cost.MctsNN(monte,cnt.N),t_ex,NumDropTask,T] = MctsNeuralNetSchedulerAlgorithm(data,net,M);
+        DropPercent.MctsNN(monte,cnt.N) = NumDropTask/N;
+        RunTime.MctsNN(monte,cnt.N) = toc;
+        
+        % MCTS
+        tic
+        M = 10; % Number of roll-outs
+        [Cost.MCTS(monte,cnt.N),t_ex,NumDropTask,T] = MctsAlgorithm(data,M);
         DropPercent.MCTS(monte,cnt.N) = NumDropTask/N;
         RunTime.MCTS(monte,cnt.N) = toc;
         
@@ -126,8 +133,7 @@ for N = N_vec
         [Cost.NN(monte,cnt.N),t_ex,NumDropTask,T] = NeuralNetSchedulerAlgorithm(data,net);
         DropPercent.NN(monte,cnt.N) = NumDropTask/N;
         RunTime.NN(monte,cnt.N) = toc;
-        
-        
+                
         
     end
     cnt.N = cnt.N + 1;
@@ -142,12 +148,19 @@ leg_str{3} = 'ED';
 leg_str{4} = 'ED Swap';
 leg_str{5} = 'BB';
 leg_str{6} = 'NN';
+leg_str{7} = 'MctsNN';
+leg_str{8} = 'MCTS';
+
+
 color_shape{1}= 'bv';
 color_shape{2}= 'rs';
 color_shape{3}= 'gd';
 color_shape{4}= 'm*';
 color_shape{5}= 'co';
 color_shape{6} = 'k^';
+color_shape{7} = 'y>';
+color_shape{8} = 'b+';
+
 
 
 figure(22); clf; hold all; grid on;
@@ -157,6 +170,9 @@ plot(mean(RunTime.ED,1),mean(Cost.ED,1),color_shape{3},'MarkerSize',12,'LineWidt
 plot(mean(RunTime.EdSwap,1),mean(Cost.EdSwap,1),color_shape{4},'MarkerSize',12,'LineWidth',3)
 plot(mean(RunTime.BB,1),mean(Cost.BB,1),color_shape{5},'MarkerSize',12,'LineWidth',3)
 plot(mean(RunTime.NN,1),mean(Cost.NN,1),color_shape{6},'MarkerSize',12,'LineWidth',3)
+plot(mean(RunTime.MctsNN,1),mean(Cost.MctsNN,1),color_shape{7},'MarkerSize',12,'LineWidth',3)
+plot(mean(RunTime.MCTS,1),mean(Cost.MCTS,1),color_shape{8},'MarkerSize',12,'LineWidth',3)
+
 
 legend(leg_str)
 xlabel(sprintf('RunTime (seconds) (K = %i Channels)', K )) 

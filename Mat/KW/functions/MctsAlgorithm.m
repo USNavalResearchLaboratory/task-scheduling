@@ -1,4 +1,4 @@
-function [Cost,t_ex,NumDropTask,T] = MctsNeuralNetSchedulerAlgorithm(data,net,MONTE)
+function [Cost,t_ex,NumDropTask,T] = MctsAlgorithm(data,MONTE)
 
 % Earliest Deadline Algorithm
 % Takes tasks in data and assigns them to timeline using the Earliest deadline.
@@ -55,64 +55,23 @@ while ~isempty(S.ND) % Proceed if base-node ND set is not empty
         Tprime = Sprime.T;
         NDprime = Sprime.ND;
         Dprime = Sprime.D;
-        Np = net.Layers(1).InputSize(2); % Size of Neural Net input
         
         while ~isempty(NDprime)
             
             % Expand
-            if length(NDprime) >= Np % Take all tasks from ND set
-                [~,task_index] = sort(s_task(NDprime));
-                task_index = NDprime(task_index(1:Np));      % START HERE 
-            else
-                task_index = NDprime;
-            end            
-            %         InputIndex = [Tprime NDprime(1:
-            
-            % Encode Features
-            PF(1,:) = [s_task(task_index)  ; zeros(Np-length(task_index),1)] ;
-            PF(2,:) = [deadline_task(task_index); zeros(Np-length(task_index),1)] ;
-            PF(3,:) = [length_task(task_index); zeros(Np-length(task_index),1)];
-            PF(4,:) = [drop_task(task_index); zeros(Np-length(task_index),1)];
-            PF(5,:) = [w_task(task_index); zeros(Np-length(task_index),1)];
-            
-            % Encode Position in Tree
-            PFtree = zeros(Np,Np);
-            TreeIndex = [];
-            for jj = 1:length(Tprime)
-                if ~isempty( find(task_index == Tprime(jj))  )
-                    TreeIndex(jj) = find(task_index == Tprime(jj));
-                end
-            end
-            if ~isempty(TreeIndex)
-                IND = sub2ind([Np Np],[1:length(TreeIndex)]',TreeIndex);            
-                PFtree(IND) = 1;
-            end
-            
-            % Encode whether node was assigned/dominated/available
-            PfStatus = zeros(3,Np);
-            PfStatus(1,:) = 1;                    
-            for nn = 1:length(TreeIndex)
-                PfStatus(: , TreeIndex(nn) ) = [0; 0; 1]; % Infeasible Already Assigned
+            [~,task_index] = sort(s_task(NDprime));
+
+            if all( s_task(task_index) == s_task(task_index(1))  ) % All of the start times are the same. Sort by weights
+                [~,task_index] = sort(w_task(NDprime),'descend');
             end
             
             
-            Xin = [PF; PFtree; PfStatus];
             
-            % Generate aprior Probabilities
-            [YPred,scores] = classify(net,Xin);
-            scores(TreeIndex(TreeIndex ~= 0)) = 0; % Remove Nodes from Scoring that have been assigned
-            scores( length(NDprime)+1:end ) = 0; % Remove nodes when number of inputs < NN capacity
-            scores = scores/(sum(scores));            
-            apriori = scores;
+            % Generate aprior Probabilities           
             
             % Selection
-            RN = rand;
-            TempIndex = find( RN > cumsum(apriori),1,'first');
-            if isempty(TempIndex)
-                SelectionIndex = task_index(1);
-            else
-                SelectionIndex = task_index(TempIndex(end) + 1);
-            end
+            RN = randi(length(task_index));
+            SelectionIndex = NDprime(task_index(RN));
             
             Tprime = [Tprime; SelectionIndex];
             NDprime(NDprime == SelectionIndex) = [];
