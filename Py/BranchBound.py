@@ -3,9 +3,8 @@ Branch and Bound simulation example...
 """
 
 import numpy as np
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
-# from numpy import array, arange, empty
 from numpy.random import rand
 
 from functools import partial
@@ -33,7 +32,19 @@ for n in range(N):
     l_task.append(partial(loss_lin_drop, w=w[n], t_start=t_start[n], t_drop=t_drop[n], l_drop=l_drop[n]))
     # l_task.append(lambda t: loss_lin_drop(t, w[n], t_start[n], t_drop[n], l_drop[n]))
 
-# %% Tree Search
+
+t_plot = np.arange(0, np.ceil(max(t_drop)), 0.01)
+plt.figure(num='tasks', clear=True)
+for n in range(N):
+    plt.plot(t_plot, np.vectorize(l_task[n])(t_plot), label=f'Task #{n}')
+    plt.gca().set(title='Task Losses', xlabel='t', ylabel='Loss')
+    plt.grid(True)
+    plt.legend()
+
+
+
+
+#  Tree Search
 
 # TODO: add tic
 
