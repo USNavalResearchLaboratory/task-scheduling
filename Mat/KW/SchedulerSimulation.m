@@ -21,8 +21,8 @@ addpath('./TaskSelectionSchedulingMultichannelRadar/')
 
 
 approach_string{1} = 'EST';
-% approach_string{2} = 'BB';
-approach_string{2} = 'NN_Single';
+approach_string{2} = 'BB';
+% approach_string{2} = 'NN_Single';
 % approach_string{2} = 'MCTS';
 % approach_string{3} = 'NN'; % BB, EST, NN
 % approach_string{3} = 'BB';
@@ -38,22 +38,28 @@ Tmax = 30; % Maximum time of simulation in secondes
 
 %% Generate Search Tasks
 SearchParams.NbeamsPerRow = [28 29 14 9 10 9 8 7 6];
+% SearchParams.NbeamsPerRow = [208 29 14 9 10 9 8 7 6]; % Overload
+
 SearchParams.DwellTime = [36 36 36 18 18 18 18 18 18]*1e-3;
 SearchParams.RevistRate = [2.5 5 5 5 5 5 5 5 5]; 
-SearchParams.RevistRateUB = SearchParams.RevistRate + 1; % Upper Bound on Revisit Rate
+SearchParams.RevisitRateUB = SearchParams.RevistRate + 0.1; % Upper Bound on Revisit Rate
 SearchParams.Penalty = 100*ones(size(SearchParams.RevistRate)); % Penalty for exceeding UB
 SearchParams.Slope = 1./SearchParams.RevistRate;
 Nsearch = sum(SearchParams.NbeamsPerRow);
 SearchParams.JobDuration = [];
 SearchParams.JobSlope = [];
+SearchParams.DropTime = [];
+SearchParams.DropCost = [];
 for jj = 1:length(SearchParams.NbeamsPerRow)
-   SearchParams.JobDuration = [ SearchParams.JobDuration  ; repmat( SearchParams.DwellTime(jj), SearchParams.NbeamsPerRow(jj), 1)];
-   SearchParams.JobSlope = [ SearchParams.JobSlope  ; repmat( SearchParams.Slope(jj), SearchParams.NbeamsPerRow(jj), 1)];; 
+    SearchParams.JobDuration = [ SearchParams.JobDuration  ; repmat( SearchParams.DwellTime(jj), SearchParams.NbeamsPerRow(jj), 1)];
+    SearchParams.JobSlope = [ SearchParams.JobSlope  ; repmat( SearchParams.Slope(jj), SearchParams.NbeamsPerRow(jj), 1)];
+    SearchParams.DropTime = [ SearchParams.DropTime; repmat(  SearchParams.RevisitRateUB(jj), SearchParams.NbeamsPerRow(jj), 1)];
+    SearchParams.DropCost = [ SearchParams.DropCost; repmat(  SearchParams.Penalty(jj), SearchParams.NbeamsPerRow(jj), 1)];
 end
 
 
 %% Generate Track Tasks
-Ntrack = 10;
+Ntrack = 20;
 
 % Spawn tracks with uniformly distributed ranges and velocity
 MaxRangeNmi = 200; %
@@ -65,52 +71,59 @@ truth.rangeRateMps = 2*MaxRangeRateMps*rand(Ntrack,1) - MaxRangeRateMps ;
 
 TrackParams.DwellTime = [18 18 18]*1e-3;
 TrackParams.RevisitRate = [0.5 1 4];
-TrackParams.RevisitRateUB = TrackParams.RevisitRate * 1.5;
+TrackParams.RevisitRateUB = TrackParams.RevisitRate  + 0.01;
 TrackParams.Penalty = 100*ones(size(TrackParams.DwellTime));
 TrackParams.Slope = 1./TrackParams.RevisitRate;
 TrackParams.JobDuration = [];
 TrackParams.JobSlope = [];
+TrackParams.DropTime = [];
+TrackParams.DropCost = [];
 for jj = 1:Ntrack
     if  truth.rangeNmi(jj) <= 50
         TrackParams.JobDuration = [TrackParams.JobDuration; TrackParams.DwellTime(1)   ];
         TrackParams.JobSlope = [TrackParams.JobSlope;  TrackParams.Slope(1) ];
+        TrackParams.DropTime = [ TrackParams.DropTime;   TrackParams.RevisitRateUB(1)];
+        TrackParams.DropCost = [ TrackParams.DropCost;   TrackParams.Penalty(1) ];
     elseif truth.rangeNmi(jj) > 50 &&  abs(truth.rangeRateMps(jj)) >= 100
-        
+        TrackParams.JobDuration = [TrackParams.JobDuration; TrackParams.DwellTime(2)   ];
+        TrackParams.JobSlope = [TrackParams.JobSlope;  TrackParams.Slope(2) ];
+        TrackParams.DropTime = [ TrackParams.DropTime;   TrackParams.RevisitRateUB(2)];
+        TrackParams.DropCost = [ TrackParams.DropCost;   TrackParams.Penalty(2) ];
     else
-        
-    end
-    
-end  
+        TrackParams.JobDuration = [TrackParams.JobDuration; TrackParams.DwellTime(3)   ];
+        TrackParams.JobSlope = [TrackParams.JobSlope;  TrackParams.Slope(3) ];
+        TrackParams.DropTime = [ TrackParams.DropTime;   TrackParams.RevisitRateUB(3)];
+        TrackParams.DropCost = [ TrackParams.DropCost;   TrackParams.Penalty(3) ];
+    end  
+end
 
 
 
-track.duration = 18e-3; % 5 ms (maybe 9 ms)
-t_drop_track = zeros(Ntrack,1);
-
-
-% Create Tiered Revisit rates
-% Tier 1 anything close by
-tier_RR = [0.5 1 4];
-% tier_RR = [RP*1,RP*2,RP*4];
-t_drop_track( truth.rangeNmi <= 50 ) = tier_RR(1); % 1 second revisit rate
-
-% Tier 2 far away and fast
-t_drop_track( truth.rangeNmi > 50 &  abs(truth.rangeRateMps) >= 100  ) = tier_RR(2); % 1 second revisit rate
-
-% Tier 3 far away and slow
-t_drop_track( truth.rangeNmi > 50 &  abs(truth.rangeRateMps) < 100  ) = tier_RR(3); % 1 second revisit rate
-
-w_track = 1./t_drop_track;
+% track.duration = 18e-3; % 5 ms (maybe 9 ms)
+% t_drop_track = zeros(Ntrack,1); 
+% 
+% % Create Tiered Revisit rates
+% % Tier 1 anything close by
+% tier_RR = [0.5 1 4];
+% % tier_RR = [RP*1,RP*2,RP*4];
+% t_drop_track( truth.rangeNmi <= 50 ) = tier_RR(1); % 1 second revisit rate
+% % Tier 2 far away and fast
+% t_drop_track( truth.rangeNmi > 50 &  abs(truth.rangeRateMps) >= 100  ) = tier_RR(2); % 1 second revisit rate
+% % Tier 3 far away and slow
+% t_drop_track( truth.rangeNmi > 50 &  abs(truth.rangeRateMps) < 100  ) = tier_RR(3); % 1 second revisit rate
+% w_track = 1./t_drop_track;
 
 plot_en = 1;
 if plot_en
     figure(1); clf; hold all; grid on;
-    tt = 0:01:3;
-    plot(tt,cost_linear(tt, SearchParams.Slope' ,0))
-    plot(tt,cost_linear(tt, 1/tier_RR(1), 0))
-    plot(tt,cost_linear(tt, 1/tier_RR(2), 0))
-    plot(tt,cost_linear(tt, 1/tier_RR(3), 0))
-    legend('Search','Track 1','Track 2', 'Track 3','Location','best')
+    tt = 0:0.1:6;
+    plot(tt,costPWlinear(tt, SearchParams.Slope' ,0, SearchParams.RevisitRateUB', SearchParams.Penalty'),'LineWidth',3)
+    plot(tt,costPWlinear(tt, TrackParams.Slope' ,0, TrackParams.RevisitRateUB', TrackParams.Penalty'),'LineWidth',3)
+
+    %     plot(tt,cost_linear(tt, 1/tier_RR(1), 0))
+%     plot(tt,cost_linear(tt, 1/tier_RR(2), 0))
+%     plot(tt,cost_linear(tt, 1/tier_RR(3), 0))
+%     legend('Search','Track 1','Track 2', 'Track 3','Location','best')
     xlabel('Time (s)')
     ylabel('Cost')
     title('Cost vs. Time')
@@ -153,6 +166,8 @@ for IterAlg = 1:length(approach_string)
         job.Id = cnt;
         job.slope = SearchParams.JobSlope(jj);
         job.StartTime = 0;
+        job.DropTime = SearchParams.DropTime(jj);
+        job.DropCost = SearchParams.DropCost(jj);
         %     job.DropTime = t_drop_search;
         %     job.DropCost = c_drop_search;
         job.Duration = SearchParams.JobDuration(jj);
@@ -161,7 +176,7 @@ for IterAlg = 1:length(approach_string)
         else % Above horizon search (AHS)
             job.Type = 'AHS';
         end
-        job.Priority = cost_linear(0,job.slope,job.StartTime); % Initially clock is 0
+        job.Priority = costPWlinear(0,job.slope,job.StartTime,job.DropTime,job.DropCost); % Initially clock is 0
         stack.push(job);
         job_master(cnt) = job; cnt = cnt + 1;
     end
@@ -170,14 +185,25 @@ for IterAlg = 1:length(approach_string)
     
     for jj = 1:Ntrack
         job.Id = cnt;
-        job.slope = w_track(jj);
+        job.slope = TrackParams.JobSlope(jj);%w_track(jj);
         job.StartTime = 0;
+        job.DropTime = TrackParams.DropTime(jj);
+        job.DropCost = TrackParams.DropCost(jj);
         %     job.DropTime = t_drop_track(jj);
         %     job.DropCost = c_drop_search;
-        job.Duration = track.duration;        
-        TrackIndex = find(w_track(jj) == unique(w_track));
-        job.Type = ['T' num2str(TrackIndex)];
-        job.Priority = cost_linear(0,job.slope,job.StartTime); % Initially clock is 0
+        job.Duration = TrackParams.JobDuration(jj);%track.duration;   
+        if job.slope == 0.25
+            job.Type = 'TLow';
+        elseif job.slope == 1
+            job.Type = 'TMed';
+        else
+            job.Type = 'THigh';
+        end
+%         TrackIndex = find(w_track(jj) == unique(w_track));
+%         job.Type = ['T' num2str(TrackIndex)];
+        job.Priority = costPWlinear(0,job.slope,job.StartTime,job.DropTime,job.DropCost); % Initially clock is 0
+
+%         job.Priority = cost_linear(0,job.slope,job.StartTime); % Initially clock is 0
         stack.push(job);
         job_master(cnt) = job; cnt = cnt + 1;
     end
@@ -221,13 +247,15 @@ for IterAlg = 1:length(approach_string)
         % Reassess Track Priorities ( Need to reshuffle jobs based on current cost
         % of each delayed task )
         for n = 1:size(job_master,2)
-            job_master(n).Priority = cost_linear(timeSec,job_master(n).slope,job_master(n).StartTime);
+            job_master(n).Priority = costPWlinear(timeSec,job_master(n).slope,job_master(n).StartTime,job_master(n).DropTime, job_master(n).DropCost  );
             if job_master(n).Priority == Inf
                 job_master(n).Priority = -Inf; % Reassign to make lower priority
             end
+            if job_master(n).Priority > 10
+%                 keyboard
+            end
         end        
-        
-        
+              
         
         
         if sum([job_master.Priority] ~= -Inf) < N 
@@ -257,9 +285,11 @@ for IterAlg = 1:length(approach_string)
         queue = job_master(1:N);
         job_master(1:N) = []; % Remove jobs being scheduled
         %     w = [queue.slope];
-        s_task = [queue.StartTime]';
-        d_task = [queue.Duration]';
-        w_task = [queue.slope]';
+        s_task      = [queue.StartTime]';
+        length_task = [queue.Duration]';
+        w_task      = [queue.slope]';
+        drop_task   = [queue.DropCost]';
+        deadline_task = [queue.DropTime]';
         %     t_drop = [queue.DropTime;
         
         
@@ -283,10 +313,24 @@ for IterAlg = 1:length(approach_string)
         end
         
         % Schedule Tasks using BB and generate relevant sampled data
+%         drop_task = zeros(N,1); deadline_task = 100*ones(N,1);
+        
+        
+        data.N = N;
+        data.K = K;
+        data.s_task = s_task;
+        data.w_task = w_task;
+        data.deadline_task = (deadline_task + s_task);
+        data.length_task = length_task;
+        data.drop_task = drop_task;
+        data.RP = RP;
+        data.ChannelAvailableTime = ChannelAvailableTime;
+        data.scheduler = 'flexdar';
+        data.timeSec = timeSec;
+        
         for i_a = 1:N_alg
                        
-            drop_task = zeros(N,1); deadline_task = 100*ones(N,1);
-            [loss,t_run,T,t_ex,ChannelAvailableTime] = PerformTaskAssignment(approach_string,IterAlg,N,K,s_task,w_task,d_task,deadline_task,drop_task,RP,ChannelAvailableTime);
+            [loss,t_run,T,t_ex,ChannelAvailableTime] = PerformTaskAssignment(approach_string,IterAlg,data);
                         
             %         [t_ex,loss,t_run,Xnow,Ynow] = fcn_search{i_a}(s_task,d_task,l_task,timeSec);
             
@@ -327,11 +371,7 @@ for IterAlg = 1:length(approach_string)
         
         job_master = [job_master, new_job];
         
-        
-        
         %     formatJobsFcn(job_master)
-        
-        
         
         %     disp( [job_master.StartTime] )
         %     disp({job_master.Type})
@@ -342,9 +382,10 @@ for IterAlg = 1:length(approach_string)
         truth.rangeNmi = ( pos + (timeSec + RP)*vel ) /1852;
         
         
-        iter = iter + 1;
-        
+        iter = iter + 1;        
     end
+    loss_mc(iter:end,:) = []; % Remove extra entries
+    t_run_mc(iter:end,:) = [];
     
     TimeElapsed(IterAlg) = toc(tstart);
     
@@ -433,7 +474,12 @@ for IterAlg = 1:length(approach_string)
     xlim([0 aa(2)]);
     xpos = aa(2)*.25;
     ypos = (aa(4) - aa(3))*.25 + aa(3);
-    text(AvgSurvFrameTime,LastSearchId,['Avg. Surv. Frame Time = ' num2str(AvgSurvFrameTime) '\rightarrow'],'LineWidth',6,'HorizontalAlignment','right')
+%     text(AvgSurvFrameTime,LastSearchId,['Avg. Surv. Frame Time = ' num2str(AvgSurvFrameTime) '\rightarrow'],'LineWidth',6,'HorizontalAlignment','right')
+    for nn = 1:length(metrics.UniqueJobTypes) 
+        SearchId(nn) = find( strcmp( metrics.JobType,   metrics.UniqueJobTypes{nn}),1,'last');      
+        text(metrics.JobTypeRR(nn), SearchId(nn)  ,[metrics.UniqueJobTypes{nn} ' = '  num2str(metrics.JobTypeRR(nn)) '\rightarrow'],'LineWidth',6,'HorizontalAlignment','right')
+    end
+    
     title(sprintf('Job Revisit Rate %s \n Utility = %0.2f,  Penalty = %0.2f',approach_string{IterAlg},TotalUtility,TotalPenalty))
     legend('Achieved Rate','Desired Rate')
     pretty_plot(gcf)
@@ -468,7 +514,7 @@ shape = 'oxsd';
 time_vec = TimeElapsed./(iter-1)*1000;
 % time_vec = [0.547488 3.0350  27.202844]/51*1000;
 
-figure(6); clf;
+figure(106); clf;
 hold all; grid on
 for jj = 1:length(approach_string)
     plot(time_vec(jj),-penalty_vec(jj),shape(jj),'MarkerSize',10,'LineWidth',3)
@@ -488,11 +534,11 @@ if FLAG.save
 end
 
 
-figure(7); clf;
+figure(107); clf;
 AvgCost = mean(loss_mc);
-for jj = 1:size(loss_mc,2)
-    AvgCost(jj) = mean( loss_mc( loss_mc(:,jj) > 0,jj));
-end
+% for jj = 1:size(loss_mc,2)
+%     AvgCost(jj) = mean( loss_mc( loss_mc(:,jj) > 0,jj));
+% end
 AvgTime = mean(t_run_mc)*1000;
 clf;
 hold all; grid on

@@ -1,24 +1,28 @@
-function [loss,t_run,T,t_ex,ChannelAvailableTime] = PerformTaskAssignment(approach_string,IterAlg,N,K,s_task,w_task,d_task,deadline_task,drop_task,RP,ChannelAvailableTime)
+function [loss,t_run,T,t_ex,ChannelAvailableTime] = PerformTaskAssignment(approach_string,IterAlg,data)
 
+
+K = data.K;
+ChannelAvailableTime = data.ChannelAvailableTime;
+timeSec = data.timeSec;
 
 switch approach_string{IterAlg}
     case 'EST'
         t_ES = tic;
-        [~,T] = sort(s_task); % Sort jobs based on starting times
-        [loss,t_ex,ChannelAvailableTime] = FlexDARMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime,RP);
-        %                     [loss,t_ex,ChannelAvailableTime] = FunctionMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime);
+        [loss,t_ex,NumDropTask,T,ChannelAvailableTime] = ESTalgorithm(data);
         t_run = toc(t_ES);
-        %                     [t_ex,loss,t_run] = fcn_ES_linear(s_task,d_task,w_task,timeSec);
     case 'BB'
+       
         if K == 1 && abs( ChannelAvailableTime(1)  - timeSec ) > 1e-4
             %                         keyboard
         end
         
         t_BB = tic;
-        [T,~,~] = BBschedulerQueueVersion(K,s_task,deadline_task,d_task,drop_task,w_task,ChannelAvailableTime);
+        [loss,t_ex,NumDropTask,T,ChannelAvailableTime] = BbQueueAlgorithm(data);
+        
+%         [T,~,~] = BBschedulerQueueVersion(K,s_task,deadline_task,d_task,drop_task,w_task,ChannelAvailableTime);
         %                     [t_ex,loss2] = fcn_BB_NN_linear_FAST(s_task,d_task,w_task,mode_stack,timeSec);
         %                     [~,T2] = sort(t_ex);
-        [loss,t_ex,ChannelAvailableTime] = FlexDARMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime,RP);
+%         [loss,t_ex,ChannelAvailableTime] = FlexDARMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime,RP);
         %                     [loss,t_ex,ChannelAvailableTime] = FunctionMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,d_task,drop_task,ChannelAvailableTime);
         t_run = toc(t_BB);
         %                     [t_ex,loss,t_run,Xnow,Ynow] = fcn_BB_NN_linear(s_task,d_task,w_task,mode_stack,timeSec);

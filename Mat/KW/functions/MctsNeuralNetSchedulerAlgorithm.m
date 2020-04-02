@@ -1,4 +1,4 @@
-function [Cost,t_ex,NumDropTask,T] = MctsNeuralNetSchedulerAlgorithm(data,net,MONTE)
+function [Cost,t_ex,NumDropTask,T,ChannelAvailableTime] = MctsNeuralNetSchedulerAlgorithm(data,net,MONTE)
 
 % Earliest Deadline Algorithm
 % Takes tasks in data and assigns them to timeline using the Earliest deadline.
@@ -19,7 +19,8 @@ w_task = data.w_task; % Weights of tasks. Bigger --> higher priority
 deadline_task = data.deadline_task; % When task will be dropped
 length_task = data.length_task; % How long tasks takes to complete
 drop_task = data.drop_task; % Penalty for dropping task
-
+RP = data.RP;
+ChannelAvailableTime = data.ChannelAvailableTime;
 
 %% MCTS
 N = length(s_task);
@@ -107,7 +108,7 @@ while ~isempty(S.ND) % Proceed if base-node ND set is not empty
             
             % Selection
             RN = rand;
-            TempIndex = find( RN > cumsum(apriori),1,'first');
+            TempIndex = find( RN > cumsum(apriori),1,'last');
             if isempty(TempIndex)
                 SelectionIndex = task_index(1);
             else
@@ -170,8 +171,11 @@ end
 %% Evaluate the Cost and pass out the sequence
 T = S.T;
 
-
-[Cost,t_ex,NumDropTask] = MultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task);
+if ~strcmpi(data.scheduler,'flexdar')    
+    [Cost,t_ex,NumDropTask] = MultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task);
+else
+    [Cost,t_ex,ChannelAvailableTime,NumDropTask] = FlexDARMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task,ChannelAvailableTime,RP);
+end
 
 
 %% Old Stuff

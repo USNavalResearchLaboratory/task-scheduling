@@ -1,5 +1,8 @@
 function [C,t_ex,NumDropTask] = MultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task)
 
+% Code is deprecated. Why?? Because it always sets ChannelAvailableTime to
+% zero. Not good. Use "FunctionMultiChannelSequenceScheduler" instead.
+
 % This function takes a sequence given by T = [1, 2, 3, 6, 3, ... ] and
 % associated job starting times, tardiness weights, deadlines, durations,
 % and dropping casts and places this sequence onto K parallel machines 

@@ -1,4 +1,4 @@
-function [Cost,t_ex,NumDropTask,T] = MctsAlgorithm(data,MONTE)
+function [Cost,t_ex,NumDropTask,T,ChannelAvailableTime] = MctsAlgorithm(data,MONTE)
 
 % Earliest Deadline Algorithm
 % Takes tasks in data and assigns them to timeline using the Earliest deadline.
@@ -19,7 +19,8 @@ w_task = data.w_task; % Weights of tasks. Bigger --> higher priority
 deadline_task = data.deadline_task; % When task will be dropped
 length_task = data.length_task; % How long tasks takes to complete
 drop_task = data.drop_task; % Penalty for dropping task
-
+RP = data.RP;
+ChannelAvailableTime = data.ChannelAvailableTime;
 
 %% MCTS
 N = length(s_task);
@@ -130,7 +131,12 @@ end
 T = S.T;
 
 
-[Cost,t_ex,NumDropTask] = MultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task);
+if ~strcmpi(data.scheduler,'flexdar')    
+    [Cost,t_ex,NumDropTask] = MultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task);
+else
+    [Cost,t_ex,ChannelAvailableTime,NumDropTask] = FlexDARMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task,ChannelAvailableTime,RP);
+end
+
 
 
 %% Old Stuff

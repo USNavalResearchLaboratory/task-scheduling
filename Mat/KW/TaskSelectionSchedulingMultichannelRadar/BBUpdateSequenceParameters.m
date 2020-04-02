@@ -2,9 +2,9 @@ function [t_ex,x,ChannelAvailableTime,ChannelAssignment] = BBUpdateSequenceParam
 
 % This function takes a sequence given by T = [1, 2, 3, 6, 3, ... ] and
 % associated job starting times, tardiness weights, deadlines, durations,
-% and dropping casts and places this sequence onto K parallel machines 
+% and dropping casts and places this sequence onto K parallel machines
 %
-% Outputs: 
+% Outputs:
 % C - cost associated with sequence as executed
 % t_ex - time of each jobs execution
 % Number of dropped tasks
@@ -32,8 +32,13 @@ if x(curJobId) == 1 % Job is Scheduled update timeline, otherwise timeline can b
     % Update Channels time availability
     ChannelAvailableTime(SelectedChannel) = t_ex(curJobId) + length_task(curJobId);
     ChannelAssignment( curJobId ) = SelectedChannel;
-    %     else
-    %         keyboard
+else    
+%     keyboard 
+    ChannelAssignment( curJobId ) = SelectedChannel;  % Task is dropped, but still update selectedChannel for active schedule checker KW 3/30/20  
+    % Future update. Really dropped task bumps other tasks. Can handle this
+    % in assignment to timeline. Don't update channelavailable time and
+    % remove task all together is how it should be handled. Need adjusted.
+    % Currently a band-aid approach.
 end
 % end
 

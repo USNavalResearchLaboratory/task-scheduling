@@ -51,6 +51,10 @@ for ii = 1:length(T)
         %     else
 %         keyboard
     end   
+%     if x(curJobId) == 0 
+%         keyboard
+%     end
+    
 end
 
 % x = (t_ex < deadline_task); % x represent whether tasks have been scheduled (1) or dropped (0)

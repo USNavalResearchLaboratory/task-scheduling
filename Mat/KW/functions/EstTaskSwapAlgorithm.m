@@ -1,4 +1,4 @@
-function [Cost,t_ex,NumDropTask,T] = EstTaskSwapAlgorithm(data)
+function [Cost,t_ex,NumDropTask,T,ChannelAvailableTime] = EstTaskSwapAlgorithm(data)
 
 % Earliest Start Time Algorithm
 % Takes tasks in data and assigns them to timeline using the EST algorithm.
@@ -21,15 +21,20 @@ w_task = data.w_task; % Weights of tasks. Bigger --> higher priority
 deadline_task = data.deadline_task; % When task will be dropped
 length_task = data.length_task; % How long tasks takes to complete
 drop_task = data.drop_task; % Penalty for dropping task
+RP = data.RP;
+ChannelAvailableTime = data.ChannelAvailableTime;
 
 
 
 [~,T] = sort(s_task); % Sort jobs based on starting times
 
 % Assign those tasks to a timeline.
-[Cost,t_ex,NumDropTask] = MultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task);
+if ~strcmpi(data.scheduler,'flexdar')
+    [Cost,t_ex,NumDropTask] = MultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task);
 %         [T,Cost.EST(monte,cnt.N),t_ex,NumDropTask] = EST_MultiChannel(N,K,s_task,w_task,deadline_task,length_task,drop_task);
-
+else
+    [Cost,t_ex,ChannelAvailableTime,NumDropTask] = FlexDARMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task,ChannelAvailableTime,RP);    
+end
 
 % Perform Task Swapping for EST
 if NumDropTask > 0
@@ -38,14 +43,26 @@ if NumDropTask > 0
         T1 = T(jj);
         T2 = T(jj+1);
         Tswap(jj) = T2;
-        Tswap(jj+1) = T1;
-        [~,t_ex] = MultiChannelSequenceScheduler(Tswap,N,K,s_task,w_task,deadline_task,length_task,drop_task);
+        Tswap(jj+1) = T1;        
+        if ~strcmpi(data.scheduler,'flexdar')
+            [~,t_ex] = MultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task);
+        else
+            [~,t_ex] = FlexDARMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task,ChannelAvailableTime,RP);
+        end        
+%         [~,t_ex] = MultiChannelSequenceScheduler(Tswap,N,K,s_task,w_task,deadline_task,length_task,drop_task);
         if sum( t_ex < deadline_task ) == N
             T = Tswap;
+            keyboard
             break
         end
     end
-    [Cost,t_ex,NumDropTask] = MultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task);
+    if ~strcmpi(data.scheduler,'flexdar')
+        [Cost,t_ex,NumDropTask] = MultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task);
+    else
+        [Cost,t_ex,ChannelAvailableTime,NumDropTask] = FlexDARMultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task,ChannelAvailableTime,RP);
+    end
+    
+%     [Cost,t_ex,NumDropTask] = MultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task);
 %     DropPercent.EstSwap(monte,cnt.N) = NumDropTask/N;
 %     RunTime.EstSwap(monte,cnt.N) = toc;
 else
