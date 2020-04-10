@@ -48,7 +48,8 @@ for ii = 1:length(T)
     if x(curJobId) == 1 % Job is Scheduled update timeline, otherwise timeline can be used for another task      
         % Update Channels time availability
         ChannelAvailableTime(SelectedChannel) = t_ex(curJobId) + length_task(curJobId);        
-        %     else
+    else % Still place on timeline. Delay penalty is captured in cost function line 62. KW 4/02/2020
+        ChannelAvailableTime(SelectedChannel) = t_ex(curJobId) + length_task(curJobId);
 %         keyboard
     end   
 %     if x(curJobId) == 0 

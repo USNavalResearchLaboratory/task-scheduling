@@ -19,9 +19,22 @@ length_task = data.length_task; % How long tasks takes to complete
 drop_task = data.drop_task; % Penalty for dropping task
 RP = data.RP;
 ChannelAvailableTime = data.ChannelAvailableTime;
+net = data.net;
+curTime = data.timeSec;
 
-PF(1,:) = s_task;
-PF(2,:) = deadline_task;
+refTime = min(s_task); % Used to rescale time for all tasks. 
+    % NN is not trained for large values of start time
+
+Priority = costPWlinear(curTime,w_task,s_task,deadline_task, drop_task  );
+Priority2 = costPWlinear(curTime-refTime,w_task,s_task-refTime,deadline_task-refTime, drop_task  );
+AA = sum(Priority - Priority2);
+if abs(AA) > 1e-3 
+    keyboard
+end
+
+PF(1,:) = s_task - refTime; % Start time of task
+% PF(1,:) = s_task;
+PF(2,:) = deadline_task - refTime;
 PF(3,:) = length_task;
 PF(4,:) = drop_task;
 PF(5,:) = w_task;

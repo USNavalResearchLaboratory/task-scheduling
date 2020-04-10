@@ -20,21 +20,27 @@ addpath('./functions/')
 addpath('./TaskSelectionSchedulingMultichannelRadar/')
 
 
-approach_string{1} = 'EST';
-approach_string{2} = 'BB';
+cnt_apr = 1;
+approach_string{cnt_apr} = 'EST'; cnt_apr = cnt_apr + 1;
+% approach_string{cnt_apr} = 'BB'; cnt_apr = cnt_apr + 1;
+% approach_string{cnt_apr} = 'ED'; cnt_apr = cnt_apr + 1;
+% approach_string{cnt_apr} = 'NN'; cnt_apr = cnt_apr + 1;
+
+
 % approach_string{2} = 'NN_Single';
 % approach_string{2} = 'MCTS';
 % approach_string{3} = 'NN'; % BB, EST, NN
 % approach_string{3} = 'BB';
 
 K = 1; % Number of timelines
+N = 4;
 
 
 %% Setup Supervised Learning Function
 
 mode_stack = 'LIFO';
 RP = 0.040; % Resourse Period in ms
-Tmax = 30; % Maximum time of simulation in secondes
+Tmax = 50; % Maximum time of simulation in secondes
 
 %% Generate Search Tasks
 SearchParams.NbeamsPerRow = [28 29 14 9 10 9 8 7 6];
@@ -59,7 +65,7 @@ end
 
 
 %% Generate Track Tasks
-Ntrack = 20;
+Ntrack = 0;
 
 % Spawn tracks with uniformly distributed ranges and velocity
 MaxRangeNmi = 200; %
@@ -71,7 +77,7 @@ truth.rangeRateMps = 2*MaxRangeRateMps*rand(Ntrack,1) - MaxRangeRateMps ;
 
 TrackParams.DwellTime = [18 18 18]*1e-3;
 TrackParams.RevisitRate = [0.5 1 4];
-TrackParams.RevisitRateUB = TrackParams.RevisitRate  + 0.01;
+TrackParams.RevisitRateUB = TrackParams.RevisitRate  + 0.1;
 TrackParams.Penalty = 100*ones(size(TrackParams.DwellTime));
 TrackParams.Slope = 1./TrackParams.RevisitRate;
 TrackParams.JobDuration = [];
@@ -131,7 +137,6 @@ if plot_en
 end
 
 
-N = 4;
 
 loss_mc = zeros(Tmax/(RP/K),length(approach_string));
 t_run_mc = zeros(Tmax/(RP/K),length(approach_string));
@@ -141,24 +146,39 @@ TaskExecution = zeros(N,Tmax/(RP/K),length(approach_string));
 ChannelRecord = zeros(K,Tmax/(RP/K),length(approach_string));
 
 % Load Required Neural Network
+net = [];
 NNstring = sprintf('./NN_REPO/net_task_%i_K_%i_FINAL.mat',N,K);
 if any(strcmpi(approach_string,'NN_single'))
     load(NNstring)
 elseif any(strcmpi( approach_string ,'NN_Multiple'))
     load('./NN_REPO/net_task_8_K_2_FINAL.mat')
 elseif any(strcmpi(approach_string,'MCTS'))
-    load(NNstring)    
+    load(NNstring)  
+elseif any(strcmpi(approach_string,'NN'))
+%     NNstring = './NN_REPO/net_task_4_K_1_Filter16_20200409T163534.mat';   
+    NNstring = './NN_REPO/net_task_4_K_1_Filter16_20200409T192710.mat';
+    load(NNstring)
 end
+
+data.net = net;
 
 
 for IterAlg = 1:length(approach_string)
+    
+    RECORD(IterAlg).s_task = [];
+    RECORD(IterAlg).w_task = [];
+    RECORD(IterAlg).deadline_task = [];
+    RECORD(IterAlg).length_task = [];
+    RECORD(IterAlg).drop_task = [];
+    RECORD(IterAlg).ChannelAvailableTime = [];
+    RECORD(IterAlg).timeSec = [];
     
     %% Generate Data to be scheduled in each dwell
     
     % Initialize master stack
     % stack=java.util.Stack();
     stack = Rstack();
-    job = struct('Id',0,'slope',[],'StartTime',0,'DropTime',[],'DropCost',0,'Duration',0,'Type',[],'Priority',0); % Place Holder for Job Description
+    job = struct('Id',0,'slope',[],'StartTime',0,'DropTime',[],'DropRelativeTime',[],'DropCost',0,'Duration',0,'Type',[],'Priority',0); % Place Holder for Job Description
     job_master = job;
     
     cnt = 1;
@@ -167,6 +187,7 @@ for IterAlg = 1:length(approach_string)
         job.slope = SearchParams.JobSlope(jj);
         job.StartTime = 0;
         job.DropTime = SearchParams.DropTime(jj);
+        job.DropRelativeTime = SearchParams.DropTime(jj) + job.StartTime; % Drop time relative to start time
         job.DropCost = SearchParams.DropCost(jj);
         %     job.DropTime = t_drop_search;
         %     job.DropCost = c_drop_search;
@@ -176,7 +197,7 @@ for IterAlg = 1:length(approach_string)
         else % Above horizon search (AHS)
             job.Type = 'AHS';
         end
-        job.Priority = costPWlinear(0,job.slope,job.StartTime,job.DropTime,job.DropCost); % Initially clock is 0
+        job.Priority = costPWlinear(0,job.slope,job.StartTime,job.DropRelativeTime,job.DropCost); % Initially clock is 0
         stack.push(job);
         job_master(cnt) = job; cnt = cnt + 1;
     end
@@ -188,6 +209,7 @@ for IterAlg = 1:length(approach_string)
         job.slope = TrackParams.JobSlope(jj);%w_track(jj);
         job.StartTime = 0;
         job.DropTime = TrackParams.DropTime(jj);
+        job.DropRelativeTime = TrackParams.DropTime(jj) + job.StartTime; % Drop time relative to start time
         job.DropCost = TrackParams.DropCost(jj);
         %     job.DropTime = t_drop_track(jj);
         %     job.DropCost = c_drop_search;
@@ -201,7 +223,7 @@ for IterAlg = 1:length(approach_string)
         end
 %         TrackIndex = find(w_track(jj) == unique(w_track));
 %         job.Type = ['T' num2str(TrackIndex)];
-        job.Priority = costPWlinear(0,job.slope,job.StartTime,job.DropTime,job.DropCost); % Initially clock is 0
+        job.Priority = costPWlinear(0,job.slope,job.StartTime,job.DropRelativeTime,job.DropCost); % Initially clock is 0
 
 %         job.Priority = cost_linear(0,job.slope,job.StartTime); % Initially clock is 0
         stack.push(job);
@@ -209,6 +231,12 @@ for IterAlg = 1:length(approach_string)
     end
     
     
+    
+%     Capacity = sum([job_master.slope].*[job_master.Duration]);
+    Capacity = sum([job_master.slope].*round([job_master.Duration]/(RP/2))*RP/2);
+    
+    fprintf('Timeline Capacity: %f \n\n',Capacity)
+
     
     %% Begin Simulation Loop
     % Specify number of task to process at any given time
@@ -247,7 +275,7 @@ for IterAlg = 1:length(approach_string)
         % Reassess Track Priorities ( Need to reshuffle jobs based on current cost
         % of each delayed task )
         for n = 1:size(job_master,2)
-            job_master(n).Priority = costPWlinear(timeSec,job_master(n).slope,job_master(n).StartTime,job_master(n).DropTime, job_master(n).DropCost  );
+            job_master(n).Priority = costPWlinear(timeSec,job_master(n).slope,job_master(n).StartTime,job_master(n).DropRelativeTime, job_master(n).DropCost  );
             if job_master(n).Priority == Inf
                 job_master(n).Priority = -Inf; % Reassign to make lower priority
             end
@@ -289,7 +317,7 @@ for IterAlg = 1:length(approach_string)
         length_task = [queue.Duration]';
         w_task      = [queue.slope]';
         drop_task   = [queue.DropCost]';
-        deadline_task = [queue.DropTime]';
+        deadline_task = [queue.DropRelativeTime]';
         %     t_drop = [queue.DropTime;
         
         
@@ -320,13 +348,24 @@ for IterAlg = 1:length(approach_string)
         data.K = K;
         data.s_task = s_task;
         data.w_task = w_task;
-        data.deadline_task = (deadline_task + s_task);
+        data.deadline_task = deadline_task; %(deadline_task + s_task); % Updated so it's relative to release time already 09APR2020
         data.length_task = length_task;
         data.drop_task = drop_task;
         data.RP = RP;
         data.ChannelAvailableTime = ChannelAvailableTime;
         data.scheduler = 'flexdar';
         data.timeSec = timeSec;
+        
+        RECORD(IterAlg).s_task = [RECORD(IterAlg).s_task s_task];
+        RECORD(IterAlg).w_task = [RECORD(IterAlg).w_task w_task];
+        RECORD(IterAlg).deadline_task = [RECORD(IterAlg).deadline_task deadline_task];
+        RECORD(IterAlg).length_task = [RECORD(IterAlg).length_task length_task];
+        RECORD(IterAlg).drop_task = [RECORD(IterAlg).drop_task drop_task];
+        RECORD(IterAlg).ChannelAvailableTime = [RECORD(IterAlg).ChannelAvailableTime ChannelAvailableTime];
+        RECORD(IterAlg).timeSec = [RECORD(IterAlg).timeSec timeSec];
+%         RECORD.drop_task = [record.drop_task drop_task];
+%         RECORD.drop_task = [record.drop_task drop_task];
+
         
         for i_a = 1:N_alg
                        
@@ -353,13 +392,14 @@ for IterAlg = 1:length(approach_string)
         
         [~,sortIdx] = sort(t_ex);
         
-        new_job = struct('Id',0,'slope',[],'StartTime',0,'DropTime',[],'DropCost',0,'Duration',0,'Type',[],'Priority',0); % Place Holder for Job Description
+        new_job = struct('Id',0,'slope',[],'StartTime',0,'DropTime',[],'DropRelativeTime',[],'DropCost',0,'Duration',0,'Type',[],'Priority',0); % Place Holder for Job Description
         
         for n = 1:N
             new_job(n).Id = queue(sortIdx(n)).Id;
             new_job(n).StartTime = t_ex(sortIdx(n)) + queue(sortIdx(n)).Duration ;
             new_job(n).slope = queue(sortIdx(n)).slope;
             new_job(n).DropTime = queue(sortIdx(n)).DropTime;
+            new_job(n).DropRelativeTime = queue(sortIdx(n)).DropTime + new_job(n).StartTime; % Update with new start time and job DropTime           
             new_job(n).DropCost = queue(sortIdx(n)).DropCost;
             new_job(n).Duration = queue(sortIdx(n)).Duration;
             new_job(n).Type = queue(sortIdx(n)).Type;
@@ -429,7 +469,10 @@ for IterAlg = 1:length(approach_string)
     
     
     
-    figure(2 + (IterAlg-1)*4); clf;
+%     figure(2 + (IterAlg-1)*4); clf;
+    figure(2);
+    subplot(length(approach_string),1,IterAlg)
+
     % subplot(2,2,1)
     hold all; grid on;
     plot(occupancy.search)
@@ -461,7 +504,9 @@ for IterAlg = 1:length(approach_string)
         saveas(gcf,[fname '.epsc'])
     end
     
-    figure(4 + (IterAlg-1)*4); clf;
+%     figure(4 + (IterAlg-1)*4); clf;
+    figure(4); 
+    subplot(length(approach_string),1,IterAlg)
     % subplot(2,2,[3]);
     cla; hold all;
     plot(metrics.RevisitRate,[1:size(metrics.RevisitRate,2)],'bd','MarkerSize',8,'LineWidth',3)
@@ -489,18 +534,20 @@ for IterAlg = 1:length(approach_string)
         saveas(gcf,[fname '.epsc'])
     end
     
-    figure(5 + (IterAlg-1)*4); clf;
-    % subplot(2,2,4);
-    cla;
-    plot([job_master.slope],[job_master.Id],'o')
-    xlabel('Cost Slope')
-    ylabel('Job Id')
-    title(['Final Job Priority: ' approach_string{IterAlg}])
-    pretty_plot(gcf)
-    if FLAG.save
-        fname = ['.\Figures\' approach_string{IterAlg} '_Job_Priority'];
-        saveas(gcf,[fname '.fig'])
-        saveas(gcf,[fname '.epsc'])
+    if IterAlg == 1
+        figure(5 + (IterAlg-1)*4); clf;
+        % subplot(2,2,4);
+        cla;
+        plot([job_master.slope],[job_master.Id],'o')
+        xlabel('Cost Slope')
+        ylabel('Job Id')
+        title(['Final Job Priority: ' approach_string{IterAlg}])
+        pretty_plot(gcf)
+        if FLAG.save
+            fname = ['.\Figures\' approach_string{IterAlg} '_Job_Priority'];
+            saveas(gcf,[fname '.fig'])
+            saveas(gcf,[fname '.epsc'])
+        end
     end
 end
 
@@ -524,7 +571,7 @@ end
 legend(leg_str,'Location','best')
 ylabel('Cumulative Penalty')
 xlabel('Computation Time (ms)')
-title('Computation Time vs. Penalty (Closer to 0 \rightarrow Better Performance)')
+title({'Radar Performance Metric', 'Computation Time vs. Penalty (Closer to 0 \rightarrow Better Performance)'})
 
 pretty_plot(gcf)
 if FLAG.save
@@ -550,7 +597,7 @@ end
 legend(leg_str,'Location','best')
 ylabel('Cost')
 xlabel('Computation Time (ms)')
-title('Computation Time vs. Cost')
+title({'N Task Scheduling Cost','Computation Time vs. Cost'})
 
 pretty_plot(gcf)
 if FLAG.save
@@ -559,7 +606,40 @@ if FLAG.save
     saveas(gcf,[fname '.epsc'])
 end
 
+figure(108); clf;
+b = ones(10,1)/10;
+for IterAlg = 1:length(approach_string)
+    A(:,IterAlg) = conv(loss_mc(:,IterAlg),b);
+end
+plot(A); grid on;
+xlabel('Iteration')
+ylabel('Smoothed Loss')
+title('Smoothed Scheduling Loss vs. Iteration')
+legend(approach_string)
+pretty_plot(gcf)
 
+%% Diagnostic plots
+DIAG = 0; 
+if DIAG == 1
+    figure(109); clf;
+    BB = RECORD(2).s_task - min(RECORD(2).s_task);
+    hist( BB(:) ,100 )
+    title('Distribution of Release Times vs. Minimum Release Time')
+    
+    figure(110); clf;
+    CC = RECORD(2).deadline_task - min(RECORD(2).s_task);
+    hist( CC(:) ,100 )
+    title('Distribution of Deadlines vs. Minimum Release Time')
+    
+    figure(111); clf;
+    hist( RECORD(2).w_task(1,:),100)
+    title('Distribution of Weights')
+    
+    figure(112); clf;
+    hist( RECORD(2).length_task(1,:),100)
+    title('Distribution of Task Lengths')
+
+end 
 
 %%
 

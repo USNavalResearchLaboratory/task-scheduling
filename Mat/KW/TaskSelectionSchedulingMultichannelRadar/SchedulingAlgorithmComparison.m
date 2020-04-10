@@ -37,6 +37,7 @@ for N = N_vec
     
     NNstring = sprintf('net_task_%i_K_%i_FINAL.mat',N,K);
     load(NNstring);
+    data.net = net;
     for monte = 1:MONTE
         
         if mod(monte,1) == 0
@@ -149,7 +150,7 @@ for N = N_vec
         
         % Policy Neural Net Implementation
         tic
-        [Cost.NN(monte,cnt.N),t_ex,NumDropTask,T] = NeuralNetSchedulerAlgorithm(data,net);
+        [Cost.NN(monte,cnt.N),t_ex,NumDropTask,T] = NeuralNetSchedulerAlgorithm(data);
         DropPercent.NN(monte,cnt.N) = NumDropTask/N;
         RunTime.NN(monte,cnt.N) = toc;
                 

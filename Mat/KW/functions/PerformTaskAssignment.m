@@ -10,6 +10,14 @@ switch approach_string{IterAlg}
         t_ES = tic;
         [loss,t_ex,NumDropTask,T,ChannelAvailableTime] = ESTalgorithm(data);
         t_run = toc(t_ES);
+    case 'ED'
+        tstart = tic;
+        [loss,t_ex,NumDropTask,T,ChannelAvailableTime] = EdAlgorithm(data);
+        t_run = toc(tstart);
+    case 'NN'
+        tstart = tic;
+        [loss,t_ex,NumDropTask,T,ChannelAvailableTime] = NeuralNetSchedulerAlgorithm(data);
+        t_run = toc(tstart);        
     case 'BB'
        
         if K == 1 && abs( ChannelAvailableTime(1)  - timeSec ) > 1e-4

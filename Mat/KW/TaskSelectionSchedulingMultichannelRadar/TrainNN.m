@@ -185,7 +185,7 @@ for N = N_vec
 
         CutOff = round(1000/N); % Number of branches to generate data for (smaller yeilds more monte carlos)
 
-        [Xnow,Ynow] = SupervisedLearningDataGeneration(NodeStats,NodeParams(1),K,CutOff);
+        [Xnow,Ynow] = SupervisedLearningDataGenerationNN(NodeStats,NodeParams(1),K,CutOff);
         X = cat(3,X,Xnow);
 %         X = [X; Xnow];
         Y = [Y; Ynow];
