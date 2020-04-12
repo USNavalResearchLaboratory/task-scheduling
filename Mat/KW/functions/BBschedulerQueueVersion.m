@@ -170,8 +170,17 @@ while ~isempty(S)
         
         
         [t_ex,x,ChannelAvailableTimeProposed,TaskChannel] = BBMultiChannelSequenceScheduler(T,s_task,deadline_task,length_task,curTime);
+        DRcurrent = [];
+        for ii = 1:length(T)
+            curJobId = T(ii);
+            if x(curJobId) == 0
+                DRcurrent = [DRcurrent; curJobId]; % Drop current task too
+            end
+        end
         
-        C = sum( w_task(T).*(t_ex(T) - s_task(T)) )  + sum( drop_task(DR) ) ;
+        C = sum( w_task(T).*(t_ex(T) - s_task(T)) )  + sum( drop_task(DR) ) + sum(drop_task(DRcurrent)) ;
+%         C = sum( x.*w_task.*(t_ex - s_task) + (1 - x).*drop_task);
+        
         if isempty(NS) && C < UB
             UB = C;
             Tstar = T;

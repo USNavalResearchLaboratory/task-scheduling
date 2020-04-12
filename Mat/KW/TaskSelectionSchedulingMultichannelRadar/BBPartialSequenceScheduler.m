@@ -37,7 +37,10 @@ for ii = L-1:L
         % Update Channels time availability
         ChannelAvailableTime(SelectedChannel) = t_ex(curJobId) + length_task(curJobId);    
         TaskChannel( curJobId ) = SelectedChannel;
-%     else
+    else
+        TaskChannel( curJobId ) = SelectedChannel;  % Task is dropped, but still update selectedChannel for active schedule checker KW 3/30/20
+        ChannelAvailableTime(SelectedChannel) = t_ex(curJobId) + length_task(curJobId);    
+
 %         keyboard
     end   
 end

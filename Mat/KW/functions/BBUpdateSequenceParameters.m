@@ -32,8 +32,8 @@ if x(curJobId) == 1 % Job is Scheduled update timeline, otherwise timeline can b
     % Update Channels time availability
     ChannelAvailableTime(SelectedChannel) = t_ex(curJobId) + length_task(curJobId);
     ChannelAssignment( curJobId ) = SelectedChannel;
-    %     else
-    %         keyboard
+        else
+            keyboard
 end
 % end
 

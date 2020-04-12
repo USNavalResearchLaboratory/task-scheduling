@@ -35,6 +35,8 @@ if x(curJobId) == 1 % Job is Scheduled update timeline, otherwise timeline can b
 else    
 %     keyboard 
     ChannelAssignment( curJobId ) = SelectedChannel;  % Task is dropped, but still update selectedChannel for active schedule checker KW 3/30/20  
+    ChannelAvailableTime(SelectedChannel) = t_ex(curJobId) + length_task(curJobId);
+
     % Future update. Really dropped task bumps other tasks. Can handle this
     % in assignment to timeline. Don't update channelavailable time and
     % remove task all together is how it should be handled. Need adjusted.

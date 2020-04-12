@@ -32,7 +32,9 @@ for ii = 1:L
         % Update Channels time availability
         ChannelAvailableTime(SelectedChannel) = t_ex(curJobId) + length_task(curJobId);    
         TaskChannel( curJobId ) = SelectedChannel;
-%     else
+    else
+        ChannelAvailableTime(SelectedChannel) = t_ex(curJobId) + length_task(curJobId);    
+        TaskChannel( curJobId ) = SelectedChannel;
 %         keyboard
     end   
 end

@@ -38,7 +38,8 @@ for ii = 1:length(T)
     if x(curJobId) == 1 % Job is Scheduled update timeline, otherwise timeline can be used for another task      
         % Update Channels time availability
         ChannelAvailableTime(SelectedChannel) = t_ex(curJobId) + length_task(curJobId);        
-%     else
+    else
+        ChannelAvailableTime(SelectedChannel) = t_ex(curJobId) + length_task(curJobId);
 %         keyboard
     end   
 end

@@ -132,12 +132,9 @@ while ~isempty(S)
                 Tactive = [PartialSchedule; curTask; Tprime(end)];
                 %                     ChannelSelected = TaskChannel(Tprime(end));
                 
-                [t_active] = BBPartialSequenceScheduler(t_partial,x_partial,Tactive,s_task,deadline_task,length_task,ChannelAvailableTimePartial,PartialChannelAssignment,ChannelSelected);
-                
+                [t_active] = BBPartialSequenceScheduler(t_partial,x_partial,Tactive,s_task,deadline_task,length_task,ChannelAvailableTimePartial,PartialChannelAssignment,ChannelSelected);               
                 
                 %                     [t_active] = BBActiveSequenceScheduler(Tactive,s_task,deadline_task,length_task,ChannelAvailableTimeInput,ChannelSelected);
-                
-                
                 if t_active(Tprime(end)) <= t_ex(Tprime(end))   %( s_task(curTask) + length_task(curTask) ) < t_ex(Tprime(end))
                     active_flag = 0; %
                     %                     keyboard

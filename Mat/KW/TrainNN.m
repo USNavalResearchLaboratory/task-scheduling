@@ -67,7 +67,9 @@ for N = N_vec
         end
         
         if FLAG.constrained
+            R = rand([N,1]);            
             s_task = rand(N,1)*4; % Starting time of tasks
+            s_task(R<0.5) = 0; % Most of the time the start times are the same
 %             s_task = rand(N,1)*0.001;
             viable_task = 6*rand(N,1); % Difference between deadline d_n and starting time s_n
             deadline_task = viable_task + s_task; % Task deadline equal to the starting time + viablity window of each task
@@ -77,7 +79,7 @@ for N = N_vec
             drop_task = 100*ones(N,1);%0*( rand(N,1)*400 + 100 ); % Dropping cost of each task
             
             %         w_task = rand(N,1)*4 + 1;   % Tardiness penalty of each task
-            w_task = randi(10,[N,1]);
+            w_task = randi(20,[N,1])/20;
         else
             
             s_task = rand(N,1)*100; % Starting time of tasks
@@ -217,7 +219,7 @@ for N = N_vec
             keyboard
         end
            
-        if any( Cost.BB(monte,cnt.N) > [Cost.EST(monte,cnt.N)  Cost.EstSwap(monte,cnt.N) Cost.ED(monte,cnt.N) Cost.EdSwap(monte,cnt.N)] )
+        if any( (Cost.BB(monte,cnt.N) - 1e-10)> [Cost.EST(monte,cnt.N)  Cost.EstSwap(monte,cnt.N) Cost.ED(monte,cnt.N) Cost.EdSwap(monte,cnt.N)] )
             keyboard
         end
         
@@ -476,7 +478,7 @@ ylabel(sprintf('Average Cost (K = %i Channels)' , K ))
 %% Implementation and Comparison
 
 
-MONTE = 10;
+MONTE = 100;
 % NumSamps = 1*1e3; 
 clear Cost DropPercent RunTime
 
@@ -490,13 +492,19 @@ for N = N_vec
         end
         
         if FLAG.constrained
-            s_task = rand(N,1)*0; % Starting time of tasks
-            viable_task = 10*rand(N,1) + 2; % Difference between deadline d_n and starting time s_n
+            R = rand([N,1]);            
+            s_task = rand(N,1)*4; % Starting time of tasks
+            s_task(R<0.5) = 0; % Most of the time the start times are the same
+%             s_task = rand(N,1)*0.001;
+            viable_task = 6*rand(N,1); % Difference between deadline d_n and starting time s_n
             deadline_task = viable_task + s_task; % Task deadline equal to the starting time + viablity window of each task
-            length_task = 5*ones(N,1)*1e-3;%rand(N,1)*9 + 2;  % Task processing length
-            drop_task = 0*( rand(N,1)*400 + 100 ); % Dropping cost of each task
+%             length_task = 5*ones(N,1)*1e-3;%rand(N,1)*9 + 2;  % Task processing length
+%             drop_task = 0*( rand(N,1)*400 + 100 ); % Dropping cost of each task
+            length_task = 36*ones(N,1)*1e-3;%rand(N,1)*9 + 2;  % Task processing length
+            drop_task = 100*ones(N,1);%0*( rand(N,1)*400 + 100 ); % Dropping cost of each task
+            
             %         w_task = rand(N,1)*4 + 1;   % Tardiness penalty of each task
-            w_task = randi(25,[N,1]);
+            w_task = randi(20,[N,1])/20;
         else
             s_task = 100*rand(N,1);            % task start times
             length_task = 2 + 9*rand(N,1);          % task durations
@@ -596,8 +604,8 @@ for N = N_vec
      
         % Policy Neural Net Implementation
         tic
-        PF(1,:) = s_task;
-        PF(2,:) = deadline_task;
+        PF(1,:) = s_task - min(s_task);
+        PF(2,:) = deadline_task - min(s_task);
         PF(3,:) = length_task;
         PF(4,:) = drop_task;
         PF(5,:) = w_task;
