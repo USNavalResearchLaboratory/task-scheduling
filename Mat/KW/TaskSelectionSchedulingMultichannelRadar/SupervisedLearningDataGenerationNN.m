@@ -82,7 +82,13 @@ for jj = sortIdx
                 PfStatus(: , node(nn) ) = [0; 0; 1]; % Infeasible Already Assigned 
             end
 
-            X(:,:,cnt) = [PF; PfStatus; PFtree; ]; % Timeline ignored for now
+            X(:,:,cnt) = [PF; PFtree; PfStatus;  ]; % Timeline ignored for now - 
+            % KTW 13APR2020 - flipped PFtree and PFStatus location. Need to
+            % match NeuralNetSchedulerAlgorithm. As long as they both match
+            % everything will work better. My personal preference is
+            % location you are in tree, then what nodes you visited, but
+            % again doesn't matter as long as it's consistent with
+            % implementation of NN - scheduler
             
             % Note: Could find if node is dominated by calculating cost at
             % the partial sequence and comparing across other partial

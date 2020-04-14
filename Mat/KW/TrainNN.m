@@ -2,6 +2,8 @@
 %% Algorithms Implemented here are based on "Task Selection and Scheduling in Multifunction Multichannel Radars" by M. Shaghaghi and R. Adve, 978-1-4673-8823-8/17/$31.00 ©2017 IEEE
 clearvars
 
+addpath(genpath('.\functions'))
+addpath(genpath('.\TaskSelectionSchedulingMultichannelRadar'))
 
 FLAG.profile = 1;
 
@@ -14,7 +16,7 @@ seed = 111;
 rng(seed)
 
 MONTE = 500000;
-NumSamps = 100*1e3; 
+NumSamps = 100*1e3;
 
 FLAG.constrained = 1; % Confines input paramters to be much simplier start times all 0, task lengths all 5
 
@@ -38,13 +40,13 @@ NumN = length(N_vec);
 % RunTime.ED = zeros(MONTE,NumN);
 % RunTime.EdSwap = zeros(MONTE,NumN);
 % RunTime.BB = zeros(MONTE,NumN);
-% 
+%
 % Cost.EST = zeros(MONTE,NumN);
 % Cost.EstSwap = zeros(MONTE,NumN);
 % Cost.ED = zeros(MONTE,NumN);
 % Cost.EdSwap = zeros(MONTE,NumN);
 % Cost.BB = zeros(MONTE,NumN);
-% 
+%
 % DropPercent.EST = zeros(MONTE,NumN);
 % DropPercent.EstSwap = zeros(MONTE,NumN);
 % DropPercent.ED = zeros(MONTE,NumN);
@@ -67,14 +69,14 @@ for N = N_vec
         end
         
         if FLAG.constrained
-            R = rand([N,1]);            
+            R = rand([N,1]);
             s_task = rand(N,1)*4; % Starting time of tasks
             s_task(R<0.5) = 0; % Most of the time the start times are the same
-%             s_task = rand(N,1)*0.001;
+            %             s_task = rand(N,1)*0.001;
             viable_task = 6*rand(N,1); % Difference between deadline d_n and starting time s_n
             deadline_task = viable_task + s_task; % Task deadline equal to the starting time + viablity window of each task
-%             length_task = 5*ones(N,1)*1e-3;%rand(N,1)*9 + 2;  % Task processing length
-%             drop_task = 0*( rand(N,1)*400 + 100 ); % Dropping cost of each task
+            %             length_task = 5*ones(N,1)*1e-3;%rand(N,1)*9 + 2;  % Task processing length
+            %             drop_task = 0*( rand(N,1)*400 + 100 ); % Dropping cost of each task
             length_task = 36*ones(N,1)*1e-3;%rand(N,1)*9 + 2;  % Task processing length
             drop_task = 100*ones(N,1);%0*( rand(N,1)*400 + 100 ); % Dropping cost of each task
             
@@ -89,11 +91,11 @@ for N = N_vec
             drop_task = rand(N,1)*400 + 100; % Dropping cost of each task
             w_task = rand(N,1)*4 + 1;   % Tardiness penalty of each task
             
-%             s_task = 100*rand(N,1);            % task start times
-%             length_task = 2 + 9*rand(N,1);          % task durations
-%             w_task = 1 + 4*rand(N,1);
-%             deadline_task = s_task + length_task.*(3+2*rand(N,1));
-%             drop_task = (2+rand(N,1)).*w_task.*(deadline_task-s_task);
+            %             s_task = 100*rand(N,1);            % task start times
+            %             length_task = 2 + 9*rand(N,1);          % task durations
+            %             w_task = 1 + 4*rand(N,1);
+            %             deadline_task = s_task + length_task.*(3+2*rand(N,1));
+            %             drop_task = (2+rand(N,1)).*w_task.*(deadline_task-s_task);
         end
         
         
@@ -128,7 +130,7 @@ for N = N_vec
             RunTime.EstSwap(monte,cnt.N) = RunTime.EST(monte,cnt.N);
             
         end
-
+        
         
         % ED
         tic
@@ -136,7 +138,7 @@ for N = N_vec
         [Cost.ED(monte,cnt.N),t_ex,NumDropTask] = MultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task);
         DropPercent.ED(monte,cnt.N) = NumDropTask/N;
         RunTime.ED(monte,cnt.N) = toc;
-
+        
         
         % Perform Task Swapping for ED
         if NumDropTask > 0
@@ -155,27 +157,27 @@ for N = N_vec
             [Cost.EdSwap(monte,cnt.N),t_ex,NumDropTask] = MultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task);
             DropPercent.EdSwap(monte,cnt.N) = NumDropTask/N;
             RunTime.EdSwap(monte,cnt.N) = toc;
-
+            
         else
             Cost.EdSwap(monte,cnt.N) = Cost.ED(monte,cnt.N);
             DropPercent.EdSwap(monte,cnt.N) = DropPercent.ED(monte,cnt.N);
             RunTime.EdSwap(monte,cnt.N) = RunTime.ED(monte,cnt.N);
         end
-
         
-        % B&B Scheduler 
-%         rng(10)
+        
+        % B&B Scheduler
+        %         rng(10)
         tic
-        % Example 
-%         N = 7; K = 3;
-%         s_task = [0 0 0 3 0 0 0]';
-%         length_task = [3 2 4 2 3 3 3]';
-%         deadline_task = 100*ones(7,1); drop_task = 100*ones(7,1);
-%         w_task = ones(7,1);        
-%         [T,Tscheduled,Tdrop] = BBscheduler(K,s_task,deadline_task,length_task,drop_task,w_task);
-        [T,Tscheduled,Tdrop,NodeStats] = BBschedulerWithStats(K,s_task,deadline_task,length_task,drop_task,w_task);    
-%         [T2,~,~] = BBschedulerStack(K,s_task,deadline_task,length_task,drop_task,w_task);
-
+        % Example
+        %         N = 7; K = 3;
+        %         s_task = [0 0 0 3 0 0 0]';
+        %         length_task = [3 2 4 2 3 3 3]';
+        %         deadline_task = 100*ones(7,1); drop_task = 100*ones(7,1);
+        %         w_task = ones(7,1);
+        %         [T,Tscheduled,Tdrop] = BBscheduler(K,s_task,deadline_task,length_task,drop_task,w_task);
+        [T,Tscheduled,Tdrop,NodeStats] = BBschedulerWithStats(K,s_task,deadline_task,length_task,drop_task,w_task);
+        %         [T2,~,~] = BBschedulerStack(K,s_task,deadline_task,length_task,drop_task,w_task);
+        
         for kk = 1:length(NodeStats)
             NodeParams(kk).s_task = s_task;
             NodeParams(kk).deadline_task = deadline_task;
@@ -184,32 +186,32 @@ for N = N_vec
             NodeParams(kk).w_task = w_task;
         end
         
-
+        
         CutOff = round(1000/N); % Number of branches to generate data for (smaller yeilds more monte carlos)
-
+        
         [Xnow,Ynow] = SupervisedLearningDataGenerationNN(NodeStats,NodeParams(1),K,CutOff);
         X = cat(3,X,Xnow);
-%         X = [X; Xnow];
+        %         X = [X; Xnow];
         Y = [Y; Ynow];
         if ~all(Ynow > 0)
             keyboard
         end
         
-%         DATA = [DATA NodeStats];
-%         AuxData = [AuxData NodeParams];
+        %         DATA = [DATA NodeStats];
+        %         AuxData = [AuxData NodeParams];
         NodeParams = [];
-%         if length(DATA) > NumSamps
-%             break
-%         end
-               
+        %         if length(DATA) > NumSamps
+        %             break
+        %         end
+        
         [Cost.BB(monte,cnt.N),t_ex,NumDropTask] = MultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task);
         DropPercent.BB(monte,cnt.N) = NumDropTask/N;
         RunTime.BB(monte,cnt.N) = toc;
-
+        
         if size(NodeStats,2) > 3
-%             keyboard
+            %             keyboard
         end
-            
+        
         
         if length(T) < N
             keyboard
@@ -218,7 +220,7 @@ for N = N_vec
         if Cost.BB(monte,cnt.N) < 0
             keyboard
         end
-           
+        
         if any( (Cost.BB(monte,cnt.N) - 1e-10)> [Cost.EST(monte,cnt.N)  Cost.EstSwap(monte,cnt.N) Cost.ED(monte,cnt.N) Cost.EdSwap(monte,cnt.N)] )
             keyboard
         end
@@ -240,7 +242,20 @@ hist(  squeeze(  sum(sum(AAA,1),2) )  )
 xlabel('Number of Actions Taken in Training Sample')
 ylabel('Distribution')
 
-
+%% Find Number of Stressing Scenarios
+stress_ref = [];
+for jj = 1:size(X,3)
+    s_task = X(1,:,jj);
+    deadline_task = X(2,:,jj);    
+    for kk = 1:N        
+        stress_cnt = sum( s_task > deadline_task(kk));        
+        cnt2 = sum( s_task(kk) >= s_task );
+        if stress_cnt == N-1 && (cnt2 > 0)
+            stress_ref = [stress_ref; jj];
+%             keyboard
+        end
+    end   
+end
 
 
 %% Generate Supervised Learning data and labels
@@ -248,33 +263,33 @@ ylabel('Distribution')
 
 
 % for jj = 1:length(DATA)
-% 
-%     curNode = DATA(jj);    
+%
+%     curNode = DATA(jj);
 %     BestSeq = curNode.BestSeq;
-%     
+%
 %     s_task = AuxData(jj).s_task;
 %     deadline_task = AuxData(jj).deadline_task;
 %     length_task = AuxData(jj).length_task;
 %     drop_task = AuxData(jj).drop_task;
 %     w_task = AuxData(jj).w_task;
-%     
+%
 % %     [t_ex,x,ChannelAvailableTime,TaskChannel] = BBMultiChannelSequenceScheduler(T,s_task,deadline_task,length_task,ChannelAvailableTime);
-% 
-%     
+%
+%
 %     for kk = 1:N
-%         
+%
 %         node = BestSeq(1:kk-1);
 %         optimal_action = BestSeq(kk);
-%         
+%
 %         ChannelAvailableTime = zeros(K,1);
 %         [t_ex,x,ChannelAvailableTime,TaskChannel] = BBMultiChannelSequenceScheduler(node,s_task,deadline_task,length_task,ChannelAvailableTime);
-%         
+%
 %     end
 % end
 
 
 
-%% Train NN 
+%% Train NN
 
 % % Normalize X by max value of 500
 % feature_bound = size(X,1)-2*N;
@@ -327,25 +342,25 @@ CNN_filters = 16;
 layers = [
     imageInputLayer([size(X,1) size(X,2) 1],'Name','Input','Normalization','zerocenter')
     
-    convolution2dLayer([1 4],CNN_filters,'Name','conv1','Padding','Same')
+    convolution2dLayer([2 2],CNN_filters,'Name','conv1','Padding','Same')
     batchNormalizationLayer('Name','BN1')
     reluLayer('Name','relu')
     %     maxPooling2dLayer(2,'Stride',2,'Name','mp1')
     
-    convolution2dLayer([1 4],CNN_filters,'Name','conv2','Padding','Same')
+    convolution2dLayer([2 2],CNN_filters,'Name','conv2','Padding','Same')
     batchNormalizationLayer('Name','BN2')
     reluLayer('Name','relu2')
     %     maxPooling2dLayer(2,'Stride',2,'Name','mp2')
     
-    convolution2dLayer([1 4],CNN_filters,'Name','conv3','Padding','Same')
+    convolution2dLayer([2 2],CNN_filters,'Name','conv3','Padding','Same')
     batchNormalizationLayer('Name','BN3')
     reluLayer('Name','relu3')
     
-    convolution2dLayer([1 4],CNN_filters,'Name','conv4','Padding','Same')
+    convolution2dLayer([2 2],CNN_filters,'Name','conv4','Padding','Same')
     batchNormalizationLayer('Name','BN4')
     reluLayer('Name','relu4')
     dropoutLayer('Name','Drop4')
-
+    
     fullyConnectedLayer(1024,'Name','fc1')
     fullyConnectedLayer(128,'Name','fc2')
     fullyConnectedLayer(Nclass,'Name','fc_Out')
@@ -420,7 +435,7 @@ plot(mean(RunTime.ED,1),mean(Cost.ED,1),color_shape{3},'MarkerSize',12,'LineWidt
 plot(mean(RunTime.EdSwap,1),mean(Cost.EdSwap,1),color_shape{4},'MarkerSize',12,'LineWidth',3)
 plot(mean(RunTime.BB,1),mean(Cost.BB,1),color_shape{5},'MarkerSize',12,'LineWidth',3)
 legend(leg_str)
-xlabel(sprintf('RunTime (seconds) (K = %i Channels)', K )) 
+xlabel(sprintf('RunTime (seconds) (K = %i Channels)', K ))
 ylabel(sprintf('Average Cost (K = %i Channels)' , K ))
 
 % plot((RunTime.EST),(Cost.EST),color_shape{1})
@@ -432,7 +447,7 @@ ylabel(sprintf('Average Cost (K = %i Channels)' , K ))
 
 
 
-% figure(1); 
+% figure(1);
 % subplot(2,2,1)
 % cla; hold all; grid on;
 % plot(N_vec,100*(1-mean(DropPercent.EST,1)),'-v')
@@ -440,15 +455,15 @@ ylabel(sprintf('Average Cost (K = %i Channels)' , K ))
 % plot(N_vec,100*(1-mean(DropPercent.ED,1)),'-d')
 % plot(N_vec,100*(1-mean(DropPercent.EdSwap,1)),'-o')
 % plot(N_vec,100*(1-mean(DropPercent.BB,1)),'-o')
-% 
-% 
+%
+%
 % xlabel('Number of Tasks')
 % ylabel('Percent of tasks scheduled')
 % title(sprintf('Monte = %i',MONTE))
 % legend(leg_str)
-% 
-% 
-% % figure(2); 
+%
+%
+% % figure(2);
 % subplot(2,2,2)
 % cla; hold all; grid on
 % plot(N_vec,mean(Cost.EST,1),'-v')
@@ -456,14 +471,14 @@ ylabel(sprintf('Average Cost (K = %i Channels)' , K ))
 % plot(N_vec,mean(Cost.ED,1),'-d')
 % plot(N_vec,mean(Cost.EdSwap,1),'-o')
 % plot(N_vec,mean(Cost.BB,1),'-o')
-% 
-% 
+%
+%
 % xlabel('Number of Tasks')
 % ylabel('Average Cost (K = 4 Channels)')
 % legend(leg_str)
-% 
-% 
-% % figure(3); 
+%
+%
+% % figure(3);
 % subplot(2,2,[3:4])
 % cla; grid on; hold all;
 % plot(N_vec,mean(RunTime.EST,1),'-v')
@@ -472,14 +487,14 @@ ylabel(sprintf('Average Cost (K = %i Channels)' , K ))
 % plot(N_vec,mean(RunTime.EdSwap,1),'-o')
 % plot(N_vec,mean(RunTime.BB,1),'-o')
 % xlabel('Number of Tasks')
-% ylabel(sprintf('RunTime (seconds) (K = %i Channels)', K )) 
+% ylabel(sprintf('RunTime (seconds) (K = %i Channels)', K ))
 % legend(leg_str)
 
 %% Implementation and Comparison
 
 
 MONTE = 100;
-% NumSamps = 1*1e3; 
+% NumSamps = 1*1e3;
 clear Cost DropPercent RunTime
 
 tstart = tic;
@@ -492,14 +507,14 @@ for N = N_vec
         end
         
         if FLAG.constrained
-            R = rand([N,1]);            
+            R = rand([N,1]);
             s_task = rand(N,1)*4; % Starting time of tasks
             s_task(R<0.5) = 0; % Most of the time the start times are the same
-%             s_task = rand(N,1)*0.001;
+            %             s_task = rand(N,1)*0.001;
             viable_task = 6*rand(N,1); % Difference between deadline d_n and starting time s_n
             deadline_task = viable_task + s_task; % Task deadline equal to the starting time + viablity window of each task
-%             length_task = 5*ones(N,1)*1e-3;%rand(N,1)*9 + 2;  % Task processing length
-%             drop_task = 0*( rand(N,1)*400 + 100 ); % Dropping cost of each task
+            %             length_task = 5*ones(N,1)*1e-3;%rand(N,1)*9 + 2;  % Task processing length
+            %             drop_task = 0*( rand(N,1)*400 + 100 ); % Dropping cost of each task
             length_task = 36*ones(N,1)*1e-3;%rand(N,1)*9 + 2;  % Task processing length
             drop_task = 100*ones(N,1);%0*( rand(N,1)*400 + 100 ); % Dropping cost of each task
             
@@ -545,7 +560,7 @@ for N = N_vec
             RunTime.EstSwap(monte,cnt.N) = RunTime.EST(monte,cnt.N);
             
         end
-
+        
         
         % ED
         tic
@@ -553,7 +568,7 @@ for N = N_vec
         [Cost.ED(monte,cnt.N),t_ex,NumDropTask] = MultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task);
         DropPercent.ED(monte,cnt.N) = NumDropTask/N;
         RunTime.ED(monte,cnt.N) = toc;
-
+        
         
         % Perform Task Swapping for ED
         if NumDropTask > 0
@@ -572,24 +587,24 @@ for N = N_vec
             [Cost.EdSwap(monte,cnt.N),t_ex,NumDropTask] = MultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task);
             DropPercent.EdSwap(monte,cnt.N) = NumDropTask/N;
             RunTime.EdSwap(monte,cnt.N) = toc;
-
+            
         else
             Cost.EdSwap(monte,cnt.N) = Cost.ED(monte,cnt.N);
             DropPercent.EdSwap(monte,cnt.N) = DropPercent.ED(monte,cnt.N);
             RunTime.EdSwap(monte,cnt.N) = RunTime.ED(monte,cnt.N);
         end
-
         
-        % B&B Scheduler 
-%         rng(10)
+        
+        % B&B Scheduler
+        %         rng(10)
         tic
         [T,Tscheduled,Tdrop,NodeStats] = BBschedulerWithStats(K,s_task,deadline_task,length_task,drop_task,w_task);
-                       
-               
+        Topt = T;
+        
         [Cost.BB(monte,cnt.N),t_ex,NumDropTask] = MultiChannelSequenceScheduler(T,N,K,s_task,w_task,deadline_task,length_task,drop_task);
         DropPercent.BB(monte,cnt.N) = NumDropTask/N;
         RunTime.BB(monte,cnt.N) = toc;
-                    
+        
         if length(T) < N
             keyboard
         end
@@ -597,60 +612,86 @@ for N = N_vec
         if Cost.BB(monte,cnt.N) < 0
             keyboard
         end
-           
+        
         if any( Cost.BB(monte,cnt.N) > [Cost.EST(monte,cnt.N)  Cost.EstSwap(monte,cnt.N) Cost.ED(monte,cnt.N) Cost.EdSwap(monte,cnt.N)] )
             keyboard
         end
-     
-        % Policy Neural Net Implementation
-        tic
-        PF(1,:) = s_task - min(s_task);
-        PF(2,:) = deadline_task - min(s_task);
-        PF(3,:) = length_task;
-        PF(4,:) = drop_task;
-        PF(5,:) = w_task;
         
-        PFtree = zeros(N,N);              
-        PfStatus = zeros(3,N);
-        PfStatus(1,:) = 1;
-%         for nn = 1:length(node)
-%             PfStatus(: , node(nn) ) = [0; 0; 1]; % Infeasible Already Assigned
-%         end
-
-        Xin = [PF; PFtree; PfStatus];
-        node = zeros(N,1);
-        for kk = 1:N
-            [YPred,scores] = classify(net,Xin);
-            scores(node(node ~= 0)) = 0;
-            scores = scores/(sum(scores));
-            [~,YPred] = max(scores);
-            node(kk) = double(YPred);
+        
+        if 0
+            % Policy Neural Net Implementation
+            tic
+            PF(1,:) = s_task - min(s_task);
+            PF(2,:) = deadline_task - min(s_task);
+            PF(3,:) = length_task;
+            PF(4,:) = drop_task;
+            PF(5,:) = w_task;
             
             PFtree = zeros(N,N);
-            IND = sub2ind([N N],[1:kk]',node(1:kk));
-            PFtree(IND) = 1; 
-            
             PfStatus = zeros(3,N);
             PfStatus(1,:) = 1;
-            for nn = 1:kk
-                PfStatus(: , node(nn) ) = [0; 0; 1]; % Infeasible Already Assigned 
-            end
+            %         for nn = 1:length(node)
+            %             PfStatus(: , node(nn) ) = [0; 0; 1]; % Infeasible Already Assigned
+            %         end
+            
             Xin = [PF; PFtree; PfStatus];
-
+            node = zeros(N,1);
+            for kk = 1:N
+                [YPred,scores] = classify(net,Xin);
+                scores(node(node ~= 0)) = 0;
+                scores = scores/(sum(scores));
+                [~,YPred] = max(scores);
+                node(kk) = double(YPred);
+                
+                PFtree = zeros(N,N);
+                IND = sub2ind([N N],[1:kk]',node(1:kk));
+                PFtree(IND) = 1;
+                
+                PfStatus = zeros(3,N);
+                PfStatus(1,:) = 1;
+                for nn = 1:kk
+                    PfStatus(: , node(nn) ) = [0; 0; 1]; % Infeasible Already Assigned
+                end
+                Xin = [PF; PFtree; PfStatus];
+                
+            end
         end
         
-        [Cost.NN(monte,cnt.N),t_ex,NumDropTask] = MultiChannelSequenceScheduler(node,N,K,s_task,w_task,deadline_task,length_task,drop_task);
+        data.N = N;
+        data.K = K;
+        data.s_task = s_task;
+        data.w_task = w_task;
+        data.deadline_task = deadline_task; %(deadline_task + s_task); % Updated so it's relative to release time already 09APR2020
+        data.length_task = length_task;
+        data.drop_task = drop_task;
+        data.RP = 40e-3;
+        data.ChannelAvailableTime = 0;
+        data.scheduler = 'NN'; % flexdar
+        data.timeSec = 0;
+        data.net = net;
+        tic
+        [Cost.NN(monte,cnt.N),t_ex,NumDropTask,T] = NeuralNetSchedulerAlgorithm(data);
         DropPercent.NN(monte,cnt.N) = NumDropTask/N;
         RunTime.NN(monte,cnt.N) = toc;
-     
-           
+        
+        %         [Cost.NN(monte,cnt.N),t_ex,NumDropTask] = MultiChannelSequenceScheduler(node,N,K,s_task,w_task,deadline_task,length_task,drop_task);
+        
+        if Cost.NN(monte,cnt.N) > 100
+            keyboard
+        end
+        
+        if Cost.NN(monte,cnt.N) > Cost.BB(monte,cnt.N)
+%             keyboard
+        end
+        
+        
     end
     cnt.N = cnt.N + 1;
 end
 
 
 
-%% 
+%%
 leg_str{1} = 'EST';
 leg_str{2} = 'EST Swap';
 leg_str{3} = 'ED';
@@ -674,7 +715,7 @@ plot(mean(RunTime.BB,1),mean(Cost.BB,1),color_shape{5},'MarkerSize',12,'LineWidt
 plot(mean(RunTime.NN,1),mean(Cost.NN,1),color_shape{6},'MarkerSize',12,'LineWidth',3)
 
 legend(leg_str)
-xlabel(sprintf('RunTime (seconds) (K = %i Channels)', K )) 
+xlabel(sprintf('RunTime (seconds) (K = %i Channels)', K ))
 ylabel(sprintf('Average Cost (K = %i Channels)',K))
 
 
