@@ -1,116 +1,99 @@
 """
-Branch and Bound simulation example.
+Branch and Bound.
 """
 
-import time     # TODO: use builtin module timeit instead?
-
 import numpy as np
-import matplotlib.pyplot as plt
-
-from numpy import random
-
-from task_obj import TasksRRM
-from branch_update import branch_update
-
 rng = np.random.default_rng()
-# rng = np.random.RandomState(100)
-
-# %% Inputs
-
-# Algorithm
-def stack_queue(s, b): return [b] + s     # LIFO
-
-# Tasks
-N = 10      # number of tasks
-
-t_start = 30 * rng.random(N)
-duration = 1 + 2 * rng.random(N)
-
-w = 0.8 + 0.4 * rng.random(N)
-t_drop = t_start + duration * (3 + 2 * rng.random(N))
-l_drop = (2 + rng.random(N)) * w * (t_drop - t_start)
-
-tasks = []
-for n in range(N):
-    tasks.append(TasksRRM.lin_drop(t_start[n], duration[n], w[n], t_drop[n], l_drop[n]))
-
-del duration, t_start, w, t_drop, l_drop
 
 
-# %% Tree Search
+class TreeNode:
+    _tasks = None
 
-tic = time.time()
+    def __init__(self, seq, t_ex, l_inc, lb, ub):
+        if TreeNode._tasks is None:
+            raise AttributeError("Cannot instantiate objects before assigning the '_tasks' class attribute")
 
-# Initialize Stack
-LB = 0
-UB = 0
+        self.seq = seq          # partial task index sequence
+        self.t_ex = t_ex        # task execution times
+        self.l_inc = l_inc      # partial incurred loss
+        self.lb = lb            # loss lower bound
+        self.ub = ub            # loss upper bound
 
-t_s_max = max([task.t_start for task in tasks]) + sum([task.duration for task in tasks])
-for n in range(N):
-    LB += tasks[n].loss_fcn(tasks[n].t_start)
-    UB += tasks[n].loss_fcn(t_s_max)
+    def branch(self):
+        """Generate New Nodes"""
 
-S = [{'seq': [], 't_ex': np.full(N, np.inf), 'l_inc': 0, 'LB': LB, 'UB': UB}]
+        nodes_new = []
 
-# Iterate
-while (len(S) != 1) or (len(S[0]['seq']) != N):
-    print(f'# Remaining Branches = {len(S)}', end='\n')
+        tasks = TreeNode._tasks
 
-    # Extract Branch
-    for i in range(len(S)):
-        if len(S[i]['seq']) != N:
-            B = S.pop(i)
-            break
+        N = len(tasks)
+        seq_c = set(range(N)) - set(self.seq)
+        for n in seq_c:
+            seq = self.seq + [n]        # append to new sequence
 
-    # Split Branch
-    T_c = set(range(N)) - set(B['seq'])
-    seq_rem = rng.permutation(list(T_c))
-    for n in seq_rem:
-        B_new = branch_update(B, n, tasks)      # Generate new branch
+            t_ex = self.t_ex.copy()           # formulate execution time for new task   TODO: need copy()?
+            if len(self.seq) == 0:
+                t_ex[n] = tasks[n].t_start
+            else:
+                t_ex[n] = max(tasks[n].t_start, self.t_ex[self.seq[-1]] + tasks[self.seq[-1]].duration)
 
-        if B_new['LB'] < min([br['UB'] for br in S] + [np.inf]):        # New branch is not dominated
-            S = [br for br in S if br['LB'] < B_new['UB']]      # Cut Dominated Branches
-            S = stack_queue(S, B_new)       # Add New Branch to Stack
+            # TODO: add protected attribute for timeline availability, replace above code??
 
-l_opt = S[0]['l_inc']
-t_ex_opt = S[0]['t_ex']
+            l_inc = self.l_inc + tasks[n].loss_fcn(t_ex[n])     # update partial loss
 
-t_run = time.time() - tic
+            seq_c = set(range(N)) - set(seq)       # set of remaining tasks
+
+            t_end = t_ex[n] + tasks[n].duration
+            t_s_max = max([tasks[i].t_start for i in seq_c] + [t_end]) + sum([tasks[i].duration for i in seq_c])
+
+            lb = l_inc
+            ub = l_inc
+            for i in seq_c:       # update loss bounds
+                lb += tasks[i].loss_fcn(max(tasks[i].t_start, t_end))
+                ub += tasks[i].loss_fcn(t_s_max)
+
+            nodes_new.append(TreeNode(seq, t_ex, l_inc, lb, ub))
+
+        return nodes_new
 
 
-# %% Results
-print(l_opt)
-print(t_ex_opt)
+def branch_bound(tasks, verbose=False):
+    """Branch and Bound algorithm."""
 
-if len(S) != 1:
-    raise ValueError('Multiple leafs...')
+    # Initialize Stack
+    N = len(tasks)
 
-if not all([s['LB'] == s['UB'] for s in S]):
-    raise ValueError('Leaf bounds do not converge.')
+    TreeNode._tasks = tasks         # TODO: proper to redefine class attribute here?
 
-# Cost evaluation
-l_calc = 0
-for n in range(N):
-    l_calc += tasks[n].loss_fcn(t_ex_opt[n])
-if abs(l_calc - l_opt) > 1e-12:
-    raise ValueError('Iterated loss is inaccurate')
+    S = [TreeNode(seq=[], t_ex=np.full(N, np.inf), l_inc=0., lb=0., ub=np.inf)]
 
-# Check solution validity
-valid = True
-for n_1 in range(N-1):
-    for n_2 in range(n_1+1, N):
-        cond_1 = t_ex_opt[n_1] >= (t_ex_opt[n_2] + tasks[n_2].duration)
-        cond_2 = t_ex_opt[n_2] >= (t_ex_opt[n_1] + tasks[n_1].duration)
-        valid = valid and (cond_1 or cond_2)
-        if not valid:
-            raise ValueError('Invalid Solution: Scheduling Conflict')
+    # Iterate
+    while not ((len(S) == 1) and (len(S[0].seq) == N)):
+        if verbose:
+            print(f'# Remaining Branches = {len(S)}', end='\n')
 
-# Plots
-t_plot = np.arange(0, np.ceil(t_ex_opt.max() + tasks[t_ex_opt.argmax()].duration), 0.01)
-plt.figure(num='tasks', clear=True)
-for n in range(N):
-    plt.plot(t_plot, tasks[n].loss_fcn(t_plot), label=f'Task #{n}')
-    plt.gca().set(title='Task Losses', xlabel='t', ylabel='Loss')
-    plt.grid(True)
-    plt.legend()
+        node = S.pop()     # Extract Node
+
+        # Branch
+        for node_new in rng.permutation(node.branch()):
+            # Bound
+            if node_new.lb < min([b.ub for b in S] + [np.inf]):        # New node is not dominated
+                S = [b for b in S if b.lb < node_new.ub]      # Cut Dominated Nodes
+
+                if len(node_new.seq) < N:  # Add New Node to Stack
+                    S.append(node_new)     # LIFO
+                else:
+                    S.insert(0, node_new)
+
+    if len(S) != 1:
+        raise ValueError('Multiple nodes...')
+
+    if not all([b.lb == b.ub for b in S]):
+        raise ValueError('Node bounds do not converge.')
+
+    t_ex_opt = S[0].t_ex
+    l_opt = S[0].l_inc
+
+    return t_ex_opt, l_opt
+
 

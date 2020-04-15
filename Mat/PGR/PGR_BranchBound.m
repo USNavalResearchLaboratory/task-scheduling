@@ -74,7 +74,6 @@ while (numel(S) ~= 1) || (numel(S(1).seq) ~= N)
         % Cut Branches
         if B_new.LB >= min(cell2mat({S.UB}))
             % New Branch is Dominated
-%             fprintf('Cut\n')
         else
             % Cut Dominated Branches
             S(cell2mat({S.LB}) >= B_new.UB) = [];           
