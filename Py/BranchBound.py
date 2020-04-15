@@ -1,28 +1,27 @@
 """
-Branch and Bound simulation example...
+Branch and Bound simulation example.
 """
+
+import time     # TODO: use builtin module timeit instead?
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from numpy import random
 
-# from functools import partial
-
-from task_loss_fcns import TasksRRM
+from task_obj import TasksRRM
 from branch_update import branch_update
 
-# rng = np.random.default_rng()
-rng = np.random.RandomState(100)
+rng = np.random.default_rng()
+# rng = np.random.RandomState(100)
 
 # %% Inputs
 
-# %% Algorithm
-
+# Algorithm
 def stack_queue(s, b): return [b] + s     # LIFO
 
 # Tasks
-N = 10  # number of tasks
+N = 10      # number of tasks
 
 t_start = 30 * rng.random(N)
 duration = 1 + 2 * rng.random(N)
@@ -35,41 +34,27 @@ tasks = []
 for n in range(N):
     tasks.append(TasksRRM.lin_drop(t_start[n], duration[n], w[n], t_drop[n], l_drop[n]))
 
-
-t_plot = np.arange(0, np.ceil(max(t_drop)), 0.01)
-plt.figure(num='tasks', clear=True)
-for n in range(N):
-    plt.plot(t_plot, tasks[n].loss_fcn(t_plot), label=f'Task #{n}')
-    plt.gca().set(title='Task Losses', xlabel='t', ylabel='Loss')
-    # plt.grid(True)
-    plt.legend()
-
-# del duration, t_start, w, t_drop, l_drop
+del duration, t_start, w, t_drop, l_drop
 
 
 # %% Tree Search
 
-# TODO: add tic
+tic = time.time()
 
 # Initialize Stack
 LB = 0
 UB = 0
 
-# t_s_max = t_start.max() + duration.sum()
 t_s_max = max([task.t_start for task in tasks]) + sum([task.duration for task in tasks])
 for n in range(N):
     LB += tasks[n].loss_fcn(tasks[n].t_start)
     UB += tasks[n].loss_fcn(t_s_max)
 
-# TODO: research numpy array use for named fields like 'struct'
-# S0 = np.array([(3, tuple(np.repeat(np.inf, N)), 0, LB, UB)],
-#               dtype=[('seq', 'int32'), ('t_ex', 'float64'), ('l_inc', 'float64'), ('LB', 'float64'), ('UB', 'float64')])
-
 S = [{'seq': [], 't_ex': np.full(N, np.inf), 'l_inc': 0, 'LB': LB, 'UB': UB}]
 
 # Iterate
 while (len(S) != 1) or (len(S[0]['seq']) != N):
-    print(f'# Remaining Branches = {len(S)}')       # TODO: use end=r?
+    print(f'# Remaining Branches = {len(S)}', end='\n')
 
     # Extract Branch
     for i in range(len(S)):
@@ -78,27 +63,54 @@ while (len(S) != 1) or (len(S[0]['seq']) != N):
             break
 
     # Split Branch
-    # T_c = np.setdiff1d(np.arange(N), B['seq'])
-    T_c = list(set(range(N)) - set(B['seq']))
-    seq_rem = T_c
-    # seq_rem = rng.permutation(T_c)
+    T_c = set(range(N)) - set(B['seq'])
+    seq_rem = rng.permutation(list(T_c))
     for n in seq_rem:
-        # Generate new branch
-        B_new = branch_update(B, n, tasks)
+        B_new = branch_update(B, n, tasks)      # Generate new branch
 
-        # Cut Branches
-        if B_new['LB'] >= min([B['UB'] for B in S]+[np.inf]):
-            None
-            # New branch is dominated
-        else:
-            # Cut Dominated Branches
-            S = [br for br in S if br['LB'] < B_new['UB']]
-
-            # Add New Branch to Stack
-            S = stack_queue(S, B_new)
-
+        if B_new['LB'] < min([br['UB'] for br in S] + [np.inf]):        # New branch is not dominated
+            S = [br for br in S if br['LB'] < B_new['UB']]      # Cut Dominated Branches
+            S = stack_queue(S, B_new)       # Add New Branch to Stack
 
 l_opt = S[0]['l_inc']
 t_ex_opt = S[0]['t_ex']
 
-# t_run = toc
+t_run = time.time() - tic
+
+
+# %% Results
+print(l_opt)
+print(t_ex_opt)
+
+if len(S) != 1:
+    raise ValueError('Multiple leafs...')
+
+if not all([s['LB'] == s['UB'] for s in S]):
+    raise ValueError('Leaf bounds do not converge.')
+
+# Cost evaluation
+l_calc = 0
+for n in range(N):
+    l_calc += tasks[n].loss_fcn(t_ex_opt[n])
+if abs(l_calc - l_opt) > 1e-12:
+    raise ValueError('Iterated loss is inaccurate')
+
+# Check solution validity
+valid = True
+for n_1 in range(N-1):
+    for n_2 in range(n_1+1, N):
+        cond_1 = t_ex_opt[n_1] >= (t_ex_opt[n_2] + tasks[n_2].duration)
+        cond_2 = t_ex_opt[n_2] >= (t_ex_opt[n_1] + tasks[n_1].duration)
+        valid = valid and (cond_1 or cond_2)
+        if not valid:
+            raise ValueError('Invalid Solution: Scheduling Conflict')
+
+# Plots
+t_plot = np.arange(0, np.ceil(t_ex_opt.max() + tasks[t_ex_opt.argmax()].duration), 0.01)
+plt.figure(num='tasks', clear=True)
+for n in range(N):
+    plt.plot(t_plot, tasks[n].loss_fcn(t_plot), label=f'Task #{n}')
+    plt.gca().set(title='Task Losses', xlabel='t', ylabel='Loss')
+    plt.grid(True)
+    plt.legend()
+
