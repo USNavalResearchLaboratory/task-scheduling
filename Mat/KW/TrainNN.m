@@ -16,7 +16,7 @@ seed = 111;
 rng(seed)
 
 MONTE = 500000;
-NumSamps = 100*1e3;
+NumSamps = 20*1e3;
 
 FLAG.constrained = 1; % Confines input paramters to be much simplier start times all 0, task lengths all 5
 
@@ -70,13 +70,18 @@ for N = N_vec
         
         if FLAG.constrained
             R = rand([N,1]);
+            R1 = rand(1);
             s_task = rand(N,1)*4; % Starting time of tasks
             s_task(R<0.5) = 0; % Most of the time the start times are the same
-            %             s_task = rand(N,1)*0.001;
-            viable_task = 6*rand(N,1); % Difference between deadline d_n and starting time s_n
+            
+            if R1 < 0.5 % Make problem bi-modal (Easier path // Challenging path)
+                viable_task = 6*rand(N,1); % Difference between deadline d_n and starting time s_n
+            else
+                viable_task = 0.5*rand(N,1); % Challenging More tasks should be dropped
+            end
+            
             deadline_task = viable_task + s_task; % Task deadline equal to the starting time + viablity window of each task
-            %             length_task = 5*ones(N,1)*1e-3;%rand(N,1)*9 + 2;  % Task processing length
-            %             drop_task = 0*( rand(N,1)*400 + 100 ); % Dropping cost of each task
+            
             length_task = 36*ones(N,1)*1e-3;%rand(N,1)*9 + 2;  % Task processing length
             drop_task = 100*ones(N,1);%0*( rand(N,1)*400 + 100 ); % Dropping cost of each task
             
@@ -91,11 +96,6 @@ for N = N_vec
             drop_task = rand(N,1)*400 + 100; % Dropping cost of each task
             w_task = rand(N,1)*4 + 1;   % Tardiness penalty of each task
             
-            %             s_task = 100*rand(N,1);            % task start times
-            %             length_task = 2 + 9*rand(N,1);          % task durations
-            %             w_task = 1 + 4*rand(N,1);
-            %             deadline_task = s_task + length_task.*(3+2*rand(N,1));
-            %             drop_task = (2+rand(N,1)).*w_task.*(deadline_task-s_task);
         end
         
         
@@ -246,15 +246,15 @@ ylabel('Distribution')
 stress_ref = [];
 for jj = 1:size(X,3)
     s_task = X(1,:,jj);
-    deadline_task = X(2,:,jj);    
-    for kk = 1:N        
-        stress_cnt = sum( s_task > deadline_task(kk));        
+    deadline_task = X(2,:,jj);
+    for kk = 1:N
+        stress_cnt = sum( s_task > deadline_task(kk));
         cnt2 = sum( s_task(kk) >= s_task );
         if stress_cnt == N-1 && (cnt2 > 0)
             stress_ref = [stress_ref; jj];
-%             keyboard
+            %             keyboard
         end
-    end   
+    end
 end
 
 
@@ -393,7 +393,8 @@ options = trainingOptions('adam', ...
     'MiniBatchSize',MiniBatchSize, ...
     'Verbose',true, ...
     'Plots','training-progress', ...
-    'ExecutionEnvironment','auto');
+    'ExecutionEnvironment','auto',...
+    'CheckpointPath','CheckPoints');
 
 
 net = trainNetwork(Xtrain,Ytrain,layers,options);
@@ -674,14 +675,25 @@ for N = N_vec
         DropPercent.NN(monte,cnt.N) = NumDropTask/N;
         RunTime.NN(monte,cnt.N) = toc;
         
+        tic
+        M = 5;
+        [Cost.MctsNN(monte,cnt.N),t_ex,NumDropTask,T1] = MctsNeuralNetSchedulerAlgorithm(data,M);
+        DropPercent.MctsNN(monte,cnt.N) = NumDropTask/N;
+        RunTime.MctsNN(monte,cnt.N) = toc;
+        
+        
         %         [Cost.NN(monte,cnt.N),t_ex,NumDropTask] = MultiChannelSequenceScheduler(node,N,K,s_task,w_task,deadline_task,length_task,drop_task);
         
-        if Cost.NN(monte,cnt.N) > 100
+        if Cost.NN(monte,cnt.N) >= 100
+                        keyboard
+        end
+        
+        if Cost.MctsNN(monte,cnt.N) >= 100
             keyboard
         end
         
         if Cost.NN(monte,cnt.N) > Cost.BB(monte,cnt.N)
-%             keyboard
+            %             keyboard
         end
         
         
@@ -698,12 +710,15 @@ leg_str{3} = 'ED';
 leg_str{4} = 'ED Swap';
 leg_str{5} = 'BB';
 leg_str{6} = 'NN';
+leg_str{7} = 'MctsNN';
+
 color_shape{1}= 'bv';
 color_shape{2}= 'rs';
 color_shape{3}= 'gd';
 color_shape{4}= 'm*';
 color_shape{5}= 'co';
 color_shape{6} = 'k^';
+color_shape{7} = 'y>';
 
 
 figure(22); clf; hold all; grid on;
@@ -713,6 +728,8 @@ plot(mean(RunTime.ED,1),mean(Cost.ED,1),color_shape{3},'MarkerSize',12,'LineWidt
 plot(mean(RunTime.EdSwap,1),mean(Cost.EdSwap,1),color_shape{4},'MarkerSize',12,'LineWidth',3)
 plot(mean(RunTime.BB,1),mean(Cost.BB,1),color_shape{5},'MarkerSize',12,'LineWidth',3)
 plot(mean(RunTime.NN,1),mean(Cost.NN,1),color_shape{6},'MarkerSize',12,'LineWidth',3)
+plot(mean(RunTime.MctsNN,1),mean(Cost.MctsNN,1),color_shape{7},'MarkerSize',12,'LineWidth',3)
+
 
 legend(leg_str)
 xlabel(sprintf('RunTime (seconds) (K = %i Channels)', K ))

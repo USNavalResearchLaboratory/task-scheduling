@@ -1,4 +1,4 @@
-function [Cost,t_ex,NumDropTask,T,ChannelAvailableTime] = MctsNeuralNetSchedulerAlgorithm(data,net,MONTE)
+function [Cost,t_ex,NumDropTask,T,ChannelAvailableTime] = MctsNeuralNetSchedulerAlgorithm(data,MONTE)
 
 % Earliest Deadline Algorithm
 % Takes tasks in data and assigns them to timeline using the Earliest deadline.
@@ -21,6 +21,9 @@ length_task = data.length_task; % How long tasks takes to complete
 drop_task = data.drop_task; % Penalty for dropping task
 RP = data.RP;
 ChannelAvailableTime = data.ChannelAvailableTime;
+net = data.net;
+refTime = min(s_task); % Used to rescale time for all tasks. 
+
 
 %% MCTS
 N = length(s_task);
@@ -70,8 +73,8 @@ while ~isempty(S.ND) % Proceed if base-node ND set is not empty
             %         InputIndex = [Tprime NDprime(1:
             
             % Encode Features
-            PF(1,:) = [s_task(task_index)  ; zeros(Np-length(task_index),1)] ;
-            PF(2,:) = [deadline_task(task_index); zeros(Np-length(task_index),1)] ;
+            PF(1,:) = [s_task(task_index) - refTime  ; zeros(Np-length(task_index),1)] ;
+            PF(2,:) = [deadline_task(task_index)- refTime; zeros(Np-length(task_index),1)] ;
             PF(3,:) = [length_task(task_index); zeros(Np-length(task_index),1)];
             PF(4,:) = [drop_task(task_index); zeros(Np-length(task_index),1)];
             PF(5,:) = [w_task(task_index); zeros(Np-length(task_index),1)];
