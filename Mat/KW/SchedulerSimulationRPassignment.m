@@ -648,24 +648,38 @@ legend(approach_string)
 pretty_plot(gcf)
 
 %% Diagnostic plots
-DIAG = 0; 
+DIAG = 1; 
+index = 2;
 if DIAG == 1
-    figure(109); clf;
-    BB = RECORD(2).s_task - min(RECORD(2).s_task);
+%     figure(109); clf;
+%     BB = RECORD(index).s_task - min(RECORD(index).s_task);
+%     hist( BB(:) ,100 )
+%     title('Distribution of Release Times vs. Minimum Release Time')
+    
+    
+     figure(109); clf;
+    BB = RECORD(index).s_task - RECORD(index).ChannelAvailableTime;
     hist( BB(:) ,100 )
     title('Distribution of Release Times vs. Minimum Release Time')
     
     figure(110); clf;
-    CC = RECORD(2).deadline_task - min(RECORD(2).s_task);
+%     BB = RECORD(index).deadline_task - max(RECORD(index).ChannelAvailableTime,  RECORD(index).s_task );
+    CC = RECORD(index).deadline_task - RECORD(index).ChannelAvailableTime;
+
+    hist( CC(:) ,100 )
+    title('Distribution of Deadline - Max(ChannelAvailable,Release Time)')
+    
+    figure(111); clf;
+    CC = RECORD(index).deadline_task - min(RECORD(index).s_task);
     hist( CC(:) ,100 )
     title('Distribution of Deadlines vs. Minimum Release Time')
     
-    figure(111); clf;
-    hist( RECORD(2).w_task(1,:),100)
+    figure(112); clf;
+    hist( RECORD(index).w_task(1,:),100)
     title('Distribution of Weights')
     
-    figure(112); clf;
-    hist( RECORD(2).length_task(1,:),100)
+    figure(113); clf;
+    hist( RECORD(index).length_task(1,:),100)
     title('Distribution of Task Lengths')
 
 end 

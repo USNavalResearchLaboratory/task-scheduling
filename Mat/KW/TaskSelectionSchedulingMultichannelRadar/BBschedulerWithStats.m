@@ -82,6 +82,13 @@ while ~isempty(S)
         % Update Schedule Parameters After adding latest task
         %             x_input = (t_ex < deadline_task);
         [t_ex,x,ChannelAvailableTimeProposed,TaskChannel] = BBUpdateSequenceParameters(Tprime,s_task,deadline_task,length_task,ChannelAvailableTimeInput,TimeExecutionInput,ChannelAssignmentInput,ScheduledIndicatorInput);
+%         drop_index = find(x(Tprime) == 0);
+%         if ~isempty(drop_index) % Check to see if proposed task is dropped
+%             t_ex(Tprime(drop_index)) = 0;
+%             DRprime = [DRprime; Tprime(drop_index)]; % Add to drop list
+%             Tprime(drop_index) = [];
+%             keyboard
+%         end
         
         %             [t_ex,x,ChannelAvailableTimeProposed,TaskChannel] = BBMultiChannelSequenceScheduler(Tprime,s_task,deadline_task,length_task,ChannelAvailableTimeInput);
         
@@ -103,7 +110,10 @@ while ~isempty(S)
                 %                     keyboard
             end
             % Compute Partial Schedule Cost
-            Cprime = sum( w_task(Tprime).*(t_ex(Tprime) - s_task(Tprime)) )  + sum( drop_task(DRprime) ) ;
+            Ttemp = [Tprime; DRprime];
+            [Cprime] = PartialMultiChannelSequenceScheduler(Ttemp,N,K,s_task,w_task,deadline_task,length_task,drop_task);
+
+%             Cprime = sum( w_task(Tprime).*(t_ex(Tprime) - s_task(Tprime)) )  + sum( drop_task(DRprime) ) ;
             
             % Check if schedule is active (PFprime checked to see
             % if any can task be scheduled right before last task
@@ -152,6 +162,10 @@ while ~isempty(S)
                     if Cprime < S(end).BestCost
                         S(end).BestCost = Cprime;
                         S(end).BestSeq = [Tprime; DRprime];
+                        if ~exist('SeqBest','var')
+                            SeqBest = [Tprime; DRprime];
+                            [Cbest] = MultiChannelSequenceScheduler(SeqBest,N,K,s_task,w_task,deadline_task,length_task,drop_task);
+                        end
                     end
                 else
 %                     keyboard
@@ -239,7 +253,14 @@ while ~isempty(S)
 %         end
             
         
-        C = sum( w_task(T).*(t_ex(T) - s_task(T)) )  + sum( drop_task(DR) ) ;
+%         C = sum( w_task(T).*(t_ex(T) - s_task(T)) )  + sum( drop_task(DR) ) ;
+        Ttemp = [T; NS; DR;]; % Place the not scheduled tasks on timeline, cause that is what really happens
+        [C] = PartialMultiChannelSequenceScheduler(Ttemp,N,K,s_task,w_task,deadline_task,length_task,drop_task);
+%         C = MultiChannelSequenceScheduler(Ttemp,N,K,s_task,w_task,deadline_task,length_task,drop_task);
+%         if C2 ~= C
+%             keyboard
+%         end
+        
         if isempty(NS) && C < UB
             UB = C;
             Tstar = T;
