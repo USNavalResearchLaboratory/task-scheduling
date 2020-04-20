@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 from task_obj import TasksRRM
 from BranchBound import branch_bound
 
-rng = np.random.default_rng()
-# rng = np.random.RandomState(100)
+# rng = np.random.default_rng()
+rng = np.random.RandomState(100)
 
 
 # %% Inputs
@@ -49,7 +49,7 @@ t_run = time.time() - tic
 
 
 # %% Results
-print(f"Task Execution Times: {t_ex}")
+print(f"Task Execution Times: {t_ex}")      # TODO: unpack list elements and format?
 print(f"Achieved Loss: {loss_ex:.2f}")
 print(f"Runtime: {t_run:.2f} seconds")
 

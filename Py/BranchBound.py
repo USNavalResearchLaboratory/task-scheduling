@@ -7,7 +7,7 @@ rng = np.random.default_rng()
 
 
 class TreeNode:
-    _tasks = None
+    _tasks = None       # TODO: needs to be overwritten by invoking scripts...
 
     def __init__(self, seq, t_ex, l_inc, lb, ub):
         if TreeNode._tasks is None:
@@ -18,6 +18,15 @@ class TreeNode:
         self.l_inc = l_inc      # partial incurred loss
         self.lb = lb            # loss lower bound
         self.ub = ub            # loss upper bound
+
+    # TODO: make everything but t_ex read-only properties, updated on setter!
+
+    @property
+    def t_avail(self):      # TODO: use a setter and protected attribute to minimize computation?
+        if len(self.seq) == 0:
+            return 0
+        else:
+            return self.t_ex[self.seq[-1]] + self._tasks[self.seq[-1]].duration
 
     def branch(self):
         """Generate New Nodes"""
@@ -32,12 +41,7 @@ class TreeNode:
             seq = self.seq + [n]        # append to new sequence
 
             t_ex = self.t_ex.copy()           # formulate execution time for new task   TODO: need copy()?
-            if len(self.seq) == 0:
-                t_ex[n] = tasks[n].t_start
-            else:
-                t_ex[n] = max(tasks[n].t_start, self.t_ex[self.seq[-1]] + tasks[self.seq[-1]].duration)
-
-            # TODO: add protected attribute for timeline availability, replace above code??
+            t_ex[n] = max(tasks[n].t_start, self.t_avail)
 
             l_inc = self.l_inc + tasks[n].loss_fcn(t_ex[n])     # update partial loss
 
@@ -63,9 +67,9 @@ def branch_bound(tasks, verbose=False):
     # Initialize Stack
     N = len(tasks)
 
-    TreeNode._tasks = tasks         # TODO: proper to redefine class attribute here?
+    TreeNode._tasks = tasks         # TODO: proper style to redefine class attribute here?
 
-    S = [TreeNode(seq=[], t_ex=np.full(N, np.inf), l_inc=0., lb=0., ub=np.inf)]
+    S = [TreeNode(seq=[], t_ex=np.full(N, np.nan), l_inc=0., lb=0., ub=np.inf)]
 
     # Iterate
     while not ((len(S) == 1) and (len(S[0].seq) == N)):
