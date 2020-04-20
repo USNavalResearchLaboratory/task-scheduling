@@ -81,7 +81,7 @@ for N = N_vec
             %             if R1 < 0.5 % Make problem bi-modal (Easier path // Challenging path)
             %                 viable_task = 6*rand(N,1); % Difference between deadline d_n and starting time s_n
             %             else
-            viable_task = 0.4*rand(N,1) - 0.2; % Challenging More tasks should be dropped
+            viable_task = 0.6*rand(N,1) - 0.2; % Challenging More tasks should be dropped
             %             end
             
             deadline_task = viable_task + s_task; % Task deadline equal to the starting time + viablity window of each task

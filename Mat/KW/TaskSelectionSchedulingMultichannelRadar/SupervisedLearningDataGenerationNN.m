@@ -19,7 +19,8 @@ deadline_task = NodeParams.deadline_task;
 length_task = NodeParams.length_task;
 drop_task = NodeParams.drop_task;
 w_task = NodeParams.w_task;
-refTime = min(s_task);
+% refTime = min(s_task);
+refTime = 0;
 
 % Generate Policy Features
 N = length(s_task);
