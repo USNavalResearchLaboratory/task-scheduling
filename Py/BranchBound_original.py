@@ -9,15 +9,15 @@ rng = np.random.default_rng()
 class TreeNode:
     _tasks = None       # TODO: needs to be overwritten by invoking scripts...
 
-    def __init__(self, seq, t_ex, l_inc, lb, ub):
+    def __init__(self, seq, t_ex, l_inc, l_lo, l_up):
         if TreeNode._tasks is None:
             raise AttributeError("Cannot instantiate objects before assigning the '_tasks' class attribute")
 
         self.seq = seq          # partial task index sequence
         self.t_ex = t_ex        # task execution times
         self.l_inc = l_inc      # partial incurred loss
-        self.lb = lb            # loss lower bound
-        self.ub = ub            # loss upper bound
+        self.l_lo = l_lo            # loss lower bound
+        self.l_up = l_up            # loss upper bound
 
     # TODO: make everything but t_ex read-only properties, updated on setter!
 
@@ -47,16 +47,16 @@ class TreeNode:
 
             seq_c = set(range(N)) - set(seq)       # set of remaining tasks
 
-            t_end = t_ex[n] + tasks[n].duration
-            t_s_max = max([tasks[i].t_start for i in seq_c] + [t_end]) + sum([tasks[i].duration for i in seq_c])
+            t_avail = t_ex[n] + tasks[n].duration     # TODO: use t_available somehow???
+            t_ex_max = max([tasks[i].t_start for i in seq_c] + [t_avail]) + sum([tasks[i].duration for i in seq_c])
 
-            lb = l_inc
-            ub = l_inc
+            l_lo = l_inc
+            l_up = l_inc
             for i in seq_c:       # update loss bounds
-                lb += tasks[i].loss_fcn(max(tasks[i].t_start, t_end))
-                ub += tasks[i].loss_fcn(t_s_max)
+                l_lo += tasks[i].loss_fcn(max(tasks[i].t_start, t_avail))
+                l_up += tasks[i].loss_fcn(t_ex_max)
 
-            nodes_new.append(TreeNode(seq, t_ex, l_inc, lb, ub))
+            nodes_new.append(TreeNode(seq, t_ex, l_inc, l_lo, l_up))
 
         return nodes_new
 
@@ -69,7 +69,7 @@ def branch_bound(tasks, verbose=False):
 
     TreeNode._tasks = tasks         # TODO: proper style to redefine class attribute here?
 
-    S = [TreeNode(seq=[], t_ex=np.full(N, np.nan), l_inc=0., lb=0., ub=np.inf)]
+    S = [TreeNode(seq=[], t_ex=np.full(N, np.nan), l_inc=0., l_lo=0., l_up=np.inf)]
 
     # Iterate
     while not ((len(S) == 1) and (len(S[0].seq) == N)):
@@ -81,8 +81,8 @@ def branch_bound(tasks, verbose=False):
         # Branch
         for node_new in rng.permutation(node.branch()):
             # Bound
-            if node_new.lb < min([b.ub for b in S] + [np.inf]):        # New node is not dominated
-                S = [b for b in S if b.lb < node_new.ub]      # Cut Dominated Nodes
+            if node_new.l_lo < min([b.l_up for b in S] + [np.inf]):        # New node is not dominated TODO: slow?
+                S = [b for b in S if b.l_lo < node_new.l_up]      # Cut Dominated Nodes
 
                 if len(node_new.seq) < N:  # Add New Node to Stack
                     S.append(node_new)     # LIFO
@@ -92,7 +92,7 @@ def branch_bound(tasks, verbose=False):
     if len(S) != 1:
         raise ValueError('Multiple nodes...')
 
-    if not all([b.lb == b.ub for b in S]):
+    if not all([b.l_lo == b.l_up for b in S]):
         raise ValueError('Node bounds do not converge.')
 
     t_ex_opt = S[0].t_ex

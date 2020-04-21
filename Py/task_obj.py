@@ -13,6 +13,7 @@ class TasksRRM:
 
 
 def loss_lin_drop(t_start, w, t_drop, l_drop):
+    """Linearly increasing loss with constant drop loss."""
 
     if l_drop < w * (t_drop - t_start):
         raise ValueError("Function is not monotonically non-decreasing.")

@@ -8,7 +8,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from task_obj import TasksRRM
-from BranchBound import branch_bound
+from Tree_Search import branch_bound, mc_tree_search
+# from BranchBound_original import branch_bound
+
+plt.style.use('seaborn')
 
 # rng = np.random.default_rng()
 rng = np.random.RandomState(100)
@@ -30,26 +33,18 @@ tasks = []
 for n in range(N):
     tasks.append(TasksRRM.lin_drop(t_start[n], duration[n], w[n], t_drop[n], l_drop[n]))
 
-t_plot = np.arange(0, np.ceil(t_drop.max()), 0.01)
-plt.figure(num='tasks', clear=True)
-for n in range(N):
-    plt.plot(t_plot, tasks[n].loss_fcn(t_plot), label=f'Task #{n}')
-    plt.gca().set(title='Task Losses', xlabel='t', ylabel='Loss')
-    plt.gca()
-    plt.grid(True)
-    plt.legend()
-
 del duration, t_start, w, t_drop, l_drop
 
 
 # %% Branch and Bound
 tic = time.time()
-t_ex, loss_ex = branch_bound(tasks, verbose=False)
+# t_ex, loss_ex = branch_bound(tasks, verbose=True)
+t_ex, loss_ex = mc_tree_search(tasks, N_mc=10000, verbose=True)
 t_run = time.time() - tic
 
 
 # %% Results
-print(f"Task Execution Times: {t_ex}")      # TODO: unpack list elements and format?
+print("Task Execution Times: " + ", ".join([f'{t:.2f}' for t in t_ex]))
 print(f"Achieved Loss: {loss_ex:.2f}")
 print(f"Runtime: {t_run:.2f} seconds")
 
@@ -61,11 +56,32 @@ if abs(l_calc - loss_ex) > 1e-12:
     raise ValueError('Iterated loss is inaccurate')
 
 # Check solution validity
-valid = True
 for n_1 in range(N-1):
     for n_2 in range(n_1+1, N):
-        cond_1 = t_ex[n_1] >= (t_ex[n_2] + tasks[n_2].duration)
-        cond_2 = t_ex[n_2] >= (t_ex[n_1] + tasks[n_1].duration)
-        valid = valid and (cond_1 or cond_2)
-        if not valid:
+        if t_ex[n_1] - tasks[n_2].duration + 1e-12 < t_ex[n_2] < t_ex[n_1] + tasks[n_1].duration - 1e-12:
             raise ValueError('Invalid Solution: Scheduling Conflict')
+
+
+
+# %% Plots
+t_plot = np.arange(0, max(t_ex) + max([t.duration for t in tasks]), 0.01)
+plt.figure(num='Task Loss Functions', clear=True)
+for n in range(N):
+    plt.plot(t_plot, tasks[n].loss_fcn(t_plot), label=f'Task #{n}')
+plt.gca().set(xlabel='t', ylabel='Loss')
+plt.gca().set_ylim(bottom=0)
+plt.gca().set_xlim(t_plot[[0, -1]])
+plt.grid(True)
+plt.legend()
+
+
+bar_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+
+plt.figure(num='Task Schedule', clear=True, figsize=[8, 2.5])
+# d = ax.broken_barh([(t_ex[n], tasks[n].duration) for n in range(len(tasks))], (-0.5, 1), facecolors=bar_colors)
+for n in range(len(tasks)):
+    plt.gca().broken_barh([(t_ex[n], tasks[n].duration)], (-0.5, 1), facecolors=bar_colors[n % len(bar_colors)], label=f'Task #{n}')
+
+plt.gca().set(xlim=t_plot[[0, -1]], ylim=(-.6, .6), xlabel='t', yticks=[0], yticklabels=['Timeline #1'])
+plt.gca().grid(True)
+plt.gca().legend()
