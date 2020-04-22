@@ -2,7 +2,7 @@
 
 clear;
 
-rng(107);
+rng(100);
 
 
 %%% Inputs
@@ -11,12 +11,12 @@ rng(107);
 N_mc = 10000;
 
 
+
 % Tasks
-N = 12;                      % number of tasks
+N = 10;                      % number of tasks
 
 s_task = 30*rand(N,1);            % task start times
 d_task = 1 + 2*rand(N,1);          % task durations
-
 
 w = 0.8 + 0.4*rand(N,1);
 t_drop = s_task + d_task.*(3+2*rand(N,1));

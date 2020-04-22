@@ -3,6 +3,7 @@ Task scheduling.
 """
 
 import time     # TODO: use builtin module timeit instead?
+# import cProfile     # TODO: do profiling!
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -38,21 +39,21 @@ del duration, t_start, w, t_drop, l_drop
 
 # %% Branch and Bound
 tic = time.time()
-# t_ex, loss_ex = branch_bound(tasks, verbose=True)
-t_ex, loss_ex = mc_tree_search(tasks, N_mc=10000, verbose=True)
+# t_ex, loss = branch_bound(tasks, verbose=True, rng=rng)
+t_ex, loss = mc_tree_search(tasks, N_mc=1000, verbose=True, rng=rng)
 t_run = time.time() - tic
 
 
 # %% Results
-print("Task Execution Times: " + ", ".join([f'{t:.2f}' for t in t_ex]))
-print(f"Achieved Loss: {loss_ex:.2f}")
+print("Task Execution Times: " + ", ".join([f'{t:.3f}' for t in t_ex]))
+print(f"Achieved Loss: {loss:.3f}")
 print(f"Runtime: {t_run:.2f} seconds")
 
 # Cost evaluation
-l_calc = 0
+l_ex = 0
 for n in range(N):
-    l_calc += tasks[n].loss_fcn(t_ex[n])
-if abs(l_calc - loss_ex) > 1e-12:
+    l_ex += tasks[n].loss_fcn(t_ex[n])
+if abs(l_ex - loss) > 1e-12:
     raise ValueError('Iterated loss is inaccurate')
 
 # Check solution validity
@@ -65,7 +66,9 @@ for n_1 in range(N-1):
 
 # %% Plots
 t_plot = np.arange(0, max(t_ex) + max([t.duration for t in tasks]), 0.01)
-plt.figure(num='Task Loss Functions', clear=True)
+plt.figure(num='Task Scheduling', clear=True)
+plt.title('Loss Functions')
+plt.subplot(2, 1, 1)
 for n in range(N):
     plt.plot(t_plot, tasks[n].loss_fcn(t_plot), label=f'Task #{n}')
 plt.gca().set(xlabel='t', ylabel='Loss')
@@ -77,11 +80,14 @@ plt.legend()
 
 bar_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
-plt.figure(num='Task Schedule', clear=True, figsize=[8, 2.5])
+# plt.figure(num='Task Schedule', clear=True, figsize=[8, 2.5])
+plt.subplot(2, 1, 2)
+plt.title('Schedule')
 # d = ax.broken_barh([(t_ex[n], tasks[n].duration) for n in range(len(tasks))], (-0.5, 1), facecolors=bar_colors)
 for n in range(len(tasks)):
-    plt.gca().broken_barh([(t_ex[n], tasks[n].duration)], (-0.5, 1), facecolors=bar_colors[n % len(bar_colors)], label=f'Task #{n}')
+    plt.gca().broken_barh([(t_ex[n], tasks[n].duration)], (-0.5, 1),
+                          facecolors=bar_colors[n % len(bar_colors)], edgecolor='black', label=f'Task #{n}')
 
 plt.gca().set(xlim=t_plot[[0, -1]], ylim=(-.6, .6), xlabel='t', yticks=[0], yticklabels=['Timeline #1'])
 plt.gca().grid(True)
-plt.gca().legend()
+# plt.gca().legend()
