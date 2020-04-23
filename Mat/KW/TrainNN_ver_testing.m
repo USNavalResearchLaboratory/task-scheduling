@@ -16,7 +16,7 @@ seed = 111;
 rng(seed)
 
 MONTE = 500000;
-NumSamps = 20*1e3;
+NumSamps = 1*1e3;
 
 FLAG.constrained = 1; % Confines input paramters to be much simplier start times all 0, task lengths all 5
 
@@ -203,7 +203,7 @@ for N = N_vec
         CutOff = round(1000/N); % Number of branches to generate data for (smaller yeilds more monte carlos)
         
         [Xnow,Ynow] = SupervisedLearningDataGenerationNN(NodeStats,NodeParams(1),K,CutOff);
-        ProblemSize(monte) = length(Ynow); 
+        ProblemSize(monte) = length(Ynow);
         ProblemIndex = [ProblemIndex; monte*ones(length(Ynow),1)];
         
         X = cat(3,X,Xnow);
@@ -344,11 +344,11 @@ else
     NvalidStart = NtrainStop + 1;
     NvalidStop = find(ProblemIndex == ProblemIndex(NvalidStart+Nvalid),1,'last');
     NtestStart = NvalidStop + 1;
-    NtestStop = Nsamps;    
+    NtestStop = Nsamps;
     
     idx_train = NtrainStart:NtrainStop;
     idx_valid = NvalidStart:NvalidStop;
-    idx_test =  NtestStart:NtestStop;      
+    idx_test =  NtestStart:NtestStop;
 end
 
 
@@ -421,6 +421,8 @@ ValidationPatience =  Inf;
 
 options = trainingOptions('adam', ...
     'InitialLearnRate',0.001, ...
+    'LearnRateSchedule','none',...
+    'LearnRateDropPeriod',50,...
     'MaxEpochs',1000, ...
     'Shuffle','every-epoch', ...
     'ValidationData',{Xvalid, Yvalid}, ...
@@ -432,6 +434,22 @@ options = trainingOptions('adam', ...
     'Plots','training-progress', ...
     'ExecutionEnvironment','auto',...
     'CheckpointPath','CheckPoints');
+
+layers = CreateResnet(size(Xtrain),N);
+
+
+
+% net = resnet18;
+% % net = alexnet;
+% layersTransfer = net.Layers(11:end-3); % Remove input and conv1
+% numClasses = N;
+% layer = [];
+% layers = [ imageInputLayer([size(X,1) size(X,2) 1],'Name','data','Normalization','zerocenter')
+%     layersTransfer
+%     fullyConnectedLayer(numClasses,'WeightLearnRateFactor',20,'BiasLearnRateFactor',20)
+%     softmaxLayer
+%     classificationLayer];
+% analyzeNetwork(layers)
 
 
 net = trainNetwork(Xtrain,Ytrain,layers,options);
@@ -449,6 +467,56 @@ title(sprintf('Accuracy = %0.2f',Acc))
 fname = ['NN_REPO/net_task_' num2str(N) '_K_' num2str(K) '_Filter' num2str(CNN_filters) '_' datestr(now,30)];
 save(fname,'net')
 
+
+%% Examine Miss_ID
+FLAG.DIAG = 0;
+
+if FLAG.DIAG
+    
+    miss_index = find(YPred ~= Ytest);
+    for jj = 1:length(miss_index)
+        
+        [~,scores] = classify(net,Xtest(:,:,1,miss_index(jj)));
+        
+        
+        figure(101); clf;
+        clim = [0 1];
+        imagesc(Xtest(:,:,1,miss_index(jj)),clim)
+        title(sprintf('Predict %i vs Truth %i: Scores = [%0.2f, %0.2f, %0.2f, %0.2f] \n\n',YPred(miss_index(jj)),Ytest(miss_index(jj)),scores'))
+        colorbar
+        
+        display(Xtest(:,:,1,miss_index(jj)))
+        fprintf('Predict %i vs Truth %i: Scores = [%0.2f, %0.2f, %0.2f, %0.2f] \n\n',YPred(miss_index(jj)),Ytest(miss_index(jj)),scores')
+        
+        pause
+    end
+    
+    figure(102); clf;
+    hold all
+    plot(Ytest(miss_index))
+    plot(YPred(miss_index))
+    
+    
+    layer = 'conv5';
+    channels = 1:16;
+    I = deepDreamImage(net,layer,channels, ...
+        'PyramidLevels',1, ...
+        'Verbose',1);
+    featuresTest = activations(net,Xtest,layer,'OutputAs','channels');
+    
+    figure(106); clf;
+    for i = 1:16
+        figure(106);
+        subplot(4,4,i)
+        imshow(I(:,:,:,i))
+        
+        figure(107);
+        subplot(4,4,i)
+        imshow(featuresTest(:,:,i,1))
+    end
+    
+    
+end
 
 
 %% Graphics
@@ -545,7 +613,7 @@ for N = N_vec
         end
         
         if FLAG.constrained
-            s_task = rand(N,1)*1e-4;            
+            s_task = rand(N,1)*1e-4;
             viable_task = 0.4*rand(N,1) - 0.2; % Challenging More tasks should be dropped
             deadline_task = viable_task + s_task; % Task deadline equal to the starting time + viablity window of each task
             length_task = 36*ones(N,1)*1e-3;%rand(N,1)*9 + 2;  % Task processing length

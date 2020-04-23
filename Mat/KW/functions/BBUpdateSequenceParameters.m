@@ -2,9 +2,9 @@ function [t_ex,x,ChannelAvailableTime,ChannelAssignment] = BBUpdateSequenceParam
 
 % This function takes a sequence given by T = [1, 2, 3, 6, 3, ... ] and
 % associated job starting times, tardiness weights, deadlines, durations,
-% and dropping casts and places this sequence onto K parallel machines 
+% and dropping casts and places this sequence onto K parallel machines
 %
-% Outputs: 
+% Outputs:
 % C - cost associated with sequence as executed
 % t_ex - time of each jobs execution
 % Number of dropped tasks
@@ -32,8 +32,10 @@ if x(curJobId) == 1 % Job is Scheduled update timeline, otherwise timeline can b
     % Update Channels time availability
     ChannelAvailableTime(SelectedChannel) = t_ex(curJobId) + length_task(curJobId);
     ChannelAssignment( curJobId ) = SelectedChannel;
-        else
-            keyboard
+else
+    %             keyboard
+    ChannelAvailableTime(SelectedChannel) = t_ex(curJobId) + length_task(curJobId);
+    ChannelAssignment( curJobId ) = SelectedChannel;
 end
 % end
 
