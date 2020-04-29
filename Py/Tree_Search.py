@@ -259,3 +259,19 @@ def mc_tree_search(tasks, n_ch, n_mc, verbose=False, rng=rng_default):
     ch_ex = node.ch_ex
 
     return t_ex, ch_ex
+
+
+def bb_single_then_assign(tasks, n_ch, verbose=False, rng=rng_default):
+    """Single-channel B&B, then multi-channel assignment by earliest channel availability."""
+
+    t_ex, _ = branch_bound(tasks, n_ch=1, verbose=verbose, rng=rng)
+    seq_single = np.argsort(t_ex)
+    del t_ex
+
+    n_tasks = len(seq_single)
+
+    t_avail = np.zeros(n_ch)
+    t_ex = np.full(n_tasks, np.nan)  # task execution times (NaN for unscheduled)
+    ch_ex = np.full(n_tasks, np.nan, dtype=np.int)
+    # for i in seq_single:
+
