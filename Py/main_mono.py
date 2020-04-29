@@ -45,7 +45,7 @@ algorithms = [partial(branch_bound, verbose=True, rng=rng),
 # %% Evaluate
 t_ex_alg, l_ex_alg, t_run_alg = [], [], []
 for alg in algorithms:
-    print(f'\nAlgorithm: {alg.func} \n')
+    print(f'\nAlgorithm: {alg.func.__name__} \n')
 
     tic = time.time()
     t_ex = alg(tasks)

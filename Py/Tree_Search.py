@@ -28,9 +28,7 @@ class TreeNode:
             raise AttributeError("Cannot instantiate objects before assigning "
                                  "the '_tasks' and '_n_ch class attributes.")
 
-        self._seq = []      # partial list of task index sequences
-        for _ in range(self._n_ch):
-            self._seq.append([])
+        self._seq = [[] for _ in range(self._n_ch)]
 
         self._seq_rem = set(range(self._n_tasks))
 
@@ -67,6 +65,9 @@ class TreeNode:
 
     @property
     def l_ex(self): return self._l_ex
+
+    @property
+    def seq_rem(self): return self._seq_rem
 
     def update_node(self, seq):
         """Node Update. Sets 'seq' and iteratively updates all dependent attributes."""
@@ -161,7 +162,7 @@ class TreeNodeBound(TreeNode):
             self._l_lo += self._tasks[n].loss_fcn(max(self._tasks[n].t_release, min(self._t_avail)))
             self._l_up += self._tasks[n].loss_fcn(t_ex_max)
 
-        if len(self._seq_rem) > 0 and self._l_lo == self._l_up:
+        if len(self._seq_rem) > 0 and self._l_lo == self._l_up:     # roll-out if bounds converge
             self.roll_out(do_copy=False)
 
 
@@ -173,15 +174,12 @@ def branch_bound(tasks, n_ch, verbose=False, rng=rng_default):
     TreeNode._n_ch = n_ch
     TreeNode.rng = rng
 
-    seq = []
-    for _ in range(n_ch):
-        seq.append([])
-    stack = [TreeNodeBound(seq)]      # Initialize Stack
+    stack = [TreeNodeBound([[] for _ in range(n_ch)])]      # Initialize Stack
 
     l_upper_min = stack[0].l_up
 
     # Iterate
-    while not ((len(stack) == 1) and (len(stack[0]._seq_rem) == 0)):
+    while not ((len(stack) == 1) and (len(stack[0].seq_rem) == 0)):
         if verbose:
             print(f'# Remaining Nodes = {len(stack)}, Loss < {l_upper_min:.3f}')
 
@@ -195,7 +193,7 @@ def branch_bound(tasks, n_ch, verbose=False, rng=rng_default):
                     l_upper_min = node_new.l_up
                     stack = [s for s in stack if s.l_lo < l_upper_min]  # Cut Dominated Nodes
 
-                if len(node_new._seq_rem) > 0:  # Add New Node to Stack
+                if len(node_new.seq_rem) > 0:  # Add New Node to Stack
                     stack.append(node_new)     # LIFO
                 else:
                     stack.insert(0, node_new)
@@ -209,7 +207,7 @@ def branch_bound(tasks, n_ch, verbose=False, rng=rng_default):
     _check_loss(tasks, stack[0])
 
     t_ex = stack[0].t_ex        # optimal
-    ch_ex = stack[0].ch_ex  # optimal
+    ch_ex = stack[0].ch_ex      # optimal
 
     return t_ex, ch_ex
 
@@ -219,10 +217,7 @@ def mc_tree_search(tasks, n_ch, n_mc, verbose=False, rng=rng_default):
     TreeNode._n_ch = n_ch
     TreeNode.rng = rng
 
-    seq = []
-    for _ in range(n_ch):
-        seq.append([])
-    node = TreeNode(seq)
+    node = TreeNode([[] for _ in range(n_ch)])
 
     node_mc_best = node.roll_out(do_copy=True)
 
@@ -249,9 +244,7 @@ def mc_tree_search(tasks, n_ch, n_mc, verbose=False, rng=rng_default):
 
         seq_new = copy.deepcopy(node.seq)
         seq_new[ch_app].append(node_mc_best.seq[ch_app][lens[ch_app]])
-        node.seq = seq_new
-
-        # node.seq = node.seq + [node_mc_best.seq[n]]     # invokes seq.setter
+        node.seq = seq_new      # invokes seq.setter
 
     _check_loss(tasks, node)
 
@@ -261,17 +254,30 @@ def mc_tree_search(tasks, n_ch, n_mc, verbose=False, rng=rng_default):
     return t_ex, ch_ex
 
 
-def bb_single_then_assign(tasks, n_ch, verbose=False, rng=rng_default):
+def bb_mono_early_chan(tasks, n_ch, verbose=False, rng=rng_default):
     """Single-channel B&B, then multi-channel assignment by earliest channel availability."""
 
     t_ex, _ = branch_bound(tasks, n_ch=1, verbose=verbose, rng=rng)
-    seq_single = np.argsort(t_ex)
+    seq_single = np.argsort(t_ex)       # Optimal sequence for a single channel
     del t_ex
+    if verbose:
+        print(f'\nOptimal single-channel sequence: {seq_single}')
 
-    n_tasks = len(seq_single)
+    TreeNode._n_ch = n_ch
 
-    t_avail = np.zeros(n_ch)
-    t_ex = np.full(n_tasks, np.nan)  # task execution times (NaN for unscheduled)
-    ch_ex = np.full(n_tasks, np.nan, dtype=np.int)
-    # for i in seq_single:
+    node = TreeNode([[] for _ in range(n_ch)])    # Initialize empty node object
 
+    for n in seq_single:
+        ch = int(np.argmin(node.t_avail))
+
+        seq_new = copy.deepcopy(node.seq)
+        seq_new[ch].append(n)
+
+        node.seq = seq_new
+
+    _check_loss(tasks, node)
+
+    t_ex = node.t_ex
+    ch_ex = node.ch_ex
+
+    return t_ex, ch_ex

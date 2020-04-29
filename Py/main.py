@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from task_obj import TasksRRM
-from Tree_Search import branch_bound, mc_tree_search
+from Tree_Search import branch_bound, mc_tree_search, bb_mono_early_chan
 
 plt.style.use('seaborn')
 
@@ -20,10 +20,10 @@ rng = np.random.default_rng()
 
 # %% Inputs
 
-n_channels = 1       # number of channels
+n_channels = 2       # number of channels
 
 # Tasks
-n_tasks = 10      # number of tasks
+n_tasks = 8      # number of tasks
 
 t_release = rng.uniform(0, 15, n_tasks)
 
@@ -34,7 +34,7 @@ t_drop = t_release + duration * rng.uniform(3, 5, n_tasks)
 l_drop = rng.uniform(2, 3, n_tasks) * w * (t_drop - t_release)
 
 tasks = []
-for n in range(n_tasks):
+for n in range(n_tasks):        # build list of task objects
     tasks.append(TasksRRM.lin_drop(t_release[n], duration[n], w[n], t_drop[n], l_drop[n]))
 
 del duration, t_release, w, t_drop, l_drop
@@ -42,13 +42,14 @@ del duration, t_release, w, t_drop, l_drop
 
 # Algorithms
 algorithms = [partial(branch_bound, n_ch=n_channels, verbose=True, rng=rng),
-              partial(mc_tree_search, n_ch=n_channels, n_mc=1000, verbose=True, rng=rng)]
+              partial(mc_tree_search, n_ch=n_channels, n_mc=1000, verbose=True, rng=rng),
+              partial(bb_mono_early_chan, n_ch=n_channels, verbose=True, rng=rng)]
 
 
 # %% Evaluate
 t_ex_alg, ch_ex_alg, l_ex_alg, t_run_alg = [], [], [], []
 for alg in algorithms:
-    print(f'\nAlgorithm: {alg.func} \n')
+    print(f'\nAlgorithm: {alg.func.__name__} \n')
 
     tic = time.time()
     t_ex, ch_ex = alg(tasks)
