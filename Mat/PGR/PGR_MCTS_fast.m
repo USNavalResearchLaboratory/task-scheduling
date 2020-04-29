@@ -52,8 +52,7 @@ for i_t = 1:N
         
         % Random sequence
         seq_rem = T_c(randperm(numel(T_c)));       
-              
-        
+                    
         % Determine execution times, Assess loss       
         t_ex_mc = t_ex;        
         l_mc = l_inc;

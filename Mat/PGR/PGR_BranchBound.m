@@ -2,7 +2,7 @@
 
 clear;
 
-% rng(100);
+rng(100);
 
 
 %%% Inputs
@@ -17,7 +17,6 @@ N = 10;                      % number of tasks
 
 s_task = 30*rand(N,1);            % task start times
 d_task = 1 + 2*rand(N,1);          % task durations
-
 
 w = 0.8 + 0.4*rand(N,1);
 t_drop = s_task + d_task.*(3+2*rand(N,1));
@@ -65,12 +64,12 @@ while (numel(S) ~= 1) || (numel(S(1).seq) ~= N)
            
     % Split Branch
     T_c = setdiff((1:N)',B.seq);
+%     seq_rem = T_c;
     seq_rem = T_c(randperm(numel(T_c)));        %%%
     for n = seq_rem' 
                 
         % Generate New Branch
         B_new = branch_update(B,n,l_task,s_task,d_task);
-                     
         
         % Cut Branches
         if B_new.LB >= min(cell2mat({S.UB}))
@@ -87,7 +86,7 @@ while (numel(S) ~= 1) || (numel(S(1).seq) ~= N)
             else
                 error('Unsupported stacking function.');
             end
-
+            
         end
 
                         
