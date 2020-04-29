@@ -11,12 +11,11 @@ import matplotlib.pyplot as plt
 
 from task_obj import TasksRRM
 from Tree_Search_Mono import branch_bound, mc_tree_search
-# from BranchBound_original import branch_bound
 
 plt.style.use('seaborn')
 
-# rng = np.random.default_rng()
-rng = np.random.RandomState(100)
+rng = np.random.default_rng()
+# rng = np.random.RandomState(100)
 
 
 # %% Inputs
@@ -24,7 +23,7 @@ rng = np.random.RandomState(100)
 # Tasks
 n_tasks = 10      # number of tasks
 
-t_release = rng.uniform(0, 30, n_tasks)
+t_release = rng.uniform(0, 10, n_tasks)
 duration = rng.uniform(1, 3, n_tasks)
 
 w = rng.uniform(0.8, 1.2, n_tasks)
@@ -94,13 +93,13 @@ plt.legend()
 
 bar_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 for i in range(len(algorithms)):
-    plt.figure(num=str(algorithms[i].func), clear=True, figsize=[8, 2.5])
+    plt.figure(num=str(algorithms[i].func.__name__), clear=True, figsize=[8, 2.5])
     plt.title(f'Loss = {l_ex_alg[i]:.3f}')
     # d = ax.broken_barh([(t_ex[n], tasks[n].duration) for n in range(len(tasks))], (-0.5, 1), facecolors=bar_colors)
     for n in range(len(tasks)):
         plt.gca().broken_barh([(t_ex_alg[i][n], tasks[n].duration)], (-0.5, 1),
                               facecolors=bar_colors[n % len(bar_colors)], edgecolor='black', label=f'Task #{n}')
 
-    plt.gca().set(xlim=t_plot[[0, -1]], ylim=(-.6, .6), xlabel='t', yticks=[0], yticklabels=['1'], ylabel='Channel')
+    plt.gca().set(xlim=t_plot[[0, -1]], ylim=(-.5, .5), xlabel='t', yticks=[0], ylabel='Channel')
     plt.gca().grid(True)
     plt.gca().legend()

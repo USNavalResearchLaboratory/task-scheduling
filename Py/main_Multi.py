@@ -11,12 +11,11 @@ import matplotlib.pyplot as plt
 
 from task_obj import TasksRRM
 from Tree_Search_Multi import branch_bound, mc_tree_search
-# from BranchBound_original import branch_bound
 
 plt.style.use('seaborn')
 
-# rng = np.random.default_rng()
-rng = np.random.RandomState(100)
+rng = np.random.default_rng()
+# rng = np.random.RandomState(100)
 
 
 # %% Inputs
@@ -24,9 +23,10 @@ rng = np.random.RandomState(100)
 n_channels = 2       # number of channels
 
 # Tasks
-n_tasks = 10      # number of tasks
+n_tasks = 8      # number of tasks
 
-t_release = rng.uniform(0, 30, n_tasks)
+t_release = rng.uniform(0, 10, n_tasks)
+
 duration = rng.uniform(1, 3, n_tasks)
 
 w = rng.uniform(0.8, 1.2, n_tasks)
@@ -61,9 +61,11 @@ for alg in algorithms:
     # Check solution validity
     for ch in range(n_channels):
         tasks_ch = np.asarray(tasks)[ch_ex == ch].tolist()
+        t_ex_ch = t_ex[ch_ex == ch]
         for n_1 in range(len(tasks_ch) - 1):
             for n_2 in range(n_1 + 1, len(tasks_ch)):
-                if t_ex[n_1] - tasks[n_2].duration + 1e-12 < t_ex[n_2] < t_ex[n_1] + tasks[n_1].duration - 1e-12:
+                if t_ex_ch[n_1] - tasks_ch[n_2].duration + 1e-12 < t_ex_ch[n_2] < t_ex_ch[n_1] \
+                        + tasks_ch[n_1].duration - 1e-12:
                     raise ValueError('Invalid Solution: Scheduling Conflict')
 
     # Cost evaluation
@@ -104,9 +106,10 @@ for i in range(len(algorithms)):
     plt.title(f'Loss = {l_ex_alg[i]:.3f}')
     # d = ax.broken_barh([(t_ex[n], tasks[n].duration) for n in range(len(tasks))], (-0.5, 1), facecolors=bar_colors)
     for n in range(len(tasks)):
-        plt.gca().broken_barh([(t_ex_alg[i][n], tasks[n].duration)], (ch_ex_alg[i][n]-0.5, ch_ex_alg[i][n]+1),
+        plt.gca().broken_barh([(t_ex_alg[i][n], tasks[n].duration)], (ch_ex_alg[i][n]-0.5, 1),
                               facecolors=bar_colors[n % len(bar_colors)], edgecolor='black', label=f'Task #{n}')
 
-    plt.gca().set(xlim=t_plot[[0, -1]], ylim=(-.6, n_channels-1+.6), xlabel='t', yticks=list(range(n_channels)), ylabel='Channel')
+    plt.gca().set(xlim=t_plot[[0, -1]], ylim=(-.5, n_channels-1+.5),
+                  xlabel='t', yticks=list(range(n_channels)), ylabel='Channel')
     plt.gca().grid(True)
     plt.gca().legend()

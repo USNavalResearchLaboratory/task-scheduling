@@ -152,14 +152,17 @@ class TreeNodeBound(TreeNode):
         self.update_node(seq)
 
         # Add bound attributes
-        t_ex_max = max([self._tasks[n].t_release for n in self._seq_rem] + self._t_avail.tolist()) \
+        t_ex_max = max([self._tasks[n].t_release for n in self._seq_rem] + list(self._t_avail)) \
             + sum([self._tasks[n].duration for n in self._seq_rem])  # maximum execution time for bounding
 
         self._l_lo = self._l_ex
         self._l_up = self._l_ex
         for n in self._seq_rem:  # update loss bounds
-            self._l_lo += self._tasks[n].loss_fcn(max(self._tasks[n].t_release, self._t_avail.min()))
+            self._l_lo += self._tasks[n].loss_fcn(max(self._tasks[n].t_release, min(self._t_avail)))
             self._l_up += self._tasks[n].loss_fcn(t_ex_max)
+
+        if len(self._seq_rem) > 0 and self._l_lo == self._l_up:
+            self.roll_out(do_copy=False)
 
 
 def branch_bound(tasks, n_ch, verbose=False, rng=rng_default):
@@ -169,8 +172,6 @@ def branch_bound(tasks, n_ch, verbose=False, rng=rng_default):
     TreeNode._tasks = tasks         # TODO: proper style to redefine class attribute here?
     TreeNode._n_ch = n_ch
     TreeNode.rng = rng
-
-    n_tasks = len(tasks)
 
     seq = []
     for _ in range(n_ch):
@@ -182,7 +183,7 @@ def branch_bound(tasks, n_ch, verbose=False, rng=rng_default):
     # Iterate
     while not ((len(stack) == 1) and (len(stack[0]._seq_rem) == 0)):
         if verbose:
-            print(f'# Remaining Nodes = {len(stack)}', end='\n')
+            print(f'# Remaining Nodes = {len(stack)}, Loss < {l_upper_min:.3f}')
 
         node = stack.pop()     # Extract Node
 
@@ -190,10 +191,11 @@ def branch_bound(tasks, n_ch, verbose=False, rng=rng_default):
         for node_new in node.branch(do_permute=True):
             # Bound
             if node_new.l_lo < l_upper_min:  # New node is not dominated
-                stack = [s for s in stack if s.l_lo < node_new.l_up]      # Cut Dominated Nodes
-                l_upper_min = min(l_upper_min, node_new.l_up)
+                if node_new.l_up < l_upper_min:
+                    l_upper_min = node_new.l_up
+                    stack = [s for s in stack if s.l_lo < l_upper_min]  # Cut Dominated Nodes
 
-                if len(node_new.seq) < n_tasks:  # Add New Node to Stack
+                if len(node_new._seq_rem) > 0:  # Add New Node to Stack
                     stack.append(node_new)     # LIFO
                 else:
                     stack.insert(0, node_new)
@@ -235,7 +237,6 @@ def mc_tree_search(tasks, n_ch, n_mc, verbose=False, rng=rng_default):
 
             if node_mc.l_ex < node_mc_best.l_ex:   # Update best node
                 node_mc_best = node_mc
-
 
         ch_new = []
         lens = []
