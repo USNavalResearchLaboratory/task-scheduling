@@ -2,6 +2,8 @@ import numpy as np
 
 
 class TasksRRM:
+    """Generic task objects."""
+
     def __init__(self, t_release, duration, loss_fcn):
         self.t_release = t_release
         self.duration = duration

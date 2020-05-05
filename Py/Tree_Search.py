@@ -168,6 +168,7 @@ class TreeNodeBound(TreeNode):
 
 def branch_bound(tasks, n_ch, verbose=False, rng=rng_default):
     """Branch and Bound algorithm."""
+
     # TODO: redundant evaluation of nodes for multichannel?
 
     TreeNode._tasks = tasks         # TODO: proper style to redefine class attribute here?
@@ -206,8 +207,7 @@ def branch_bound(tasks, n_ch, verbose=False, rng=rng_default):
 
     _check_loss(tasks, stack[0])
 
-    t_ex = stack[0].t_ex        # optimal
-    ch_ex = stack[0].ch_ex      # optimal
+    t_ex, ch_ex = stack[0].t_ex, stack[0].ch_ex      # optimal
 
     return t_ex, ch_ex
 
@@ -248,8 +248,7 @@ def mc_tree_search(tasks, n_ch, n_mc, verbose=False, rng=rng_default):
 
     _check_loss(tasks, node)
 
-    t_ex = node.t_ex
-    ch_ex = node.ch_ex
+    t_ex, ch_ex = node.t_ex, node.ch_ex
 
     return t_ex, ch_ex
 
@@ -273,11 +272,10 @@ def bb_mono_early_chan(tasks, n_ch, verbose=False, rng=rng_default):
         seq_new = copy.deepcopy(node.seq)
         seq_new[ch].append(n)
 
-        node.seq = seq_new
+        node.seq = seq_new          # invokes seq.setter
 
     _check_loss(tasks, node)
 
-    t_ex = node.t_ex
-    ch_ex = node.ch_ex
+    t_ex, ch_ex = node.t_ex, node.ch_ex
 
     return t_ex, ch_ex
