@@ -1,5 +1,5 @@
 """
-Branch and Bound.
+Multi-channel Tree Search objects and algorithms.
 """
 
 import copy
@@ -93,12 +93,17 @@ class TreeNode:
                 self._t_avail[ch] = self._t_ex[n] + self._tasks[n].duration
                 self._l_ex += self._tasks[n].loss_fcn(self._t_ex[n])
 
-    def branch(self, do_permute=True):
+    def branch(self, do_permute=True, exhaustive=False):
         """Generate All Sub-Nodes."""
 
+        if exhaustive:
+            ch_iter = range(self._n_ch)     # try each task on each channel
+        else:
+            ch_iter = [int(np.argmin(self.t_avail))]        # try each task on the earliest available channel only
+
         nodes_new = []
-        for ch in range(self._n_ch):
-            for n in self._seq_rem:
+        for n in self._seq_rem:
+            for ch in ch_iter:
                 seq_new = copy.deepcopy(self.seq)
                 seq_new[ch].append(n)
 
@@ -166,7 +171,7 @@ class TreeNodeBound(TreeNode):
             self.roll_out(do_copy=False)
 
 
-def branch_bound(tasks, n_ch, verbose=False, rng=rng_default):
+def branch_bound(tasks, n_ch, exhaustive=False, verbose=False, rng=rng_default):
     """Branch and Bound algorithm."""
 
     # TODO: redundant evaluation of nodes for multichannel?
@@ -187,7 +192,7 @@ def branch_bound(tasks, n_ch, verbose=False, rng=rng_default):
         node = stack.pop()     # Extract Node
 
         # Branch
-        for node_new in node.branch(do_permute=True):
+        for node_new in node.branch(do_permute=True, exhaustive=exhaustive):
             # Bound
             if node_new.l_lo < l_upper_min:  # New node is not dominated
                 if node_new.l_up < l_upper_min:
@@ -252,30 +257,3 @@ def mc_tree_search(tasks, n_ch, n_mc, verbose=False, rng=rng_default):
 
     return t_ex, ch_ex
 
-
-def bb_mono_early_chan(tasks, n_ch, verbose=False, rng=rng_default):
-    """Single-channel B&B, then multi-channel assignment by earliest channel availability."""
-
-    t_ex, _ = branch_bound(tasks, n_ch=1, verbose=verbose, rng=rng)
-    seq_single = np.argsort(t_ex)       # Optimal sequence for a single channel
-    del t_ex
-    if verbose:
-        print(f'\nOptimal single-channel sequence: {seq_single}')
-
-    TreeNode._n_ch = n_ch
-
-    node = TreeNode([[] for _ in range(n_ch)])    # Initialize empty node object
-
-    for n in seq_single:
-        ch = int(np.argmin(node.t_avail))
-
-        seq_new = copy.deepcopy(node.seq)
-        seq_new[ch].append(n)
-
-        node.seq = seq_new          # invokes seq.setter
-
-    _check_loss(tasks, node)
-
-    t_ex, ch_ex = node.t_ex, node.ch_ex
-
-    return t_ex, ch_ex

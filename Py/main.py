@@ -10,12 +10,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from task_obj import TasksRRM
-from Tree_Search import branch_bound, mc_tree_search, bb_mono_early_chan
+from Tree_Search import branch_bound, mc_tree_search
 
 plt.style.use('seaborn')
 
 rng = np.random.default_rng()
-# rng = np.random.RandomState(100)
 
 
 # %% Inputs
@@ -25,7 +24,7 @@ n_channels = 2       # number of channels
 # Tasks
 n_tasks = 8      # number of tasks
 
-t_release = rng.uniform(0, 15, n_tasks)
+t_release = rng.uniform(0, 5, n_tasks)
 
 duration = rng.uniform(1, 3, n_tasks)
 
@@ -41,9 +40,9 @@ del duration, t_release, w, t_drop, l_drop
 
 
 # Algorithms
-algorithms = [partial(branch_bound, n_ch=n_channels, verbose=True, rng=rng),
-              partial(mc_tree_search, n_ch=n_channels, n_mc=1000, verbose=True, rng=rng),
-              partial(bb_mono_early_chan, n_ch=n_channels, verbose=True, rng=rng)]
+algorithms = [partial(branch_bound, n_ch=n_channels, exhaustive=True, verbose=True, rng=rng),
+              # partial(mc_tree_search, n_ch=n_channels, n_mc=1000, verbose=True, rng=rng),
+              partial(branch_bound, n_ch=n_channels, exhaustive=False, verbose=True, rng=rng)]
 
 
 # %% Evaluate
@@ -103,7 +102,15 @@ plt.legend()
 
 bar_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 for i in range(len(algorithms)):
-    plt.figure(num=str(algorithms[i].func.__name__), clear=True, figsize=[8, 2.5])
+    title_dict = algorithms[i].keywords
+    for key in ['verbose', 'rng']:
+        try:
+            del title_dict[key]
+        except KeyError:
+            pass
+    title = ": ".join([algorithms[i].func.__name__, str(title_dict)])
+
+    plt.figure(num=title, clear=True, figsize=[8, 2.5])
     plt.title(f'Loss = {l_ex_alg[i]:.3f}')
     # d = ax.broken_barh([(t_ex[n], tasks[n].duration) for n in range(len(tasks))], (-0.5, 1), facecolors=bar_colors)
     for n in range(len(tasks)):
