@@ -1,21 +1,66 @@
+"""Task objects."""
+
 import numpy as np
 
 
-class TasksRRM:
-    """Generic task objects."""
+class TaskRRM:
+    """Generic task objects.
 
-    def __init__(self, t_release, duration, loss_fcn):
-        self.t_release = t_release
+    Parameters
+    ----------
+    duration : float
+        Time duration of the task.
+    t_release : float
+        Earliest time the task may be scheduled.
+    loss_fcn : function
+        Function returning losses for all elements of a time array.
+
+    Attributes
+    ----------
+    duration : float
+        Time duration of the task.
+    t_release : float
+        Earliest time the task may be scheduled.
+    loss_fcn : function
+        Function returning losses for all elements of a time array.
+
+    """
+
+    def __init__(self, duration, t_release, loss_fcn):
         self.duration = duration
+        self.t_release = t_release
         self.loss_fcn = loss_fcn
 
     @classmethod
-    def lin_drop(cls, t_release, duration, w, t_drop, l_drop):
-        return cls(t_release, duration, loss_lin_drop(t_release, w, t_drop, l_drop))
+    def relu_drop(cls, duration, t_release, w, t_drop, l_drop):
+        """Generates a task object with a rectified linear loss function with a constant drop penalty.
+
+            See documentation of task_obj.TaskRRM and task_obj.loss_relu_drop for parameter descriptions.
+
+        """
+
+        return cls(duration, t_release, loss_relu_drop(t_release, w, t_drop, l_drop))
 
 
-def loss_lin_drop(t_release, w, t_drop, l_drop):
-    """Linearly increasing loss with constant drop loss."""
+def loss_relu_drop(t_release, w, t_drop, l_drop):
+    """Generates a rectified linear loss function with a constant drop penalty.
+
+    Parameters
+    ----------
+    t_release : float
+        Earliest time the task may be scheduled. Loss at t_release is zero.
+    w : float
+        Function slope between release and drop times.
+    t_drop : float
+        Drop time.
+    l_drop : float
+        Constant loss after drop time.
+
+    Returns
+    -------
+    function
+
+    """
 
     if l_drop < w * (t_drop - t_release):
         raise ValueError("Function is not monotonically non-decreasing.")

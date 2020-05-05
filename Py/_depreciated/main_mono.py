@@ -9,8 +9,8 @@ from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
 
-from task_obj import TasksRRM
-from Tree_Search_Mono import branch_bound, mc_tree_search
+from task_obj import TaskRRM
+from _depreciated.Tree_Search_Mono import branch_bound, mc_tree_search
 
 plt.style.use('seaborn')
 
@@ -32,7 +32,7 @@ l_drop = rng.uniform(2, 3, n_tasks) * w * (t_drop - t_release)
 
 tasks = []
 for n in range(n_tasks):
-    tasks.append(TasksRRM.lin_drop(t_release[n], duration[n], w[n], t_drop[n], l_drop[n]))
+    tasks.append(TaskRRM.relu_drop(t_release[n], duration[n], w[n], t_drop[n], l_drop[n]))
 
 del duration, t_release, w, t_drop, l_drop
 

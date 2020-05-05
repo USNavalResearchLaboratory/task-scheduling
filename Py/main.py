@@ -1,5 +1,6 @@
-"""
-Task scheduling.
+"""Task scheduling example.
+
+Define a set of task objects and scheduling algorithms. Assess achieved loss and runtime.
 """
 
 import time     # TODO: use builtin module timeit instead?
@@ -9,7 +10,7 @@ from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
 
-from task_obj import TasksRRM
+from task_obj import TaskRRM
 from Tree_Search import branch_bound, mc_tree_search
 
 plt.style.use('seaborn')
@@ -24,9 +25,9 @@ n_channels = 2       # number of channels
 # Tasks
 n_tasks = 8      # number of tasks
 
-t_release = rng.uniform(0, 5, n_tasks)
-
 duration = rng.uniform(1, 3, n_tasks)
+
+t_release = rng.uniform(0, 10, n_tasks)
 
 w = rng.uniform(0.8, 1.2, n_tasks)
 t_drop = t_release + duration * rng.uniform(3, 5, n_tasks)
@@ -34,15 +35,14 @@ l_drop = rng.uniform(2, 3, n_tasks) * w * (t_drop - t_release)
 
 tasks = []
 for n in range(n_tasks):        # build list of task objects
-    tasks.append(TasksRRM.lin_drop(t_release[n], duration[n], w[n], t_drop[n], l_drop[n]))
+    tasks.append(TaskRRM.relu_drop(duration[n], t_release[n], w[n], t_drop[n], l_drop[n]))
 
 del duration, t_release, w, t_drop, l_drop
 
 
 # Algorithms
-algorithms = [partial(branch_bound, n_ch=n_channels, exhaustive=True, verbose=True, rng=rng),
-              # partial(mc_tree_search, n_ch=n_channels, n_mc=1000, verbose=True, rng=rng),
-              partial(branch_bound, n_ch=n_channels, exhaustive=False, verbose=True, rng=rng)]
+algorithms = [partial(branch_bound, n_ch=n_channels, exhaustive=False, verbose=True, rng=rng),
+              partial(mc_tree_search, n_ch=n_channels, n_mc=1000, verbose=True, rng=rng)]
 
 
 # %% Evaluate
@@ -82,7 +82,7 @@ for alg in algorithms:
     print(f"Runtime: {t_run:.2f} seconds")
 
 
-# %% Plots
+# %% Graphics
 t_plot_max = 0
 for t_ex in t_ex_alg:
     t_plot_max = max(t_plot_max, max(t_ex))
