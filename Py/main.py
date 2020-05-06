@@ -10,8 +10,8 @@ from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
 
-from task_obj import TaskRRM
-from Tree_Search import branch_bound, mc_tree_search
+from tasks import TaskRRM
+from tree_search import branch_bound, mc_tree_search
 
 plt.style.use('seaborn')
 
@@ -23,11 +23,11 @@ rng = np.random.default_rng()
 ch_avail = 2 * [0]     # channel availability times
 
 # Tasks
-n_tasks = 8      # number of tasks
+n_tasks = 10      # number of tasks
 
 duration = rng.uniform(1, 3, n_tasks)
 
-t_release = rng.uniform(0, 10, n_tasks)
+t_release = rng.uniform(0, 8, n_tasks)
 
 w = rng.uniform(0.8, 1.2, n_tasks)
 t_drop = t_release + duration * rng.uniform(3, 5, n_tasks)
@@ -41,7 +41,7 @@ del duration, t_release, w, t_drop, l_drop
 
 
 # Algorithms
-algorithms = [partial(branch_bound, ch_avail=ch_avail, exhaustive=False, verbose=True, rng=rng),
+algorithms = [partial(branch_bound, ch_avail=ch_avail, verbose=True, rng=rng),
               partial(mc_tree_search, ch_avail=ch_avail, n_mc=1000, verbose=True, rng=rng)]
 
 
@@ -105,7 +105,7 @@ plt.legend()
 bar_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 for i in range(len(algorithms)):
     title_dict = algorithms[i].keywords
-    for key in ['verbose', 'rng']:
+    for key in ['verbose', 'rng', 'ch_avail']:
         try:
             del title_dict[key]
         except KeyError:

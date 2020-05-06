@@ -34,6 +34,7 @@ class TreeNode:
 
     _tasks = []       # TODO: needs to be overwritten by invoking scripts...
     _ch_avail_init = []
+    _exhaustive = False
     _rng = None
 
     def __init__(self, seq: list):
@@ -126,15 +127,13 @@ class TreeNode:
                 self._ch_avail[ch] = self._t_ex[n] + self._tasks[n].duration
                 self._l_ex += self._tasks[n].loss_fcn(self._t_ex[n])
 
-    def branch(self, do_permute=True, exhaustive=False):
+    def branch(self, do_permute=True):
         """Generate descendant nodes.
 
         Parameters
         ----------
         do_permute : bool
             Enables random permutation of returned node list.
-        exhaustive : bool
-            Enables an exhaustive tree search. If False, sequence-to-schedule assignment is used.
 
         Yields
         -------
@@ -143,30 +142,30 @@ class TreeNode:
 
         """
 
-        seq_iter = self._seq_rem
+        seq_iter = list(self._seq_rem)
         if do_permute:
-            seq_iter = self._rng.permutation(list(seq_iter))
+            self._rng.shuffle(seq_iter)
+
+        if self._exhaustive:
+            ch_iter = list(range(self._n_ch))     # try each task on each channel
+        else:
+            ch_iter = [int(np.argmin(self.ch_avail))]  # try each task on the earliest available channel only
 
         for n in seq_iter:
 
-            if exhaustive:
-                ch_iter = range(self._n_ch)
-                if do_permute:
-                    ch_iter = self._rng.permutation(list(ch_iter))  # try each task on each channel
-            else:
-                ch_iter = [int(np.argmin(self.ch_avail))]  # try each task on the earliest available channel only
+            if self._exhaustive and do_permute:
+                self._rng.shuffle(ch_iter)
 
             for ch in ch_iter:
                 seq_new = copy.deepcopy(self.seq)
                 seq_new[ch].append(n)
 
-                node_new = copy.deepcopy(self)  # new Node object
+                node_new = copy.deepcopy(self)  # new TreeNode object
                 node_new.seq = seq_new  # call seq.setter method
-                # node_new.seq = node_new.seq + [n]       # call seq.setter method
 
                 yield node_new
 
-    def roll_out(self, do_copy=True):
+    def roll_out(self, do_copy=False):
         """Generates/updates node with a randomly completed sequence.
 
         Parameters
@@ -182,22 +181,29 @@ class TreeNode:
         """
 
         seq_new = copy.deepcopy(self.seq)
-
         seq_rem_perm = self._rng.permutation(list(self._seq_rem))
 
-        temp = self._rng.multinomial(self._n_tasks, np.ones(self._n_ch) / self._n_ch)
-        i_split = np.cumsum(temp)[:-1]
-        splits = np.split(seq_rem_perm, i_split)
-        for ch in range(self._n_ch):
-            seq_new[ch].extend(splits[ch].tolist())
+        if self._exhaustive:
+            _temp = self._rng.multinomial(self._n_tasks, np.ones(self._n_ch) / self._n_ch)
+            splits = np.split(seq_rem_perm, np.cumsum(_temp)[:-1])
+            for ch in range(self._n_ch):
+                seq_new[ch].extend(splits[ch].tolist())
+
+        else:
+            ch_avail = copy.deepcopy(self.ch_avail)
+            for n in seq_rem_perm:
+                ch = int(np.argmin(ch_avail))
+                seq_new[ch].append(n)
+
+                ch_avail[ch] = max(self._tasks[n].t_release, ch_avail[ch]) + self._tasks[n].duration
 
         if do_copy:
-            node_new = copy.deepcopy(self)      # new Node object
-            node_new.seq = seq_new  # call seq.setter method
+            node_new = copy.deepcopy(self)      # new TreeNode object
+            node_new.seq = seq_new              # call seq.setter method
 
             return node_new
         else:
-            self.seq = seq_new  # call seq.setter method
+            self.seq = seq_new      # call seq.setter method
 
 
 class TreeNodeBound(TreeNode):
@@ -243,23 +249,6 @@ class TreeNodeBound(TreeNode):
     @property
     def l_up(self): return self._l_up
 
-    # @TreeNode.seq.setter
-    # def seq(self, seq):
-    #     self.update_node(seq)
-    #
-    #     # Add bound attributes
-    #     t_ex_max = max([self._tasks[n].t_release for n in self._seq_rem] + list(self._ch_avail)) \
-    #         + sum([self._tasks[n].duration for n in self._seq_rem])  # maximum execution time for bounding
-    #
-    #     self._l_lo = self._l_ex
-    #     self._l_up = self._l_ex
-    #     for n in self._seq_rem:  # update loss bounds
-    #         self._l_lo += self._tasks[n].loss_fcn(max(self._tasks[n].t_release, min(self._ch_avail)))
-    #         self._l_up += self._tasks[n].loss_fcn(t_ex_max)
-    #
-    #     if len(self._seq_rem) > 0 and self._l_lo == self._l_up:     # roll-out if bounds converge
-    #         self.roll_out(do_copy=False)
-
     def update_node(self, seq: list):
         """Sets node sequence and iteratively updates all dependent attributes.
 
@@ -283,7 +272,7 @@ class TreeNodeBound(TreeNode):
             self._l_up += self._tasks[n].loss_fcn(t_ex_max)
 
         if len(self._seq_rem) > 0 and self._l_lo == self._l_up:  # roll-out if bounds converge
-            self.roll_out(do_copy=False)
+            self.roll_out()
 
 
 def _check_loss(tasks: list, node: TreeNode):
@@ -313,7 +302,7 @@ def branch_bound(tasks: list, ch_avail: list, exhaustive=False, verbose=False, r
     ch_avail : list of float
         Channel availability times.
     exhaustive : bool
-        Enables exhaustive tree search.
+        Enables an exhaustive tree search. If False, sequence-to-schedule assignment is used.
     verbose : bool
         Enables printing of algorithm state information.
     rng
@@ -330,22 +319,23 @@ def branch_bound(tasks: list, ch_avail: list, exhaustive=False, verbose=False, r
 
     TreeNode._tasks = tasks         # TODO: proper style to redefine class attribute here?
     TreeNode._ch_avail_init = ch_avail
+    TreeNode._exhaustive = exhaustive
     TreeNode._rng = rng
 
     n_ch = len(ch_avail)
-    stack = [TreeNodeBound([[] for _ in range(n_ch)])]      # Initialize Stack
 
+    stack = [TreeNodeBound([[] for _ in range(n_ch)])]      # Initialize Stack
     l_upper_min = stack[0].l_up
 
     # Iterate
     while not ((len(stack) == 1) and (len(stack[0].seq_rem) == 0)):
         if verbose:
-            print(f'# Remaining Nodes = {len(stack)}, Loss < {l_upper_min:.3f}')
+            print(f'# Remaining Nodes = {len(stack)}, Loss < {l_upper_min:.3f}', end='\r')
 
         node = stack.pop()     # Extract Node
 
         # Branch
-        for node_new in node.branch(do_permute=True, exhaustive=exhaustive):
+        for node_new in node.branch(do_permute=True):
             # Bound
             if node_new.l_lo < l_upper_min:  # New node is not dominated
                 if node_new.l_up < l_upper_min:
@@ -370,7 +360,7 @@ def branch_bound(tasks: list, ch_avail: list, exhaustive=False, verbose=False, r
     return t_ex, ch_ex
 
 
-def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=rng_default):
+def mc_tree_search(tasks: list, ch_avail: list, n_mc, exhaustive=False, verbose=False, rng=rng_default):
     """Monte Carlo tree search algorithm.
 
     Parameters
@@ -380,6 +370,8 @@ def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=rng_def
         Channel availability times.
     n_mc : int
         Number of Monte Carlo roll-outs per task.
+    exhaustive : bool
+        Enables an exhaustive tree search. If False, sequence-to-schedule assignment is used.
     verbose : bool
         Enables printing of algorithm state information.
     rng
@@ -396,36 +388,32 @@ def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=rng_def
 
     TreeNode._tasks = tasks
     TreeNode._ch_avail_init = ch_avail
+    TreeNode._exhaustive = exhaustive
     TreeNode._rng = rng
 
     n_ch = len(ch_avail)
-    node = TreeNode([[] for _ in range(n_ch)])
 
-    node_mc_best = node.roll_out(do_copy=True)
+    node = TreeNode([[] for _ in range(n_ch)])
+    node_best = node.roll_out(do_copy=True)
 
     n_tasks = len(tasks)
     for n in range(n_tasks):
         if verbose:
-            print(f'Assigning Task {n+1}/{n_tasks}')
+            print(f'Assigning Task {n+1}/{n_tasks}', end='\r')
 
         # Perform Roll-outs
         for _ in range(n_mc):
             node_mc = node.roll_out(do_copy=True)
 
-            if node_mc.l_ex < node_mc_best.l_ex:   # Update best node
-                node_mc_best = node_mc
-
-        ch_new = []
-        lens = []
-        for ch in range(n_ch):
-            len_seq = len(node.seq[ch])
-            lens.append(len_seq)
-            if len(node_mc_best.seq[ch]) > len_seq:
-                ch_new.append(ch)
-        ch_app = rng.choice(ch_new)     # TODO: ad-hoc, randomly select appended channel for iteration
+            if node_mc.l_ex < node_best.l_ex:   # Update best node
+                node_best = node_mc
 
         seq_new = copy.deepcopy(node.seq)
-        seq_new[ch_app].append(node_mc_best.seq[ch_app][lens[ch_app]])
+
+        # Assign next task from earliest available channel
+        ch = int(np.argmin(node.ch_avail))
+        seq_new[ch].append(node_best.seq[ch][len(node.seq[ch])])
+
         node.seq = seq_new      # call seq.setter
 
     _check_loss(tasks, node)

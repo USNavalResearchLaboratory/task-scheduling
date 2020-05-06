@@ -9,7 +9,7 @@ from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
 
-from task_obj import TaskRRM
+from tasks import TaskRRM
 from _depreciated.Tree_Search_Mono import branch_bound, mc_tree_search
 
 plt.style.use('seaborn')
