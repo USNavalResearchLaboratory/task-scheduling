@@ -22,7 +22,7 @@ class TreeNode:
         Task execution times. NaN for unscheduled.
     ch_ex : ndarray
         Task execution channels. NaN for unscheduled.
-    t_avail : ndarray
+    ch_avail : ndarray
         Channel availability times.
     l_ex : float
         Total loss of scheduled tasks.
@@ -33,13 +33,11 @@ class TreeNode:
     # TODO: docstring describes properties as attributes. OK? Subclasses, too.
 
     _tasks = []       # TODO: needs to be overwritten by invoking scripts...
-    _n_ch = 0
+    _ch_avail_init = []
     _rng = None
 
-    # TODO: variable channel availability initialization
-
     def __init__(self, seq: list):
-        if self._n_tasks == 0 or TreeNode._n_ch == 0:
+        if self._n_tasks == 0 or self._n_ch == 0:
             raise AttributeError("Cannot instantiate objects before assigning "
                                  "the '_tasks' and '_n_ch class attributes.")
 
@@ -50,7 +48,7 @@ class TreeNode:
         self._t_ex = np.full(self._n_tasks, np.nan)      # task execution times (NaN for unscheduled)
         self._ch_ex = np.full(self._n_tasks, np.nan, dtype=np.int)
 
-        self._t_avail = np.zeros(self._n_ch)    # timeline availability
+        self._ch_avail = np.zeros(self._n_ch)    # timeline availability
 
         self._l_ex = 0.    # partial sequence loss
 
@@ -61,6 +59,10 @@ class TreeNode:
 
     @property
     def _n_tasks(self): return len(self._tasks)
+
+    @property
+    def _n_ch(self):
+        return len(self._ch_avail_init)
 
     @property
     def seq(self):
@@ -85,7 +87,7 @@ class TreeNode:
     def ch_ex(self): return self._ch_ex
 
     @property
-    def t_avail(self): return self._t_avail
+    def ch_avail(self): return self._ch_avail
 
     @property
     def l_ex(self): return self._l_ex
@@ -120,8 +122,8 @@ class TreeNode:
 
             self._ch_ex[seq_append] = ch
             for n in seq_append:    # recursively update Node attributes
-                self._t_ex[n] = max(self._tasks[n].t_release, self._t_avail[ch])
-                self._t_avail[ch] = self._t_ex[n] + self._tasks[n].duration
+                self._t_ex[n] = max(self._tasks[n].t_release, self._ch_avail[ch])
+                self._ch_avail[ch] = self._t_ex[n] + self._tasks[n].duration
                 self._l_ex += self._tasks[n].loss_fcn(self._t_ex[n])
 
     def branch(self, do_permute=True, exhaustive=False):
@@ -152,7 +154,7 @@ class TreeNode:
                 if do_permute:
                     ch_iter = self._rng.permutation(list(ch_iter))  # try each task on each channel
             else:
-                ch_iter = [int(np.argmin(self.t_avail))]  # try each task on the earliest available channel only
+                ch_iter = [int(np.argmin(self.ch_avail))]  # try each task on the earliest available channel only
 
             for ch in ch_iter:
                 seq_new = copy.deepcopy(self.seq)
@@ -214,7 +216,7 @@ class TreeNodeBound(TreeNode):
             Task execution times. NaN for unscheduled.
         ch_ex : ndarray
             Task execution channels. NaN for unscheduled.
-        t_avail : ndarray
+        ch_avail : ndarray
             Channel availability times.
         l_ex : float
             Total loss of scheduled tasks.
@@ -246,13 +248,13 @@ class TreeNodeBound(TreeNode):
     #     self.update_node(seq)
     #
     #     # Add bound attributes
-    #     t_ex_max = max([self._tasks[n].t_release for n in self._seq_rem] + list(self._t_avail)) \
+    #     t_ex_max = max([self._tasks[n].t_release for n in self._seq_rem] + list(self._ch_avail)) \
     #         + sum([self._tasks[n].duration for n in self._seq_rem])  # maximum execution time for bounding
     #
     #     self._l_lo = self._l_ex
     #     self._l_up = self._l_ex
     #     for n in self._seq_rem:  # update loss bounds
-    #         self._l_lo += self._tasks[n].loss_fcn(max(self._tasks[n].t_release, min(self._t_avail)))
+    #         self._l_lo += self._tasks[n].loss_fcn(max(self._tasks[n].t_release, min(self._ch_avail)))
     #         self._l_up += self._tasks[n].loss_fcn(t_ex_max)
     #
     #     if len(self._seq_rem) > 0 and self._l_lo == self._l_up:     # roll-out if bounds converge
@@ -271,13 +273,13 @@ class TreeNodeBound(TreeNode):
         super().update_node(seq)
 
         # Add bound attributes
-        t_ex_max = (max([self._tasks[n].t_release for n in self._seq_rem] + list(self._t_avail))
+        t_ex_max = (max([self._tasks[n].t_release for n in self._seq_rem] + list(self._ch_avail))
                     + sum([self._tasks[n].duration for n in self._seq_rem]))  # maximum execution time for bounding
 
         self._l_lo = self._l_ex
         self._l_up = self._l_ex
         for n in self._seq_rem:  # update loss bounds
-            self._l_lo += self._tasks[n].loss_fcn(max(self._tasks[n].t_release, min(self._t_avail)))
+            self._l_lo += self._tasks[n].loss_fcn(max(self._tasks[n].t_release, min(self._ch_avail)))
             self._l_up += self._tasks[n].loss_fcn(t_ex_max)
 
         if len(self._seq_rem) > 0 and self._l_lo == self._l_up:  # roll-out if bounds converge
@@ -302,14 +304,14 @@ def _check_loss(tasks: list, node: TreeNode):
         raise ValueError('Node loss is inaccurate.')
 
 
-def branch_bound(tasks: list, n_ch, exhaustive=False, verbose=False, rng=rng_default):
+def branch_bound(tasks: list, ch_avail: list, exhaustive=False, verbose=False, rng=rng_default):
     """Branch and Bound algorithm.
     
     Parameters
     ----------
     tasks : list of TaskRRM
-    n_ch : int
-        Number of channels.
+    ch_avail : list of float
+        Channel availability times.
     exhaustive : bool
         Enables exhaustive tree search.
     verbose : bool
@@ -327,9 +329,10 @@ def branch_bound(tasks: list, n_ch, exhaustive=False, verbose=False, rng=rng_def
     """
 
     TreeNode._tasks = tasks         # TODO: proper style to redefine class attribute here?
-    TreeNode._n_ch = n_ch
+    TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = rng
 
+    n_ch = len(ch_avail)
     stack = [TreeNodeBound([[] for _ in range(n_ch)])]      # Initialize Stack
 
     l_upper_min = stack[0].l_up
@@ -367,14 +370,14 @@ def branch_bound(tasks: list, n_ch, exhaustive=False, verbose=False, rng=rng_def
     return t_ex, ch_ex
 
 
-def mc_tree_search(tasks: list, n_ch, n_mc, verbose=False, rng=rng_default):
+def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=rng_default):
     """Monte Carlo tree search algorithm.
 
     Parameters
     ----------
     tasks : list of TaskRRM
-    n_ch : int
-        Number of channels.
+    ch_avail : list of float
+        Channel availability times.
     n_mc : int
         Number of Monte Carlo roll-outs per task.
     verbose : bool
@@ -392,9 +395,10 @@ def mc_tree_search(tasks: list, n_ch, n_mc, verbose=False, rng=rng_default):
     """
 
     TreeNode._tasks = tasks
-    TreeNode._n_ch = n_ch
+    TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = rng
 
+    n_ch = len(ch_avail)
     node = TreeNode([[] for _ in range(n_ch)])
 
     node_mc_best = node.roll_out(do_copy=True)

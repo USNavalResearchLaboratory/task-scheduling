@@ -20,7 +20,7 @@ rng = np.random.default_rng()
 
 # %% Inputs
 
-n_channels = 2       # number of channels
+ch_avail = 2 * [0]     # channel availability times
 
 # Tasks
 n_tasks = 8      # number of tasks
@@ -41,11 +41,13 @@ del duration, t_release, w, t_drop, l_drop
 
 
 # Algorithms
-algorithms = [partial(branch_bound, n_ch=n_channels, exhaustive=False, verbose=True, rng=rng),
-              partial(mc_tree_search, n_ch=n_channels, n_mc=1000, verbose=True, rng=rng)]
+algorithms = [partial(branch_bound, ch_avail=ch_avail, exhaustive=False, verbose=True, rng=rng),
+              partial(mc_tree_search, ch_avail=ch_avail, n_mc=1000, verbose=True, rng=rng)]
 
 
 # %% Evaluate
+n_channels = len(ch_avail)
+
 t_ex_alg, ch_ex_alg, l_ex_alg, t_run_alg = [], [], [], []
 for alg in algorithms:
     print(f'\nAlgorithm: {alg.func.__name__} \n')
