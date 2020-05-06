@@ -36,6 +36,8 @@ class TreeNode:
     _n_ch = 0
     _rng = None
 
+    # TODO: variable channel availability initialization
+
     def __init__(self, seq: list):
         if self._n_tasks == 0 or TreeNode._n_ch == 0:
             raise AttributeError("Cannot instantiate objects before assigning "
@@ -132,20 +134,26 @@ class TreeNode:
         exhaustive : bool
             Enables an exhaustive tree search. If False, sequence-to-schedule assignment is used.
 
-        Returns
+        Yields
         -------
-        list of TreeNode
-            All descendant nodes with one additional task scheduled.
+        TreeNode
+            Descendant node with one additional task scheduled.
 
         """
 
-        if exhaustive:
-            ch_iter = range(self._n_ch)     # try each task on each channel
-        else:
-            ch_iter = [int(np.argmin(self.t_avail))]       # try each task on the earliest available channel only
+        seq_iter = self._seq_rem
+        if do_permute:
+            seq_iter = self._rng.permutation(list(seq_iter))
 
-        nodes_new = []
-        for n in self._seq_rem:
+        for n in seq_iter:
+
+            if exhaustive:
+                ch_iter = range(self._n_ch)
+                if do_permute:
+                    ch_iter = self._rng.permutation(list(ch_iter))  # try each task on each channel
+            else:
+                ch_iter = [int(np.argmin(self.t_avail))]  # try each task on the earliest available channel only
+
             for ch in ch_iter:
                 seq_new = copy.deepcopy(self.seq)
                 seq_new[ch].append(n)
@@ -154,12 +162,7 @@ class TreeNode:
                 node_new.seq = seq_new  # call seq.setter method
                 # node_new.seq = node_new.seq + [n]       # call seq.setter method
 
-                nodes_new.append(node_new)
-
-        if do_permute:
-            nodes_new = self._rng.permutation(nodes_new)
-
-        return nodes_new
+                yield node_new
 
     def roll_out(self, do_copy=True):
         """Generates/updates node with a randomly completed sequence.
@@ -178,7 +181,7 @@ class TreeNode:
 
         seq_new = copy.deepcopy(self.seq)
 
-        seq_rem_perm = self._rng.permutation(list(self._seq_rem)).tolist()
+        seq_rem_perm = self._rng.permutation(list(self._seq_rem))
 
         temp = self._rng.multinomial(self._n_tasks, np.ones(self._n_ch) / self._n_ch)
         i_split = np.cumsum(temp)[:-1]
