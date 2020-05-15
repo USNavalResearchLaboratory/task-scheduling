@@ -3,6 +3,8 @@
 import copy
 import numpy as np
 
+from sequence2schedule import FlexDARMultiChannelSequenceScheduler
+
 rng_default = np.random.default_rng()
 
 
@@ -32,7 +34,7 @@ class TreeNode:
     """
     # TODO: docstring describes properties as attributes. OK? Subclasses, too.
 
-    _tasks = []       # TODO: needs to be overwritten by invoking scripts...
+    _tasks = []  # TODO: needs to be overwritten by invoking scripts...
     _ch_avail_init = []
     _exhaustive = False
     _rng = None
@@ -46,12 +48,12 @@ class TreeNode:
 
         self._seq_rem = set(range(self._n_tasks))
 
-        self._t_ex = np.full(self._n_tasks, np.nan)      # task execution times (NaN for unscheduled)
+        self._t_ex = np.full(self._n_tasks, np.nan)  # task execution times (NaN for unscheduled)
         self._ch_ex = np.full(self._n_tasks, np.nan, dtype=np.int)
 
-        self._ch_avail = np.zeros(self._n_ch)    # timeline availability
+        self._ch_avail = np.zeros(self._n_ch)  # timeline availability
 
-        self._l_ex = 0.    # partial sequence loss
+        self._l_ex = 0.  # partial sequence loss
 
         self.seq = seq
 
@@ -59,7 +61,8 @@ class TreeNode:
         return f"TreeNode(sequence: {self.seq}, partial loss:{self.l_ex:.3f})"
 
     @property
-    def _n_tasks(self): return len(self._tasks)
+    def _n_tasks(self):
+        return len(self._tasks)
 
     @property
     def _n_ch(self):
@@ -82,19 +85,24 @@ class TreeNode:
         self.update_node(seq)
 
     @property
-    def t_ex(self): return self._t_ex
+    def t_ex(self):
+        return self._t_ex
 
     @property
-    def ch_ex(self): return self._ch_ex
+    def ch_ex(self):
+        return self._ch_ex
 
     @property
-    def ch_avail(self): return self._ch_avail
+    def ch_avail(self):
+        return self._ch_avail
 
     @property
-    def l_ex(self): return self._l_ex
+    def l_ex(self):
+        return self._l_ex
 
     @property
-    def seq_rem(self): return self._seq_rem
+    def seq_rem(self):
+        return self._seq_rem
 
     def update_node(self, seq: list):
         """Sets node sequence and iteratively updates all dependent attributes.
@@ -111,18 +119,18 @@ class TreeNode:
             raise ValueError("Input 'seq' must have unique values.")
 
         for ch in range(self._n_ch):
-            if self._seq[ch] != seq[ch][:len(self._seq[ch])]:   # new sequence is not an extension of current sequence
-                self.__init__(seq)                              # initialize from scratch
+            if self._seq[ch] != seq[ch][:len(self._seq[ch])]:  # new sequence is not an extension of current sequence
+                self.__init__(seq)  # initialize from scratch
                 break
 
         for ch in range(self._n_ch):
-            seq_append = seq[ch][len(self._seq[ch]):]   # new task indices to schedule
+            seq_append = seq[ch][len(self._seq[ch]):]  # new task indices to schedule
             self._seq_rem = self._seq_rem - set(seq_append)
 
             self._seq[ch] = seq[ch]
 
             self._ch_ex[seq_append] = ch
-            for n in seq_append:    # recursively update Node attributes
+            for n in seq_append:  # recursively update Node attributes
                 self._t_ex[n] = max(self._tasks[n].t_release, self._ch_avail[ch])
                 self._ch_avail[ch] = self._t_ex[n] + self._tasks[n].duration
                 self._l_ex += self._tasks[n].loss_fcn(self._t_ex[n])
@@ -147,7 +155,7 @@ class TreeNode:
             self._rng.shuffle(seq_iter)
 
         if self._exhaustive:
-            ch_iter = list(range(self._n_ch))     # try each task on each channel
+            ch_iter = list(range(self._n_ch))  # try each task on each channel
         else:
             ch_iter = [int(np.argmin(self.ch_avail))]  # try each task on the earliest available channel only
 
@@ -198,12 +206,12 @@ class TreeNode:
                 ch_avail[ch] = max(self._tasks[n].t_release, ch_avail[ch]) + self._tasks[n].duration
 
         if do_copy:
-            node_new = copy.deepcopy(self)      # new TreeNode object
-            node_new.seq = seq_new              # call seq.setter method
+            node_new = copy.deepcopy(self)  # new TreeNode object
+            node_new.seq = seq_new  # call seq.setter method
 
             return node_new
         else:
-            self.seq = seq_new      # call seq.setter method
+            self.seq = seq_new  # call seq.setter method
 
 
 class TreeNodeBound(TreeNode):
@@ -244,10 +252,12 @@ class TreeNodeBound(TreeNode):
         return f"TreeNodeBound(sequence: {self.seq}, {self.l_lo:.3f} < loss < {self.l_up:.3f})"
 
     @property
-    def l_lo(self): return self._l_lo
+    def l_lo(self):
+        return self._l_lo
 
     @property
-    def l_up(self): return self._l_up
+    def l_up(self):
+        return self._l_up
 
     def update_node(self, seq: list):
         """Sets node sequence and iteratively updates all dependent attributes.
@@ -326,7 +336,7 @@ def branch_bound(tasks: list, ch_avail: list, exhaustive=False, verbose=False, r
 
     stack = [TreeNodeBound([[] for _ in range(n_ch)])]  # Initialize Stack
 
-    node_best = stack[0].roll_out(do_copy=True)     # roll-out initial solution
+    node_best = stack[0].roll_out(do_copy=True)  # roll-out initial solution
     l_best = node_best.l_ex
 
     # Iterate
@@ -341,7 +351,7 @@ def branch_bound(tasks: list, ch_avail: list, exhaustive=False, verbose=False, r
             # Bound
             if node_new.l_lo < l_best:  # New node is not dominated
                 if node_new.l_up < l_best:
-                    node_best = node_new.roll_out(do_copy=True)     # roll-out a new best node
+                    node_best = node_new.roll_out(do_copy=True)  # roll-out a new best node
                     l_best = node_best.l_ex
                     stack = [s for s in stack if s.l_lo < l_best]  # Cut Dominated Nodes
 
@@ -393,13 +403,13 @@ def mc_tree_search(tasks: list, ch_avail: list, n_mc, exhaustive=False, verbose=
     n_tasks = len(tasks)
     for n in range(n_tasks):
         if verbose:
-            print(f'Assigning Task {n+1}/{n_tasks}', end='\r')
+            print(f'Assigning Task {n + 1}/{n_tasks}', end='\r')
 
         # Perform Roll-outs
         for _ in range(n_mc):
             node_mc = node.roll_out(do_copy=True)
 
-            if node_mc.l_ex < node_best.l_ex:   # Update best node
+            if node_mc.l_ex < node_best.l_ex:  # Update best node
                 node_best = node_mc
 
         seq_new = copy.deepcopy(node.seq)
@@ -408,10 +418,56 @@ def mc_tree_search(tasks: list, ch_avail: list, n_mc, exhaustive=False, verbose=
         ch = int(np.argmin(node.ch_avail))
         seq_new[ch].append(node_best.seq[ch][len(node.seq[ch])])
 
-        node.seq = seq_new      # call seq.setter
+        node.seq = seq_new  # call seq.setter
 
     _check_loss(tasks, node)
 
     t_ex, ch_ex = node.t_ex, node.ch_ex
+
+    return t_ex, ch_ex
+
+
+def EstAlg(tasks: list, ch_avail: list, exhaustive=False, verbose=False, rng=rng_default):
+    """Earliest Start Times Algorithm
+
+    Parameters
+    ----------
+    tasks : list of TaskRRM
+    ch_avail : list of float
+        Channel availability times.
+    exhaustive : bool
+        Enables an exhaustive tree search. If False, sequence-to-schedule assignment is used.
+    verbose : bool
+        Enables printing of algorithm state information.
+    rng
+        NumPy random number generator.
+
+    Returns
+    -------
+    t_ex : ndarray
+        Task execution times.
+    ch_ex : ndarray
+        Task execution channels.
+
+    """
+
+    N = len(tasks)
+    n_tasks = len(tasks)
+    n_ch = len(ch_avail)
+    t_release = np.zeros(N)
+    for n in range(n_tasks):
+        t_release[n] = tasks[n].t_release
+        # t_release.append(tasks[n].t_release)
+
+    #a = 2
+    T = np.argsort(t_release)  # Task Order
+    RP = 100
+    t_ex, ch_ex = FlexDARMultiChannelSequenceScheduler(T, tasks, ch_avail, RP)
+    #   t_ex = np.sort(t_release)
+    #   ch_ex = []
+
+    # Assign next task from earliest available channel
+    # ch = int(np.argmin(node.ch_avail))
+    # seq_new[ch].append(node_best.seq[ch][len(node.seq[ch])])
 
     return t_ex, ch_ex
