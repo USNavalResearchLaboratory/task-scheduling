@@ -1,5 +1,7 @@
 """Task objects."""
 
+# TODO: document class attributes, even if identical to init parameters?
+
 import numpy as np
 
 rng_default = np.random.default_rng()
@@ -14,41 +16,38 @@ class TaskRRM:
         Time duration of the task.
     t_release : float
         Earliest time the task may be scheduled.
-    loss_fcn : function
-        Function returning losses for all elements of a time array.
-
-    Attributes
-    ----------
-    duration : float
-        Time duration of the task.
-    t_release : float
-        Earliest time the task may be scheduled.
-    loss_fcn : function
-        Function returning losses for all elements of a time array.
 
     """
 
     def __init__(self, duration, t_release):
         self.duration = duration
         self.t_release = t_release
-        # self.loss_fcn = loss_fcn
 
     def loss_fcn(self, t):
         raise NotImplementedError
 
-    # @classmethod
-    # def relu_drop(cls, duration, t_release, slope, t_drop, l_drop):
-    #     """Generates a task object with a rectified linear loss function with a constant drop penalty.
-    #
-    #         See documentation of task_obj.TaskRRM and task_obj.loss_relu_drop for parameter descriptions.
-    #
-    #     """
-    #
-    #     return cls(duration, t_release, loss_relu_drop(t_release, slope, t_drop, l_drop),
-    #                slope=slope, t_drop=t_drop, l_drop=l_drop)
+    def plot_loss(self):
+        raise NotImplementedError
 
 
 class ReluDropTask(TaskRRM):
+    """Generates a rectified linear loss function with a constant drop penalty.
+
+    Parameters
+    ----------
+    duration : float
+        Time duration of the task.
+    t_release : float
+        Earliest time the task may be scheduled. Loss at t_release is zero.
+    slope : float
+        Function slope between release and drop times.
+    t_drop : float
+        Drop time.
+    l_drop : float
+        Constant loss after drop time.
+
+    """
+
     def __init__(self, duration, t_release, slope, t_drop, l_drop):
         super().__init__(duration, t_release)
         self.slope = slope
@@ -62,6 +61,20 @@ class ReluDropTask(TaskRRM):
         return f"ReluDropTask(duration: {self.duration:.3f}, release time:{self.t_release:.3f})"
 
     def loss_fcn(self, t):
+        """Rectified linear loss function with a constant drop penalty.
+
+        Parameters
+        ----------
+        t : ndarray
+            Evaluation time
+
+        Returns
+        -------
+        ndarray
+            Incurred loss
+
+        """
+
         t = np.asarray(t)[np.newaxis]
         loss = self.slope * (t - self.t_release)
         loss[t < self.t_release] = np.inf
@@ -69,45 +82,12 @@ class ReluDropTask(TaskRRM):
 
         return loss.squeeze(axis=0)
 
-
-
-def loss_relu_drop(t_release, slope, t_drop, l_drop):
-    """Generates a rectified linear loss function with a constant drop penalty.
-
-    Parameters
-    ----------
-    t_release : float
-        Earliest time the task may be scheduled. Loss at t_release is zero.
-    slope : float
-        Function slope between release and drop times.
-    t_drop : float
-        Drop time.
-    l_drop : float
-        Constant loss after drop time.
-
-    Returns
-    -------
-    function
-
-    """
-
-    if l_drop < slope * (t_drop - t_release):
-        raise ValueError("Function is not monotonically non-decreasing.")
-
-    def loss_fcn(t):
-        if t < t_release:
-            loss = np.inf
-        elif (t >= t_release) and (t < t_drop):
-            loss = slope*(t - t_release)
-        else:
-            loss = l_drop
-
-        return loss
-
-    return np.vectorize(loss_fcn)
+    def plot_loss(self):
+        pass    # TODO: add plot method
 
 
 # %% Task generation objects        # TODO: docstrings
+
 class TaskRRMGenerator:
     def __init__(self, rng=rng_default):
         self.rng = rng
