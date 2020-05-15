@@ -2,6 +2,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+def check_rng(rng):
+    """Return a random number generator."""
+    if rng is None:
+        return np.random.default_rng()
+    elif type(rng) == int:
+        return np.random.default_rng(rng)
+    else:
+        return rng      # TODO: type check? assumes valid rng
+
+
 def check_valid(tasks, t_ex, ch_ex):
     """Check schedule validity."""
 

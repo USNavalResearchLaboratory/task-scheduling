@@ -2,10 +2,9 @@
 
 import copy
 import numpy as np
+from util.utils import check_rng
 
 from sequence2schedule import FlexDARMultiChannelSequenceScheduler
-
-rng_default = np.random.default_rng()
 
 
 class TreeNode:
@@ -50,7 +49,7 @@ class TreeNode:
         self._t_ex = np.full(self._n_tasks, np.nan)      # task execution times (NaN for unscheduled)
         self._ch_ex = np.full(self._n_tasks, np.nan, dtype=np.int)      # task execution channels
 
-        self._ch_avail = self._ch_avail_init    # timeline availability
+        self._ch_avail = copy.deepcopy(self._ch_avail_init)    # timeline availability
 
         self._l_ex = 0.    # partial sequence loss
 
@@ -251,7 +250,7 @@ class TreeNodeBound(TreeNode):
             self.roll_out()
 
 
-def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=rng_default):
+def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
     """Branch and Bound algorithm.
 
     Parameters
@@ -262,7 +261,7 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=rng_default):
     verbose : bool
         Enables printing of algorithm state information.
     rng
-        NumPy random number generator.
+        NumPy random number generator or seed. Default Generator if None.
 
     Returns
     -------
@@ -275,7 +274,7 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=rng_default):
 
     TreeNode._tasks = tasks
     TreeNode._ch_avail_init = ch_avail
-    TreeNode._rng = rng
+    TreeNode._rng = check_rng(rng)
 
     stack = [TreeNodeBound([])]  # Initialize Stack
 
@@ -290,7 +289,7 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=rng_default):
         node = stack.pop()  # Extract Node
 
         # Branch
-        for node_new in node.branch(do_permute=True):
+        for node_new in node.branch(do_permute=True):   # TODO: check cutting! inequality?
             # Bound
             if node_new.l_lo < l_best:  # New node is not dominated
                 if node_new.l_up < l_best:
@@ -305,7 +304,7 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=rng_default):
     return t_ex, ch_ex
 
 
-def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=rng_default):
+def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
     """Monte Carlo tree search algorithm.
 
     Parameters
@@ -318,7 +317,7 @@ def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=rng_def
     verbose : bool
         Enables printing of algorithm state information.
     rng
-        NumPy random number generator.
+        NumPy random number generator or seed. Default Generator if None.
 
     Returns
     -------
@@ -331,7 +330,7 @@ def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=rng_def
 
     TreeNode._tasks = tasks
     TreeNode._ch_avail_init = ch_avail
-    TreeNode._rng = rng
+    TreeNode._rng = check_rng(rng)
 
     node = TreeNode([])
     node_best = node.roll_out(do_copy=True)
@@ -358,7 +357,7 @@ def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=rng_def
     return t_ex, ch_ex
 
 
-def random_sequencer(tasks: list, ch_avail: list, rng=rng_default):
+def random_sequencer(tasks: list, ch_avail: list, rng=None):
     """Generates a random task sequence, determines execution times and channels.
 
     Parameters
@@ -367,7 +366,7 @@ def random_sequencer(tasks: list, ch_avail: list, rng=rng_default):
     ch_avail : list of float
         Channel availability times.
     rng
-        NumPy random number generator.
+        NumPy random number generator or seed. Default Generator if None.
 
     Returns
     -------
@@ -380,7 +379,7 @@ def random_sequencer(tasks: list, ch_avail: list, rng=rng_default):
 
     TreeNode._tasks = tasks
     TreeNode._ch_avail_init = ch_avail
-    TreeNode._rng = rng
+    TreeNode._rng = check_rng(rng)
 
     node = TreeNode([]).roll_out(do_copy=True)
 

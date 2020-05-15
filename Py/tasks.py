@@ -3,8 +3,7 @@
 # TODO: document class attributes, even if identical to init parameters?
 
 import numpy as np
-
-rng_default = np.random.default_rng()
+from util.utils import check_rng
 
 
 class TaskRRM:
@@ -89,8 +88,9 @@ class ReluDropTask(TaskRRM):
 # %% Task generation objects        # TODO: docstrings
 
 class TaskRRMGenerator:
-    def __init__(self, rng=rng_default):
-        self.rng = rng
+    def __init__(self, rng=None):
+        self.rng = check_rng(rng)
+
         # TODO: state for non-stationary environments?
 
     def rand_tasks(self, n_tasks, return_params=False):
@@ -98,7 +98,7 @@ class TaskRRMGenerator:
 
 
 class ReluDropGenerator(TaskRRMGenerator):  # TODO: generalize
-    def __init__(self, rng=rng_default):
+    def __init__(self, rng=None):
         super().__init__(rng)
 
     def rand_tasks(self, n_tasks, return_params=False):
