@@ -16,7 +16,7 @@ from util.utils import check_valid, eval_loss
 
 plt.style.use('seaborn')
 
-rng = np.random.default_rng()
+rng = np.random.default_rng(100)
 
 
 # %% Inputs

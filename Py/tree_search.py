@@ -441,7 +441,8 @@ def EstAlg(tasks: list, ch_avail: list):
     #a = 2
     T = np.argsort(t_release)  # Task Order
     RP = 100
-    t_ex, ch_ex = FlexDARMultiChannelSequenceScheduler(T, tasks, ch_avail, RP)
+    ChannelAvailableTime = copy.deepcopy(ch_avail)
+    t_ex, ch_ex = FlexDARMultiChannelSequenceScheduler(T, tasks, ChannelAvailableTime, RP)
     #   t_ex = np.sort(t_release)
     #   ch_ex = []
 
