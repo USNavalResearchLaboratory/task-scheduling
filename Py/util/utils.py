@@ -37,7 +37,7 @@ def eval_loss(tasks, t_ex):
     return l_ex
 
 
-def plot_tasks(tasks, t_plot=None, ax=None):
+def plot_task_losses(tasks, t_plot=None, ax=None):
     if t_plot is None:
         x_lim_max = max([task._plot_lim[-1] for task in tasks])
         t_plot = np.arange(0, x_lim_max, 0.01)
@@ -48,36 +48,36 @@ def plot_tasks(tasks, t_plot=None, ax=None):
         y_lim_max = 1 + max([task.loss_fcn(float('inf')) for task in tasks])
         ax.set_ylim(0, y_lim_max)
         ax.set_xlim(t_plot[[0, -1]])
-        plt.grid(True)
+        ax.grid(True)
 
     for task in tasks:
         task.plot_loss(t_plot, ax)
 
-    plt.legend()
+    ax.legend()
 
 
+def plot_schedules():
+    pass
 
-# %% Graphics
+    # bar_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    # for i in range(len(algorithms)):
+    #     title_dict = algorithms[i].keywords
+    #     for key in ['verbose', 'rng', 'ch_avail']:
+    #         try:
+    #             del title_dict[key]
+    #         except KeyError:
+    #             pass
+    #     title = ": ".join([algorithms[i].func.__name__, str(title_dict)])
+    #
+    #     plt.figure(num=title, clear=True, figsize=[8, 2.5])
+    #     plt.title(f'Loss = {l_ex_alg[i]:.3f}')
+    #     # d = ax.broken_barh([(t_ex[n], tasks[n].duration) for n in range(len(tasks))], (-0.5, 1), facecolors=bar_colors)
+    #     for n in range(len(tasks)):
+    #         plt.gca().broken_barh([(t_ex_alg[i][n], tasks[n].duration)], (ch_ex_alg[i][n]-0.5, 1),
+    #                               facecolors=bar_colors[n % len(bar_colors)], edgecolor='black', label=f'Task #{n}')
+    #
+    #     plt.gca().set(xlim=t_plot[[0, -1]], ylim=(-.5, n_channels-1+.5),
+    #                   xlabel='t', yticks=list(range(n_channels)), ylabel='Channel')
+    #     plt.gca().grid(True)
+    #     plt.gca().legend()
 
-
-# bar_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-# for i in range(len(algorithms)):
-#     title_dict = algorithms[i].keywords
-#     for key in ['verbose', 'rng', 'ch_avail']:
-#         try:
-#             del title_dict[key]
-#         except KeyError:
-#             pass
-#     title = ": ".join([algorithms[i].func.__name__, str(title_dict)])
-#
-#     plt.figure(num=title, clear=True, figsize=[8, 2.5])
-#     plt.title(f'Loss = {l_ex_alg[i]:.3f}')
-#     # d = ax.broken_barh([(t_ex[n], tasks[n].duration) for n in range(len(tasks))], (-0.5, 1), facecolors=bar_colors)
-#     for n in range(len(tasks)):
-#         plt.gca().broken_barh([(t_ex_alg[i][n], tasks[n].duration)], (ch_ex_alg[i][n]-0.5, 1),
-#                               facecolors=bar_colors[n % len(bar_colors)], edgecolor='black', label=f'Task #{n}')
-#
-#     plt.gca().set(xlim=t_plot[[0, -1]], ylim=(-.5, n_channels-1+.5),
-#                   xlabel='t', yticks=list(range(n_channels)), ylabel='Channel')
-#     plt.gca().grid(True)
-#     plt.gca().legend()
