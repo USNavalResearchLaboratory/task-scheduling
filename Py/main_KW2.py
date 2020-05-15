@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from tasks import ReluDropGenerator
-from tree_search import branch_bound, mc_tree_search, random_sequencer, EstAlg
+from tree_search import branch_bound, mc_tree_search, random_sequencer, est_alg, est_task_swap_alg, ed_alg, ed_swap_task_alg
 from util.utils import check_valid, eval_loss
 
 plt.style.use('seaborn')
@@ -30,7 +30,10 @@ n_tasks = 8      # number of tasks
 task_gen = partial(ReluDropGenerator(rng).rand_tasks, n_tasks)
 
 # Algorithms
-algorithms = [partial(EstAlg, ch_avail=ch_avail),
+algorithms = [partial(est_task_swap_alg, ch_avail=ch_avail),
+              partial(est_alg, ch_avail=ch_avail),
+              partial(ed_alg, ch_avail=ch_avail),
+              partial(ed_swap_task_alg, ch_avail=ch_avail),
               partial(branch_bound, ch_avail=ch_avail, verbose=True, rng=rng),
               partial(mc_tree_search, ch_avail=ch_avail, n_mc=1000, verbose=True, rng=rng),
               partial(random_sequencer, ch_avail=ch_avail, rng=rng)]

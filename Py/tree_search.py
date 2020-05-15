@@ -33,7 +33,7 @@ class TreeNode:
     """
     # TODO: docstring describes properties as attributes. OK? Subclasses, too.
 
-    _tasks = []       # TODO: needs to be overwritten by invoking scripts... OK?
+    _tasks = []  # TODO: needs to be overwritten by invoking scripts... OK?
     _ch_avail_init = []
     _rng = None
 
@@ -46,12 +46,12 @@ class TreeNode:
 
         self._seq_rem = set(range(self._n_tasks))
 
-        self._t_ex = np.full(self._n_tasks, np.nan)      # task execution times (NaN for unscheduled)
-        self._ch_ex = np.full(self._n_tasks, np.nan, dtype=np.int)      # task execution channels
+        self._t_ex = np.full(self._n_tasks, np.nan)  # task execution times (NaN for unscheduled)
+        self._ch_ex = np.full(self._n_tasks, np.nan, dtype=np.int)  # task execution channels
 
-        self._ch_avail = copy.deepcopy(self._ch_avail_init)    # timeline availability
+        self._ch_avail = copy.deepcopy(self._ch_avail_init)  # timeline availability
 
-        self._l_ex = 0.    # partial sequence loss
+        self._l_ex = 0.  # partial sequence loss
 
         self.seq = seq
 
@@ -59,7 +59,8 @@ class TreeNode:
         return f"TreeNode(sequence: {self.seq}, partial loss:{self.l_ex:.3f})"
 
     @property
-    def _n_tasks(self): return len(self._tasks)
+    def _n_tasks(self):
+        return len(self._tasks)
 
     @property
     def _n_ch(self):
@@ -85,23 +86,28 @@ class TreeNode:
         self.update_node(seq)
 
     @property
-    def t_ex(self): return self._t_ex
+    def t_ex(self):
+        return self._t_ex
 
     @property
-    def ch_ex(self): return self._ch_ex
+    def ch_ex(self):
+        return self._ch_ex
 
     @property
-    def ch_avail(self): return self._ch_avail
+    def ch_avail(self):
+        return self._ch_avail
 
     @property
     def ch_early(self):
         return int(np.argmin(self.ch_avail))
 
     @property
-    def l_ex(self): return self._l_ex
+    def l_ex(self):
+        return self._l_ex
 
     @property
-    def seq_rem(self): return self._seq_rem
+    def seq_rem(self):
+        return self._seq_rem
 
     def update_node(self, seq: list):
         """Sets node sequence using sequence-to-schedule approach.
@@ -113,8 +119,8 @@ class TreeNode:
 
         """
 
-        if seq[:len(self._seq)] != self._seq:   # new sequence is not an extension of current sequence
-            self.__init__(seq)      # initialize from scratch
+        if seq[:len(self._seq)] != self._seq:  # new sequence is not an extension of current sequence
+            self.__init__(seq)  # initialize from scratch
 
         seq_append = seq[len(self._seq):]
         self._seq = seq
@@ -173,12 +179,12 @@ class TreeNode:
         seq_new = copy.deepcopy(self.seq) + self._rng.permutation(list(self._seq_rem)).tolist()
 
         if do_copy:
-            node_new = copy.deepcopy(self)      # new TreeNode object
-            node_new.seq = seq_new              # call seq.setter method
+            node_new = copy.deepcopy(self)  # new TreeNode object
+            node_new.seq = seq_new  # call seq.setter method
 
             return node_new
         else:
-            self.seq = seq_new      # call seq.setter method
+            self.seq = seq_new  # call seq.setter method
 
 
 class TreeNodeBound(TreeNode):
@@ -219,10 +225,12 @@ class TreeNodeBound(TreeNode):
         return f"TreeNodeBound(sequence: {self.seq}, {self.l_lo:.3f} < loss < {self.l_up:.3f})"
 
     @property
-    def l_lo(self): return self._l_lo
+    def l_lo(self):
+        return self._l_lo
 
     @property
-    def l_up(self): return self._l_up
+    def l_up(self):
+        return self._l_up
 
     def update_node(self, seq: list):
         """Sets node sequence and iteratively updates all dependent attributes.
@@ -278,7 +286,7 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
 
     stack = [TreeNodeBound([])]  # Initialize Stack
 
-    node_best = stack[0].roll_out(do_copy=True)     # roll-out initial solution
+    node_best = stack[0].roll_out(do_copy=True)  # roll-out initial solution
     l_best = node_best.l_ex
 
     # Iterate
@@ -289,11 +297,11 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
         node = stack.pop()  # Extract Node
 
         # Branch
-        for node_new in node.branch(do_permute=True):   # TODO: check cutting! inequality?
+        for node_new in node.branch(do_permute=True):  # TODO: check cutting! inequality?
             # Bound
             if node_new.l_lo < l_best:  # New node is not dominated
                 if node_new.l_up < l_best:
-                    node_best = node_new.roll_out(do_copy=True)     # roll-out a new best node
+                    node_best = node_new.roll_out(do_copy=True)  # roll-out a new best node
                     l_best = node_best.l_ex
                     stack = [s for s in stack if s.l_lo < l_best]  # Cut Dominated Nodes
 
@@ -338,19 +346,19 @@ def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
     n_tasks = len(tasks)
     for n in range(n_tasks):
         if verbose:
-            print(f'Assigning Task {n+1}/{n_tasks}', end='\r')
+            print(f'Assigning Task {n + 1}/{n_tasks}', end='\r')
 
         # Perform Roll-outs
         for _ in range(n_mc):
             node_mc = node.roll_out(do_copy=True)
 
-            if node_mc.l_ex < node_best.l_ex:   # Update best node
+            if node_mc.l_ex < node_best.l_ex:  # Update best node
                 node_best = node_mc
 
         # Assign next task from earliest available channel
         seq_new = copy.deepcopy(node.seq)
         seq_new.append(node_best.seq[len(node.seq)])
-        node.seq = seq_new      # call seq.setter
+        node.seq = seq_new  # call seq.setter
 
     t_ex, ch_ex = node.t_ex, node.ch_ex
 
@@ -437,7 +445,7 @@ def EstAlg(tasks: list, ch_avail: list):
 
     t_release = [task.t_release for task in tasks]
 
-    #a = 2
+    # a = 2
     T = np.argsort(t_release)  # Task Order
     RP = 100
     ChannelAvailableTime = copy.deepcopy(ch_avail)
@@ -448,5 +456,118 @@ def EstAlg(tasks: list, ch_avail: list):
     # Assign next task from earliest available channel
     # ch = int(np.argmin(node.ch_avail))
     # seq_new[ch].append(node_best.seq[ch][len(node.seq[ch])])
+
+    return t_ex, ch_ex
+
+
+def est_task_swap_alg(tasks: list, ch_avail: list):
+    """Earliest Start Times Algorithm
+
+    Parameters
+    ----------
+    tasks : list of TaskRRM
+    ch_avail : list of float
+        Channel availability times.
+
+    Returns
+    -------
+    t_ex : ndarray
+        Task execution times.
+    ch_ex : ndarray
+        Task execution channels.
+
+    """
+
+    TreeNode._tasks = tasks
+    TreeNode._ch_avail_init = ch_avail
+
+    seq = np.argsort([task.t_release for task in tasks]).tolist()
+    node = TreeNode(seq)
+    N = len(seq)
+
+    for jj in range(N - 1):  #
+        Tswap = copy.deepcopy(seq)
+        T1 = seq[jj]
+        T2 = seq[jj + 1]
+        Tswap[jj] = T2
+        Tswap[jj + 1] = T1
+        nodeSwap = TreeNode(Tswap)
+        if nodeSwap.l_ex < node.l_ex:
+            seq = copy.deepcopy(Tswap)
+            node = TreeNode(seq)
+            # breakpoint()
+
+    t_ex, ch_ex = node.t_ex, node.ch_ex
+
+    return t_ex, ch_ex
+
+
+def ed_alg(tasks: list, ch_avail: list):
+    """Earliest Start Times Algorithm
+
+    Parameters
+    ----------
+    tasks : list of TaskRRM
+    ch_avail : list of float
+        Channel availability times.
+
+    Returns
+    -------
+    t_ex : ndarray
+        Task execution times.
+    ch_ex : ndarray
+        Task execution channels.
+
+    """
+
+    TreeNode._tasks = tasks
+    TreeNode._ch_avail_init = ch_avail
+
+    seq = np.argsort([task.t_drop for task in tasks]).tolist()
+    node = TreeNode(seq)
+
+    t_ex, ch_ex = node.t_ex, node.ch_ex
+
+    return t_ex, ch_ex
+
+
+def ed_swap_task_alg(tasks: list, ch_avail: list):
+    """Earliest Start Times Algorithm
+
+    Parameters
+    ----------
+    tasks : list of TaskRRM
+    ch_avail : list of float
+        Channel availability times.
+
+    Returns
+    -------
+    t_ex : ndarray
+        Task execution times.
+    ch_ex : ndarray
+        Task execution channels.
+
+    """
+
+    TreeNode._tasks = tasks
+    TreeNode._ch_avail_init = ch_avail
+
+    seq = np.argsort([task.t_drop for task in tasks]).tolist()
+    node = TreeNode(seq)
+    N = len(seq)
+
+    for jj in range(N - 1):  #
+        Tswap = copy.deepcopy(seq)
+        T1 = seq[jj]
+        T2 = seq[jj + 1]
+        Tswap[jj] = T2
+        Tswap[jj + 1] = T1
+        nodeSwap = TreeNode(Tswap)
+        if nodeSwap.l_ex < node.l_ex:
+            seq = copy.deepcopy(Tswap)
+            node = TreeNode(seq)
+            # breakpoint()
+
+    t_ex, ch_ex = node.t_ex, node.ch_ex
 
     return t_ex, ch_ex
