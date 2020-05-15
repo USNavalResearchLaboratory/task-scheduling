@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from tasks import ReluDropGenerator
-from tree_search import branch_bound, mc_tree_search, random_sequencer
+from tree_search import branch_bound, mc_tree_search, random_sequencer, EstAlg
 from util.utils import check_valid, eval_loss
 
 plt.style.use('seaborn')
@@ -21,7 +21,7 @@ rng = np.random.default_rng()
 
 # %% Inputs
 
-n_gen = 2      # number of task scheduling problems
+n_gen = 1      # number of task scheduling problems
 n_run = 2       # number of runs per problem
 
 ch_avail = np.zeros(2)     # channel availability times

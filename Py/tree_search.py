@@ -410,7 +410,7 @@ def random_sequencer(tasks: list, ch_avail: list, rng=rng_default):
     return t_ex, ch_ex
 
 
-def EstAlg(tasks: list, ch_avail: list, exhaustive=False, verbose=False, rng=rng_default):
+def EstAlg(tasks: list, ch_avail: list):
     """Earliest Start Times Algorithm
 
     Parameters
@@ -418,12 +418,6 @@ def EstAlg(tasks: list, ch_avail: list, exhaustive=False, verbose=False, rng=rng
     tasks : list of TaskRRM
     ch_avail : list of float
         Channel availability times.
-    exhaustive : bool
-        Enables an exhaustive tree search. If False, sequence-to-schedule assignment is used.
-    verbose : bool
-        Enables printing of algorithm state information.
-    rng
-        NumPy random number generator.
 
     Returns
     -------
