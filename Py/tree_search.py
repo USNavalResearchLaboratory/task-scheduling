@@ -251,24 +251,6 @@ class TreeNodeBound(TreeNode):
             self.roll_out()
 
 
-def _check_loss(tasks: list, node: TreeNode):
-    """Check that the loss of a tree search node is accurate.
-
-    Parameters
-    ----------
-    tasks : list of TaskRRM
-    node : TreeNode
-
-    """
-
-    l_ex = node.l_ex
-    l_eval = 0
-    for n in range(len(tasks)):
-        l_eval += tasks[n].loss_fcn(node.t_ex[n])
-    if abs(l_eval - l_ex) > 1e-12:
-        raise ValueError('Node loss is inaccurate.')
-
-
 def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=rng_default):
     """Branch and Bound algorithm.
 
@@ -318,7 +300,6 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=rng_default):
 
                 stack.append(node_new)  # Add New Node to Stack, LIFO
 
-    _check_loss(tasks, node_best)
     t_ex, ch_ex = node_best.t_ex, node_best.ch_ex  # optimal
 
     return t_ex, ch_ex
@@ -372,7 +353,6 @@ def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=rng_def
         seq_new.append(node_best.seq[len(node.seq)])
         node.seq = seq_new      # call seq.setter
 
-    _check_loss(tasks, node)
     t_ex, ch_ex = node.t_ex, node.ch_ex
 
     return t_ex, ch_ex
@@ -404,7 +384,35 @@ def random_sequencer(tasks: list, ch_avail: list, rng=rng_default):
 
     node = TreeNode([]).roll_out(do_copy=True)
 
-    _check_loss(tasks, node)
+    t_ex, ch_ex = node.t_ex, node.ch_ex
+
+    return t_ex, ch_ex
+
+
+def est_alg(tasks: list, ch_avail: list):
+    """Earliest Start Times Algorithm
+
+    Parameters
+    ----------
+    tasks : list of TaskRRM
+    ch_avail : list of float
+        Channel availability times.
+
+    Returns
+    -------
+    t_ex : ndarray
+        Task execution times.
+    ch_ex : ndarray
+        Task execution channels.
+
+    """
+
+    TreeNode._tasks = tasks
+    TreeNode._ch_avail_init = ch_avail
+
+    seq = np.argsort([task.t_release for task in tasks]).tolist()
+    node = TreeNode(seq)
+
     t_ex, ch_ex = node.t_ex, node.ch_ex
 
     return t_ex, ch_ex
@@ -428,13 +436,7 @@ def EstAlg(tasks: list, ch_avail: list):
 
     """
 
-    N = len(tasks)
-    n_tasks = len(tasks)
-    n_ch = len(ch_avail)
-    t_release = np.zeros(N)
-    for n in range(n_tasks):
-        t_release[n] = tasks[n].t_release
-        # t_release.append(tasks[n].t_release)
+    t_release = [task.t_release for task in tasks]
 
     #a = 2
     T = np.argsort(t_release)  # Task Order

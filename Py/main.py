@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from tasks import ReluDropGenerator
-from tree_search import branch_bound, mc_tree_search, random_sequencer, EstAlg
+from tree_search import branch_bound, mc_tree_search, random_sequencer, EstAlg, est_alg
 from util.utils import check_valid, eval_loss
 
 plt.style.use('seaborn')
@@ -22,7 +22,7 @@ rng = np.random.default_rng()
 # %% Inputs
 
 n_gen = 1      # number of task scheduling problems
-n_run = 2       # number of runs per problem
+n_run = 1       # number of runs per problem
 
 ch_avail = np.zeros(2)     # channel availability times
 
@@ -30,9 +30,15 @@ n_tasks = 8      # number of tasks
 task_gen = partial(ReluDropGenerator(rng).rand_tasks, n_tasks)
 
 # Algorithms
+# algorithms = [partial(branch_bound, ch_avail=ch_avail, verbose=True, rng=rng),
+#               partial(mc_tree_search, ch_avail=ch_avail, n_mc=1000, verbose=True, rng=rng),
+#               partial(EstAlg, ch_avail=ch_avail),
+#               partial(est_alg, ch_avail=ch_avail),
+#               partial(random_sequencer, ch_avail=ch_avail, rng=rng)]
+
 algorithms = [partial(branch_bound, ch_avail=ch_avail, verbose=True, rng=rng),
-              partial(mc_tree_search, ch_avail=ch_avail, n_mc=1000, verbose=True, rng=rng),
-              partial(random_sequencer, ch_avail=ch_avail, rng=rng)]
+              partial(EstAlg, ch_avail=ch_avail),
+              partial(est_alg, ch_avail=ch_avail)]
 
 
 # %% Evaluate
