@@ -1,2 +1,4 @@
+baselines
+gym
 numpy
 matplotlib
