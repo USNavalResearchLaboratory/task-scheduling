@@ -37,27 +37,29 @@ def eval_loss(tasks, t_ex):
     return l_ex
 
 
+def plot_tasks(tasks, t_plot=None, ax=None):
+    if t_plot is None:
+        x_lim_max = max([task._plot_lim[-1] for task in tasks])
+        t_plot = np.arange(0, x_lim_max, 0.01)
 
-# # %% Graphics
-#
-# def plot_tasks(tasks):
-#     t_plot_max = 0
-#     for t_ex in t_ex_alg:
-#         t_plot_max = max(t_plot_max, max(t_ex))
-#     t_plot_max += max([t.duration for t in tasks])
-#
-#     t_plot = np.arange(0, t_plot_max, 0.01)
-#
-#     plt.figure(num='Task Loss Functions', clear=True)
-#     for i, task in enumerate(tasks):
-#         plt.plot(t_plot, task.loss_fcn(t_plot), label=f'Task #{i}')
-#     plt.gca().set(xlabel='t', ylabel='Loss')
-#     plt.gca().set_ylim(bottom=0)
-#     plt.gca().set_xlim(t_plot[[0, -1]])
-#     plt.grid(True)
-#     plt.legend()
-#
-#
+    if ax is None:
+        _, ax = plt.subplots()
+        ax.set(xlabel='t', ylabel='Loss')
+        y_lim_max = 1 + max([task.loss_fcn(float('inf')) for task in tasks])
+        ax.set_ylim(0, y_lim_max)
+        ax.set_xlim(t_plot[[0, -1]])
+        plt.grid(True)
+
+    for task in tasks:
+        task.plot_loss(t_plot, ax)
+
+    plt.legend()
+
+
+
+# %% Graphics
+
+
 # bar_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 # for i in range(len(algorithms)):
 #     title_dict = algorithms[i].keywords

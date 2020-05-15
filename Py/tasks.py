@@ -3,10 +3,11 @@
 # TODO: document class attributes, even if identical to init parameters?
 
 import numpy as np
+import matplotlib.pyplot as plt
 from util.utils import check_rng
 
 
-class TaskRRM:
+class BaseTask:
     """Generic task objects.
 
     Parameters
@@ -22,14 +23,32 @@ class TaskRRM:
         self.duration = duration
         self.t_release = t_release
 
+        self._plot_lim = (0, 1)
+
+    def __repr__(self):
+        return f"BaseTask(duration: {self.duration:.3f}, release time:{self.t_release:.3f})"
+
     def loss_fcn(self, t):
-        raise NotImplementedError
+        raise NotImplementedError   # TODO: add function to init for generic task creation?
 
-    def plot_loss(self):
-        raise NotImplementedError
+    def plot_loss(self, t_plot=None, ax=None):
+        if t_plot is None:
+            t_plot = np.arange(*self._plot_lim, 0.01)
+
+        if ax is None:
+            _, ax = plt.subplots()
+            ax.set(xlabel='t', ylabel='Loss')
+            ax.set_ylim(0, 1 + self.loss_fcn(float('inf')))
+            ax.set_xlim(t_plot[[0, -1]])
+            plt.grid(True)
+            plt.title(self.__repr__())
+
+        plot_data = ax.plot(t_plot, self.loss_fcn(t_plot), label=self.__repr__())
+
+        return plot_data
 
 
-class ReluDropTask(TaskRRM):
+class ReluDropTask(BaseTask):
     """Generates a rectified linear loss function with a constant drop penalty.
 
     Parameters
@@ -52,6 +71,8 @@ class ReluDropTask(TaskRRM):
         self.slope = slope
         self.t_drop = t_drop
         self.l_drop = l_drop
+
+        self._plot_lim = (0, t_drop + duration)
 
         if l_drop < slope * (t_drop - t_release):
             raise ValueError("Function is not monotonically non-decreasing.")
@@ -81,23 +102,20 @@ class ReluDropTask(TaskRRM):
 
         return loss.squeeze(axis=0)
 
-    def plot_loss(self):
-        pass    # TODO: add plot method
 
 
-# %% Task generation objects        # TODO: docstrings
 
-class TaskRRMGenerator:
+# %% Task generation objects        # TODO: generalize, docstrings
+
+class BaseTaskGenerator:
     def __init__(self, rng=None):
         self.rng = check_rng(rng)
-
-        # TODO: state for non-stationary environments?
 
     def rand_tasks(self, n_tasks, return_params=False):
         raise NotImplementedError
 
 
-class ReluDropGenerator(TaskRRMGenerator):  # TODO: generalize
+class ReluDropGenerator(BaseTaskGenerator):
     def __init__(self, rng=None):
         super().__init__(rng)
 
@@ -114,7 +132,7 @@ class ReluDropGenerator(TaskRRMGenerator):  # TODO: generalize
         params = np.array(_params, dtype=[('duration', np.float), ('t_release', np.float),
                                           ('slope', np.float), ('t_drop', np.float), ('l_drop', np.float)])
 
-        # tasks = [TaskRRM.relu_drop(*args) for args in _params]
+        # tasks = [BaseTask.relu_drop(*args) for args in _params]
         tasks = [ReluDropTask(*args) for args in _params]
 
         if return_params:

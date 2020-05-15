@@ -335,7 +335,7 @@ def _check_loss(tasks: list, node: TreeNode):
 
     Parameters
     ----------
-    tasks : list of TaskRRM
+    tasks : list of BaseTask
     node : TreeNode
 
     """
@@ -353,7 +353,7 @@ def branch_bound(tasks: list, ch_avail: list, exhaustive=False, verbose=False, r
 
     Parameters
     ----------
-    tasks : list of TaskRRM
+    tasks : list of BaseTask
     ch_avail : list of float
         Channel availability times.
     exhaustive : bool
@@ -413,7 +413,7 @@ def mc_tree_search(tasks: list, ch_avail: list, n_mc, exhaustive=False, verbose=
 
     Parameters
     ----------
-    tasks : list of TaskRRM
+    tasks : list of BaseTask
     ch_avail : list of float
         Channel availability times.
     n_mc : int
@@ -475,7 +475,7 @@ def random_sequencer(tasks: list, ch_avail: list, exhaustive=False, rng=rng_defa
 
     Parameters
     ----------
-    tasks : list of TaskRRM
+    tasks : list of BaseTask
     ch_avail : list of float
         Channel availability times.
     exhaustive : bool

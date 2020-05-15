@@ -255,7 +255,7 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : list of TaskRRM
+    tasks : list of BaseTask
     ch_avail : list of float
         Channel availability times.
     verbose : bool
@@ -309,7 +309,7 @@ def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : list of TaskRRM
+    tasks : list of BaseTask
     ch_avail : list of float
         Channel availability times.
     n_mc : int
@@ -362,7 +362,7 @@ def random_sequencer(tasks: list, ch_avail: list, rng=None):
 
     Parameters
     ----------
-    tasks : list of TaskRRM
+    tasks : list of BaseTask
     ch_avail : list of float
         Channel availability times.
     rng
@@ -393,7 +393,7 @@ def est_alg(tasks: list, ch_avail: list):
 
     Parameters
     ----------
-    tasks : list of TaskRRM
+    tasks : list of BaseTask
     ch_avail : list of float
         Channel availability times.
 
@@ -422,7 +422,7 @@ def EstAlg(tasks: list, ch_avail: list):
 
     Parameters
     ----------
-    tasks : list of TaskRRM
+    tasks : list of BaseTask
     ch_avail : list of float
         Channel availability times.
 

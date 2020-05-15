@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 from tasks import ReluDropGenerator
 from tree_search import branch_bound, mc_tree_search, random_sequencer, EstAlg, est_alg
-from util.utils import check_valid, eval_loss
+from util.utils import check_valid, eval_loss, plot_tasks
 
 plt.style.use('seaborn')
 
@@ -19,18 +19,16 @@ plt.style.use('seaborn')
 # %% Inputs
 
 n_gen = 1      # number of task scheduling problems
-n_run = 2       # number of runs per problem
+n_run = 1       # number of runs per problem
 
 ch_avail = np.zeros(2)     # channel availability times
 
-n_tasks = 10      # number of tasks
-task_gen = partial(ReluDropGenerator().rand_tasks, n_tasks)
+task_gen = partial(ReluDropGenerator().rand_tasks, n_tasks=10)
 
 # Algorithms
 
 algorithms = [partial(branch_bound, ch_avail=ch_avail, verbose=True),
-              partial(mc_tree_search, ch_avail=ch_avail, n_mc=1000, verbose=True),
-              partial(EstAlg, ch_avail=ch_avail),
+              partial(mc_tree_search, ch_avail=ch_avail, n_mc=100, verbose=True),
               partial(est_alg, ch_avail=ch_avail),
               partial(random_sequencer, ch_avail=ch_avail)]
 
@@ -46,6 +44,7 @@ l_ex_alg = np.empty((n_gen, len(algorithms), n_run))
 for i_gen in range(n_gen):      # Generate new tasks
 
     tasks = task_gen()
+    # plot_tasks(tasks)
 
     for i_alg, alg in enumerate(algorithms):
         print(f'\nAlgorithm: {alg.func.__name__} \n')
