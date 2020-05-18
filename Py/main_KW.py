@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from tasks import BaseTask
-from tree_search import branch_bound, mc_tree_search, EstAlg
+from tree_search import branch_bound, mc_tree_search, est_alg_kw
 from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
 plt.style.use('seaborn')
@@ -42,10 +42,10 @@ del duration, t_release, w, t_drop, l_drop
 
 
 # Algorithms
-algorithms = [partial(EstAlg, ch_avail=ch_avail, verbose=True, rng=rng),
+algorithms = [partial(est_alg_kw, ch_avail=ch_avail, verbose=True, rng=rng),
               partial(branch_bound, ch_avail=ch_avail, verbose=True, rng=rng),
               partial(mc_tree_search, ch_avail=ch_avail, n_mc=1000, verbose=True, rng=rng)]
-#algorithms = [partial(EstAlg, ch_avail=ch_avail, verbose=True, rng=rng) ]
+#algorithms = [partial(est_alg_kw, ch_avail=ch_avail, verbose=True, rng=rng) ]
 
 # %% Evaluate
 n_channels = len(ch_avail)

@@ -186,6 +186,17 @@ class TreeNode:
         else:
             self.seq = seq_new  # call seq.setter method
 
+    def check_swaps(self):
+        if len(self.seq_rem) != 0:
+            raise ValueError("Node sequence must be complete.")
+
+        for i in range(len(self.seq) - 1):
+            seq_swap = copy.deepcopy(self.seq)
+            seq_swap[i:i + 2] = seq_swap[i:i + 2][::-1]
+            node_swap = TreeNode(seq_swap)
+            if node_swap.l_ex < self.l_ex:
+                self = node_swap            # TODO: improper?
+
 
 class TreeNodeBound(TreeNode):
     """Node object with additional loss bounding attributes.
@@ -396,14 +407,16 @@ def random_sequencer(tasks: list, ch_avail: list, rng=None):
     return t_ex, ch_ex
 
 
-def est_alg(tasks: list, ch_avail: list):
-    """Earliest Start Times Algorithm
+def earliest_release(tasks: list, ch_avail: list, do_swap=False):
+    """Earliest Start Times Algorithm.
 
     Parameters
     ----------
     tasks : list of BaseTask
     ch_avail : list of float
         Channel availability times.
+    do_swap : bool
+        Enables task swapping
 
     Returns
     -------
@@ -417,16 +430,53 @@ def est_alg(tasks: list, ch_avail: list):
     TreeNode._tasks = tasks
     TreeNode._ch_avail_init = ch_avail
 
-    seq = np.argsort([task.t_release for task in tasks]).tolist()
+    seq = list(np.argsort([task.t_release for task in tasks]))
     node = TreeNode(seq)
+
+    if do_swap:
+        node.check_swaps()
 
     t_ex, ch_ex = node.t_ex, node.ch_ex
 
     return t_ex, ch_ex
 
 
-def EstAlg(tasks: list, ch_avail: list):
-    """Earliest Start Times Algorithm
+def earliest_drop(tasks: list, ch_avail: list, do_swap=False):
+    """Earliest Drop Times Algorithm.
+
+    Parameters
+    ----------
+    tasks : list of ReluDropTask
+    ch_avail : list of float
+        Channel availability times.
+    do_swap : bool
+        Enables task swapping.
+
+    Returns
+    -------
+    t_ex : ndarray
+        Task execution times.
+    ch_ex : ndarray
+        Task execution channels.
+
+    """
+
+    TreeNode._tasks = tasks
+    TreeNode._ch_avail_init = ch_avail
+
+    seq = list(np.argsort([task.t_drop for task in tasks]))
+    node = TreeNode(seq)
+
+    if do_swap:
+        node.check_swaps()
+
+    t_ex, ch_ex = node.t_ex, node.ch_ex
+
+    return t_ex, ch_ex
+
+
+def est_alg_kw(tasks: list, ch_avail: list):
+    """Earliest Start Times Algorithm using FlexDAR scheduler function.
 
     Parameters
     ----------
@@ -445,129 +495,9 @@ def EstAlg(tasks: list, ch_avail: list):
 
     t_release = [task.t_release for task in tasks]
 
-    # a = 2
     T = np.argsort(t_release)  # Task Order
     RP = 100
     ChannelAvailableTime = copy.deepcopy(ch_avail)
     t_ex, ch_ex = FlexDARMultiChannelSequenceScheduler(T, tasks, ChannelAvailableTime, RP)
-    #   t_ex = np.sort(t_release)
-    #   ch_ex = []
-
-    # Assign next task from earliest available channel
-    # ch = int(np.argmin(node.ch_avail))
-    # seq_new[ch].append(node_best.seq[ch][len(node.seq[ch])])
-
-    return t_ex, ch_ex
-
-
-def est_task_swap_alg(tasks: list, ch_avail: list):
-    """Earliest Start Times Algorithm with Task Swapping
-
-    Parameters
-    ----------
-    tasks : list of TaskRRM
-    ch_avail : list of float
-        Channel availability times.
-
-    Returns
-    -------
-    t_ex : ndarray
-        Task execution times.
-    ch_ex : ndarray
-        Task execution channels.
-
-    """
-
-    TreeNode._tasks = tasks
-    TreeNode._ch_avail_init = ch_avail
-
-    seq = np.argsort([task.t_release for task in tasks]).tolist()
-    node = TreeNode(seq)
-    N = len(seq)
-
-    for jj in range(N - 1):  #
-        Tswap = copy.deepcopy(seq)
-        T1 = seq[jj]
-        T2 = seq[jj + 1]
-        Tswap[jj] = T2
-        Tswap[jj + 1] = T1
-        nodeSwap = TreeNode(Tswap)
-        if nodeSwap.l_ex < node.l_ex:
-            seq = copy.deepcopy(Tswap)
-            node = TreeNode(seq)
-            # breakpoint()
-
-    t_ex, ch_ex = node.t_ex, node.ch_ex
-
-    return t_ex, ch_ex
-
-
-def ed_alg(tasks: list, ch_avail: list):
-    """Earliest Drop Times Algorithm
-
-    Parameters
-    ----------
-    tasks : list of TaskRRM
-    ch_avail : list of float
-        Channel availability times.
-
-    Returns
-    -------
-    t_ex : ndarray
-        Task execution times.
-    ch_ex : ndarray
-        Task execution channels.
-
-    """
-
-    TreeNode._tasks = tasks
-    TreeNode._ch_avail_init = ch_avail
-
-    seq = np.argsort([task.t_drop for task in tasks]).tolist()
-    node = TreeNode(seq)
-
-    t_ex, ch_ex = node.t_ex, node.ch_ex
-
-    return t_ex, ch_ex
-
-
-def ed_swap_task_alg(tasks: list, ch_avail: list):
-    """Earliest Drop Times Algorithm with Task Swapping
-
-    Parameters
-    ----------
-    tasks : list of TaskRRM
-    ch_avail : list of float
-        Channel availability times.
-
-    Returns
-    -------
-    t_ex : ndarray
-        Task execution times.
-    ch_ex : ndarray
-        Task execution channels.
-
-    """
-
-    TreeNode._tasks = tasks
-    TreeNode._ch_avail_init = ch_avail
-
-    seq = np.argsort([task.t_drop for task in tasks]).tolist()
-    node = TreeNode(seq)
-    N = len(seq)
-
-    for jj in range(N - 1):  #
-        Tswap = copy.deepcopy(seq)
-        T1 = seq[jj]
-        T2 = seq[jj + 1]
-        Tswap[jj] = T2
-        Tswap[jj + 1] = T1
-        nodeSwap = TreeNode(Tswap)
-        if nodeSwap.l_ex < node.l_ex:
-            seq = copy.deepcopy(Tswap)
-            node = TreeNode(seq)
-            # breakpoint()
-
-    t_ex, ch_ex = node.t_ex, node.ch_ex
 
     return t_ex, ch_ex

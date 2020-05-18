@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from tasks import ReluDropGenerator
-from tree_search import branch_bound, mc_tree_search, random_sequencer, EstAlg, est_alg
+from tree_search import branch_bound, mc_tree_search, random_sequencer, earliest_release, est_alg_kw
 from util.generic import algorithm_repr
 from util.results import check_valid, eval_loss
 from util.plot import plot_task_losses, plot_schedule, plot_results
@@ -30,7 +30,7 @@ task_gen = partial(ReluDropGenerator().rand_tasks, n_tasks=8)
 # Algorithms
 algorithms = [partial(branch_bound, ch_avail=ch_avail, verbose=True),
               partial(mc_tree_search, ch_avail=ch_avail, n_mc=100, verbose=True),
-              partial(est_alg, ch_avail=ch_avail),
+              partial(earliest_release, ch_avail=ch_avail, do_swap=True),
               partial(random_sequencer, ch_avail=ch_avail)]
 
 # %% Evaluate
@@ -49,7 +49,7 @@ for i_gen in range(n_gen):      # Generate new tasks
     plot_task_losses(tasks, ax=ax_res[0])
 
     for i_alg, alg in enumerate(algorithms):
-        print(f'\nAlgorithm: {alg_reprs[i_alg]}')       # TODO: print run logs
+        # print(f'\nAlgorithm: {alg_reprs[i_alg]}')       # TODO: print run logs
 
         for i_run in range(n_run):      # Perform new algorithm runs
             t_start = time.time()
@@ -63,7 +63,8 @@ for i_gen in range(n_gen):      # Generate new tasks
             l_ex_alg[i_gen, i_alg, i_run] = l_ex
 
             # plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, alg_str=alg_reprs[i_alg], ax=None)
-            #
+
+
             # print("Task Execution Channels: " + ", ".join([f'{ch}' for ch in ch_ex]))     # TODO: print funcs?
             # print("Task Execution Times: " + ", ".join([f'{t:.3f}' for t in t_ex]))
             # print(f"Execution Loss: {l_ex:.3f}")
