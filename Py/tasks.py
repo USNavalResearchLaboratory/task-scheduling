@@ -4,7 +4,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from util.utils import check_rng
+from util.generic import check_rng
 
 
 class BaseTask:
@@ -23,7 +23,7 @@ class BaseTask:
         self.duration = duration
         self.t_release = t_release
 
-        self._plot_lim = (0, 1)
+        self.plot_lim = (t_release, t_release + duration)
 
     def __repr__(self):
         return f"BaseTask(duration: {self.duration:.3f}, release time:{self.t_release:.3f})"
@@ -33,15 +33,27 @@ class BaseTask:
 
     def plot_loss(self, t_plot=None, ax=None):
         if t_plot is None:
-            t_plot = np.arange(*self._plot_lim, 0.01)
+            t_plot = np.arange(*self.plot_lim, 0.01)
+        elif t_plot[0] < self.t_release:
+            t_plot = t_plot[t_plot >= self.t_release]
+
+        x_lim = t_plot[0], t_plot[-1]
+        y_lim = self.loss_fcn(list(x_lim))
+        # y_lim = 0, 1 + self.loss_fcn(float('inf'))
 
         if ax is None:
             _, ax = plt.subplots()
+
             ax.set(xlabel='t', ylabel='Loss')
-            ax.set_ylim(0, 1 + self.loss_fcn(float('inf')))
-            ax.set_xlim(t_plot[[0, -1]])
             plt.grid(True)
             plt.title(self.__repr__())
+        else:
+            x_lim_gca, y_lim_gca = ax.get_xlim(), ax.get_ylim()
+            x_lim = min([x_lim[0], x_lim_gca[0]]), max([x_lim[1], x_lim_gca[1]])
+            y_lim = min([y_lim[0], y_lim_gca[0]]), max([y_lim[1], y_lim_gca[1]])
+
+        ax.set_xlim(*x_lim)
+        ax.set_ylim(*y_lim)
 
         plot_data = ax.plot(t_plot, self.loss_fcn(t_plot), label=self.__repr__())
 
@@ -72,7 +84,7 @@ class ReluDropTask(BaseTask):
         self.t_drop = t_drop
         self.l_drop = l_drop
 
-        self._plot_lim = (0, t_drop + duration)
+        self.plot_lim = (t_release, t_drop + duration)
 
         if l_drop < slope * (t_drop - t_release):
             raise ValueError("Function is not monotonically non-decreasing.")

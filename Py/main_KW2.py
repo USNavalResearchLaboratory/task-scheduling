@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 from tasks import ReluDropGenerator
 from tree_search import branch_bound, mc_tree_search, random_sequencer, est_alg, est_task_swap_alg, ed_alg, ed_swap_task_alg
-from util.utils import check_valid, eval_loss
+from util.results import check_valid, eval_loss
 
 plt.style.use('seaborn')
 

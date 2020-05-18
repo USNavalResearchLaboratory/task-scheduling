@@ -2,7 +2,7 @@
 
 import copy
 import numpy as np
-from util.utils import check_rng
+from util.generic import check_rng
 
 from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
@@ -461,7 +461,7 @@ def EstAlg(tasks: list, ch_avail: list):
 
 
 def est_task_swap_alg(tasks: list, ch_avail: list):
-    """Earliest Start Times Algorithm
+    """Earliest Start Times Algorithm with Task Swapping
 
     Parameters
     ----------
@@ -503,7 +503,7 @@ def est_task_swap_alg(tasks: list, ch_avail: list):
 
 
 def ed_alg(tasks: list, ch_avail: list):
-    """Earliest Start Times Algorithm
+    """Earliest Drop Times Algorithm
 
     Parameters
     ----------
@@ -532,7 +532,7 @@ def ed_alg(tasks: list, ch_avail: list):
 
 
 def ed_swap_task_alg(tasks: list, ch_avail: list):
-    """Earliest Start Times Algorithm
+    """Earliest Drop Times Algorithm with Task Swapping
 
     Parameters
     ----------
