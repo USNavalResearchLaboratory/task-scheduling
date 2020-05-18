@@ -1,6 +1,6 @@
 """Multi-channel Tree Search objects and algorithms."""
 
-import copy
+import copy, math
 import numpy as np
 from util.generic import check_rng
 
@@ -303,7 +303,9 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
     # Iterate
     while len(stack) > 0:
         if verbose:
-            print(f'# Remaining Nodes = {len(stack)}, Loss < {l_best:.3f}', end='\r')
+            progress = 1 - sum([math.factorial(len(node.seq_rem)) for node in stack]) / math.factorial(len(tasks))
+            print(f'Search {100*progress:.1f}% complete. Loss < {l_best:.3f}', end='\r')
+            # print(f'# Remaining Nodes = {len(stack)}, Loss < {l_best:.3f}', end='\r')
 
         node = stack.pop()  # Extract Node
 
