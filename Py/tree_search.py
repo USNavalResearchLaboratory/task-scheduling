@@ -1,14 +1,15 @@
 """Multi-channel Tree Search objects and algorithms."""
 
-import copy
+import copy, math
 import numpy as np
-from util.utils import check_rng
+from util.generic import check_rng
 
 from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
 
 class TreeNode:
-    """Node object for tree search algorithms.
+    """
+    Node object for tree search algorithms.
 
     Parameters
     ----------
@@ -68,7 +69,8 @@ class TreeNode:
 
     @property
     def seq(self):
-        """Gets the node sequence. Setter calls 'update_node'.
+        """
+        Gets the node sequence. Setter calls 'update_node'.
 
         Returns
         -------
@@ -110,7 +112,8 @@ class TreeNode:
         return self._seq_rem
 
     def update_node(self, seq: list):
-        """Sets node sequence using sequence-to-schedule approach.
+        """
+        Sets node sequence using sequence-to-schedule approach.
 
         Parameters
         ----------
@@ -134,7 +137,8 @@ class TreeNode:
             self._l_ex += self._tasks[n].loss_fcn(self._t_ex[n])
 
     def branch(self, do_permute=True):
-        """Generate descendant nodes.
+        """
+        Generate descendant nodes.
 
         Parameters
         ----------
@@ -162,7 +166,8 @@ class TreeNode:
             yield node_new
 
     def roll_out(self, do_copy=False):
-        """Generates/updates node with a randomly completed sequence.
+        """
+        Generates/updates node with a randomly completed sequence.
 
         Parameters
         ----------
@@ -186,9 +191,23 @@ class TreeNode:
         else:
             self.seq = seq_new  # call seq.setter method
 
+    def check_swaps(self):
+        """Try adjacent task swapping, overwrite node if loss drops."""
+
+        if len(self.seq_rem) != 0:
+            raise ValueError("Node sequence must be complete.")
+
+        for i in range(len(self.seq) - 1):
+            seq_swap = copy.deepcopy(self.seq)
+            seq_swap[i:i + 2] = seq_swap[i:i + 2][::-1]
+            node_swap = TreeNode(seq_swap)
+            if node_swap.l_ex < self.l_ex:
+                self = node_swap            # TODO: improper?
+
 
 class TreeNodeBound(TreeNode):
-    """Node object with additional loss bounding attributes.
+    """
+    Node object with additional loss bounding attributes.
 
         Parameters
         ----------
@@ -233,7 +252,8 @@ class TreeNodeBound(TreeNode):
         return self._l_up
 
     def update_node(self, seq: list):
-        """Sets node sequence and iteratively updates all dependent attributes.
+        """
+        Sets node sequence and iteratively updates all dependent attributes.
 
         Parameters
         ----------
@@ -259,11 +279,12 @@ class TreeNodeBound(TreeNode):
 
 
 def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
-    """Branch and Bound algorithm.
+    """
+    Branch and Bound algorithm.
 
     Parameters
     ----------
-    tasks : list of TaskRRM
+    tasks : list of GenericTask
     ch_avail : list of float
         Channel availability times.
     verbose : bool
@@ -292,7 +313,9 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
     # Iterate
     while len(stack) > 0:
         if verbose:
-            print(f'# Remaining Nodes = {len(stack)}, Loss < {l_best:.3f}', end='\r')
+            progress = 1 - sum([math.factorial(len(node.seq_rem)) for node in stack]) / math.factorial(len(tasks))
+            print(f'Search {100*progress:.1f}% complete. Loss < {l_best:.3f}', end='\r')
+            # print(f'# Remaining Nodes = {len(stack)}, Loss < {l_best:.3f}', end='\r')
 
         node = stack.pop()  # Extract Node
 
@@ -313,11 +336,12 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
 
 
 def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
-    """Monte Carlo tree search algorithm.
+    """
+    Monte Carlo tree search algorithm.
 
     Parameters
     ----------
-    tasks : list of TaskRRM
+    tasks : list of GenericTask
     ch_avail : list of float
         Channel availability times.
     n_mc : int
@@ -366,11 +390,12 @@ def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
 
 
 def random_sequencer(tasks: list, ch_avail: list, rng=None):
-    """Generates a random task sequence, determines execution times and channels.
+    """
+    Generates a random task sequence, determines execution times and channels.
 
     Parameters
     ----------
-    tasks : list of TaskRRM
+    tasks : list of GenericTask
     ch_avail : list of float
         Channel availability times.
     rng
@@ -396,14 +421,17 @@ def random_sequencer(tasks: list, ch_avail: list, rng=None):
     return t_ex, ch_ex
 
 
-def est_alg(tasks: list, ch_avail: list):
-    """Earliest Start Times Algorithm
+def earliest_release(tasks: list, ch_avail: list, do_swap=False):
+    """
+    Earliest Start Times Algorithm.
 
     Parameters
     ----------
-    tasks : list of TaskRRM
+    tasks : list of GenericTask
     ch_avail : list of float
         Channel availability times.
+    do_swap : bool
+        Enables task swapping
 
     Returns
     -------
@@ -417,20 +445,59 @@ def est_alg(tasks: list, ch_avail: list):
     TreeNode._tasks = tasks
     TreeNode._ch_avail_init = ch_avail
 
-    seq = np.argsort([task.t_release for task in tasks]).tolist()
+    seq = list(np.argsort([task.t_release for task in tasks]))
     node = TreeNode(seq)
+
+    if do_swap:
+        node.check_swaps()
 
     t_ex, ch_ex = node.t_ex, node.ch_ex
 
     return t_ex, ch_ex
 
 
-def EstAlg(tasks: list, ch_avail: list):
-    """Earliest Start Times Algorithm
+def earliest_drop(tasks: list, ch_avail: list, do_swap=False):
+    """
+    Earliest Drop Times Algorithm.
 
     Parameters
     ----------
-    tasks : list of TaskRRM
+    tasks : list of ReluDropTask
+    ch_avail : list of float
+        Channel availability times.
+    do_swap : bool
+        Enables task swapping.
+
+    Returns
+    -------
+    t_ex : ndarray
+        Task execution times.
+    ch_ex : ndarray
+        Task execution channels.
+
+    """
+
+    TreeNode._tasks = tasks
+    TreeNode._ch_avail_init = ch_avail
+
+    seq = list(np.argsort([task.t_drop for task in tasks]))
+    node = TreeNode(seq)
+
+    if do_swap:
+        node.check_swaps()
+
+    t_ex, ch_ex = node.t_ex, node.ch_ex
+
+    return t_ex, ch_ex
+
+
+def est_alg_kw(tasks: list, ch_avail: list):
+    """
+    Earliest Start Times Algorithm using FlexDAR scheduler function.
+
+    Parameters
+    ----------
+    tasks : list of GenericTask
     ch_avail : list of float
         Channel availability times.
 
@@ -445,129 +512,9 @@ def EstAlg(tasks: list, ch_avail: list):
 
     t_release = [task.t_release for task in tasks]
 
-    # a = 2
     T = np.argsort(t_release)  # Task Order
     RP = 100
     ChannelAvailableTime = copy.deepcopy(ch_avail)
     t_ex, ch_ex = FlexDARMultiChannelSequenceScheduler(T, tasks, ChannelAvailableTime, RP)
-    #   t_ex = np.sort(t_release)
-    #   ch_ex = []
-
-    # Assign next task from earliest available channel
-    # ch = int(np.argmin(node.ch_avail))
-    # seq_new[ch].append(node_best.seq[ch][len(node.seq[ch])])
-
-    return t_ex, ch_ex
-
-
-def est_task_swap_alg(tasks: list, ch_avail: list):
-    """Earliest Start Times Algorithm
-
-    Parameters
-    ----------
-    tasks : list of TaskRRM
-    ch_avail : list of float
-        Channel availability times.
-
-    Returns
-    -------
-    t_ex : ndarray
-        Task execution times.
-    ch_ex : ndarray
-        Task execution channels.
-
-    """
-
-    TreeNode._tasks = tasks
-    TreeNode._ch_avail_init = ch_avail
-
-    seq = np.argsort([task.t_release for task in tasks]).tolist()
-    node = TreeNode(seq)
-    N = len(seq)
-
-    for jj in range(N - 1):  #
-        Tswap = copy.deepcopy(seq)
-        T1 = seq[jj]
-        T2 = seq[jj + 1]
-        Tswap[jj] = T2
-        Tswap[jj + 1] = T1
-        nodeSwap = TreeNode(Tswap)
-        if nodeSwap.l_ex < node.l_ex:
-            seq = copy.deepcopy(Tswap)
-            node = TreeNode(seq)
-            # breakpoint()
-
-    t_ex, ch_ex = node.t_ex, node.ch_ex
-
-    return t_ex, ch_ex
-
-
-def ed_alg(tasks: list, ch_avail: list):
-    """Earliest Start Times Algorithm
-
-    Parameters
-    ----------
-    tasks : list of TaskRRM
-    ch_avail : list of float
-        Channel availability times.
-
-    Returns
-    -------
-    t_ex : ndarray
-        Task execution times.
-    ch_ex : ndarray
-        Task execution channels.
-
-    """
-
-    TreeNode._tasks = tasks
-    TreeNode._ch_avail_init = ch_avail
-
-    seq = np.argsort([task.t_drop for task in tasks]).tolist()
-    node = TreeNode(seq)
-
-    t_ex, ch_ex = node.t_ex, node.ch_ex
-
-    return t_ex, ch_ex
-
-
-def ed_swap_task_alg(tasks: list, ch_avail: list):
-    """Earliest Start Times Algorithm
-
-    Parameters
-    ----------
-    tasks : list of TaskRRM
-    ch_avail : list of float
-        Channel availability times.
-
-    Returns
-    -------
-    t_ex : ndarray
-        Task execution times.
-    ch_ex : ndarray
-        Task execution channels.
-
-    """
-
-    TreeNode._tasks = tasks
-    TreeNode._ch_avail_init = ch_avail
-
-    seq = np.argsort([task.t_drop for task in tasks]).tolist()
-    node = TreeNode(seq)
-    N = len(seq)
-
-    for jj in range(N - 1):  # TODO: Make task swapping its own function to be applied elsewhere
-        Tswap = copy.deepcopy(seq)
-        T1 = seq[jj]
-        T2 = seq[jj + 1]
-        Tswap[jj] = T2
-        Tswap[jj + 1] = T1
-        nodeSwap = TreeNode(Tswap)
-        if nodeSwap.l_ex < node.l_ex:
-            seq = copy.deepcopy(Tswap)
-            node = TreeNode(seq)
-            # breakpoint()
-
-    t_ex, ch_ex = node.t_ex, node.ch_ex
 
     return t_ex, ch_ex
