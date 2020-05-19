@@ -3,7 +3,19 @@ import numpy as np
 
 
 def check_rng(rng):
-    """Return a random number generator."""
+    """
+    Return a random number generator.
+
+    Parameters
+    ----------
+    rng : None or int or Generator
+        Random number generator seed or object.
+
+    Returns
+    -------
+    Generator
+
+    """
     if rng is None:
         return np.random.default_rng()
     elif type(rng) == int:
@@ -13,6 +25,20 @@ def check_rng(rng):
 
 
 def algorithm_repr(alg):
+    """
+    Create algorithm string representations.
+
+    Parameters
+    ----------
+    alg : functools.partial
+        Algorithm as a partial function with keyword arguments.
+
+    Returns
+    -------
+    str
+        Compact string representation of the algorithm.
+
+    """
     keys_del = ['ch_avail', 'verbose', 'rng']
     params = copy.deepcopy(alg.keywords)
     for key in keys_del:

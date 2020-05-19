@@ -11,7 +11,7 @@ def branch_bound(tasks: list, ch_avail: list, exhaustive=False, verbose=False, r
 
     Parameters
     ----------
-    tasks : list of BaseTask
+    tasks : list of GenericTask
     ch_avail : list of float
         Channel availability times.
     exhaustive : bool

@@ -10,7 +10,7 @@ from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
 
-from tasks import BaseTask
+from tasks import GenericTask
 from tree_search import branch_bound, mc_tree_search, est_alg_kw
 from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
@@ -36,7 +36,7 @@ l_drop = rng.uniform(2, 3, n_tasks) * w * (t_drop - t_release)
 
 tasks = []
 for n in range(n_tasks):        # build list of task objects
-    tasks.append(BaseTask.relu_drop(duration[n], t_release[n], w[n], t_drop[n], l_drop[n]))
+    tasks.append(GenericTask.relu_drop(duration[n], t_release[n], w[n], t_drop[n], l_drop[n]))
 
 del duration, t_release, w, t_drop, l_drop
 

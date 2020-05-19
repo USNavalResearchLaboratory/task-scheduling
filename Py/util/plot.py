@@ -4,8 +4,26 @@ import matplotlib.pyplot as plt
 from util.results import eval_loss
 
 
-def plot_task_losses(tasks, t_plot=None, ax=None):
-    """Plot loss functions for a list of tasks."""
+def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
+    """
+    Plot loss functions for a list of tasks.
+
+    Parameters
+    ----------
+    tasks : list of GenericTask
+    t_plot : ndarray
+        Loss evaluation times.
+    ax : Axes or None
+        Matplotlib axes target object.
+    ax_kwargs : dict
+        Additional Axes keyword parameters.
+
+    Returns
+    -------
+
+    """
+    if ax_kwargs is None:
+        ax_kwargs = {}
 
     if t_plot is None:
         x_lim = min([task.plot_lim[0] for task in tasks]), max([task.plot_lim[1] for task in tasks])
@@ -30,11 +48,35 @@ def plot_task_losses(tasks, t_plot=None, ax=None):
     ax.set_ylim(*y_lim)
     ax.grid(True)
     ax.legend()
+    ax.set(**ax_kwargs)
 
 
-def plot_schedule(tasks, t_ex, ch_ex, l_ex=None, alg_str=None, ax=None):
+def plot_schedule(tasks, t_ex, ch_ex, l_ex=None, alg_repr=None, ax=None, ax_kwargs=None):
+    """
+    Plot task schedule.
+
+    Parameters
+    ----------
+    tasks : list of GenericTask
+    t_ex : ndarray
+        Task execution times. NaN for unscheduled.
+    ch_ex : ndarray
+        Task execution channels. NaN for unscheduled.
+    l_ex : float or None
+        Total loss of scheduled tasks.
+    alg_repr : str or None
+        Algorithm string representation
+    ax : Axes or None
+        Matplotlib axes target object.
+    ax_kwargs : dict
+        Additional Axes keyword parameters.
+
+    """
     if ax is None:
         _, ax = plt.subplots()
+
+    if ax_kwargs is None:
+        ax_kwargs = {}
 
     n_ch = len(np.unique(ch_ex))
     bar_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
@@ -53,19 +95,40 @@ def plot_schedule(tasks, t_ex, ch_ex, l_ex=None, alg_str=None, ax=None):
     if l_ex is None:
         l_ex = eval_loss(tasks, t_ex)
 
-    if alg_str is None:
+    if alg_repr is None:
         ax.set_title(f'Loss = {l_ex:.3f}')
     else:
-        ax.set_title(f'{alg_str}: Loss = {l_ex:.3f}')
+        ax.set_title(f'{alg_repr}: Loss = {l_ex:.3f}')
+
+    ax.set(**ax_kwargs)
 
 
-def plot_results(alg_str, t_run, l_ex, ax=None):
+def plot_results(t_run, l_ex, ax=None, ax_kwargs=None):
+    """
+    Scatter plot of runtime versus total execution loss.
+
+    Parameters
+    ----------
+    t_run : ndarray
+        Runtime of algorithm.
+    l_ex : ndarray
+        Total loss of scheduled tasks.
+    ax : Axes or None
+        Matplotlib axes target object.
+    ax_kwargs : dict
+        Additional Axes keyword parameters.
+
+    """
     if ax is None:
         _, ax = plt.subplots()
 
-    for i, alg in enumerate(alg_str):
-        ax.scatter(t_run[i], l_ex[i], label=alg_str[i])
+    if ax_kwargs is None:
+        ax_kwargs = {}
+
+    for alg_repr in t_run.dtype.names:
+        ax.scatter(t_run[alg_repr], l_ex[alg_repr], label=alg_repr)
 
     ax.set(xlabel='Runtime (s)', ylabel='Loss')
     ax.grid(True)
     ax.legend()
+    ax.set(**ax_kwargs)

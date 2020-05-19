@@ -8,7 +8,8 @@ from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
 
 class TreeNode:
-    """Node object for tree search algorithms.
+    """
+    Node object for tree search algorithms.
 
     Parameters
     ----------
@@ -68,7 +69,8 @@ class TreeNode:
 
     @property
     def seq(self):
-        """Gets the node sequence. Setter calls 'update_node'.
+        """
+        Gets the node sequence. Setter calls 'update_node'.
 
         Returns
         -------
@@ -110,7 +112,8 @@ class TreeNode:
         return self._seq_rem
 
     def update_node(self, seq: list):
-        """Sets node sequence using sequence-to-schedule approach.
+        """
+        Sets node sequence using sequence-to-schedule approach.
 
         Parameters
         ----------
@@ -134,7 +137,8 @@ class TreeNode:
             self._l_ex += self._tasks[n].loss_fcn(self._t_ex[n])
 
     def branch(self, do_permute=True):
-        """Generate descendant nodes.
+        """
+        Generate descendant nodes.
 
         Parameters
         ----------
@@ -162,7 +166,8 @@ class TreeNode:
             yield node_new
 
     def roll_out(self, do_copy=False):
-        """Generates/updates node with a randomly completed sequence.
+        """
+        Generates/updates node with a randomly completed sequence.
 
         Parameters
         ----------
@@ -187,6 +192,8 @@ class TreeNode:
             self.seq = seq_new  # call seq.setter method
 
     def check_swaps(self):
+        """Try adjacent task swapping, overwrite node if loss drops."""
+
         if len(self.seq_rem) != 0:
             raise ValueError("Node sequence must be complete.")
 
@@ -199,7 +206,8 @@ class TreeNode:
 
 
 class TreeNodeBound(TreeNode):
-    """Node object with additional loss bounding attributes.
+    """
+    Node object with additional loss bounding attributes.
 
         Parameters
         ----------
@@ -244,7 +252,8 @@ class TreeNodeBound(TreeNode):
         return self._l_up
 
     def update_node(self, seq: list):
-        """Sets node sequence and iteratively updates all dependent attributes.
+        """
+        Sets node sequence and iteratively updates all dependent attributes.
 
         Parameters
         ----------
@@ -270,11 +279,12 @@ class TreeNodeBound(TreeNode):
 
 
 def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
-    """Branch and Bound algorithm.
+    """
+    Branch and Bound algorithm.
 
     Parameters
     ----------
-    tasks : list of BaseTask
+    tasks : list of GenericTask
     ch_avail : list of float
         Channel availability times.
     verbose : bool
@@ -326,11 +336,12 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
 
 
 def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
-    """Monte Carlo tree search algorithm.
+    """
+    Monte Carlo tree search algorithm.
 
     Parameters
     ----------
-    tasks : list of BaseTask
+    tasks : list of GenericTask
     ch_avail : list of float
         Channel availability times.
     n_mc : int
@@ -379,11 +390,12 @@ def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
 
 
 def random_sequencer(tasks: list, ch_avail: list, rng=None):
-    """Generates a random task sequence, determines execution times and channels.
+    """
+    Generates a random task sequence, determines execution times and channels.
 
     Parameters
     ----------
-    tasks : list of BaseTask
+    tasks : list of GenericTask
     ch_avail : list of float
         Channel availability times.
     rng
@@ -410,11 +422,12 @@ def random_sequencer(tasks: list, ch_avail: list, rng=None):
 
 
 def earliest_release(tasks: list, ch_avail: list, do_swap=False):
-    """Earliest Start Times Algorithm.
+    """
+    Earliest Start Times Algorithm.
 
     Parameters
     ----------
-    tasks : list of BaseTask
+    tasks : list of GenericTask
     ch_avail : list of float
         Channel availability times.
     do_swap : bool
@@ -444,7 +457,8 @@ def earliest_release(tasks: list, ch_avail: list, do_swap=False):
 
 
 def earliest_drop(tasks: list, ch_avail: list, do_swap=False):
-    """Earliest Drop Times Algorithm.
+    """
+    Earliest Drop Times Algorithm.
 
     Parameters
     ----------
@@ -478,11 +492,12 @@ def earliest_drop(tasks: list, ch_avail: list, do_swap=False):
 
 
 def est_alg_kw(tasks: list, ch_avail: list):
-    """Earliest Start Times Algorithm using FlexDAR scheduler function.
+    """
+    Earliest Start Times Algorithm using FlexDAR scheduler function.
 
     Parameters
     ----------
-    tasks : list of BaseTask
+    tasks : list of GenericTask
     ch_avail : list of float
         Channel availability times.
 

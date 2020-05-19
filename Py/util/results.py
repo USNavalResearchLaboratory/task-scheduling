@@ -2,7 +2,23 @@ import numpy as np
 
 
 def check_valid(tasks, t_ex, ch_ex):
-    """Check schedule validity."""
+    """
+    Check schedule validity.
+
+    Parameters
+    ----------
+    tasks : list of GenericTask
+    t_ex : ndarray
+        Task execution times.
+    ch_ex : ndarray
+        Task execution channels.
+
+    Raises
+    -------
+    ValueError
+        If tasks overlap in time.
+
+    """
 
     for ch in np.unique(ch_ex):
         tasks_ch = np.asarray(tasks)[ch_ex == ch].tolist()
@@ -15,7 +31,21 @@ def check_valid(tasks, t_ex, ch_ex):
 
 
 def eval_loss(tasks, t_ex):
-    """Evaluate scheduling loss."""
+    """
+    Evaluate scheduling loss.
+
+    Parameters
+    ----------
+    tasks : list of GenericTask
+    t_ex : ndarray
+        Task execution times.
+
+    Returns
+    -------
+    float
+        Total loss of scheduled tasks.
+
+    """
 
     l_ex = 0
     # for n in range(len(tasks)):

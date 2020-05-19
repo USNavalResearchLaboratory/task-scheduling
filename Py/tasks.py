@@ -7,8 +7,9 @@ import matplotlib.pyplot as plt
 from util.generic import check_rng
 
 
-class BaseTask:
-    """Generic task objects.
+class GenericTask:
+    """
+    Generic task objects.
 
     Parameters
     ----------
@@ -19,17 +20,15 @@ class BaseTask:
 
     """
 
-    def __init__(self, duration, t_release):
+    def __init__(self, duration, t_release, loss_fcn):
         self.duration = duration
         self.t_release = t_release
+        self.loss_fcn = loss_fcn
 
         self.plot_lim = (t_release, t_release + duration)
 
     def __repr__(self):
-        return f"BaseTask(duration: {self.duration:.3f}, release time:{self.t_release:.3f})"
-
-    def loss_fcn(self, t):
-        raise NotImplementedError   # TODO: add function to init for generic task creation?
+        return f"GenericTask(duration: {self.duration:.3f}, release time:{self.t_release:.3f})"
 
     def plot_loss(self, t_plot=None, ax=None):
         if t_plot is None:
@@ -60,8 +59,9 @@ class BaseTask:
         return plot_data
 
 
-class ReluDropTask(BaseTask):
-    """Generates a rectified linear loss function with a constant drop penalty.
+class ReluDropTask(GenericTask):
+    """
+    Generates a rectified linear loss function with a constant drop penalty.
 
     Parameters
     ----------
@@ -79,7 +79,7 @@ class ReluDropTask(BaseTask):
     """
 
     def __init__(self, duration, t_release, slope, t_drop, l_drop):
-        super().__init__(duration, t_release)
+        super().__init__(duration, t_release, loss_relu_drop(t_release, slope, t_drop, l_drop))
         self.slope = slope
         self.t_drop = t_drop
         self.l_drop = l_drop
@@ -92,34 +92,44 @@ class ReluDropTask(BaseTask):
     def __repr__(self):
         return f"ReluDropTask(duration: {self.duration:.3f}, release time:{self.t_release:.3f})"
 
-    def loss_fcn(self, t):
-        """Rectified linear loss function with a constant drop penalty.
 
-        Parameters
-        ----------
-        t : ndarray
-            Evaluation time
+def loss_relu_drop(t_release, slope, t_drop, l_drop):
+    """
+    Rectified linear loss function with a constant drop penalty.
 
-        Returns
-        -------
-        ndarray
-            Incurred loss
+    Parameters
+    ----------
+    t_release : float
+        Earliest time the task may be scheduled. Loss at t_release is zero.
+    slope : float
+        Function slope between release and drop times.
+    t_drop : float
+        Drop time.
+    l_drop : float
+        Constant loss after drop time.
 
-        """
+    Returns
+    -------
+    function
+        Incurred loss
 
+    """
+
+    def loss_fcn(t):
         t = np.asarray(t)[np.newaxis]
-        loss = self.slope * (t - self.t_release)
-        loss[t < self.t_release] = np.inf
-        loss[t >= self.t_drop] = self.l_drop
-
+        loss = slope * (t - t_release)
+        loss[t < t_release] = np.inf
+        loss[t >= t_drop] = l_drop
         return loss.squeeze(axis=0)
+
+    return loss_fcn
 
 
 
 
 # %% Task generation objects        # TODO: generalize, docstrings
 
-class BaseTaskGenerator:
+class GenericTaskGenerator:
     def __init__(self, rng=None):
         self.rng = check_rng(rng)
 
@@ -127,7 +137,7 @@ class BaseTaskGenerator:
         raise NotImplementedError
 
 
-class ReluDropGenerator(BaseTaskGenerator):
+class ReluDropGenerator(GenericTaskGenerator):
     def __init__(self, rng=None):
         super().__init__(rng)
 
@@ -144,7 +154,7 @@ class ReluDropGenerator(BaseTaskGenerator):
         params = np.array(_params, dtype=[('duration', np.float), ('t_release', np.float),
                                           ('slope', np.float), ('t_drop', np.float), ('l_drop', np.float)])
 
-        # tasks = [BaseTask.relu_drop(*args) for args in _params]
+        # tasks = [GenericTask.relu_drop(*args) for args in _params]
         tasks = [ReluDropTask(*args) for args in _params]
 
         if return_params:
