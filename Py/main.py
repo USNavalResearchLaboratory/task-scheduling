@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 
 from tasks import ReluDropGenerator
 from tree_search import branch_bound, mc_tree_search, random_sequencer, earliest_release, est_alg_kw
+from env_tasking import random_agent
 from util.generic import algorithm_repr
 from util.results import check_valid, eval_loss
 from util.plot import plot_task_losses, plot_schedule, plot_results
@@ -25,24 +26,28 @@ from util.plot import plot_task_losses, plot_schedule, plot_results
 plt.style.use('seaborn')
 
 # %% Inputs
-
 n_gen = 2      # number of task scheduling problems
 
-task_gen = partial(ReluDropGenerator().rand_tasks, n_tasks=8)       # task set generator
+n_channels = 2
+n_tasks = 8
 
 
-def ch_avail_gen():     # channel availability time generator
+def ch_avail_gen(n_ch):     # channel availability time generator
     rng = np.random.default_rng()
-    return rng.uniform(0, 5, 2)
+    return rng.uniform(0, 5, n_ch)
 
+
+task_gen = ReluDropGenerator(duration_lim=(1, 3), t_release_lim=(0, 8), slope_lim=(0.8, 1.2),
+                             t_drop_lim=(12, 20), l_drop_lim=(22, 30))       # task set generator
 
 # Algorithms
 alg_funcs = [partial(branch_bound, verbose=False),
              partial(mc_tree_search, n_mc=100, verbose=False),
              partial(earliest_release, do_swap=True),
-             partial(random_sequencer)]
+             partial(random_sequencer),
+             partial(random_agent)]
 
-alg_n_runs = [5, 5, 1, 5]       # number of runs per problem
+alg_n_runs = [2, 5, 1, 5, 5]       # number of runs per problem
 
 alg_reprs = list(map(algorithm_repr, alg_funcs))
 
@@ -63,8 +68,8 @@ l_ex_mean = np.array(list(zip(*np.empty((len(alg_reprs), n_gen)))),
 for i_gen in range(n_gen):      # Generate new tasks
     print(f'Task Set: {i_gen + 1}/{n_gen}')
 
-    tasks = task_gen()
-    ch_avail = ch_avail_gen()
+    ch_avail = ch_avail_gen(n_channels)
+    tasks = task_gen.rand_tasks(n_tasks)
 
     _, ax_gen = plt.subplots(2, 1, num=f'Task Set: {i_gen + 1}', clear=True)
     plot_task_losses(tasks, ax=ax_gen[0])

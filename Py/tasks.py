@@ -135,21 +135,19 @@ class GenericTaskGenerator:
 
 
 class ReluDropGenerator(GenericTaskGenerator):
-    def __init__(self, rng=None):
+    def __init__(self, duration_lim, t_release_lim, slope_lim, t_drop_lim, l_drop_lim, rng=None):
         super().__init__(rng)
+        self.duration_lim = duration_lim
+        self.t_release_lim = t_release_lim
+        self.slope_lim = slope_lim
+        self.t_drop_lim = t_drop_lim
+        self.l_drop_lim = l_drop_lim
 
     def rand_tasks(self, n_tasks):
-        duration = self.rng.uniform(1, 3, n_tasks)
-
-        t_release = self.rng.uniform(0, 8, n_tasks)
-
-        slope = self.rng.uniform(0.8, 1.2, n_tasks)
-        t_drop = t_release + duration * self.rng.uniform(3, 5, n_tasks)
-        l_drop = self.rng.uniform(2, 3, n_tasks) * slope * (t_drop - t_release)
-
-        # _params = list(zip(duration, t_release, slope, t_drop, l_drop))
-        # params = np.array(_params, dtype=[('duration', np.float), ('t_release', np.float),
-        #                                   ('slope', np.float), ('t_drop', np.float), ('l_drop', np.float)])
-        # tasks = [ReluDropTask(*args) for args in _params]
+        duration = self.rng.uniform(*self.duration_lim, n_tasks)
+        t_release = self.rng.uniform(*self.t_release_lim, n_tasks)
+        slope = self.rng.uniform(*self.slope_lim, n_tasks)
+        t_drop = self.rng.uniform(*self.t_drop_lim, n_tasks)
+        l_drop = self.rng.uniform(*self.l_drop_lim, n_tasks)
 
         return [ReluDropTask(*args) for args in zip(duration, t_release, slope, t_drop, l_drop)]
