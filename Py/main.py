@@ -5,6 +5,9 @@ Define a set of task objects and scheduling algorithms. Assess achieved loss and
 
 """
 
+# TODO: Account for algorithm runtime before evaluating execution loss!!
+
+# TODO: limit execution time of algorithms using signal module?
 # TODO: add proper main() def, __name__ conditional execution?
 
 import time     # TODO: use builtin module timeit instead? or cProfile?
@@ -21,23 +24,25 @@ from util.plot import plot_task_losses, plot_schedule, plot_results
 
 plt.style.use('seaborn')
 
-
 # %% Inputs
 
 n_gen = 2      # number of task scheduling problems
-n_run = 5       # number of runs per problem
 
-ch_avail = np.zeros(2)     # channel availability times
+task_gen = partial(ReluDropGenerator().rand_tasks, n_tasks=8)       # task set generator
 
-task_gen = partial(ReluDropGenerator().rand_tasks, n_tasks=8)
+
+def ch_avail_gen():     # channel availability time generator
+    rng = np.random.default_rng()
+    return rng.uniform(0, 5, 2)
+
 
 # Algorithms
-alg_funcs = [partial(branch_bound, ch_avail=ch_avail, verbose=False),
-             partial(mc_tree_search, ch_avail=ch_avail, n_mc=100, verbose=False),
-             partial(earliest_release, ch_avail=ch_avail, do_swap=True),
-             partial(random_sequencer, ch_avail=ch_avail)]
+alg_funcs = [partial(branch_bound, verbose=False),
+             partial(mc_tree_search, n_mc=100, verbose=False),
+             partial(earliest_release, do_swap=True),
+             partial(random_sequencer)]
 
-alg_n_runs = [5, 5, 1, 5]
+alg_n_runs = [5, 5, 1, 5]       # number of runs per problem
 
 alg_reprs = list(map(algorithm_repr, alg_funcs))
 
@@ -59,6 +64,7 @@ for i_gen in range(n_gen):      # Generate new tasks
     print(f'Task Set: {i_gen + 1}/{n_gen}')
 
     tasks = task_gen()
+    ch_avail = ch_avail_gen()
 
     _, ax_gen = plt.subplots(2, 1, num=f'Task Set: {i_gen + 1}', clear=True)
     plot_task_losses(tasks, ax=ax_gen[0])
@@ -68,7 +74,7 @@ for i_gen in range(n_gen):      # Generate new tasks
             print(f'  {alg_repr} - Run: {i_run + 1}/{n_run}', end='\r')
 
             t_start = time.time()
-            t_ex, ch_ex = alg_func(tasks)
+            t_ex, ch_ex = alg_func(tasks, ch_avail)
             t_run = time.time() - t_start
 
             check_valid(tasks, t_ex, ch_ex)
@@ -83,8 +89,8 @@ for i_gen in range(n_gen):      # Generate new tasks
         l_ex_mean[alg_repr][i_gen] = l_ex_iter[alg_repr][i_gen].mean()
 
         print('')
-        print(f"    Avg. Runtime: {t_run_mean[alg_repr][i_gen]:.2f} seconds")
-        print(f"    Avg. Execution Loss: {l_ex_mean[alg_repr][i_gen]:.3f}")
+        print(f"    Avg. Runtime: {t_run_mean[alg_repr][i_gen]:.2f} (s)")
+        print(f"    Avg. Execution Loss: {l_ex_mean[alg_repr][i_gen]:.2f}")
 
     plot_results(t_run_iter[i_gen], l_ex_iter[i_gen], ax=ax_gen[1])
 
