@@ -48,8 +48,6 @@ def eval_loss(tasks, t_ex):
     """
 
     l_ex = 0
-    # for n in range(len(tasks)):
-    #     l_ex += tasks[n].loss_fcn(t_ex[n])
     for task, t_ex in zip(tasks, t_ex):
         l_ex += task.loss_fcn(t_ex)
 

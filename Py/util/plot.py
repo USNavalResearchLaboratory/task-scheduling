@@ -96,9 +96,9 @@ def plot_schedule(tasks, t_ex, ch_ex, l_ex=None, alg_repr=None, ax=None, ax_kwar
         l_ex = eval_loss(tasks, t_ex)
 
     if alg_repr is None:
-        ax.set_title(f'Loss = {l_ex:.3f}')
+        ax.set_title(f'Loss = {l_ex:.2f}')
     else:
-        ax.set_title(f'{alg_repr}: Loss = {l_ex:.3f}')
+        ax.set_title(f'{alg_repr}: Loss = {l_ex:.2f}')
 
     ax.set(**ax_kwargs)
 

@@ -8,7 +8,7 @@ def check_rng(rng):
 
     Parameters
     ----------
-    rng : None or int or Generator
+    rng : None or int or RandomState or Generator
         Random number generator seed or object.
 
     Returns
@@ -20,8 +20,10 @@ def check_rng(rng):
         return np.random.default_rng()
     elif type(rng) == int:
         return np.random.default_rng(rng)
+    elif isinstance(rng, np.random.Generator) or isinstance(rng, np.random.RandomState):
+        return rng
     else:
-        return rng      # TODO: type check? assumes valid rng
+        raise TypeError("Input must be None, int, or a valid NumPy random number generator.")
 
 
 def algorithm_repr(alg):
