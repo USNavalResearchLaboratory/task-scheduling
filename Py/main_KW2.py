@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 
 from tasks import ReluDropGenerator
 from tree_search import branch_bound, mc_tree_search, random_sequencer, est_alg, est_task_swap_alg, ed_alg, ed_swap_task_alg
+from scheduling_algorithms import branch_bound_rules
+
 from util.utils import check_valid, eval_loss
 
 plt.style.use('seaborn')
@@ -22,7 +24,7 @@ rng = np.random.default_rng(100)
 # %% Inputs
 
 n_gen = 1      # number of task scheduling problems
-n_run = 2       # number of runs per problem
+n_run = 1       # number of runs per problem
 
 ch_avail = np.zeros(2)     # channel availability times
 
@@ -34,9 +36,10 @@ algorithms = [partial(est_task_swap_alg, ch_avail=ch_avail),
               partial(est_alg, ch_avail=ch_avail),
               partial(ed_alg, ch_avail=ch_avail),
               partial(ed_swap_task_alg, ch_avail=ch_avail),
-              partial(branch_bound, ch_avail=ch_avail, verbose=True, rng=rng),
-              partial(mc_tree_search, ch_avail=ch_avail, n_mc=1000, verbose=True, rng=rng),
-              partial(random_sequencer, ch_avail=ch_avail, rng=rng)]
+              partial(branch_bound_rules, ch_avail=ch_avail, verbose=True, rng=rng),
+              partial(branch_bound, ch_avail=ch_avail, verbose=True, rng=rng)]
+              # partial(mc_tree_search, ch_avail=ch_avail, n_mc=1000, verbose=True, rng=rng),
+              # partial(random_sequencer, ch_avail=ch_avail, rng=rng)]
 
 
 # %% Evaluate
@@ -46,6 +49,9 @@ algorithms = [partial(est_task_swap_alg, ch_avail=ch_avail),
 
 t_run_alg = np.empty((n_gen, len(algorithms), n_run))
 l_ex_alg = np.empty((n_gen, len(algorithms), n_run))
+t_ex_alg = np.empty((n_gen, len(algorithms), n_run,n_tasks))
+T_alg = np.empty((n_gen, len(algorithms), n_run,n_tasks))
+
 
 for i_gen in range(n_gen):      # Generate new tasks
 
@@ -66,6 +72,8 @@ for i_gen in range(n_gen):      # Generate new tasks
             # ch_ex_alg[i_gen, i_alg, i_run] = ch_ex
             t_run_alg[i_gen, i_alg, i_run] = t_run
             l_ex_alg[i_gen, i_alg, i_run] = l_ex
+            t_ex_alg[i_gen, i_alg, i_run,:] = t_ex
+            T_alg[i_gen, i_alg, i_run,:] = np.argsort(t_ex)
 
 
 
@@ -76,6 +84,9 @@ for i_gen in range(n_gen):      # Generate new tasks
         print(f"Execution Loss: {l_ex:.3f}")
         print(f"Runtime: {t_run:.2f} seconds")
 
+        C = 0
+        for n in range(len(tasks)):
+            C += tasks[n].loss_fcn(t_ex_alg[0, 4, 0, n])
 
 
 
