@@ -556,7 +556,7 @@ def ed_swap_task_alg(tasks: list, ch_avail: list):
     node = TreeNode(seq)
     N = len(seq)
 
-    for jj in range(N - 1):  #
+    for jj in range(N - 1):  # TODO: Make task swapping its own function to be applied elsewhere
         Tswap = copy.deepcopy(seq)
         T1 = seq[jj]
         T2 = seq[jj + 1]
