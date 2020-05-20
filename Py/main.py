@@ -22,18 +22,18 @@ from util.plot import plot_task_losses, plot_schedule, plot_results
 
 from tasks import ReluDropGenerator
 from tree_search import branch_bound, mc_tree_search, random_sequencer, earliest_release, est_alg_kw
-from env_tasking import train_random_agent
+from env_tasking import SeqTaskingEnv, StepTaskingEnv, wrap_agent, RandomAgent
 
 plt.style.use('seaborn')
 
 
 # %% Inputs
-n_gen = 5      # number of task scheduling problems
+n_gen = 2      # number of task scheduling problems
 
 n_tasks = 8
 n_channels = 2
 
-task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 8), slope_lim=(0.5, 2),
+task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
                              t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=None)       # task set generator
 
 
@@ -43,7 +43,9 @@ def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time gen
 
 
 # Algorithms
-random_agent = train_random_agent(n_tasks, task_gen, n_channels, ch_avail_gen)
+
+env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen)
+random_agent = wrap_agent(env, RandomAgent(env.action_space))
 
 alg_funcs = [partial(branch_bound, verbose=False),
              partial(mc_tree_search, n_mc=100, verbose=False),
@@ -51,7 +53,7 @@ alg_funcs = [partial(branch_bound, verbose=False),
              partial(random_sequencer),
              partial(random_agent)]
 
-alg_n_runs = [2, 5, 1, 5, 5]       # number of runs per problem
+alg_n_runs = [2, 2, 1, 10, 10]       # number of runs per problem
 
 alg_reprs = list(map(algorithm_repr, alg_funcs))
 

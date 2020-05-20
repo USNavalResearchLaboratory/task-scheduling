@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -6,10 +7,13 @@ from gym.spaces import Discrete, Box, Space
 from gym.utils import seeding
 
 from baselines import logger
+# from baselines import deepq
+
+from util.generic import check_rng
+from util.plot import plot_task_losses
 
 from tree_search import TreeNode
 from tasks import ReluDropGenerator
-from util.plot import plot_task_losses
 
 
 def obs_relu_drop(tasks):
@@ -33,10 +37,7 @@ class Sequence(Space):
         return self.np_random.permutation(self.n)
 
     def contains(self, x):
-        if (np.sort(np.asarray(x, dtype=int)) == np.arange(self.n)).all():
-            return True
-        else:
-            return False
+        return True if (np.sort(np.asarray(x, dtype=int)) == np.arange(self.n)).all() else False
 
     def __repr__(self):
         return f"Sequence({self.n})"
@@ -45,7 +46,32 @@ class Sequence(Space):
         return isinstance(other, Sequence) and self.n == other.n
 
 
-class TaskingEnv(gym.Env):
+class DiscreteSet(Space):
+    """Gym Space for discrete, non-integral elements."""
+
+    def __init__(self, elements):
+        self.elements = np.sort(np.asarray(list(elements)).flatten())
+        super().__init__((self.n,), self.elements.dtype)
+
+    @property
+    def n(self):
+        return self.elements.size
+
+    def sample(self):
+        return self.np_random.choice(self.elements)
+
+    def contains(self, x):
+        return True if x in self.elements else False
+
+    def __repr__(self):
+        return f"DiscreteSet({self.elements})"
+
+    def __eq__(self, other):
+        return isinstance(other, DiscreteSet) and self.elements == other.elements
+
+
+class BaseTaskingEnv(gym.Env):
+    """Base environment for task scheduling."""
 
     def __init__(self, n_tasks, task_gen, n_ch, ch_avail_gen):
         self.n_tasks = n_tasks
@@ -57,6 +83,37 @@ class TaskingEnv(gym.Env):
         self.ch_avail = None
         self.tasks = None
         self.node = None
+        self.reset()
+
+        self.reward_range = (-float('inf'), 0)
+
+    def reset(self, tasks=None, ch_avail=None):     # TODO: added arguments to control Env state. OK?
+        self.tasks = self.task_gen.rand_tasks(self.n_tasks) if tasks is None else tasks
+        self.ch_avail = self.ch_avail_gen(self.n_ch) if ch_avail is None else ch_avail
+
+        TreeNode._tasks = self.tasks
+        TreeNode._ch_avail_init = self.ch_avail
+        self.node = TreeNode([])
+
+        return obs_relu_drop(self.tasks)
+
+    def step(self, action: list):
+        raise NotImplementedError
+
+    def render(self, mode='human'):
+        if mode == 'human':
+            fig_env, ax_env = plt.subplots(num='Task Scheduling Env', clear=True)
+            plot_task_losses(self.tasks, ax=ax_env)
+
+    def close(self):
+        plt.close('all')
+
+
+class SeqTaskingEnv(BaseTaskingEnv):
+    """Tasking environment, entire sequence selected at once."""
+
+    def __init__(self, n_tasks, task_gen, n_ch, ch_avail_gen):
+        super().__init__(n_tasks, task_gen, n_ch, ch_avail_gen)
 
         _low, _high = list(zip(task_gen.duration_lim, task_gen.t_release_lim, task_gen.slope_lim,
                                task_gen.t_drop_lim, task_gen.l_drop_lim,))
@@ -66,25 +123,6 @@ class TaskingEnv(gym.Env):
         self.observation_space = Box(obs_low, obs_high, dtype=np.float64)
         self.action_space = Sequence(n_tasks)
 
-        self.reward_range = (-float('inf'), 0)
-
-    def reset(self, tasks=None, ch_avail=None):     # TODO: added arguments to control Env state. OK?
-        if tasks is None:
-            self.tasks = self.task_gen.rand_tasks(self.n_tasks)
-        else:
-            self.tasks = tasks
-
-        if ch_avail is None:
-            self.ch_avail = self.ch_avail_gen(self.n_ch)
-        else:
-            self.ch_avail = ch_avail
-
-        TreeNode._tasks = self.tasks
-        TreeNode._ch_avail_init = self.ch_avail
-        self.node = TreeNode([])
-
-        return obs_relu_drop(self.tasks)
-
     def step(self, action: list):
         obs = obs_relu_drop(self.tasks)
 
@@ -93,12 +131,49 @@ class TaskingEnv(gym.Env):
 
         return obs, reward, True, {}
 
-    def render(self, mode='human'):
-        fig_env, ax_env = plt.subplots(num='Task Scheduling Env', clear=True)
-        plot_task_losses(self.tasks, ax=ax_env)
 
-    # def close(self):
-    #     plt.close('all')
+class StepTaskingEnv(BaseTaskingEnv):
+    """Tasking environment, tasks scheduled sequentially."""
+
+    def __init__(self, n_tasks, task_gen, n_ch, ch_avail_gen):
+        super().__init__(n_tasks, task_gen, n_ch, ch_avail_gen)
+
+        _low, _high = list(zip(task_gen.duration_lim, task_gen.t_release_lim, task_gen.slope_lim,
+                               task_gen.t_drop_lim, task_gen.l_drop_lim, ))
+        obs_low = np.broadcast_to(np.asarray(_low), (n_tasks, 5))
+        obs_high = np.broadcast_to(np.asarray(_high), (n_tasks, 5))
+
+        self.observation_space = Box(obs_low, obs_high, dtype=np.float64)
+
+    @property
+    def action_space(self):
+        return DiscreteSet(self.node.seq_rem)
+
+    def step(self, action: int):
+        obs = obs_relu_drop(self.tasks)
+
+        seq_new = copy.deepcopy(self.node.seq) + [action]
+        self.node.seq = seq_new
+        reward = -1 * self.tasks[action].loss_fcn(self.node.t_ex[action])
+
+        done = len(self.node.seq_rem) == 0
+
+        return obs, reward, done, {}
+
+
+def wrap_agent(env, agent):
+    """Generate scheduling function by running an agent on a single environment episode."""
+
+    def scheduler(tasks, ch_avail):
+        observation, reward, done = env.reset(tasks, ch_avail), 0, False
+        while not done:
+            # agent.action_space = env.action_space
+            action = agent.act(observation, reward, done)
+            observation, reward, done, info = env.step(action)
+
+        return env.node.t_ex, env.node.ch_ex
+
+    return scheduler
 
 
 class RandomAgent(object):
@@ -110,16 +185,45 @@ class RandomAgent(object):
         return self.action_space.sample()
 
 
-def train_random_agent(n_tasks, task_gen, n_ch, ch_avail_gen):
-    env = TaskingEnv(n_tasks, task_gen, n_ch, ch_avail_gen)
+# def train_random_agent(n_tasks, task_gen, n_ch, ch_avail_gen):
+#     env = TaskingEnv(n_tasks, task_gen, n_ch, ch_avail_gen)
+#     agent = RandomAgent(env.action_space)
+#
+#     return wrap_agent(env, agent)
+
+
+if __name__ == '__main__':
+
+    def ch_avail_generator(n_ch, rng=check_rng(None)):  # channel availability time generator
+        return rng.uniform(0, 2, n_ch)
+
+
+    params = {'n_tasks': 8,
+              'task_gen': ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+                                            t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=None),
+              'n_ch': 2,
+              'ch_avail_gen': ch_avail_generator}
+
+    env = SeqTaskingEnv(**params)
+    # env = StepTaskingEnv(**params)
+
     agent = RandomAgent(env.action_space)
 
-    def random_agent(tasks, ch_avail):
-        observation, reward, done = env.reset(tasks, ch_avail), 0, False
-        while not done:
-            action = agent.act(observation, reward, done)
-            observation, reward, done, info = env.step(action)
+    obs, reward, done = env.reset(), 0, False
+    while not done:
+        # agent.action_space = env.action_space
+        act = agent.act(obs, reward, done)
+        observation, reward, done, info = env.step(act)
+        print(reward)
 
-        return env.node.t_ex, env.node.ch_ex
 
-    return random_agent
+    # act = deepq.learn(task_env,
+    #                   network='mlp',
+    #                   lr=1e-3,
+    #                   total_timesteps=100000,
+    #                   buffer_size=50000,
+    #                   exploration_fraction=0.1,
+    #                   exploration_final_eps=0.02,
+    #                   print_freq=10,
+    #                   )
+
