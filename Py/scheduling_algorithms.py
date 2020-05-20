@@ -1,8 +1,9 @@
 import copy
 import numpy as np
-from util.utils import check_rng
+from util.generic import check_rng
 # from tree_search import TreeNode
 # from tree_search import TreeNodeBound
+
 
 class BranchBoundNode:
     """ Node object for branch and bound
