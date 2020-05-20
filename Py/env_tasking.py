@@ -47,63 +47,50 @@ class Sequence(Space):
 
 class TaskingEnv(gym.Env):
 
-    def __init__(self, ch_avail, tasks):
-        self.n_ch = len(ch_avail)
+    def __init__(self, n_tasks, task_gen, n_ch, ch_avail_gen):
+        self.n_tasks = n_tasks
+        self.task_gen = task_gen
 
-        self.n_tasks = len(tasks)
+        self.n_ch = n_ch
+        self.ch_avail_gen = ch_avail_gen
 
-        self.ch_avail = ch_avail
-        self.tasks = tasks
+        self.ch_avail = None
+        self.tasks = None
+        self.node = None
 
-        TreeNode._ch_avail_init = ch_avail
-        TreeNode._tasks = tasks
-        self.node = TreeNode([])
+        _low, _high = list(zip(task_gen.duration_lim, task_gen.t_release_lim, task_gen.slope_lim,
+                               task_gen.t_drop_lim, task_gen.l_drop_lim,))
+        obs_low = np.broadcast_to(np.asarray(_low), (n_tasks, 5))
+        obs_high = np.broadcast_to(np.asarray(_high), (n_tasks, 5))
 
-        self.observation_space = Discrete(0)
-        self.action_space = Sequence(self.n_tasks)
+        self.observation_space = Box(obs_low, obs_high, dtype=np.float64)
+        self.action_space = Sequence(n_tasks)
 
         self.reward_range = (-float('inf'), 0)
 
-    # def __init__(self, n_ch, ch_avail_gen, n_tasks, task_gen):
-    #     self.n_ch = n_ch
-    #     self.ch_avail_gen = ch_avail_gen
-    #
-    #     self.n_tasks = n_tasks
-    #     self.task_gen = task_gen
-    #
-    #     self.ch_avail = None
-    #     self.tasks = None
-    #     self.node = None
-    #
-    #     _low, _high = list(zip(task_gen.duration_lim, task_gen.t_release_lim, task_gen.slope_lim,
-    #                            task_gen.t_drop_lim, task_gen.l_drop_lim,))
-    #     obs_low = np.broadcast_to(np.asarray(_low), (n_tasks, 5))
-    #     obs_high = np.broadcast_to(np.asarray(_high), (n_tasks, 5))
-    #
-    #     self.observation_space = Box(obs_low, obs_high, dtype=np.float32)
-    #     self.action_space = Sequence(n_tasks)
-    #
-    #     self.reward_range = (-float('inf'), 0)
+    def reset(self, tasks=None, ch_avail=None):     # TODO: added arguments to control Env state. OK?
+        if tasks is None:
+            self.tasks = self.task_gen.rand_tasks(self.n_tasks)
+        else:
+            self.tasks = tasks
 
-    def reset(self):
-        return 0
+        if ch_avail is None:
+            self.ch_avail = self.ch_avail_gen(self.n_ch)
+        else:
+            self.ch_avail = ch_avail
 
-    # def reset(self):
-    #     self.ch_avail = self.ch_avail_gen(self.n_ch)
-    #     self.tasks = self.task_gen.rand_tasks(self.n_tasks)
-    #
-    #     TreeNode._ch_avail_init = self.ch_avail
-    #     TreeNode._tasks = self.tasks
-    #     self.node = TreeNode([])
-    #
-    #     return obs_relu_drop(self.tasks)
+        TreeNode._tasks = self.tasks
+        TreeNode._ch_avail_init = self.ch_avail
+        self.node = TreeNode([])
+
+        return obs_relu_drop(self.tasks)
 
     def step(self, action: list):
-        # obs = obs_relu_drop(self.tasks)
-        obs = 0
+        obs = obs_relu_drop(self.tasks)
 
         self.node.seq = action
         reward = -1 * self.node.l_ex
+
         return obs, reward, True, {}
 
     def render(self, mode='human'):
@@ -119,18 +106,20 @@ class RandomAgent(object):
     def __init__(self, action_space):
         self.action_space = action_space
 
-    # def act(self, observation, reward, done):
-    def act(self):
+    def act(self, observation, reward, done):
         return self.action_space.sample()
 
 
-def random_agent(tasks, ch_avail):
-    # env = TaskingEnv(n_ch, ch_avail_gen, n_tasks, task_gen)   # TODO: random environment initialization?
-    env = TaskingEnv(ch_avail, tasks)
+def train_random_agent(n_tasks, task_gen, n_ch, ch_avail_gen):
+    env = TaskingEnv(n_tasks, task_gen, n_ch, ch_avail_gen)
     agent = RandomAgent(env.action_space)
 
-    observation = env.reset()
-    action = agent.act()
-    observation, reward, done, info = env.step(action)
-    if done:
+    def random_agent(tasks, ch_avail):
+        observation, reward, done = env.reset(tasks, ch_avail), 0, False
+        while not done:
+            action = agent.act(observation, reward, done)
+            observation, reward, done, info = env.step(action)
+
         return env.node.t_ex, env.node.ch_ex
+
+    return random_agent
