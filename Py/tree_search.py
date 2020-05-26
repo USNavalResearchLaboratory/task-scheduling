@@ -157,7 +157,9 @@ class TreeNode:
             self._rng.shuffle(seq_iter)
 
         for n in seq_iter:
-            seq_new = copy.deepcopy(self.seq)
+            # seq_new = copy.deepcopy(self.seq)
+            seq_new = self.seq.copy()
+
             seq_new.append(n)
 
             node_new = copy.deepcopy(self)  # new TreeNode object
@@ -181,7 +183,9 @@ class TreeNode:
 
         """
 
-        seq_new = copy.deepcopy(self.seq) + self._rng.permutation(list(self._seq_rem)).tolist()
+        # seq_new = copy.deepcopy(self.seq) + self._rng.permutation(list(self._seq_rem)).tolist()
+        seq_new = self.seq.copy() + self._rng.permutation(list(self._seq_rem)).tolist()
+
 
         if do_copy:
             node_new = copy.deepcopy(self)  # new TreeNode object

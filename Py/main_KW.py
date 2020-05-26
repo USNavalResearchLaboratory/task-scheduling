@@ -1,127 +1,145 @@
-"""Task scheduling example.
+"""
+Task scheduling example.
 
 Define a set of task objects and scheduling algorithms. Assess achieved loss and runtime.
+
 """
 
-import time     # TODO: use builtin module timeit instead?
-# TODO: do cProfile!
+# TODO: Account for algorithm runtime before evaluating execution loss!!
+
+# TODO: limit execution time of algorithms using signal module?
+# TODO: add proper main() def, __name__ conditional execution?
+
+
+
+import time     # TODO: use builtin module timeit instead? or cProfile?
 from functools import partial
 
 import numpy as np
 import matplotlib.pyplot as plt
+from scheduling_algorithms import branch_bound_rules, branch_bound2
 
-from tasks import GenericTask
-from tree_search import branch_bound, mc_tree_search, est_alg_kw
-from sequence2schedule import FlexDARMultiChannelSequenceScheduler
+
+from util.generic import algorithm_repr, check_rng
+from util.results import check_valid, eval_loss
+from util.plot import plot_task_losses, plot_schedule, plot_results
+
+from tasks import ReluDropGenerator
+from tree_search import mc_tree_search, random_sequencer, earliest_release, est_alg_kw, branch_bound
+from env_tasking import SeqTaskingEnv, StepTaskingEnv, wrap_agent, RandomAgent
 
 plt.style.use('seaborn')
-
-rng = np.random.default_rng()
-
+rng = np.random.default_rng(100)
+# rng = np.random.seed(100)
 
 # %% Inputs
+n_gen = 5      # number of task scheduling problems
 
-ch_avail = 2 * [0]     # channel availability times
+n_tasks = 10
+n_channels = 2
 
-# Tasks
-n_tasks = 10      # number of tasks
+task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+                             t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=rng)       # task set generator
 
-duration = rng.uniform(1, 3, n_tasks)
+def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time generator
+    # TODO: rng is a mutable default argument!
+    return rng.uniform(0, 2, n_ch)
 
-t_release = rng.uniform(0, 8, n_tasks)
-
-w = rng.uniform(0.8, 1.2, n_tasks)
-t_drop = t_release + duration * rng.uniform(3, 5, n_tasks)
-l_drop = rng.uniform(2, 3, n_tasks) * w * (t_drop - t_release)
-
-tasks = []
-for n in range(n_tasks):        # build list of task objects
-    tasks.append(GenericTask.relu_drop(duration[n], t_release[n], w[n], t_drop[n], l_drop[n]))
-
-del duration, t_release, w, t_drop, l_drop
-
+# import cProfile
+# with cProfile.Profile() as pr:
+#     a = 2
+# pr.print_stats()
 
 # Algorithms
-algorithms = [partial(est_alg_kw, ch_avail=ch_avail, verbose=True, rng=rng),
-              partial(branch_bound, ch_avail=ch_avail, verbose=True, rng=rng),
-              partial(mc_tree_search, ch_avail=ch_avail, n_mc=1000, verbose=True, rng=rng)]
-#algorithms = [partial(est_alg_kw, ch_avail=ch_avail, verbose=True, rng=rng) ]
+
+env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen)
+random_agent = wrap_agent(env, RandomAgent(env.action_space))
+
+alg_funcs = [partial(branch_bound, verbose=False, rng = rng),
+             partial(branch_bound2, verbose=False, rng = rng),
+             # partial(branch_bound_rules, verbose=False),
+             partial(mc_tree_search, n_mc=100, verbose=False),
+             partial(earliest_release, do_swap=True)]#,
+             # partial(random_sequencer)]#,
+             # partial(random_agent)]
+
+alg_n_runs = [1, 1, 1, 1]       # number of runs per problem
+
+alg_reprs = list(map(algorithm_repr, alg_funcs))
+
 
 # %% Evaluate
-n_channels = len(ch_avail)
+t_run_iter = np.array(list(zip(*[np.empty((n_gen, n_run)) for n_run in alg_n_runs])),
+                      dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float], [(n_run,) for n_run in alg_n_runs])))
 
-t_ex_alg, ch_ex_alg, l_ex_alg, t_run_alg = [], [], [], []
-for alg in algorithms:
-    print(f'\nAlgorithm: {alg.func.__name__} \n')
+l_ex_iter = np.array(list(zip(*[np.empty((n_gen, n_run)) for n_run in alg_n_runs])),
+                     dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float], [(n_run,) for n_run in alg_n_runs])))
 
-    tic = time.time()
-    t_ex, ch_ex = alg(tasks)
-    t_run = time.time() - tic
+# t_ex_iter = np.array(list(zip(*[np.empty((n_gen, n_run, n_tasks)) for n_run in alg_n_runs])),
+#                      dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float], [(n_run,) for n_run in alg_n_runs])))
 
-    t_ex_alg.append(t_ex)
-    ch_ex_alg.append(ch_ex)
-    t_run_alg.append(t_run)
+t_ex_alg = np.empty((n_gen, len(alg_reprs), np.max(alg_n_runs),n_tasks))
+T_alg = np.empty((n_gen, len(alg_reprs), np.max(alg_n_runs),n_tasks))
 
-    # Check solution validity
-    for ch in range(n_channels):
-        tasks_ch = np.asarray(tasks)[ch_ex == ch].tolist()
-        t_ex_ch = t_ex[ch_ex == ch]
-        for n_1 in range(len(tasks_ch) - 1):
-            for n_2 in range(n_1 + 1, len(tasks_ch)):
-                if t_ex_ch[n_1] - tasks_ch[n_2].duration + 1e-12 < t_ex_ch[n_2] < t_ex_ch[n_1] \
-                        + tasks_ch[n_1].duration - 1e-12:
-                    raise ValueError('Invalid Solution: Scheduling Conflict')
+t_run_mean = np.array(list(zip(*np.empty((len(alg_reprs), n_gen)))),
+                      dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float])))
 
-    # Cost evaluation
-    l_ex = 0
-    for n in range(n_tasks):
-        l_ex += tasks[n].loss_fcn(t_ex[n])
-    l_ex_alg.append(l_ex)
+l_ex_mean = np.array(list(zip(*np.empty((len(alg_reprs), n_gen)))),
+                     dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float])))
 
-    # Results
-    print('')
-    print("Task Execution Channels: " + ", ".join([f'{ch}' for ch in ch_ex]))
-    print("Task Execution Times: " + ", ".join([f'{t:.3f}' for t in t_ex]))
-    print(f"Achieved Loss: {l_ex:.3f}")
-    print(f"Runtime: {t_run:.2f} seconds")
+t_run_mean2 = np.array(list(zip(*np.empty((len(alg_reprs), n_gen)))),
+                      dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float])))
 
+l_ex_mean2 = np.array(list(zip(*np.empty((len(alg_reprs), n_gen)))),
+                     dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float])))
 
-# %% Graphics
-t_plot_max = 0
-for t_ex in t_ex_alg:
-    t_plot_max = max(t_plot_max, max(t_ex))
-t_plot_max += max([t.duration for t in tasks])
+for i_gen in range(n_gen):      # Generate new tasks
+    print(f'Task Set: {i_gen + 1}/{n_gen}')
 
-t_plot = np.arange(0, t_plot_max, 0.01)
+    tasks = task_gen.rand_tasks(n_tasks)
+    ch_avail = ch_avail_gen(n_channels,rng)
 
-plt.figure(num='Task Loss Functions', clear=True)
-for n in range(n_tasks):
-    plt.plot(t_plot, tasks[n].loss_fcn(t_plot), label=f'Task #{n}')
-plt.gca().set(xlabel='t', ylabel='Loss')
-plt.gca().set_ylim(bottom=0)
-plt.gca().set_xlim(t_plot[[0, -1]])
-plt.grid(True)
-plt.legend()
+    _, ax_gen = plt.subplots(2, 1, num=f'Task Set: {i_gen + 1}', clear=True)
+    plot_task_losses(tasks, ax=ax_gen[0])
+
+    for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
+        for i_run in range(n_run):      # Perform new algorithm runs
+            print(f'  {alg_repr} - Run: {i_run + 1}/{n_run}', end='\r')
+
+            t_start = time.time()
+            t_ex, ch_ex = alg_func(tasks, ch_avail)
+            t_run = time.time() - t_start
+
+            check_valid(tasks, t_ex, ch_ex)
+            l_ex = eval_loss(tasks, t_ex)
+
+            t_run_iter[alg_repr][i_gen, i_run] = t_run
+            l_ex_iter[alg_repr][i_gen, i_run] = l_ex
+            # t_ex_iter[alg_repr][i_gen, i_run,:] = t_ex
+            t_ex_alg[i_gen, alg_reprs.index(alg_repr) , i_run, :] = t_ex
+            T_alg[i_gen, alg_reprs.index(alg_repr), i_run, :] = np.argsort(t_ex)
 
 
-bar_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-for i in range(len(algorithms)):
-    title_dict = algorithms[i].keywords
-    for key in ['verbose', 'rng', 'ch_avail']:
-        try:
-            del title_dict[key]
-        except KeyError:
-            pass
-    title = ": ".join([algorithms[i].func.__name__, str(title_dict)])
+            # plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, alg_repr=alg_repr, ax=None)
 
-    plt.figure(num=title, clear=True, figsize=[8, 2.5])
-    plt.title(f'Loss = {l_ex_alg[i]:.3f}')
-    # d = ax.broken_barh([(t_ex[n], tasks[n].duration) for n in range(len(tasks))], (-0.5, 1), facecolors=bar_colors)
-    for n in range(len(tasks)):
-        plt.gca().broken_barh([(t_ex_alg[i][n], tasks[n].duration)], (ch_ex_alg[i][n]-0.5, 1),
-                              facecolors=bar_colors[n % len(bar_colors)], edgecolor='black', label=f'Task #{n}')
+        t_run_mean[alg_repr][i_gen] = t_run_iter[alg_repr][i_gen].mean()
+        l_ex_mean[alg_repr][i_gen] = l_ex_iter[alg_repr][i_gen].mean()
 
-    plt.gca().set(xlim=t_plot[[0, -1]], ylim=(-.5, n_channels-1+.5),
-                  xlabel='t', yticks=list(range(n_channels)), ylabel='Channel')
-    plt.gca().grid(True)
-    plt.gca().legend()
+        t_run_mean2[alg_repr] = t_run_iter[alg_repr].mean()
+        l_ex_mean2[alg_repr] = l_ex_iter[alg_repr].mean()
+
+        print('')
+        print(f"    Avg. Runtime: {t_run_mean[alg_repr][i_gen]:.2f} (s)")
+        print(f"    Avg. Execution Loss: {l_ex_mean[alg_repr][i_gen]:.2f}")
+
+    plot_results(t_run_iter[i_gen], l_ex_iter[i_gen], ax=ax_gen[1])
+
+print('')
+
+_, ax_results = plt.subplots(num='Results', clear=True)
+plot_results(t_run_mean, l_ex_mean, ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
+
+
+
+_, ax_results2 = plt.subplots(num='Results', clear=True)
+plot_results(t_run_mean2, l_ex_mean2, ax=ax_results2, ax_kwargs={'title': 'Average performance on random task sets'})

@@ -20,7 +20,7 @@ class BranchBoundNode:
     # _ch_avail_init = []
     # _rng = None
 
-    def __init__(self, N, K):
+    def __init__(self, N, K, ch_avail_init: float):
         # if self._n_tasks == 0 or self._n_ch == 0:
         #     raise AttributeError("Cannot instantiate objects before assigning "
         #                          "the '_tasks' and '_n_ch class attributes.")
@@ -29,7 +29,8 @@ class BranchBoundNode:
         self.PF = np.array(range(N))
         self.NS = np.empty([0],dtype = int)
         self.t_ex = np.zeros(N)
-        self.ch_avail = np.zeros(K)
+        self.ch_avail = copy.deepcopy(ch_avail_init)
+        self.ch_avail_init = ch_avail_init
         self.BestCost = float('inf')
         self.BestSeq = np.empty([0],dtype = int)
         self.CompleteSolutionFlag = 0
@@ -85,10 +86,114 @@ class BranchBoundNode:
             self.ch_avail[SelectedChannel] = self.t_ex[curJobId] + tasks[curJobId].duration
             self.ChannelAssignment[curJobId] = SelectedChannel
 
+    def seq2schedule_active(self, tasks:list, ForcedChannel: int):
+        L = len(self.T)
+
+        for n in range( (L-2) , L):
+            curJobId = np.int(self.T[n])  # Pull the last job off the task sequence list
+
+            # Force task onto same channel
+            AvailableTime = self.ch_avail[ForcedChannel]
+            SelectedChannel = ForcedChannel
+
+            # Place job on selected channel at appropriate time
+            self.t_ex[curJobId] = max(AvailableTime, tasks[curJobId].t_release)
+
+            # Update Node channel availability and assignment
+            self.ch_avail[SelectedChannel] = self.t_ex[curJobId] + tasks[curJobId].duration
+            self.ChannelAssignment[curJobId] = SelectedChannel
+
+        #     if ii > L - 2
+        #         AvailableTime = ChannelAvailableTime(ForcedChannel);
+        #         SelectedChannel = ForcedChannel;
+        #     else
+        #
+        #         [AvailableTime, SelectedChannel] = min(ChannelAvailableTime);
+        #     end
+        #
+        #     % Proposed: Place
+        #     job
+        #     on
+        #     selected
+        #     channel
+        #     at
+        #     approriate
+        #     time
+        #     t_ex(curJobId) = max(AvailableTime, s_task(curJobId));
+        #
+        #     % See if proposal
+        #     results in dropped
+        #     task
+        #     x(curJobId) = (t_ex(curJobId) < deadline_task(curJobId));
+        #     if x(curJobId) == 1 % Job is Scheduled update timeline, otherwise timeline can be used for another task
+        #     % Update
+        #     Channels
+        #     time
+        #     availability
+        #     ChannelAvailableTime(SelectedChannel) = t_ex(curJobId) + length_task(curJobId);
+        #     TaskChannel(curJobId) = SelectedChannel;
+        #
+        # else
+        # TaskChannel(curJobId) = SelectedChannel; % Task is dropped, but
+        # still
+        # update
+        # selectedChannel
+        # for active schedule checker KW 3 / 30 / 20
+        # ChannelAvailableTime(SelectedChannel) = t_ex(curJobId) + length_task(curJobId);
+
+
+
+
+    def check_schedule_active(self, tasks: list, TimeExecutionInput: float,  ChannelAvailableTimeInput: float, ChannelAssignmentInput: float ):
+        # Initially assume tasks are active
+        active_flag = 1  # TODO: Added active schedule checking. For now assume schedule is active
+        # Check if schedule is active(PFprime checked to see if any can task be scheduled right before last
+        # task in Tprime on same timeline without imposing a delay
+        Tprime = self.T.copy()
+        PartialSchedule = Tprime[0:-1] # Schedule Prior to last time step
+        ChannelAssignment = self.ChannelAssignment.copy()
+        ChannelSelected = ChannelAssignment[Tprime[-1]].astype(int)    # Last channel selected
+
+        t_partial = TimeExecutionInput
+        ChannelAvailableTimePartial = ChannelAvailableTimeInput
+        PartialChannelAssignment = ChannelAssignmentInput
+        # x_partial = ScheduledIndicatorInput
+        N = len(tasks)
+        K = len(self.ch_avail)
+        ch_avail_init = self.ch_avail_init.copy()
+
+        for jj in range(len(self.PF)):
+            curTask = self.PF[jj]
+            Tactive = np.append(PartialSchedule, [curTask,  Tprime[-1]])
+            tempNode = BranchBoundNode(N,K,ch_avail_init)
+            tempNode.t_ex = t_partial
+            tempNode.T = Tactive
+            tempNode.ch_avail = ChannelAvailableTimePartial
+            tempNode.ChannelAssignment = PartialChannelAssignment
+
+            tempNode.seq2schedule_active(tasks, ChannelSelected)
+            t_active = tempNode.t_ex.copy()
+
+        #
+        #     [t_active] = BBPartialSequenceScheduler(t_partial, x_partial, Tactive, s_task, deadline_task, length_task,
+        #                                         ChannelAvailableTimePartial, PartialChannelAssignment, ChannelSelected)
+        #
+        #
+            if t_active[Tprime[-1]] <= self.t_ex[Tprime[-1]]: # (s_task(curTask) + length_task(curTask)) < t_ex(Tprime(end)):
+                active_flag = 0
+                break
+
+
+
+
+
+        return active_flag
+
     def partial_sequence_cost(self, tasks:list, K:int):
         Cprime = 0
         N = len(tasks)
-        ch_avail = np.zeros(K)
+        # ch_avail = copy.deepcopy(self.ch_avail_init)
+        ch_avail = self.ch_avail_init.copy()
         t_ex = np.zeros(N)
         ChannelAssignment = np.zeros(N)
 
@@ -119,13 +224,13 @@ class BranchBoundNode:
 
 
 
-def branch_bound_rules(tasks: list, ch_avail: list, verbose=False, rng=None):
+def branch_bound_rules(tasks: list, ch_avail_init: list, verbose=False, rng=None):
     """Branch and Bound algorithm.
 
     Parameters
     ----------
     tasks : list of TaskRRM
-    ch_avail : list of float
+    ch_avail_init : list of float
         Channel availability times.
     verbose : bool
         Enables printing of algorithm state information.
@@ -143,9 +248,9 @@ def branch_bound_rules(tasks: list, ch_avail: list, verbose=False, rng=None):
 
     # Initialize Stack
     N = len(tasks)
-    K = len(ch_avail)
+    K = len(ch_avail_init)
     S = []
-    S.append( BranchBoundNode(N,K) ) # Make stack a list
+    S.append( BranchBoundNode(N,K,ch_avail_init) ) # Make stack a list
     UB = float("inf") # Upper Bound
 
     # Iterate
@@ -211,8 +316,15 @@ def branch_bound_rules(tasks: list, ch_avail: list, verbose=False, rng=None):
                     # self._t_ex[n] = max(self._tasks[n].t_release, self._ch_avail[ch])
                     # self._ch_avail[ch] = self._t_ex[n] + self._tasks[n].duration
                     # self._l_ex += self._tasks[n].loss_fcn(self._t_ex[n])
-                active_flag = 1 # TODO: Added active schedule checking. For now assume schedule is active
+
+                TimeExecutionInput = curNode.t_ex.copy()
+                ChannelAvailableTimeInput = curNode.ch_avail.copy()
+                ChannelAssignmentInput = curNode.ChannelAssignment.copy()
+                active_flag = newNode.check_schedule_active(tasks, TimeExecutionInput, ChannelAvailableTimeInput, ChannelAssignmentInput)
+                # active_flag = 1
+
                 if active_flag:
+
 
                     if len(newNode.PF) == 0:
                         a = 1 # TODO Fill in this logic
@@ -340,10 +452,9 @@ def branch_bound_rules(tasks: list, ch_avail: list, verbose=False, rng=None):
 
 
 
-
-
-class TreeNodePF:
-    """Node object for tree search algorithms.
+class TreeNode:
+    """
+    Node object for tree search algorithms.
 
     Parameters
     ----------
@@ -364,10 +475,6 @@ class TreeNodePF:
         Total loss of scheduled tasks.
     seq_rem: set
         Unscheduled task indices.
-    PF: set
-        possible first tasks - a list of all tasks that can be scheduled next
-    NS: set
-        all tasks taht haven't been scheduled (probably redundant with seq_rem)
 
     """
     # TODO: docstring describes properties as attributes. OK? Subclasses, too.
@@ -393,12 +500,9 @@ class TreeNodePF:
         self._l_ex = 0.  # partial sequence loss
 
         self.seq = seq
-        self.PF = set(range(self._n_tasks))
-        self.NS = []
-
 
     def __repr__(self):
-        return f"TreeNodePF(sequence: {self.seq}, partial loss:{self.l_ex:.3f})"
+        return f"TreeNode(sequence: {self.seq}, partial loss:{self.l_ex:.3f})"
 
     @property
     def _n_tasks(self):
@@ -410,7 +514,8 @@ class TreeNodePF:
 
     @property
     def seq(self):
-        """Gets the node sequence. Setter calls 'update_node'.
+        """
+        Gets the node sequence. Setter calls 'update_node'.
 
         Returns
         -------
@@ -452,7 +557,8 @@ class TreeNodePF:
         return self._seq_rem
 
     def update_node(self, seq: list):
-        """Sets node sequence using sequence-to-schedule approach.
+        """
+        Sets node sequence using sequence-to-schedule approach.
 
         Parameters
         ----------
@@ -476,7 +582,8 @@ class TreeNodePF:
             self._l_ex += self._tasks[n].loss_fcn(self._t_ex[n])
 
     def branch(self, do_permute=True):
-        """Generate descendant nodes.
+        """
+        Generate descendant nodes.
 
         Parameters
         ----------
@@ -485,52 +592,75 @@ class TreeNodePF:
 
         Yields
         -------
-        TreeNodePF
+        TreeNode
             Descendant node with one additional task scheduled.
 
         """
 
         seq_iter = list(self._seq_rem)
+        seq_iter_array = np.array(seq_iter)
         if do_permute:
-            self._rng.shuffle(seq_iter)
+            # self._rng.shuffle(seq_iter)
+            t_release = np.array([task.t_release for task in self._tasks])
+            seq_iter = list(seq_iter_array[np.argsort(t_release[seq_iter])])
+        # self.seq = list(np.argsort([task.t_release for task in self._tasks]))
 
         for n in seq_iter:
-            seq_new = copy.deepcopy(self.seq)
+            # seq_new = copy.deepcopy(self.seq)
+            seq_new = self.seq.copy()
+
             seq_new.append(n)
 
-            node_new = copy.deepcopy(self)  # new TreeNodePF object
+            node_new = copy.deepcopy(self)  # new TreeNode object
             node_new.seq = seq_new  # call seq.setter method
 
             yield node_new
 
     def roll_out(self, do_copy=False):
-        """Generates/updates node with a randomly completed sequence.
+        """
+        Generates/updates node with a randomly completed sequence.
 
         Parameters
         ----------
         do_copy : bool
-            Enables return of a new TreeNodePF object. Otherwise, updates in-place.
+            Enables return of a new TreeNode object. Otherwise, updates in-place.
 
         Returns
         -------
-        TreeNodePF
+        TreeNode
             Only if do_copy is True.
 
         """
 
-        seq_new = copy.deepcopy(self.seq) + self._rng.permutation(list(self._seq_rem)).tolist()
+        # seq_new = copy.deepcopy(self.seq) + self._rng.permutation(list(self._seq_rem)).tolist()
+        seq_new = self.seq.copy() + self._rng.permutation(list(self._seq_rem)).tolist()
+
 
         if do_copy:
-            node_new = copy.deepcopy(self)  # new TreeNodePF object
+            node_new = copy.deepcopy(self)  # new TreeNode object
             node_new.seq = seq_new  # call seq.setter method
 
             return node_new
         else:
             self.seq = seq_new  # call seq.setter method
 
+    def check_swaps(self):
+        """Try adjacent task swapping, overwrite node if loss drops."""
 
-class TreeNodeBoundPF(TreeNodePF):
-    """Node object with additional loss bounding attributes.
+        if len(self.seq_rem) != 0:
+            raise ValueError("Node sequence must be complete.")
+
+        for i in range(len(self.seq) - 1):
+            seq_swap = copy.deepcopy(self.seq)
+            seq_swap[i:i + 2] = seq_swap[i:i + 2][::-1]
+            node_swap = TreeNode(seq_swap)
+            if node_swap.l_ex < self.l_ex:
+                self = node_swap            # TODO: improper?
+
+
+class TreeNodeBound(TreeNode):
+    """
+    Node object with additional loss bounding attributes.
 
         Parameters
         ----------
@@ -564,7 +694,7 @@ class TreeNodeBoundPF(TreeNodePF):
         super().__init__(seq)
 
     def __repr__(self):
-        return f"TreeNodeBoundPF(sequence: {self.seq}, {self.l_lo:.3f} < loss < {self.l_up:.3f})"
+        return f"TreeNodeBound(sequence: {self.seq}, {self.l_lo:.3f} < loss < {self.l_up:.3f})"
 
     @property
     def l_lo(self):
@@ -575,7 +705,8 @@ class TreeNodeBoundPF(TreeNodePF):
         return self._l_up
 
     def update_node(self, seq: list):
-        """Sets node sequence and iteratively updates all dependent attributes.
+        """
+        Sets node sequence and iteratively updates all dependent attributes.
 
         Parameters
         ----------
@@ -598,3 +729,64 @@ class TreeNodeBoundPF(TreeNodePF):
 
         if len(self._seq_rem) > 0 and self._l_lo == self._l_up:  # roll-out if bounds converge
             self.roll_out()
+
+
+def branch_bound2(tasks: list, ch_avail: list, verbose=False, rng=None):
+    """
+    Branch and Bound algorithm.
+
+    Parameters
+    ----------
+    tasks : list of GenericTask
+    ch_avail : list of float
+        Channel availability times.
+    verbose : bool
+        Enables printing of algorithm state information.
+    rng
+        NumPy random number generator or seed. Default Generator if None.
+
+    Returns
+    -------
+    t_ex : ndarray
+        Task execution times.
+    ch_ex : ndarray
+        Task execution channels.
+
+    """
+
+    TreeNode._tasks = tasks
+    TreeNode._ch_avail_init = ch_avail
+    TreeNode._rng = check_rng(rng)
+
+    stack = [TreeNodeBound([])]  # Initialize Stack
+
+    node_best = stack[0].roll_out(do_copy=True)  # roll-out initial solution
+    l_best = node_best.l_ex
+
+    # Iterate
+    while len(stack) > 0:
+        node = stack.pop()  # Extract Node -- Pop first element. Added est to branch function therefore first elements should be most promising
+
+        # Branch
+        for node_new in node.branch(do_permute=True):
+            # Bound
+            if node_new.l_lo < l_best:  # New node is not dominated
+                ExecutionTimeOffsetFlag = np.diff(np.append(0, node_new.t_ex[node_new.seq]))
+                if all(ExecutionTimeOffsetFlag >= 0):  # Execution times need to be increasing, otherwise there is a better schedule out there: KW
+                    # Add Active Schedule Check
+                    if node_new.l_up < l_best:
+                        node_best = node_new.roll_out(do_copy=True)  # roll-out a new best node
+                        l_best = node_best.l_ex
+                        stack = [s for s in stack if s.l_lo < l_best]  # Cut Dominated Nodes
+
+                    stack.append(node_new)  # Add New Node to Stack, LIFO
+
+        if verbose:
+            progress = 1 - sum([math.factorial(len(node.seq_rem)) for node in stack]) / math.factorial(len(tasks))
+            print(f'Search progress: {100*progress:.1f}% - Loss < {l_best:.3f}', end='\r')
+            # print(f'# Remaining Nodes = {len(stack)}, Loss < {l_best:.3f}', end='\r')
+
+    t_ex, ch_ex = node_best.t_ex, node_best.ch_ex  # optimal
+
+    return t_ex, ch_ex
+

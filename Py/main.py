@@ -49,11 +49,11 @@ random_agent = wrap_agent(env, RandomAgent(env.action_space))
 
 alg_funcs = [partial(branch_bound, verbose=False),
              partial(mc_tree_search, n_mc=100, verbose=False),
-             partial(earliest_release, do_swap=True),
-             partial(random_sequencer),
-             partial(random_agent)]
+             partial(earliest_release, do_swap=True)]#,
+             # partial(random_sequencer)]#,
+             # partial(random_agent)]
 
-alg_n_runs = [2, 2, 1, 10, 10]       # number of runs per problem
+alg_n_runs = [2, 2, 1]       # number of runs per problem
 
 alg_reprs = list(map(algorithm_repr, alg_funcs))
 
