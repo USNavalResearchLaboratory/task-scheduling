@@ -790,3 +790,104 @@ def branch_bound2(tasks: list, ch_avail: list, verbose=False, rng=None):
 
     return t_ex, ch_ex
 
+
+
+
+def stats2nnXY(NodeStats, tasks: list):
+
+    # Feature Data
+    t_release = np.array([task.t_release for task in tasks])
+    t_drop = np.array([task.t_drop for task in tasks])
+    duration = np.array([task.duration for task in tasks])
+    cost_drop = np.array([task.l_drop for task in tasks])
+    slope = np.array([task.slope for task in tasks])
+    refTime = 0
+
+    # Generate Policy Features
+    N = len(tasks)
+    PF = np.empty([5+N+3,N])
+    PF[0,:] = t_release - refTime # Make first feature relative to minimum start time
+    PF[1,:] = t_drop - refTime # Make 2nd feature relative to minimum start time
+    PF[2,:] = duration
+    PF[3,:] = cost_drop
+    PF[4,:] = slope
+
+    SeqCost = np.array([node.l_ex for node in NodeStats])
+
+    sortIdx = np.argsort(SeqCost) # Organize Costs in Ascending order
+    OptimalSeq = NodeStats[sortIdx[0]].seq
+
+    # Expand Children of All NodeStats
+    cnt = 1
+    RecordSeq = np.zeros([N, 1])
+    CostFinal = np.array([0])
+    zeroVec = np.zeros([N,1])
+    Y = []
+    X = []
+
+    for jj in sortIdx:
+        curNode = NodeStats[jj]
+        BestSeq = curNode.seq
+        for kk in range(N):
+            node = np.array(BestSeq[0:kk])
+            optimal_action = BestSeq[kk]
+            T = node.copy()
+            new_seq = np.transpose( [np.append(T, np.zeros([N - len(T), 1]) )] )
+
+            if cnt == 1:
+                VisitIndicator = 0
+            else:
+                SeqDiff = (RecordSeq - new_seq)  # TODO: Start Here
+                # SeqDiff = bsxfun( @ plus, RecordSeq, -new_seq );
+                # VisitIndicator = sum(sum(SeqDiff == zeroVec, 1) == N);
+                # VisitIndicator = sum(~any(SeqDiff))
+                temp = np.reshape(SeqDiff, -1)
+                VisitIndicator = not(any(temp))
+                # % if VisitIndicator ~= VisitIndicator2
+                # % keyboard
+                # % end
+
+            if VisitIndicator == 0:
+                if cnt == 1:
+                    RecordSeq[:, cnt-1] = new_seq[:,0]
+                    CostFinal[cnt - 1] = curNode.l_ex
+                else:
+                    RecordSeq = np.append(RecordSeq, new_seq,1)
+                    CostFinal = np.append(CostFinal, curNode.l_ex)
+
+                Y.append(optimal_action)
+                # Y[cnt-1] = optimal_action.copy()
+
+                PFtree = np.zeros([N, N])
+
+                for ind1 in range(len(node)):
+                    ind2 = node[ind1]
+                    PFtree[ind1,ind2] = 1
+
+                # IND = sub2ind([N N], [1:length(node)]',node);
+                # PFtree[IND] = 1
+
+                PfStatus = np.zeros([3, N])
+                PfStatus[0,:] = 1
+                for nn in range(len(node)):
+                    PfStatus[:, node[nn] ] = [0, 0, 1] # Infeasible Already Assigned
+
+                PF[5:5+N,:] = PFtree
+                PF[5+N:N+8,:] = PfStatus
+                A = copy.deepcopy(PF)
+                X.append(A)
+                # X[:,:, cnt] = [PF, PFtree, PfStatus]
+
+                # Timeline ignored for now -
+                # KTW 13APR2020 - flipped PFtree and PFStatus location.Need to
+                # match NeuralNetSchedulerAlgorithm.As long as they both match
+                # everything will work better.My personal preference is
+                # location you are in tree, then what nodes you visited, but
+                # again doesn't matter as long as it's consistent with
+                # implementation of NN - scheduler
+
+                # Note: Could find if node is dominated by calculating cost at the partial sequence and comparing
+                # across other partial nodes. Not doing at the moment.
+                cnt = cnt + 1
+
+    return X,Y

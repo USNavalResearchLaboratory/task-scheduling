@@ -17,7 +17,7 @@ from functools import partial
 
 import numpy as np
 import matplotlib.pyplot as plt
-from scheduling_algorithms import branch_bound_rules, branch_bound2
+from scheduling_algorithms import branch_bound_rules, branch_bound2, stats2nnXY
 
 
 from util.generic import algorithm_repr, check_rng
@@ -25,7 +25,7 @@ from util.results import check_valid, eval_loss
 from util.plot import plot_task_losses, plot_schedule, plot_results
 
 from tasks import ReluDropGenerator
-from tree_search import mc_tree_search, random_sequencer, earliest_release, est_alg_kw, branch_bound
+from tree_search import mc_tree_search, random_sequencer, earliest_release, est_alg_kw, branch_bound_with_stats, branch_bound
 from env_tasking import SeqTaskingEnv, StepTaskingEnv, wrap_agent, RandomAgent
 
 plt.style.use('seaborn')
@@ -33,10 +33,10 @@ rng = np.random.default_rng(100)
 # rng = np.random.seed(100)
 
 # %% Inputs
-n_gen = 5      # number of task scheduling problems
+n_gen = 10      # number of task scheduling problems
 
-n_tasks = 10
-n_channels = 2
+n_tasks = 8
+n_channels = 1
 
 task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
                              t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=rng)       # task set generator
@@ -55,15 +55,15 @@ def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time gen
 env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen)
 random_agent = wrap_agent(env, RandomAgent(env.action_space))
 
-alg_funcs = [partial(branch_bound, verbose=False, rng = rng),
-             partial(branch_bound2, verbose=False, rng = rng),
+alg_funcs = [partial(branch_bound_with_stats, verbose=False, rng = rng),
+             # partial(branch_bound2, verbose=False, rng = rng),
              # partial(branch_bound_rules, verbose=False),
              partial(mc_tree_search, n_mc=100, verbose=False),
              partial(earliest_release, do_swap=True)]#,
              # partial(random_sequencer)]#,
              # partial(random_agent)]
 
-alg_n_runs = [1, 1, 1, 1]       # number of runs per problem
+alg_n_runs = [1, 1, 1]       # number of runs per problem
 
 alg_reprs = list(map(algorithm_repr, alg_funcs))
 
@@ -107,7 +107,12 @@ for i_gen in range(n_gen):      # Generate new tasks
             print(f'  {alg_repr} - Run: {i_run + 1}/{n_run}', end='\r')
 
             t_start = time.time()
-            t_ex, ch_ex = alg_func(tasks, ch_avail)
+            if alg_repr == 'branch_bound_with_stats':
+                t_ex, ch_ex, NodeStats = alg_func(tasks, ch_avail)
+                [Xnow, Ynow] = stats2nnXY(NodeStats, tasks)
+            else:
+                t_ex, ch_ex = alg_func(tasks, ch_avail)
+
             t_run = time.time() - t_start
 
             check_valid(tasks, t_ex, ch_ex)

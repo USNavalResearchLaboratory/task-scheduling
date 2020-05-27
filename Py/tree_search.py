@@ -339,6 +339,68 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
     return t_ex, ch_ex
 
 
+def branch_bound_with_stats(tasks: list, ch_avail: list, verbose=False, rng=None):
+    """
+    Branch and Bound algorithm.
+
+    Parameters
+    ----------
+    tasks : list of GenericTask
+    ch_avail : list of float
+        Channel availability times.
+    verbose : bool
+        Enables printing of algorithm state information.
+    rng
+        NumPy random number generator or seed. Default Generator if None.
+
+    Returns
+    -------
+    t_ex : ndarray
+        Task execution times.
+    ch_ex : ndarray
+        Task execution channels.
+
+    """
+
+    TreeNode._tasks = tasks
+    TreeNode._ch_avail_init = ch_avail
+    TreeNode._rng = check_rng(rng)
+
+    stack = [TreeNodeBound([])]  # Initialize Stack
+    NodeStats = [TreeNodeBound([])]
+    # NodeStats = []
+
+    node_best = stack[0].roll_out(do_copy=True)  # roll-out initial solution
+    l_best = node_best.l_ex
+    NodeStats.append(node_best)
+
+    # Iterate
+    while len(stack) > 0:
+        node = stack.pop()  # Extract Node
+
+        # Branch
+        for node_new in node.branch(do_permute=True):
+            # Bound
+            if node_new.l_lo < l_best:  # New node is not dominated
+                if node_new.l_up < l_best:
+                    node_best = node_new.roll_out(do_copy=True)  # roll-out a new best node
+                    NodeStats.append(node_best)
+                    l_best = node_best.l_ex
+                    stack = [s for s in stack if s.l_lo < l_best]  # Cut Dominated Nodes
+
+                stack.append(node_new)  # Add New Node to Stack, LIFO
+
+        if verbose:
+            progress = 1 - sum([math.factorial(len(node.seq_rem)) for node in stack]) / math.factorial(len(tasks))
+            print(f'Search progress: {100*progress:.1f}% - Loss < {l_best:.3f}', end='\r')
+            # print(f'# Remaining Nodes = {len(stack)}, Loss < {l_best:.3f}', end='\r')
+
+    t_ex, ch_ex = node_best.t_ex, node_best.ch_ex  # optimal
+    NodeStats.pop(0) # Remove First Initialization stage
+    return t_ex, ch_ex, NodeStats
+
+
+
 def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
     """
     Monte Carlo tree search algorithm.
