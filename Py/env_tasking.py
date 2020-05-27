@@ -16,6 +16,7 @@ from tree_search import TreeNode
 from tasks import ReluDropGenerator
 
 
+# Map tasks to RL observations
 def obs_relu_drop(tasks):
     """Convert tasks list into Gym observation."""
 
@@ -26,6 +27,7 @@ def obs_relu_drop(tasks):
     return np.asarray([[task.duration, task.t_release, task.slope, task.t_drop, task.l_drop] for task in tasks])
 
 
+# Gym Spaces
 class Sequence(Space):
     """Gym Space for index sequences."""
 
@@ -70,6 +72,7 @@ class DiscreteSet(Space):
         return isinstance(other, DiscreteSet) and self.elements == other.elements
 
 
+# Gym Environments
 class BaseTaskingEnv(gym.Env):
     """Base environment for task scheduling."""
 
@@ -86,6 +89,13 @@ class BaseTaskingEnv(gym.Env):
         self.reset()
 
         self.reward_range = (-float('inf'), 0)
+
+        _low, _high = list(zip(task_gen.duration_lim, task_gen.t_release_lim, task_gen.slope_lim,
+                               task_gen.t_drop_lim, task_gen.l_drop_lim, ))
+        obs_low = np.broadcast_to(np.asarray(_low), (n_tasks, 5))
+        obs_high = np.broadcast_to(np.asarray(_high), (n_tasks, 5))
+
+        self.observation_space = Box(obs_low, obs_high, dtype=np.float64)
 
     def reset(self, tasks=None, ch_avail=None):     # TODO: added arguments to control Env state. OK?
         self.tasks = self.task_gen.rand_tasks(self.n_tasks) if tasks is None else tasks
@@ -112,16 +122,13 @@ class BaseTaskingEnv(gym.Env):
 class SeqTaskingEnv(BaseTaskingEnv):
     """Tasking environment, entire sequence selected at once."""
 
-    def __init__(self, n_tasks, task_gen, n_ch, ch_avail_gen):
-        super().__init__(n_tasks, task_gen, n_ch, ch_avail_gen)
+    # def __init__(self, n_tasks, task_gen, n_ch, ch_avail_gen):
+    #     super().__init__(n_tasks, task_gen, n_ch, ch_avail_gen)
+    #     self.action_space = Sequence(n_tasks)
 
-        _low, _high = list(zip(task_gen.duration_lim, task_gen.t_release_lim, task_gen.slope_lim,
-                               task_gen.t_drop_lim, task_gen.l_drop_lim,))
-        obs_low = np.broadcast_to(np.asarray(_low), (n_tasks, 5))
-        obs_high = np.broadcast_to(np.asarray(_high), (n_tasks, 5))
-
-        self.observation_space = Box(obs_low, obs_high, dtype=np.float64)
-        self.action_space = Sequence(n_tasks)
+    @property
+    def action_space(self):
+        return Sequence(self.n_tasks)
 
     def step(self, action: list):
         obs = obs_relu_drop(self.tasks)
@@ -135,15 +142,8 @@ class SeqTaskingEnv(BaseTaskingEnv):
 class StepTaskingEnv(BaseTaskingEnv):
     """Tasking environment, tasks scheduled sequentially."""
 
-    def __init__(self, n_tasks, task_gen, n_ch, ch_avail_gen):
-        super().__init__(n_tasks, task_gen, n_ch, ch_avail_gen)
-
-        _low, _high = list(zip(task_gen.duration_lim, task_gen.t_release_lim, task_gen.slope_lim,
-                               task_gen.t_drop_lim, task_gen.l_drop_lim, ))
-        obs_low = np.broadcast_to(np.asarray(_low), (n_tasks, 5))
-        obs_high = np.broadcast_to(np.asarray(_high), (n_tasks, 5))
-
-        self.observation_space = Box(obs_low, obs_high, dtype=np.float64)
+    # def __init__(self, n_tasks, task_gen, n_ch, ch_avail_gen):
+    #     super().__init__(n_tasks, task_gen, n_ch, ch_avail_gen)
 
     @property
     def action_space(self):

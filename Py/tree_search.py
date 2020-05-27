@@ -400,7 +400,6 @@ def branch_bound_with_stats(tasks: list, ch_avail: list, verbose=False, rng=None
     return t_ex, ch_ex, NodeStats
 
 
-
 def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
     """
     Monte Carlo tree search algorithm.
@@ -410,7 +409,7 @@ def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
     tasks : list of GenericTask
     ch_avail : list of float
         Channel availability times.
-    n_mc : int
+    n_mc : int or list of int
         Number of Monte Carlo roll-outs per task.
     verbose : bool
         Enables printing of algorithm state information.
@@ -434,12 +433,15 @@ def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
     node_best = node.roll_out(do_copy=True)
 
     n_tasks = len(tasks)
+    if type(n_mc) == int:
+        n_mc = n_tasks * [n_mc]
+
     for n in range(n_tasks):
         if verbose:
             print(f'Assigning Task {n + 1}/{n_tasks}', end='\r')
 
         # Perform Roll-outs
-        for _ in range(n_mc):
+        for _ in range(n_mc[n]):       # TODO: variable number of roll-outs by stage for efficiency
             node_mc = node.roll_out(do_copy=True)
 
             if node_mc.l_ex < node_best.l_ex:  # Update best node

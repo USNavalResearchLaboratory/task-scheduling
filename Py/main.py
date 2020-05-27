@@ -11,6 +11,7 @@ Define a set of task objects and scheduling algorithms. Assess achieved loss and
 # TODO: add proper main() def, __name__ conditional execution?
 
 import time     # TODO: use builtin module timeit instead? or cProfile?
+from math import factorial, floor
 from functools import partial
 
 import numpy as np
@@ -48,10 +49,10 @@ env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen)
 random_agent = wrap_agent(env, RandomAgent(env.action_space))
 
 alg_funcs = [partial(branch_bound, verbose=False),
-             partial(mc_tree_search, n_mc=100, verbose=False),
-             partial(earliest_release, do_swap=True)]#,
-             # partial(random_sequencer)]#,
-             # partial(random_agent)]
+             partial(mc_tree_search, n_mc=[floor(.1 * factorial(n)) for n in range(n_tasks, 0, -1)], verbose=False),
+             partial(earliest_release, do_swap=True),
+             partial(random_sequencer),
+             partial(random_agent)]
 
 alg_n_runs = [2, 2, 1]       # number of runs per problem
 
