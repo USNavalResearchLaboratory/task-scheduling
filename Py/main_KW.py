@@ -19,6 +19,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scheduling_algorithms import branch_bound_rules, branch_bound2, stats2nnXY
 
+np.set_printoptions(linewidth=300) # Set printing to avoid line wrapping when displaying 2D array
 
 from util.generic import algorithm_repr, check_rng
 from util.results import check_valid, eval_loss
@@ -93,6 +94,9 @@ t_run_mean2 = np.array(list(zip(*np.empty((len(alg_reprs), n_gen)))),
 l_ex_mean2 = np.array(list(zip(*np.empty((len(alg_reprs), n_gen)))),
                      dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float])))
 
+X = np.empty([0,n_tasks+5+3,n_tasks])
+Y = np.empty([0])
+
 for i_gen in range(n_gen):      # Generate new tasks
     print(f'Task Set: {i_gen + 1}/{n_gen}')
 
@@ -112,6 +116,11 @@ for i_gen in range(n_gen):      # Generate new tasks
                 [Xnow, Ynow] = stats2nnXY(NodeStats, tasks)
             else:
                 t_ex, ch_ex = alg_func(tasks, ch_avail)
+
+            X = np.concatenate((X, np.array(Xnow)), axis=0)
+            Y = np.concatenate((Y, np.array(Ynow)), axis=0)
+            # X.append(Xnow)
+            # Y.append(Ynow)
 
             t_run = time.time() - t_start
 
@@ -148,3 +157,71 @@ plot_results(t_run_mean, l_ex_mean, ax=ax_results, ax_kwargs={'title': 'Average 
 
 _, ax_results2 = plt.subplots(num='Results', clear=True)
 plot_results(t_run_mean2, l_ex_mean2, ax=ax_results2, ax_kwargs={'title': 'Average performance on random task sets'})
+
+# Setup Training Data # TODO Need to make sure splits arent' across problems
+Nsamp = len(X)
+split = [0.75, 0.25]
+Ntrain = np.rint(split[0]*Nsamp)
+Ntrain = Ntrain.astype('int32')
+Ntest = Nsamp - Ntrain
+train_samples = np.sort(np.random.choice(np.arange(Nsamp),Ntrain,replace=False))
+test_samples = np.setdiff1d(np.arange(Nsamp),train_samples)
+
+Xtrain = np.expand_dims(X[train_samples,:,:],axis=3)
+Ytrain = Y[train_samples]
+Xtest = np.expand_dims(X[test_samples,:,:],axis=3)
+Ytest = Y[test_samples]
+
+
+
+# Train a Neural Network
+import tensorflow as tf
+
+from tensorflow.keras import datasets, layers, models
+import matplotlib.pyplot as plt
+
+# (train_images, train_labels), (test_images, test_labels) = datasets.cifar10.load_data() # Very slow on a laptop --> lots of data downloaded
+
+# Normalize pixel values to be between 0 and 1
+# train_images, test_images = train_images / 255.0, test_images / 255.0
+
+model = models.Sequential()
+model.add(layers.Conv2D(32, (2, 2), activation='relu', input_shape=(n_tasks+5+3, n_tasks,1)))
+# model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(64, (2, 2), activation='relu'))
+# model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+
+model.summary()
+
+model.add(layers.Flatten())
+model.add(layers.Dense(64, activation='relu'))
+model.add(layers.Dense(n_tasks))
+
+model.summary()
+
+
+model.compile(optimizer='adam',
+              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+              metrics=['accuracy'])
+
+# history = model.fit(train_images, train_labels, epochs=10,
+#                     validation_data=(test_images, test_labels))
+history = model.fit(Xtrain, Ytrain, epochs=100,
+                    validation_data=(Xtest, Ytest))
+
+
+plt.figure(40)
+plt.clf()
+plt.plot(history.history['accuracy'], label='accuracy')
+plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.ylim([0, 1])
+plt.legend(loc='lower right')
+plt.show()
+
+test_loss, test_acc = model.evaluate(Xtest,  Ytest, verbose=2)
+
+print(test_acc)
+

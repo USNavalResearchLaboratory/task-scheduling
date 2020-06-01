@@ -381,10 +381,13 @@ def branch_bound_with_stats(tasks: list, ch_avail: list, verbose=False, rng=None
         # Branch
         for node_new in node.branch(do_permute=True):
             # Bound
+            if len(node_new.seq) == len(tasks):
+                NodeStats.append(node_new) # Append any complete solutions, use for training NN. Can decipher what's good/bad based on final costs
+
             if node_new.l_lo < l_best:  # New node is not dominated
                 if node_new.l_up < l_best:
                     node_best = node_new.roll_out(do_copy=True)  # roll-out a new best node
-                    NodeStats.append(node_best)
+                    # NodeStats.append(node_best)
                     l_best = node_best.l_ex
                     stack = [s for s in stack if s.l_lo < l_best]  # Cut Dominated Nodes
 

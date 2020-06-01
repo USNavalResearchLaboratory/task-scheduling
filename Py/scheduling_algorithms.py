@@ -795,6 +795,9 @@ def branch_bound2(tasks: list, ch_avail: list, verbose=False, rng=None):
 
 def stats2nnXY(NodeStats, tasks: list):
 
+    # Prune Any redundent Schedules
+    NodeStats = prune_NodeStats(NodeStats)
+
     # Feature Data
     t_release = np.array([task.t_release for task in tasks])
     t_drop = np.array([task.t_drop for task in tasks])
@@ -832,7 +835,7 @@ def stats2nnXY(NodeStats, tasks: list):
             node = np.array(BestSeq[0:kk])
             optimal_action = BestSeq[kk]
             T = node.copy()
-            new_seq = np.transpose( [np.append(T, np.zeros([N - len(T), 1]) )] )
+            new_seq = np.transpose( [np.append(T, -1*np.ones([N - len(T), 1]) )] )
 
             if cnt == 1:
                 VisitIndicator = 0
@@ -841,8 +844,9 @@ def stats2nnXY(NodeStats, tasks: list):
                 # SeqDiff = bsxfun( @ plus, RecordSeq, -new_seq );
                 # VisitIndicator = sum(sum(SeqDiff == zeroVec, 1) == N);
                 # VisitIndicator = sum(~any(SeqDiff))
-                temp = np.reshape(SeqDiff, -1)
-                VisitIndicator = not(any(temp))
+                # temp = np.reshape(SeqDiff, -1)
+                # VisitIndicator = not(any(temp))
+                VisitIndicator = not(all(SeqDiff.any(axis=0)))
                 # % if VisitIndicator ~= VisitIndicator2
                 # % keyboard
                 # % end
@@ -891,3 +895,21 @@ def stats2nnXY(NodeStats, tasks: list):
                 cnt = cnt + 1
 
     return X,Y
+
+
+def prune_NodeStats(NodeStats):
+
+    A = np.array([node.seq  for node in NodeStats])
+    N = len(A)
+    for jj in range(N):
+        row = A[jj,:]
+        equality = np.all(A == row, axis=1)
+        equality[jj] = False # Same row will always be true
+        if any(equality):
+            a = 1 # TODO: Doesn't do anything right now, not a problem as stats2NNxy will remove redundacy, but this could speed this up.
+
+
+
+
+
+    return NodeStats
