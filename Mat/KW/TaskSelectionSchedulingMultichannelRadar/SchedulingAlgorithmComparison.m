@@ -16,13 +16,13 @@ addpath(genpath('C:\Users\wagnerk\Desktop\WU_6B72_CRM\CRM_REPO\Mat\KW'))
 %% Implementation and Comparison
 
 
-MONTE = 10;
-% NumSamps = 1*1e3; 
+MONTE = 1;
+% NumSamps = 1*1e3;
 clear Cost DropPercent RunTime
 tstart = tic;
 cnt.N = 1;
-N_vec = 4;
-K = 1;
+N_vec = 10;
+K = 2;
 
 
 
@@ -32,12 +32,15 @@ scheduler = 'flexdar'; % flexdar or normal. flexdar - aligns things to the RP bo
 for N = N_vec
     % Load Required Neural Network
     clear net
-%     NNstring = sprintf('net_task_%i_K_%i_FINAL.mat',N,K);
-%     load(NNstring)
+    %     NNstring = sprintf('net_task_%i_K_%i_FINAL.mat',N,K);
+    %     load(NNstring)
     
-    NNstring = sprintf('net_task_%i_K_%i_FINAL.mat',N,K);
-    load(NNstring);
-    data.net = net;
+    %     NNstring = sprintf('net_task_%i_K_%i_FINAL.mat',N,K);
+    if 0
+        NNstring = sprintf('net_task_%i_K_%i_TEMP.mat',N,K);
+        load(NNstring);
+        data.net = net;
+    end
     for monte = 1:MONTE
         
         if mod(monte,1) == 0
@@ -62,7 +65,7 @@ for N = N_vec
         end
         data.N = N;
         data.K = K;
-        data.s_task = s_task; 
+        data.s_task = s_task;
         data.w_task = w_task;
         data.deadline_task = deadline_task;
         data.length_task = length_task;
@@ -70,17 +73,18 @@ for N = N_vec
         data.RP = RP;
         data.ChannelAvailableTime = ChannelAvailableTime;
         data.scheduler = scheduler;
+        data.timeSec = 0;
         
         % EST
         tic
-        [Cost.EST(monte,cnt.N),t_ex,NumDropTask,T] = ESTalgorithm(data);        
+        [Cost.EST(monte,cnt.N),t_ex,NumDropTask,T] = ESTalgorithm(data);
         DropPercent.EST(monte,cnt.N) = NumDropTask/N;
         RunTime.EST(monte,cnt.N) = toc;
         
         tic
-        datain = data; 
+        datain = data;
         datain.scheduler = 'normal';
-        [Cost.ESTn(monte,cnt.N),t_ex,NumDropTask,T] = ESTalgorithm(datain);        
+        [Cost.ESTn(monte,cnt.N),t_ex,NumDropTask,T] = ESTalgorithm(datain);
         DropPercent.ESTn(monte,cnt.N) = NumDropTask/N;
         RunTime.ESTn(monte,cnt.N) = toc;
         
@@ -89,28 +93,28 @@ for N = N_vec
         [Cost.EstSwap(monte,cnt.N),t_ex,NumDropTask,T] = EstTaskSwapAlgorithm(data);
         DropPercent.EstSwap(monte,cnt.N) = NumDropTask/N;
         RunTime.EstSwap(monte,cnt.N) = toc;
-             
+        
         % ED
         tic
         [Cost.ED(monte,cnt.N),t_ex,NumDropTask,T] = EdAlgorithm(data);
         DropPercent.ED(monte,cnt.N) = NumDropTask/N;
         RunTime.ED(monte,cnt.N) = toc;
-
+        
         % ED with Task Swapping
         tic
         [Cost.EdSwap(monte,cnt.N),t_ex,NumDropTask,T] = EdTaskSwapAlgorithm(data);
         DropPercent.EdSwap(monte,cnt.N) = NumDropTask/N;
         RunTime.EdSwap(monte,cnt.N) = toc;
-              
-
         
-        % B&B Scheduler 
-%         rng(10)
+        
+        
+        % B&B Scheduler
+        %         rng(10)
         tic
         [Cost.BB(monte,cnt.N),t_ex,NumDropTask,T] = BranchBoundAlgorithm(data);
         DropPercent.BB(monte,cnt.N) = NumDropTask/N;
         RunTime.BB(monte,cnt.N) = toc;
-                    
+        
         if length(T) < N
             keyboard
         end
@@ -118,26 +122,26 @@ for N = N_vec
         if Cost.BB(monte,cnt.N) < 0
             keyboard
         end
-           
+        
         if any( Cost.BB(monte,cnt.N) > [Cost.EST(monte,cnt.N)  Cost.EstSwap(monte,cnt.N) Cost.ED(monte,cnt.N) Cost.EdSwap(monte,cnt.N)] )
             keyboard % Means BB is not optimal!!! What happened??
         end
-     
-       
-     
-%         % MCTS with Policy NN
-%         tic
-%         M = 10; % Number of roll-outs
-%         [Cost.MctsNN(monte,cnt.N),t_ex,NumDropTask,T] = MctsNeuralNetSchedulerAlgorithm(data,net,M);
-%         DropPercent.MctsNN(monte,cnt.N) = NumDropTask/N;
-%         RunTime.MctsNN(monte,cnt.N) = toc;
-%         
-%         % MCTS with Policy NN
-%         tic
-%         M = 10; % Number of roll-outs
-%         [Cost.MctsNN2(monte,cnt.N),t_ex,NumDropTask,T] = MctsNeuralNetPureSchedulerAlgorithm(data,net,M);
-%         DropPercent.MctsNN2(monte,cnt.N) = NumDropTask/N;
-%         RunTime.MctsNN2(monte,cnt.N) = toc;
+        
+        
+        
+        %         % MCTS with Policy NN
+        %         tic
+        %         M = 10; % Number of roll-outs
+        %         [Cost.MctsNN(monte,cnt.N),t_ex,NumDropTask,T] = MctsNeuralNetSchedulerAlgorithm(data,net,M);
+        %         DropPercent.MctsNN(monte,cnt.N) = NumDropTask/N;
+        %         RunTime.MctsNN(monte,cnt.N) = toc;
+        %
+        %         % MCTS with Policy NN
+        %         tic
+        %         M = 10; % Number of roll-outs
+        %         [Cost.MctsNN2(monte,cnt.N),t_ex,NumDropTask,T] = MctsNeuralNetPureSchedulerAlgorithm(data,net,M);
+        %         DropPercent.MctsNN2(monte,cnt.N) = NumDropTask/N;
+        %         RunTime.MctsNN2(monte,cnt.N) = toc;
         
         
         % MCTS
@@ -149,11 +153,12 @@ for N = N_vec
         
         
         % Policy Neural Net Implementation
-        tic
-        [Cost.NN(monte,cnt.N),t_ex,NumDropTask,T] = NeuralNetSchedulerAlgorithm(data);
-        DropPercent.NN(monte,cnt.N) = NumDropTask/N;
-        RunTime.NN(monte,cnt.N) = toc;
-                
+        if 0
+            tic
+            [Cost.NN(monte,cnt.N),t_ex,NumDropTask,T] = NeuralNetSchedulerAlgorithm(data);
+            DropPercent.NN(monte,cnt.N) = NumDropTask/N;
+            RunTime.NN(monte,cnt.N) = toc;
+        end
         
     end
     cnt.N = cnt.N + 1;
@@ -161,13 +166,13 @@ end
 
 
 
-%% 
+%%
 set(0,'DefaultLegendAutoUpdate','off')
 try
-RunTime= rmfield(RunTime,'mu');
+    RunTime= rmfield(RunTime,'mu');
 end
 try
-RunTime = rmfield(RunTime,'STD');
+    RunTime = rmfield(RunTime,'STD');
 end
 leg_str = fieldnames(RunTime);
 % leg_str{1} = 'EST';
@@ -195,7 +200,7 @@ for jj = 1:length(leg_str)
     RunTime.mu(jj) = mean(RunTime.(leg_str{jj}));
     Cost.mu(jj) = mean(Cost.(leg_str{jj}));
     RunTime.STD(jj) = std(RunTime.(leg_str{jj}));
-    Cost.STD(jj) = std(Cost.(leg_str{jj}));   
+    Cost.STD(jj) = std(Cost.(leg_str{jj}));
 end
 
 figure(22); clf; hold all; grid on;
@@ -213,7 +218,7 @@ end
 % plot(mean(RunTime.MctsNN2,1),mean(Cost.MctsNN2,1),color_shape{9},'MarkerSize',12,'LineWidth',3)
 
 legend(leg_str)
-xlabel(sprintf('RunTime (seconds) (K = %i Channels)', K )) 
+xlabel(sprintf('RunTime (seconds) (K = %i Channels)', K ))
 ylabel(sprintf('Average Cost (K = %i Channels)',K))
 
 for jj = 1:length(leg_str)
