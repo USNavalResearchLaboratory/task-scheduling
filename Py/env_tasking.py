@@ -122,10 +122,6 @@ class BaseTaskingEnv(gym.Env):
 class SeqTaskingEnv(BaseTaskingEnv):
     """Tasking environment, entire sequence selected at once."""
 
-    # def __init__(self, n_tasks, task_gen, n_ch, ch_avail_gen):
-    #     super().__init__(n_tasks, task_gen, n_ch, ch_avail_gen)
-    #     self.action_space = Sequence(n_tasks)
-
     @property
     def action_space(self):
         return Sequence(self.n_tasks)
@@ -141,9 +137,6 @@ class SeqTaskingEnv(BaseTaskingEnv):
 
 class StepTaskingEnv(BaseTaskingEnv):
     """Tasking environment, tasks scheduled sequentially."""
-
-    # def __init__(self, n_tasks, task_gen, n_ch, ch_avail_gen):
-    #     super().__init__(n_tasks, task_gen, n_ch, ch_avail_gen)
 
     @property
     def action_space(self):
@@ -164,16 +157,16 @@ class StepTaskingEnv(BaseTaskingEnv):
 def wrap_agent(env, agent):
     """Generate scheduling function by running an agent on a single environment episode."""
 
-    def scheduler(tasks, ch_avail):
+    def scheduling_agent(tasks, ch_avail):
         observation, reward, done = env.reset(tasks, ch_avail), 0, False
         while not done:
-            # agent.action_space = env.action_space
+            agent.action_space = env.action_space       # FIXME: hacked to allow proper StepTasking behavior
             action = agent.act(observation, reward, done)
             observation, reward, done, info = env.step(action)
 
         return env.node.t_ex, env.node.ch_ex
 
-    return scheduler
+    return scheduling_agent
 
 
 class RandomAgent(object):
@@ -204,14 +197,14 @@ if __name__ == '__main__':
               'n_ch': 2,
               'ch_avail_gen': ch_avail_generator}
 
-    env = SeqTaskingEnv(**params)
-    # env = StepTaskingEnv(**params)
+    # env = SeqTaskingEnv(**params)
+    env = StepTaskingEnv(**params)
 
     agent = RandomAgent(env.action_space)
 
     obs, reward, done = env.reset(), 0, False
     while not done:
-        # agent.action_space = env.action_space
+        agent.action_space = env.action_space   # FIXME: hacked to allow proper StepTasking behavior
         act = agent.act(obs, reward, done)
         observation, reward, done, info = env.step(act)
         print(reward)

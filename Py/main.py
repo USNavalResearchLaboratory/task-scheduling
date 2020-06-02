@@ -54,7 +54,7 @@ alg_funcs = [partial(branch_bound, verbose=False),
              partial(random_sequencer),
              partial(random_agent)]
 
-alg_n_runs = [2, 2, 1]       # number of runs per problem
+alg_n_runs = [2, 2, 1, 5, 5]       # number of runs per problem
 
 alg_reprs = list(map(algorithm_repr, alg_funcs))
 
