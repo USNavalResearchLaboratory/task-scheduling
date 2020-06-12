@@ -185,8 +185,7 @@ class RandomAgent(object):
 #     return wrap_agent(env, agent)
 
 
-if __name__ == '__main__':
-
+def main():
     def ch_avail_generator(n_ch, rng=check_rng(None)):  # channel availability time generator
         return rng.uniform(0, 2, n_ch)
 
@@ -220,3 +219,6 @@ if __name__ == '__main__':
     #                   print_freq=10,
     #                   )
 
+
+if __name__ == '__main__':
+    main()

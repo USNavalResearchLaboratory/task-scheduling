@@ -515,7 +515,7 @@ class TreeNode:
     @property
     def seq(self):
         """
-        Gets the node sequence. Setter calls 'update_node'.
+        Gets the node sequence. Setter calls 'seq_ext'.
 
         Returns
         -------
