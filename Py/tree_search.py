@@ -41,7 +41,10 @@ class TreeNode:
     _ch_avail_init = []
     _rng = None
 
-    def __init__(self, seq: list):
+    def __init__(self, seq=None):
+        if seq is None:
+            seq = []
+
         if self._n_tasks == 0 or self._n_ch == 0:
             raise AttributeError("Cannot instantiate objects before assigning "
                                  "the '_tasks' and '_n_ch class attributes.")
@@ -131,7 +134,7 @@ class TreeNode:
         if not seq_ext_set.issubset(self.seq_rem):
             raise ValueError("Values in 'seq_ext' must not be in the current node sequence.")
 
-        self._seq_extend(seq_ext)
+        self._seq_extend(seq_ext)   # TODO: just do unique checks based on input flag? append method?
 
     def _seq_extend(self, seq_ext: list):
         self._seq += seq_ext
@@ -239,7 +242,10 @@ class TreeNodeBound(TreeNode):
 
         """
 
-    def __init__(self, seq: list):
+    def __init__(self, seq=None):
+        if seq is None:
+            seq = []
+
         self._l_lo = 0.
         self._l_up = float('inf')
         super().__init__(seq)
@@ -282,37 +288,130 @@ class TreeNodeBound(TreeNode):
             self.roll_out()
 
 
-class TreeStructure:
-    def __init__(self, root):
-        self.root = root
-        self.tree = root
+class SearchTree:
 
-    # def get_node(self, item):
-    #     if item == []:
-    #         return self.root
+    def __init__(self, rng=None):
+        self.root = TreeNode()
+        self.rng = check_rng(rng)
+
+        self.n_tasks = self.root._n_tasks
+
+        class SearchNode:
+
+            rng = check_rng(None)  # TODO: move, delete?
+            n_tasks = self.root._n_tasks
+
+            def __init__(self, seq=None):
+                if seq is None:
+                    seq = []
+
+                self.seq = seq
+                self.n_visit = 0
+                self.l_avg = 0.
+                self.children = {}
+
+            def __repr__(self):
+                return f"SearchNode({self.seq}, {self.n_visit}, {self.l_avg:.3f})"
+
+            def __getitem__(self, n):
+                return self.children[n]
+
+            # def __setitem__(self, key, value):
+            #     self.children[key] = value
+
+            @property
+            def seq_rem(self):
+                return set(range(self.n_tasks)) - set(self.seq)
+
+            @property
+            def is_leaf(self):
+                return len(self.seq_rem) == 0
+
+            def add_child(self, n):
+                self.children[n] = SearchNode(self.seq + [n])
+
+            @staticmethod
+            def stat2weight(n_visit, l_avg):
+                return l_avg - 1 / (n_visit + 1)
+
+            def select_child(self):
+                w = {k: self.stat2weight(node.n_visit, node.l_avg) for (k, node) in self.children.items()}
+                seq_rem = SearchNode.rng.permutation(list(self.seq_rem))
+                w.update(dict(zip(seq_rem, [-1] * len(seq_rem))))
+
+                n = min(w, key=w.__getitem__)
+                if n not in self.children:
+                    self.add_child(n)
+                return self[n]
+
+            def simulate(self):
+                node = self
+                # seq = []
+                while not node.is_leaf:
+                    node = node.select_child()
+                    # seq.append(n)
+                    # node = node[n]
+
+                return node.seq
+
+        # self.cls_node = SearchNode
+
+        # self.tree = [{} for _ in range(self.n_tasks)]
+        self.tree = SearchNode()
+
+    def __getitem__(self, seq):
+        out = self.tree
+        for n in seq:
+            out = out[n]
+        return out
+
+    # def __getitem__(self, item):
+    #     out = self.tree[len(item) - 1]
+    #     for n in item:
+    #         out = out[n]
+    #     return out
+
+    # def _seq_rem(self, seq):
+    #     return set(range(self.n_tasks)) - set(seq)
+
+    # def select(self, d):
+    #     # w = dict(zip(s.keys(), map(self.stat2weight, s.values())))
+    #     w = {k: self.stat2weight(*v) for (k, v) in d.items()}
+    #     # seq_rem = self._seq_rem(d.keys())    # TODO: permute dict for random tie-breaks?
+    #     seq_rem = self.rng.permutation(list(self._seq_rem(d.keys())))
+    #     w.update(dict(zip(seq_rem, [-1] * len(seq_rem))))    # FIXME
+    #
+    #     return min(w, key=w.__getitem__)
+
+    # def rollout(self):
+    #     seq = []
+    #     for i in range(self.n_tasks):
+    #         d = self.tree[i]
+    #         for n in seq:
+    #             d = d[n]
+    #         n = self.select(d)
+    #         if n not in d.keys():     # initialize tree element
+    #             d[n] = (0, 0)
+    #
+    #         seq.append(n)
+
+
+
+
+
+    # def _br(self, node):
+    #     return dict(zip(node.seq_rem, node.branch(do_permute=False)))
+    #
+    # def branch(self, seq):
+    #     if len(seq) == 0:
+    #         self.tree = self._br(self.tree)
     #     else:
-    #         out = self.tree[item[0]]
-    #         for n in item[1:]:
-    #             out = out[n]
-    #         return out
+    #         tree = self.tree
+    #         for n in seq[:-1]:
+    #             tree = tree[n]
+    #         tree[seq[-1]] = self._br(tree[seq[-1]])
 
-    def __getitem__(self, item):
-        if type(item) == int:
-            return self.tree[item]
-        elif type(item) == tuple:
-            out = self.tree[item[0]]
-            for n in item[1:]:
-                out = out[n]
-            return out
-
-    def branch(self, seq):
-        if seq == []:
-            self.tree = dict(zip(self.root.seq_rem, self.root.branch(do_permute=False)))
-        else:
-            # self.tree[seq]
-
-
-
+    # TODO: WIP, delete?
 
 
 def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
@@ -342,7 +441,7 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
     TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = check_rng(rng)
 
-    stack = [TreeNodeBound([])]  # Initialize Stack
+    stack = [TreeNodeBound()]  # Initialize Stack
 
     node_best = stack[0].roll_out(do_copy=True)  # roll-out initial solution
 
@@ -463,7 +562,7 @@ def mcts(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
     TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = check_rng(rng)
 
-    node = TreeNode([])
+    node = TreeNode()
     node_best = node.roll_out(do_copy=True)
 
     n_tasks = len(tasks)
@@ -482,14 +581,14 @@ def mcts(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
                 node_best = node_mc
 
         # Assign next task from earliest available channel
-        node._seq_extend([node_best.seq[len(node.seq)]])
+        node._seq_extend([node_best.seq[n]])
 
     t_ex, ch_ex = node.t_ex, node.ch_ex
 
     return t_ex, ch_ex
 
 
-def mcts_v2(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
+def mcts_v2(tasks: list, ch_avail: list, verbose=False, rng=None):
     """
     Monte Carlo tree search algorithm.
 
@@ -523,27 +622,42 @@ def mcts_v2(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
 
     n_tasks = len(tasks)
 
+    # def _br(self, node):
+    #     return dict(zip(node.seq_rem, node.branch(do_permute=False)))
+    #
+    # def branch(self, seq):
+    #     if len(seq) == 0:
+    #         self.tree = self._br(self.tree)
+    #     else:
+    #         tree = self.tree
+    #         for n in seq[:-1]:
+    #             tree = tree[n]
+    #         tree[seq[-1]] = self._br(tree[seq[-1]])
+
+    def _update_stat(seq, loss):
+        pass
+
+    def rand_select(seq):
+        s = stats[len(seq)]
+        for n in seq:
+            s = s[n]
+
 
     # Initialize tree
-    root = TreeNode([])
-    tree = dict(zip(root.seq_rem, root.branch(do_permute=False)))
+    tree = TreeNode()
+    stats = [{} for _ in range(n_tasks)]
 
-    node = TreeNode([])
     seq = []
-
-    tree = dict(zip(node.seq_rem, node.branch(do_permute=False)))
-    seq.append(rng.choice(list(node.seq_rem)))
-    # node = tree[seq[0]]
-    # stats = [{} for _ in range(n_tasks)]
+    node = tree
+    n = rng.choice(list(node.seq_rem))
+    seq.append(n)
     for n in range(1, n_tasks):
         node = tree[seq[0]]
         for i in range(1, n):
             node = node[seq[i]]
 
         node = dict(zip(node.seq_rem, node.branch(do_permute=False)))
-        node = dict(zip(node.seq_rem, node.branch(do_permute=False)))
-        node = tree[n_rand]
-
+        # node = tree[n_rand]
 
 
     do_search = True
@@ -718,6 +832,12 @@ if __name__ == '__main__':
 
     # t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True, rng=None)
 
+    tree = SearchTree()
+    node = tree[[]]
+    node.add_child(1)
+    node.select_child()
+    seq = node.simulate()
+    pass
 
 # if __name__ == '__main__':
 #     main()
