@@ -288,116 +288,126 @@ class TreeNodeBound(TreeNode):
             self.roll_out()
 
 
-class SearchTree:
+class SearchNode:   # TODO: subclass TreeNode?
 
-    def __init__(self, rng=None):
-        self.root = TreeNode()
-        self.rng = check_rng(rng)
+    n_tasks = None
 
-        self.n_tasks = self.root._n_tasks
+    def __init__(self, seq=None):
+        if seq is None:
+            seq = []
 
-        class SearchNode:
+        self.seq = seq
+        self.n_visit = 0
+        self.l_avg = 0.
+        self.children = {}
 
-            rng = check_rng(None)  # TODO: move, delete?
-            n_tasks = self.root._n_tasks
+    def __repr__(self):
+        return f"SearchNode(seq={self.seq}, children={list(self.children.keys())}, " \
+               f"visits={self.n_visit}, avg_loss={self.l_avg:.3f})"
 
-            def __init__(self, seq=None):
-                if seq is None:
-                    seq = []
+    def __getitem__(self, item):
+        if type(item) == int:
+            return self.children[item]
+        else:
+            node = self
+            for n in item:
+                node = node.children[n]
+            return node
 
-                self.seq = seq
-                self.n_visit = 0
-                self.l_avg = 0.
-                self.children = {}
+    # def __setitem__(self, key, value):
+    #     self.children[key] = value
 
-            def __repr__(self):
-                return f"SearchNode({self.seq}, {self.n_visit}, {self.l_avg:.3f})"
+    def add_child(self, n):
+        if n in self.seq_rem:
+            if n in self.seq_c:
+                self.children[n] = SearchNode(self.seq + [n])       # TODO: need copy?
+            else:
+                raise ValueError("Child node already exists.")
+        else:
+            raise ValueError(f"Input index must be in {self.seq_rem}.")
 
-            def __getitem__(self, n):
-                return self.children[n]
+    @property
+    def seq_rem(self):
+        return set(range(self.n_tasks)) - set(self.seq)
 
-            # def __setitem__(self, key, value):
-            #     self.children[key] = value
+    @property
+    def seq_c(self):
+        return self.seq_rem - set(self.children.keys())
 
-            @property
-            def seq_rem(self):
-                return set(range(self.n_tasks)) - set(self.seq)
+    @property
+    def is_leaf(self):
+        return len(self.seq_rem) == 0
 
-            @property
-            def is_leaf(self):
-                return len(self.seq_rem) == 0
+    @property
+    def weight(self):
+        return self.l_avg - 1 / (self.n_visit + 1)
 
-            def add_child(self, n):
-                self.children[n] = SearchNode(self.seq + [n])
+    def select_child(self):
+        w = {n: node.weight for (n, node) in self.children.items()}
+        w.update(dict(zip(self.seq_c, [-1] * len(self.seq_c))))     # TODO: random permute?
 
-            @staticmethod
-            def stat2weight(n_visit, l_avg):
-                return l_avg - 1 / (n_visit + 1)
+        n = min(w, key=w.__getitem__)
+        if n not in self.children:
+            self.add_child(n)
+        return self[n]
 
-            def select_child(self):
-                w = {k: self.stat2weight(node.n_visit, node.l_avg) for (k, node) in self.children.items()}
-                seq_rem = SearchNode.rng.permutation(list(self.seq_rem))
-                w.update(dict(zip(seq_rem, [-1] * len(seq_rem))))
+    def simulate(self):
+        node = self
+        while not node.is_leaf:
+            node = node.select_child()
+        return node
 
-                n = min(w, key=w.__getitem__)
-                if n not in self.children:
-                    self.add_child(n)
-                return self[n]
+    def update_stats(self, loss):
+        loss_total = self.l_avg * self.n_visit + loss
+        self.n_visit += 1
+        self.l_avg = loss_total / self.n_visit
 
-            def simulate(self):
-                node = self
-                # seq = []
-                while not node.is_leaf:
-                    node = node.select_child()
-                    # seq.append(n)
-                    # node = node[n]
-
-                return node.seq
-
-        # self.cls_node = SearchNode
-
-        # self.tree = [{} for _ in range(self.n_tasks)]
-        self.tree = SearchNode()
-
-    def __getitem__(self, seq):
-        out = self.tree
+    def backup(self, seq, loss):
+        node = self
+        node.update_stats(loss)
         for n in seq:
-            out = out[n]
-        return out
+            node = node[n]
+            node.update_stats(loss)
 
-    # def __getitem__(self, item):
-    #     out = self.tree[len(item) - 1]
-    #     for n in item:
-    #         out = out[n]
-    #     return out
-
-    # def _seq_rem(self, seq):
-    #     return set(range(self.n_tasks)) - set(seq)
-
-    # def select(self, d):
-    #     # w = dict(zip(s.keys(), map(self.stat2weight, s.values())))
-    #     w = {k: self.stat2weight(*v) for (k, v) in d.items()}
-    #     # seq_rem = self._seq_rem(d.keys())    # TODO: permute dict for random tie-breaks?
-    #     seq_rem = self.rng.permutation(list(self._seq_rem(d.keys())))
-    #     w.update(dict(zip(seq_rem, [-1] * len(seq_rem))))    # FIXME
+    # def iterate(self):
+    #     seq_full = self.simulate().seq
     #
-    #     return min(w, key=w.__getitem__)
-
-    # def rollout(self):
-    #     seq = []
-    #     for i in range(self.n_tasks):
-    #         d = self.tree[i]
-    #         for n in seq:
-    #             d = d[n]
-    #         n = self.select(d)
-    #         if n not in d.keys():     # initialize tree element
-    #             d[n] = (0, 0)
+    #     leaf = deepcopy(self.root)
+    #     leaf._seq_extend(seq_full)
+    #     loss = leaf.l_ex
     #
-    #         seq.append(n)
+    #     self.backup(seq_full[len(self.seq):], loss)
 
 
+# def __getitem__(self, item):
+#     out = self.tree[len(item) - 1]
+#     for n in item:
+#         out = out[n]
+#     return out
 
+# def _seq_rem(self, seq):
+#     return set(range(self.n_tasks)) - set(seq)
 
+# def select(self, d):
+#     # w = dict(zip(s.keys(), map(self.stat2weight, s.values())))
+#     w = {k: self.stat2weight(*v) for (k, v) in d.items()}
+#     # seq_rem = self._seq_rem(d.keys())    # TODO: permute dict for random tie-breaks?
+#     seq_rem = self.rng.permutation(list(self._seq_rem(d.keys())))
+#     w.update(dict(zip(seq_rem, [-1] * len(seq_rem))))    # FIXME
+#
+#     return min(w, key=w.__getitem__)
+
+# def rollout(self):
+#     seq = []
+#     for i in range(self.n_tasks):
+#         d = self.tree[i]
+#         for n in seq:
+#             d = d[n]
+#         n = self.select(d)
+#         if n not in d.keys():     # initialize tree element
+#             d[n] = (0, 0)
+#
+#         seq.append(n)
 
     # def _br(self, node):
     #     return dict(zip(node.seq_rem, node.branch(do_permute=False)))
@@ -613,70 +623,32 @@ def mcts_v2(tasks: list, ch_avail: list, verbose=False, rng=None):
 
     """
 
-    # TODO: edit docstring
+    # TODO: edit docstring, add progress output
 
     TreeNode._tasks = tasks
     TreeNode._ch_avail_init = ch_avail
-    rng = check_rng(rng)
-    TreeNode._rng = rng
+    # TreeNode._rng = check_rng(rng)
 
-    n_tasks = len(tasks)
+    SearchNode.n_tasks = len(tasks)
+    tree = SearchNode()
 
-    # def _br(self, node):
-    #     return dict(zip(node.seq_rem, node.branch(do_permute=False)))
-    #
-    # def branch(self, seq):
-    #     if len(seq) == 0:
-    #         self.tree = self._br(self.tree)
-    #     else:
-    #         tree = self.tree
-    #         for n in seq[:-1]:
-    #             tree = tree[n]
-    #         tree[seq[-1]] = self._br(tree[seq[-1]])
-
-    def _update_stat(seq, loss):
-        pass
-
-    def rand_select(seq):
-        s = stats[len(seq)]
-        for n in seq:
-            s = s[n]
-
-
-    # Initialize tree
-    tree = TreeNode()
-    stats = [{} for _ in range(n_tasks)]
-
-    seq = []
-    node = tree
-    n = rng.choice(list(node.seq_rem))
-    seq.append(n)
-    for n in range(1, n_tasks):
-        node = tree[seq[0]]
-        for i in range(1, n):
-            node = node[seq[i]]
-
-        node = dict(zip(node.seq_rem, node.branch(do_permute=False)))
-        # node = tree[n_rand]
-
-
+    loss_min = float('inf')
     do_search = True
     while do_search:
-        node = tree[0]
-        # Selection
-        for n in range(n_tasks):
-            #
-            if node.is_leaf:
-                break
+        seq = tree.simulate().seq
 
-        # Expansion
-        _temp = dict(zip(node.seq_rem, node.branch(do_permute=False)))
-        tree[n].append(_temp)
+        node = TreeNode(seq)
+        loss = node.l_ex
+        tree.backup(seq, loss)
 
+        if loss < loss_min:
+            node_best, loss_min = node, loss
 
+        do_search = tree.n_visit < 5000     # FIXME
 
+    t_ex, ch_ex = node_best.t_ex, node_best.ch_ex  # optimal
 
-
+    return t_ex, ch_ex
 
 
 def random_sequencer(tasks: list, ch_avail: list, rng=None):
@@ -810,7 +782,7 @@ def est_alg_kw(tasks: list, ch_avail: list):
     return t_ex, ch_ex
 
 
-if __name__ == '__main__':
+def main():
     n_tasks = 3
     n_channels = 2
 
@@ -832,12 +804,18 @@ if __name__ == '__main__':
 
     # t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True, rng=None)
 
-    tree = SearchTree()
-    node = tree[[]]
+    SearchNode.n_tasks = n_tasks
+
+    node = SearchNode()
     node.add_child(1)
-    node.select_child()
-    seq = node.simulate()
+    child = node.select_child()
+    leaf = node.simulate()
+    node[1,0]
+
+    node = SearchNode()
+    node.backup()
     pass
 
-# if __name__ == '__main__':
-#     main()
+
+if __name__ == '__main__':
+    main()
