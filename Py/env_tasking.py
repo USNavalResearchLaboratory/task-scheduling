@@ -1,4 +1,3 @@
-import copy
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -103,7 +102,7 @@ class BaseTaskingEnv(gym.Env):
 
         TreeNode._tasks = self.tasks
         TreeNode._ch_avail_init = self.ch_avail
-        self.node = TreeNode([])
+        self.node = TreeNode()
 
         return obs_relu_drop(self.tasks)
 
@@ -145,8 +144,9 @@ class StepTaskingEnv(BaseTaskingEnv):
     def step(self, action: int):
         obs = obs_relu_drop(self.tasks)
 
-        seq_new = copy.deepcopy(self.node.seq) + [action]
-        self.node.seq = seq_new
+        # seq_new = self.node.seq.copy() + [action]
+        # self.node.seq = seq_new
+        self.node.seq_extend([action])
         reward = -1 * self.tasks[action].loss_fcn(self.node.t_ex[action])
 
         done = len(self.node.seq_rem) == 0
@@ -185,8 +185,7 @@ class RandomAgent(object):
 #     return wrap_agent(env, agent)
 
 
-if __name__ == '__main__':
-
+def main():
     def ch_avail_generator(n_ch, rng=check_rng(None)):  # channel availability time generator
         return rng.uniform(0, 2, n_ch)
 
@@ -220,3 +219,6 @@ if __name__ == '__main__':
     #                   print_freq=10,
     #                   )
 
+
+if __name__ == '__main__':
+    main()

@@ -1,8 +1,11 @@
 """Multi-channel Tree Search objects and algorithms."""
 
-import copy, math
+from copy import deepcopy
+import math
 import numpy as np
 from util.generic import check_rng
+
+from tasks import ReluDropGenerator
 
 from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
@@ -38,7 +41,10 @@ class TreeNode:
     _ch_avail_init = []
     _rng = None
 
-    def __init__(self, seq: list):
+    def __init__(self, seq=None):
+        if seq is None:
+            seq = []
+
         if self._n_tasks == 0 or self._n_ch == 0:
             raise AttributeError("Cannot instantiate objects before assigning "
                                  "the '_tasks' and '_n_ch class attributes.")
@@ -48,13 +54,13 @@ class TreeNode:
         self._seq_rem = set(range(self._n_tasks))
 
         self._t_ex = np.full(self._n_tasks, np.nan)  # task execution times (NaN for unscheduled)
-        self._ch_ex = np.full(self._n_tasks, np.nan, dtype=np.int)  # task execution channels
+        self._ch_ex = np.full(self._n_tasks, -1)    # TODO: masked array?
 
-        self._ch_avail = copy.deepcopy(self._ch_avail_init)  # timeline availability
+        self._ch_avail = self._ch_avail_init.copy()     # timeline availability
 
         self._l_ex = 0.  # partial sequence loss
 
-        self.seq = seq
+        self.seq_extend(seq)
 
     def __repr__(self):
         return f"TreeNode(sequence: {self.seq}, partial loss:{self.l_ex:.3f})"
@@ -70,7 +76,7 @@ class TreeNode:
     @property
     def seq(self):
         """
-        Gets the node sequence. Setter calls 'update_node'.
+        Gets the node sequence. Setter calls '__init__' or 'seq_ext'.
 
         Returns
         -------
@@ -82,10 +88,10 @@ class TreeNode:
 
     @seq.setter
     def seq(self, seq):
-        if len(seq) != len(set(seq)):
-            raise ValueError("Input 'seq' must have unique values.")
-
-        self.update_node(seq)
+        if seq[:len(self._seq)] != self._seq:  # new sequence is not an extension of current sequence
+            self.__init__(seq)  # initialize from scratch
+        else:
+            self.seq_extend(seq[len(self._seq):])
 
     @property
     def t_ex(self):
@@ -111,24 +117,30 @@ class TreeNode:
     def seq_rem(self):
         return self._seq_rem
 
-    def update_node(self, seq: list):
+    def seq_extend(self, seq_ext: list):
         """
-        Sets node sequence using sequence-to-schedule approach.
+        Extends node sequence and updates attributes using sequence-to-schedule approach.
 
         Parameters
         ----------
-        seq : list of int
+        seq_ext : list of int
             Sequence of indices referencing cls._tasks.
 
         """
 
-        if seq[:len(self._seq)] != self._seq:  # new sequence is not an extension of current sequence
-            self.__init__(seq)  # initialize from scratch
+        seq_ext_set = set(seq_ext)
+        if len(seq_ext) != len(seq_ext_set):
+            raise ValueError("Input 'seq_ext' must have unique values.")
+        if not seq_ext_set.issubset(self.seq_rem):
+            raise ValueError("Values in 'seq_ext' must not be in the current node sequence.")
 
-        seq_append = seq[len(self._seq):]
-        self._seq = seq
-        self._seq_rem -= set(seq_append)
-        for n in seq_append:
+        self._seq_extend(seq_ext)   # TODO: just do unique checks based on input flag? append method?
+
+    def _seq_extend(self, seq_ext: list):
+        self._seq += seq_ext
+        self._seq_rem -= set(seq_ext)
+
+        for n in seq_ext:
             ch = self.ch_early
 
             self._ch_ex[n] = ch
@@ -157,14 +169,8 @@ class TreeNode:
             self._rng.shuffle(seq_iter)
 
         for n in seq_iter:
-            # seq_new = copy.deepcopy(self.seq)
-            seq_new = self.seq.copy()
-
-            seq_new.append(n)
-
-            node_new = copy.deepcopy(self)  # new TreeNode object
-            node_new.seq = seq_new  # call seq.setter method
-
+            node_new = deepcopy(self)  # new TreeNode object
+            node_new._seq_extend([n])
             yield node_new
 
     def roll_out(self, do_copy=False):
@@ -183,17 +189,14 @@ class TreeNode:
 
         """
 
-        # seq_new = copy.deepcopy(self.seq) + self._rng.permutation(list(self._seq_rem)).tolist()
-        seq_new = self.seq.copy() + self._rng.permutation(list(self._seq_rem)).tolist()
-
+        seq_ext = self._rng.permutation(list(self._seq_rem)).tolist()
 
         if do_copy:
-            node_new = copy.deepcopy(self)  # new TreeNode object
-            node_new.seq = seq_new  # call seq.setter method
-
+            node_new = deepcopy(self)  # new TreeNode object
+            node_new._seq_extend(seq_ext)
             return node_new
         else:
-            self.seq = seq_new  # call seq.setter method
+            self._seq_extend(seq_ext)
 
     def check_swaps(self):
         """Try adjacent task swapping, overwrite node if loss drops."""
@@ -202,7 +205,7 @@ class TreeNode:
             raise ValueError("Node sequence must be complete.")
 
         for i in range(len(self.seq) - 1):
-            seq_swap = copy.deepcopy(self.seq)
+            seq_swap = self.seq.copy()
             seq_swap[i:i + 2] = seq_swap[i:i + 2][::-1]
             node_swap = TreeNode(seq_swap)
             if node_swap.l_ex < self.l_ex:
@@ -239,7 +242,10 @@ class TreeNodeBound(TreeNode):
 
         """
 
-    def __init__(self, seq: list):
+    def __init__(self, seq=None):
+        if seq is None:
+            seq = []
+
         self._l_lo = 0.
         self._l_up = float('inf')
         super().__init__(seq)
@@ -255,7 +261,7 @@ class TreeNodeBound(TreeNode):
     def l_up(self):
         return self._l_up
 
-    def update_node(self, seq: list):
+    def _seq_extend(self, seq: list):
         """
         Sets node sequence and iteratively updates all dependent attributes.
 
@@ -266,7 +272,7 @@ class TreeNodeBound(TreeNode):
 
         """
 
-        super().update_node(seq)
+        super()._seq_extend(seq)
 
         # Add bound attributes
         t_ex_max = (max([self._tasks[n].t_release for n in self._seq_rem] + list(self._ch_avail))
@@ -280,6 +286,142 @@ class TreeNodeBound(TreeNode):
 
         if len(self._seq_rem) > 0 and self._l_lo == self._l_up:  # roll-out if bounds converge
             self.roll_out()
+
+
+class SearchNode:   # TODO: subclass TreeNode?
+
+    n_tasks = None
+
+    def __init__(self, seq=None):
+        if seq is None:
+            seq = []
+
+        self.seq = seq
+        self.n_visit = 0
+        self.l_avg = 0.
+        self.children = {}
+
+    def __repr__(self):
+        return f"SearchNode(seq={self.seq}, children={list(self.children.keys())}, " \
+               f"visits={self.n_visit}, avg_loss={self.l_avg:.3f})"
+
+    def __getitem__(self, item):
+        if type(item) == int:
+            return self.children[item]
+        else:
+            node = self
+            for n in item:
+                node = node.children[n]
+            return node
+
+    # def __setitem__(self, key, value):
+    #     self.children[key] = value
+
+    def add_child(self, n):
+        if n in self.seq_rem:
+            if n in self.seq_c:
+                self.children[n] = SearchNode(self.seq + [n])       # TODO: need copy?
+            else:
+                raise ValueError("Child node already exists.")
+        else:
+            raise ValueError(f"Input index must be in {self.seq_rem}.")
+
+    @property
+    def seq_rem(self):
+        return set(range(self.n_tasks)) - set(self.seq)
+
+    @property
+    def seq_c(self):
+        return self.seq_rem - set(self.children.keys())
+
+    @property
+    def is_leaf(self):
+        return len(self.seq_rem) == 0
+
+    @property
+    def weight(self):
+        return self.l_avg - 1 / (self.n_visit + 1)
+
+    def select_child(self):
+        w = {n: node.weight for (n, node) in self.children.items()}
+        w.update(dict(zip(self.seq_c, [-1] * len(self.seq_c))))     # TODO: random permute?
+
+        n = min(w, key=w.__getitem__)
+        if n not in self.children:
+            self.add_child(n)
+        return self[n]
+
+    def simulate(self):
+        node = self
+        while not node.is_leaf:
+            node = node.select_child()
+        return node
+
+    def update_stats(self, loss):
+        loss_total = self.l_avg * self.n_visit + loss
+        self.n_visit += 1
+        self.l_avg = loss_total / self.n_visit
+
+    def backup(self, seq, loss):
+        node = self
+        node.update_stats(loss)
+        for n in seq:
+            node = node[n]
+            node.update_stats(loss)
+
+    # def iterate(self):
+    #     seq_full = self.simulate().seq
+    #
+    #     leaf = deepcopy(self.root)
+    #     leaf._seq_extend(seq_full)
+    #     loss = leaf.l_ex
+    #
+    #     self.backup(seq_full[len(self.seq):], loss)
+
+
+# def __getitem__(self, item):
+#     out = self.tree[len(item) - 1]
+#     for n in item:
+#         out = out[n]
+#     return out
+
+# def _seq_rem(self, seq):
+#     return set(range(self.n_tasks)) - set(seq)
+
+# def select(self, d):
+#     # w = dict(zip(s.keys(), map(self.stat2weight, s.values())))
+#     w = {k: self.stat2weight(*v) for (k, v) in d.items()}
+#     # seq_rem = self._seq_rem(d.keys())    # TODO: permute dict for random tie-breaks?
+#     seq_rem = self.rng.permutation(list(self._seq_rem(d.keys())))
+#     w.update(dict(zip(seq_rem, [-1] * len(seq_rem))))    # FIXME
+#
+#     return min(w, key=w.__getitem__)
+
+# def rollout(self):
+#     seq = []
+#     for i in range(self.n_tasks):
+#         d = self.tree[i]
+#         for n in seq:
+#             d = d[n]
+#         n = self.select(d)
+#         if n not in d.keys():     # initialize tree element
+#             d[n] = (0, 0)
+#
+#         seq.append(n)
+
+    # def _br(self, node):
+    #     return dict(zip(node.seq_rem, node.branch(do_permute=False)))
+    #
+    # def branch(self, seq):
+    #     if len(seq) == 0:
+    #         self.tree = self._br(self.tree)
+    #     else:
+    #         tree = self.tree
+    #         for n in seq[:-1]:
+    #             tree = tree[n]
+    #         tree[seq[-1]] = self._br(tree[seq[-1]])
+
+    # TODO: WIP, delete?
 
 
 def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
@@ -309,10 +451,9 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
     TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = check_rng(rng)
 
-    stack = [TreeNodeBound([])]  # Initialize Stack
+    stack = [TreeNodeBound()]  # Initialize Stack
 
     node_best = stack[0].roll_out(do_copy=True)  # roll-out initial solution
-    l_best = node_best.l_ex
 
     # Iterate
     while len(stack) > 0:
@@ -321,18 +462,17 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
         # Branch
         for node_new in node.branch(do_permute=True):
             # Bound
-            if node_new.l_lo < l_best:  # New node is not dominated
-                if node_new.l_up < l_best:
+            if node_new.l_lo < node_best.l_ex:  # New node is not dominated
+                if node_new.l_up < node_best.l_ex:
                     node_best = node_new.roll_out(do_copy=True)  # roll-out a new best node
-                    l_best = node_best.l_ex
-                    stack = [s for s in stack if s.l_lo < l_best]  # Cut Dominated Nodes
+                    stack = [s for s in stack if s.l_lo < node_best.l_ex]  # Cut Dominated Nodes
 
                 stack.append(node_new)  # Add New Node to Stack, LIFO
 
         if verbose:
-            progress = 1 - sum([math.factorial(len(node.seq_rem)) for node in stack]) / math.factorial(len(tasks))
-            print(f'Search progress: {100*progress:.1f}% - Loss < {l_best:.3f}', end='\r')
-            # print(f'# Remaining Nodes = {len(stack)}, Loss < {l_best:.3f}', end='\r')
+            # progress = 1 - sum([math.factorial(len(node.seq_rem)) for node in stack]) / math.factorial(len(tasks))
+            # print(f'Search progress: {100*progress:.1f}% - Loss < {node_best.l_ex:.3f}', end='\r')
+            print(f'# Remaining Nodes = {len(stack)}, Loss < {node_best.l_ex:.3f}', end='\r')
 
     t_ex, ch_ex = node_best.t_ex, node_best.ch_ex  # optimal
 
@@ -394,16 +534,16 @@ def branch_bound_with_stats(tasks: list, ch_avail: list, verbose=False, rng=None
                 stack.append(node_new)  # Add New Node to Stack, LIFO
 
         if verbose:
-            progress = 1 - sum([math.factorial(len(node.seq_rem)) for node in stack]) / math.factorial(len(tasks))
-            print(f'Search progress: {100*progress:.1f}% - Loss < {l_best:.3f}', end='\r')
-            # print(f'# Remaining Nodes = {len(stack)}, Loss < {l_best:.3f}', end='\r')
+            # progress = 1 - sum([math.factorial(len(node.seq_rem)) for node in stack]) / math.factorial(len(tasks))
+            # print(f'Search progress: {100*progress:.1f}% - Loss < {l_best:.3f}', end='\r')
+            print(f'# Remaining Nodes = {len(stack)}, Loss < {l_best:.3f}', end='\r')
 
     t_ex, ch_ex = node_best.t_ex, node_best.ch_ex  # optimal
     NodeStats.pop(0) # Remove First Initialization stage
     return t_ex, ch_ex, NodeStats
 
 
-def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
+def mcts(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
     """
     Monte Carlo tree search algorithm.
 
@@ -432,7 +572,7 @@ def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
     TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = check_rng(rng)
 
-    node = TreeNode([])
+    node = TreeNode()
     node_best = node.roll_out(do_copy=True)
 
     n_tasks = len(tasks)
@@ -451,11 +591,62 @@ def mc_tree_search(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
                 node_best = node_mc
 
         # Assign next task from earliest available channel
-        seq_new = copy.deepcopy(node.seq)
-        seq_new.append(node_best.seq[len(node.seq)])
-        node.seq = seq_new  # call seq.setter
+        node._seq_extend([node_best.seq[n]])
 
     t_ex, ch_ex = node.t_ex, node.ch_ex
+
+    return t_ex, ch_ex
+
+
+def mcts_v2(tasks: list, ch_avail: list, verbose=False, rng=None):
+    """
+    Monte Carlo tree search algorithm.
+
+    Parameters
+    ----------
+    tasks : list of GenericTask
+    ch_avail : list of float
+        Channel availability times.
+    n_mc : int or list of int
+        Number of Monte Carlo roll-outs per task.
+    verbose : bool
+        Enables printing of algorithm state information.
+    rng
+        NumPy random number generator or seed. Default Generator if None.
+
+    Returns
+    -------
+    t_ex : ndarray
+        Task execution times.
+    ch_ex : ndarray
+        Task execution channels.
+
+    """
+
+    # TODO: edit docstring, add progress output
+
+    TreeNode._tasks = tasks
+    TreeNode._ch_avail_init = ch_avail
+    # TreeNode._rng = check_rng(rng)
+
+    SearchNode.n_tasks = len(tasks)
+    tree = SearchNode()
+
+    loss_min = float('inf')
+    do_search = True
+    while do_search:
+        seq = tree.simulate().seq
+
+        node = TreeNode(seq)
+        loss = node.l_ex
+        tree.backup(seq, loss)
+
+        if loss < loss_min:
+            node_best, loss_min = node, loss
+
+        do_search = tree.n_visit < 5000     # FIXME
+
+    t_ex, ch_ex = node_best.t_ex, node_best.ch_ex  # optimal
 
     return t_ex, ch_ex
 
@@ -585,7 +776,46 @@ def est_alg_kw(tasks: list, ch_avail: list):
 
     T = np.argsort(t_release)  # Task Order
     RP = 100
-    ChannelAvailableTime = copy.deepcopy(ch_avail)
+    ChannelAvailableTime = deepcopy(ch_avail)
     t_ex, ch_ex = FlexDARMultiChannelSequenceScheduler(T, tasks, ChannelAvailableTime, RP)
 
     return t_ex, ch_ex
+
+
+def main():
+    n_tasks = 3
+    n_channels = 2
+
+    task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+                                 t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=None)  # task set generator
+
+    def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
+        return rng.uniform(0, 2, n_ch)
+
+    tasks = task_gen.rand_tasks(n_tasks)
+    ch_avail = ch_avail_gen(n_channels)
+
+    TreeNode._tasks = tasks
+    TreeNode._ch_avail_init = ch_avail
+    TreeNode._rng = check_rng(None)
+
+    # node = TreeNode([3, 1])
+    # node.seq = [3, 1, 4]
+
+    # t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True, rng=None)
+
+    SearchNode.n_tasks = n_tasks
+
+    node = SearchNode()
+    node.add_child(1)
+    child = node.select_child()
+    leaf = node.simulate()
+    node[1,0]
+
+    node = SearchNode()
+    node.backup()
+    pass
+
+
+if __name__ == '__main__':
+    main()
