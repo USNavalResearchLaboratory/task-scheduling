@@ -82,9 +82,10 @@ class BaseTaskingEnv(gym.Env):
         self.n_ch = n_ch
         self.ch_avail_gen = ch_avail_gen
 
-        self.ch_avail = None
         self.tasks = None
+        self.ch_avail = None
         self.node = None
+        self.state = None
         self.reset()
 
         self.reward_range = (-float('inf'), 0)
@@ -103,8 +104,6 @@ class BaseTaskingEnv(gym.Env):
         TreeNode._tasks = self.tasks
         TreeNode._ch_avail_init = self.ch_avail
         self.node = TreeNode()
-
-        return obs_relu_drop(self.tasks)
 
     def step(self, action: list):
         raise NotImplementedError
@@ -125,8 +124,15 @@ class SeqTaskingEnv(BaseTaskingEnv):
     def action_space(self):
         return Sequence(self.n_tasks)
 
+    def reset(self, tasks=None, ch_avail=None):
+        super().reset(tasks, ch_avail)
+
+        # self.state = obs_relu_drop(self.tasks)
+        return obs_relu_drop(self.tasks)
+
     def step(self, action: list):
-        obs = obs_relu_drop(self.tasks)
+        # obs = obs_relu_drop(self.tasks)
+        obs = None      # since Env is Done
 
         self.node.seq = action
         reward = -1 * self.node.l_ex
@@ -141,8 +147,17 @@ class StepTaskingEnv(BaseTaskingEnv):
     def action_space(self):
         return DiscreteSet(self.node.seq_rem)
 
+    def reset(self, tasks=None, ch_avail=None):
+        super().reset(tasks, ch_avail)
+
+        # self.state = obs_relu_drop(self.tasks)
+        self.state = np.concatenate((np.ones((self.n_tasks, 1)), obs_relu_drop(self.tasks)), axis=1)
+        return self.state
+
     def step(self, action: int):
-        obs = obs_relu_drop(self.tasks)
+        # obs = obs_relu_drop(self.tasks)
+        self.state[action, 0] = 0
+        obs = self.state
 
         self.node.seq_extend([action])      # TODO: use private method w/o validity check?
         reward = -1 * self.tasks[action].loss_fcn(self.node.t_ex[action])

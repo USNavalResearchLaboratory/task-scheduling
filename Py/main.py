@@ -29,9 +29,9 @@ plt.style.use('seaborn')
 
 
 # %% Inputs
-n_gen = 1      # number of task scheduling problems
+n_gen = 2      # number of task scheduling problems
 
-n_tasks = 4
+n_tasks = 6
 n_channels = 2
 
 task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
@@ -50,7 +50,7 @@ random_agent = wrap_agent(env, RandomAgent(env.action_space))
 
 alg_funcs = [partial(branch_bound, verbose=False),
              partial(mcts_orig, n_mc=[floor(.1 * factorial(n)) for n in range(n_tasks, 0, -1)], verbose=False),
-             partial(mcts, verbose=False),
+             partial(mcts, n_mc=.1*factorial(n_tasks), verbose=False),
              partial(earliest_release, do_swap=True),
              partial(random_sequencer),
              partial(random_agent)]
@@ -96,7 +96,7 @@ for i_gen in range(n_gen):      # Generate new tasks
             t_run_iter[alg_repr][i_gen, i_run] = t_run
             l_ex_iter[alg_repr][i_gen, i_run] = l_ex
 
-            plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, alg_repr=alg_repr, ax=None)
+            # plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, alg_repr=alg_repr, ax=None)
 
         t_run_mean[alg_repr][i_gen] = t_run_iter[alg_repr][i_gen].mean()
         l_ex_mean[alg_repr][i_gen] = l_ex_iter[alg_repr][i_gen].mean()
