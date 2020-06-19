@@ -355,8 +355,7 @@ class SearchNode:   # TODO: subclass TreeNode for B&B?
         """
 
         w = {n: node.weight for (n, node) in self._children.items()}
-        # w.update(dict(zip(self._seq_unk, [-1] * len(self._seq_unk))))     # TODO: random permute?
-        w.update({n: -10 for n in self._seq_unk})
+        w.update({n: -10 for n in self._seq_unk})   # TODO: random permute?
 
         n = min(w, key=w.__getitem__)
         if n not in self._children:
@@ -599,6 +598,8 @@ def mcts(tasks: list, ch_avail: list, n_mc: int, verbose=False):
     tasks : list of GenericTask
     ch_avail : list of float
         Channel availability times.
+    n_mc : int
+        Number of roll-outs performed.
     verbose : bool
         Enables printing of algorithm state information.
 
