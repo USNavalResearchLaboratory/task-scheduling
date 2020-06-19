@@ -22,16 +22,16 @@ from util.results import check_valid, eval_loss
 from util.plot import plot_task_losses, plot_schedule, plot_results
 
 from tasks import ReluDropGenerator
-from tree_search import branch_bound, mcts, mcts_v2, random_sequencer, earliest_release, est_alg_kw
+from tree_search import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release, est_alg_kw
 from env_tasking import SeqTaskingEnv, StepTaskingEnv, wrap_agent, RandomAgent
 
 plt.style.use('seaborn')
 
 
 # %% Inputs
-n_gen = 2      # number of task scheduling problems
+n_gen = 1      # number of task scheduling problems
 
-n_tasks = 8
+n_tasks = 4
 n_channels = 2
 
 task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
@@ -49,8 +49,8 @@ env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen)
 random_agent = wrap_agent(env, RandomAgent(env.action_space))
 
 alg_funcs = [partial(branch_bound, verbose=False),
-             partial(mcts, n_mc=[floor(.1 * factorial(n)) for n in range(n_tasks, 0, -1)], verbose=False),
-             partial(mcts_v2, verbose=False),
+             partial(mcts_orig, n_mc=[floor(.1 * factorial(n)) for n in range(n_tasks, 0, -1)], verbose=False),
+             partial(mcts, verbose=False),
              partial(earliest_release, do_swap=True),
              partial(random_sequencer),
              partial(random_agent)]
@@ -96,7 +96,7 @@ for i_gen in range(n_gen):      # Generate new tasks
             t_run_iter[alg_repr][i_gen, i_run] = t_run
             l_ex_iter[alg_repr][i_gen, i_run] = l_ex
 
-            # plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, alg_repr=alg_repr, ax=None)
+            plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, alg_repr=alg_repr, ax=None)
 
         t_run_mean[alg_repr][i_gen] = t_run_iter[alg_repr][i_gen].mean()
         l_ex_mean[alg_repr][i_gen] = l_ex_iter[alg_repr][i_gen].mean()
@@ -109,7 +109,7 @@ for i_gen in range(n_gen):      # Generate new tasks
 
 print('')
 
-_, ax_results = plt.subplots(num='Results', clear=True)
-plot_results(t_run_mean, l_ex_mean, ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
+# _, ax_results = plt.subplots(num='Results', clear=True)
+# plot_results(t_run_mean, l_ex_mean, ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
 
 

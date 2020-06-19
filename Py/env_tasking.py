@@ -144,9 +144,7 @@ class StepTaskingEnv(BaseTaskingEnv):
     def step(self, action: int):
         obs = obs_relu_drop(self.tasks)
 
-        # seq_new = self.node.seq.copy() + [action]
-        # self.node.seq = seq_new
-        self.node.seq_extend([action])
+        self.node.seq_extend([action])      # TODO: use private method w/o validity check?
         reward = -1 * self.tasks[action].loss_fcn(self.node.t_ex[action])
 
         done = len(self.node.seq_rem) == 0

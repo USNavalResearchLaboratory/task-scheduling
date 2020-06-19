@@ -26,7 +26,7 @@ from util.results import check_valid, eval_loss
 from util.plot import plot_task_losses, plot_schedule, plot_results
 
 from tasks import ReluDropGenerator
-from tree_search import mcts, random_sequencer, earliest_release, est_alg_kw, branch_bound_with_stats, branch_bound
+from tree_search import mcts_orig, random_sequencer, earliest_release, est_alg_kw, branch_bound_with_stats, branch_bound
 from env_tasking import SeqTaskingEnv, StepTaskingEnv, wrap_agent, RandomAgent
 
 plt.style.use('seaborn')
@@ -59,7 +59,7 @@ random_agent = wrap_agent(env, RandomAgent(env.action_space))
 alg_funcs = [partial(branch_bound_with_stats, verbose=False, rng = rng),
              # partial(branch_bound2, verbose=False, rng = rng),
              # partial(branch_bound_rules, verbose=False),
-             partial(mcts, n_mc=100, verbose=False),
+             partial(mcts_orig, n_mc=100, verbose=False),
              partial(earliest_release, do_swap=True)]#,
              # partial(random_sequencer)]#,
              # partial(random_agent)]

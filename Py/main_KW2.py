@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from tasks import ReluDropGenerator
-from tree_search import branch_bound, mcts, random_sequencer, est_alg, est_task_swap_alg, ed_alg, ed_swap_task_alg
+from tree_search import branch_bound, mcts_orig, random_sequencer, est_alg, est_task_swap_alg, ed_alg, ed_swap_task_alg
 from scheduling_algorithms import branch_bound_rules
 
 from util.utils import check_valid, eval_loss
@@ -38,7 +38,7 @@ algorithms = [partial(est_task_swap_alg, ch_avail=ch_avail),
               partial(ed_swap_task_alg, ch_avail=ch_avail),
               partial(branch_bound_rules, ch_avail=ch_avail, verbose=True, rng=rng),
               partial(branch_bound, ch_avail=ch_avail, verbose=True, rng=rng)]
-              # partial(mcts, ch_avail=ch_avail, n_mc=1000, verbose=True, rng=rng),
+              # partial(mcts_orig, ch_avail=ch_avail, n_mc=1000, verbose=True, rng=rng),
               # partial(random_sequencer, ch_avail=ch_avail, rng=rng)]
 
 
