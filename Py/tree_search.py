@@ -123,7 +123,7 @@ class TreeNode:     # TODO: rename?
             self._ch_ex[n] = ch
             self._t_ex[n] = max(self._tasks[n].t_release, self._ch_avail[ch])
             self._ch_avail[ch] = self._t_ex[n] + self._tasks[n].duration
-            self._l_ex += self._tasks[n].loss_fcn(self._t_ex[n])
+            self._l_ex += self._tasks[n].loss_func(self._t_ex[n])
 
     def branch(self, do_permute=True):
         """
@@ -253,8 +253,8 @@ class TreeNodeBound(TreeNode):
         self._l_lo = self._l_ex
         self._l_up = self._l_ex
         for n in self._seq_rem:  # update loss bounds
-            self._l_lo += self._tasks[n].loss_fcn(max(self._tasks[n].t_release, min(self._ch_avail)))
-            self._l_up += self._tasks[n].loss_fcn(t_ex_max)
+            self._l_lo += self._tasks[n].loss_func(max(self._tasks[n].t_release, min(self._ch_avail)))
+            self._l_up += self._tasks[n].loss_func(t_ex_max)
 
         if len(self._seq_rem) > 0 and self._l_lo == self._l_up:  # roll-out if bounds converge
             self.roll_out()

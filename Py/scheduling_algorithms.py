@@ -308,14 +308,14 @@ def branch_bound_rules(tasks: list, ch_avail_init: list, verbose=False, rng=None
                 # for n in range(len(newNode.T)):
                 #     print(n)
                 #     curJobId = newNode.T[n]
-                #     Cprime += Cprime + tasks[curJobId].loss_fcn(newNode.t_ex[curJobId])
+                #     Cprime += Cprime + tasks[curJobId].loss_func(newNode.t_ex[curJobId])
 
-                    # self._l_ex += self._tasks[n].loss_fcn(self._t_ex[n])
+                    # self._l_ex += self._tasks[n].loss_func(self._t_ex[n])
                     # ch = self.ch_early
                     # self._ch_ex[n] = ch
                     # self._t_ex[n] = max(self._tasks[n].t_release, self._ch_avail[ch])
                     # self._ch_avail[ch] = self._t_ex[n] + self._tasks[n].duration
-                    # self._l_ex += self._tasks[n].loss_fcn(self._t_ex[n])
+                    # self._l_ex += self._tasks[n].loss_func(self._t_ex[n])
 
                 TimeExecutionInput = curNode.t_ex.copy()
                 ChannelAvailableTimeInput = curNode.ch_avail.copy()

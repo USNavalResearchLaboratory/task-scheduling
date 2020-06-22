@@ -57,7 +57,7 @@ alg_funcs = [partial(branch_bound, verbose=False),
 
 alg_n_runs = [2, 2, 2, 1, 5, 5]       # number of runs per problem
 
-alg_reprs = list(map(algorithm_repr, alg_funcs))
+alg_reprs = list(map(algorithm_repr, alg_funcs))    # string representations
 
 
 # %% Evaluate
@@ -73,7 +73,7 @@ t_run_mean = np.array(list(zip(*np.empty((len(alg_reprs), n_gen)))),
 l_ex_mean = np.array(list(zip(*np.empty((len(alg_reprs), n_gen)))),
                      dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float])))
 
-for i_gen in range(n_gen):      # Generate new tasks
+for i_gen in range(n_gen):      # Generate new scheduling problem
     print(f'Task Set: {i_gen + 1}/{n_gen}')
 
     tasks = task_gen.rand_tasks(n_tasks)
@@ -109,7 +109,7 @@ for i_gen in range(n_gen):      # Generate new tasks
 
 print('')
 
-# _, ax_results = plt.subplots(num='Results', clear=True)
-# plot_results(t_run_mean, l_ex_mean, ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
+_, ax_results = plt.subplots(num='Results', clear=True)
+plot_results(t_run_mean, l_ex_mean, ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
 
 

@@ -160,7 +160,7 @@ class StepTaskingEnv(BaseTaskingEnv):
         obs = self.state
 
         self.node.seq_extend([action])      # TODO: use private method w/o validity check?
-        reward = -1 * self.tasks[action].loss_fcn(self.node.t_ex[action])
+        reward = -1 * self.tasks[action].loss_func(self.node.t_ex[action])
 
         done = len(self.node.seq_rem) == 0
 
