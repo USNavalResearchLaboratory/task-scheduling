@@ -103,9 +103,9 @@ def plot_schedule(tasks, t_ex, ch_ex, l_ex=None, alg_repr=None, ax=None, ax_kwar
     ax.set(**ax_kwargs)
 
 
-def plot_results(t_run, l_ex, ax=None, ax_kwargs=None):
+def scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
     """
-    Scatter plot of runtime versus total execution loss.
+    Scatter plot of total execution loss versus runtime.
 
     Parameters
     ----------
@@ -127,6 +127,37 @@ def plot_results(t_run, l_ex, ax=None, ax_kwargs=None):
 
     for alg_repr in t_run.dtype.names:
         ax.scatter(t_run[alg_repr], l_ex[alg_repr], label=alg_repr)
+
+    ax.set(xlabel='Runtime (s)', ylabel='Loss')
+    ax.grid(True)
+    ax.legend()
+    ax.set(**ax_kwargs)
+
+
+def plot_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):    # TODO: combine scatter and line plotters?
+    """
+    Line plot of total execution loss versus maximum runtime.
+
+    Parameters
+    ----------
+    t_run : ndarray
+        Runtime of algorithm.
+    l_ex : ndarray
+        Total loss of scheduled tasks.
+    ax : Axes or None
+        Matplotlib axes target object.
+    ax_kwargs : dict
+        Additional Axes keyword parameters.
+
+    """
+    if ax is None:
+        _, ax = plt.subplots()
+
+    if ax_kwargs is None:
+        ax_kwargs = {}
+
+    for alg_repr in l_ex.dtype.names:
+        ax.plot(t_run, l_ex[alg_repr], label=alg_repr)
 
     ax.set(xlabel='Runtime (s)', ylabel='Loss')
     ax.grid(True)

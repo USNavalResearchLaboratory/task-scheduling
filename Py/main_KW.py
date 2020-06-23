@@ -23,7 +23,7 @@ np.set_printoptions(linewidth=300) # Set printing to avoid line wrapping when di
 
 from util.generic import algorithm_repr, check_rng
 from util.results import check_valid, eval_loss
-from util.plot import plot_task_losses, plot_schedule, plot_results
+from util.plot import plot_task_losses, plot_schedule, scatter_loss_runtime
 
 from tasks import ReluDropGenerator
 from tree_search import mcts_orig, random_sequencer, earliest_release, est_alg_kw, branch_bound_with_stats, branch_bound
@@ -146,17 +146,17 @@ for i_gen in range(n_gen):      # Generate new tasks
         print(f"    Avg. Runtime: {t_run_mean[alg_repr][i_gen]:.2f} (s)")
         print(f"    Avg. Execution Loss: {l_ex_mean[alg_repr][i_gen]:.2f}")
 
-    plot_results(t_run_iter[i_gen], l_ex_iter[i_gen], ax=ax_gen[1])
+    scatter_loss_runtime(t_run_iter[i_gen], l_ex_iter[i_gen], ax=ax_gen[1])
 
 print('')
 
 _, ax_results = plt.subplots(num='Results', clear=True)
-plot_results(t_run_mean, l_ex_mean, ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
+scatter_loss_runtime(t_run_mean, l_ex_mean, ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
 
 
 
 _, ax_results2 = plt.subplots(num='Results', clear=True)
-plot_results(t_run_mean2, l_ex_mean2, ax=ax_results2, ax_kwargs={'title': 'Average performance on random task sets'})
+scatter_loss_runtime(t_run_mean2, l_ex_mean2, ax=ax_results2, ax_kwargs={'title': 'Average performance on random task sets'})
 
 # Setup Training Data # TODO Need to make sure splits arent' across problems
 Nsamp = len(X)

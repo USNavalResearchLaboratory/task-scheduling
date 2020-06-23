@@ -355,7 +355,7 @@ class SearchNode:   # TODO: subclass TreeNode for B&B?
         """
 
         w = {n: node.weight for (n, node) in self._children.items()}
-        w.update({n: -10 for n in self._seq_unk})   # TODO: random permute?
+        w.update({n: -10 for n in self._seq_unk})   # FIXME: value? random permute?
 
         n = min(w, key=w.__getitem__)
         if n not in self._children:
@@ -584,7 +584,7 @@ def mcts_orig(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
         # Assign next task from earliest available channel
         node._seq_extend([node_best.seq[n]])
 
-    t_ex, ch_ex = node.t_ex, node.ch_ex
+    t_ex, ch_ex = node_best.t_ex, node_best.ch_ex
 
     return t_ex, ch_ex
 
@@ -627,11 +627,11 @@ def mcts(tasks: list, ch_avail: list, n_mc: int, verbose=False):
         if verbose:
             print(f'Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_min}', end='\r')
 
-        seq = tree.simulate()
-        node = TreeNode(seq)
+        seq = tree.simulate()   # Roll-out a complete sequence
+        node = TreeNode(seq)    # Evaluate execution times and channels, total loss
 
         loss = node.l_ex
-        tree.backup(seq, loss)
+        tree.backup(seq, loss)  # Update search tree from leaf sequence to root
 
         if loss < loss_min:
             node_best, loss_min = node, loss

@@ -21,7 +21,7 @@ Tmax = 50
 from tree_search import branch_bound, mc_tree_search, random_sequencer, earliest_release, est_alg_kw
 from functools import partial
 from util.generic import algorithm_repr, check_rng
-from util.plot import plot_task_losses, plot_schedule, plot_results
+from util.plot import plot_task_losses, plot_schedule, scatter_loss_runtime
 from util.results import check_valid, eval_loss
 
 from math import factorial, floor
@@ -215,7 +215,7 @@ for ii in np.arange(NumSteps): # Main Loop to evaluate schedulers
         print(f"    Avg. Runtime: {t_run_mean[alg_repr][ii]:.2f} (s)")
         print(f"    Avg. Execution Loss: {l_ex_mean[alg_repr][ii]:.2f}")
 
-    plot_results(t_run_iter[ii], l_ex_iter[ii], ax=ax_gen[1])
+    scatter_loss_runtime(t_run_iter[ii], l_ex_iter[ii], ax=ax_gen[1])
 
     # TODO Put jobs in job_scheduler at the end of the master list "job", Finish plotting
 

@@ -1,3 +1,4 @@
+from time import perf_counter
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -176,6 +177,28 @@ def wrap_agent(env, agent):
             agent.action_space = env.action_space       # FIXME: hacked to allow proper StepTasking behavior
             action = agent.act(observation, reward, done)
             observation, reward, done, info = env.step(action)
+
+        return env.node.t_ex, env.node.ch_ex
+
+    return scheduling_agent
+
+
+def wrap_agent_run_lim(env, agent):
+    """Generate scheduling function by running an agent on a single environment episode, enforcing max runtime."""
+
+    def scheduling_agent(tasks, ch_avail, max_runtime):
+
+        t_run = perf_counter()
+
+        observation, reward, done = env.reset(tasks, ch_avail), 0, False
+        while not done:
+            agent.action_space = env.action_space       # FIXME: hacked to allow proper StepTasking behavior
+            action = agent.act(observation, reward, done)
+            observation, reward, done, info = env.step(action)
+
+        runtime = perf_counter() - t_run
+        if runtime >= max_runtime:
+            raise RuntimeError(f"Algorithm timeout: {runtime} > {max_runtime}.")
 
         return env.node.t_ex, env.node.ch_ex
 
