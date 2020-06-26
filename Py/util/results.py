@@ -49,7 +49,7 @@ def eval_loss(tasks, t_ex):
 
     l_ex = 0
     for task, t_ex in zip(tasks, t_ex):
-        l_ex += task.loss_fcn(t_ex)
+        l_ex += task.loss_func(t_ex)
 
     return l_ex
 

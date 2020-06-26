@@ -20,10 +20,10 @@ class GenericTask:
 
     """
 
-    def __init__(self, duration, t_release, loss_fcn):
+    def __init__(self, duration, t_release, loss_func):
         self.duration = duration
         self.t_release = t_release
-        self.loss_fcn = loss_fcn
+        self.loss_func = loss_func
 
         self.plot_lim = (t_release, t_release + duration)
 
@@ -37,8 +37,8 @@ class GenericTask:
             t_plot = t_plot[t_plot >= self.t_release]
 
         x_lim = t_plot[0], t_plot[-1]
-        y_lim = self.loss_fcn(list(x_lim))
-        # y_lim = 0, 1 + self.loss_fcn(float('inf'))
+        y_lim = self.loss_func(list(x_lim))
+        # y_lim = 0, 1 + self.loss_func(float('inf'))
 
         if ax is None:
             _, ax = plt.subplots()
@@ -54,7 +54,7 @@ class GenericTask:
         ax.set_xlim(*x_lim)
         ax.set_ylim(*y_lim)
 
-        plot_data = ax.plot(t_plot, self.loss_fcn(t_plot), label=self.__repr__())
+        plot_data = ax.plot(t_plot, self.loss_func(t_plot), label=self.__repr__())
 
         return plot_data
 
@@ -115,17 +115,17 @@ def loss_relu_drop(t_release, slope, t_drop, l_drop):
 
     """
 
-    def loss_fcn(t):
+    def loss_func(t):
         t = np.asarray(t)[np.newaxis]
         loss = slope * (t - t_release)
         loss[t < t_release] = np.inf
         loss[t >= t_drop] = l_drop
         return loss.squeeze(axis=0)
 
-    return loss_fcn
+    return loss_func
 
 
-# %% Task generation objects        # TODO: generalize, docstrings
+# %% Task generation objects        # TODO: generalize, add docstrings
 class GenericTaskGenerator:
     def __init__(self, rng=None):
         self.rng = check_rng(rng)
