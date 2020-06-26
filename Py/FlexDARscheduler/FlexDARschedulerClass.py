@@ -18,7 +18,7 @@ RP = 0.04
 Tmax = 50
 
 ## Specify Algorithms
-from tree_search import branch_bound, mc_tree_search, random_sequencer, earliest_release, est_alg_kw
+from tree_search import branch_bound, random_sequencer, earliest_release, est_alg_kw
 from functools import partial
 from util.generic import algorithm_repr, check_rng
 from util.plot import plot_task_losses, plot_schedule, plot_results
@@ -171,33 +171,35 @@ l_ex_mean = np.array(list(zip(*np.empty((len(alg_reprs), NumSteps)))),
 
 ## Begin Main Loop
 
-ChannelAvailableTime = np.zeros(K)
-for ii in np.arange(NumSteps): # Main Loop to evaluate schedulers
-    timeSec = ii*RP # Current time
+for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
+    for i_run in range(n_run):  # Perform new algorithm runs: Should never be more than 1 in this code
 
-    if np.min(ChannelAvailableTime) > timeSec:
-        continue # Jump to next Resource Period
+        ChannelAvailableTime = np.zeros(K)
+        for ii in np.arange(NumSteps): # Main Loop to evaluate schedulers
+            timeSec = ii*RP # Current time
 
-    # Reassess Track Priorities
-    for jj in range(len(job)):
-        job[jj].Priority = job[jj].loss_fcn(timeSec)
+            if np.min(ChannelAvailableTime) > timeSec:
+                continue # Jump to next Resource Period
 
-    priority = np.array([task.Priority for task in job])
-    priority_Idx = np.argsort(priority)
+            # Reassess Track Priorities
+            for jj in range(len(job)):
+                job[jj].Priority = job[jj].loss_fcn(timeSec)
 
-    job_scheduler = [] # Jobs to be scheduled (Length N)
-    for nn in range(N):
-        job_scheduler.append(job.pop(priority_Idx[nn]))
+            priority = np.array([task.Priority for task in job])
+            priority_Idx = np.argsort(priority)
 
-    _, ax_gen = plt.subplots(2, 1, num=f'Task Set: {1}', clear=True)
-    plot_task_losses(job_scheduler, ax=ax_gen[0])
+            job_scheduler = [] # Jobs to be scheduled (Length N)
+            for nn in range(N):
+                job_scheduler.append(job.pop(priority_Idx[nn]))
 
-    for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
-        for i_run in range(n_run):      # Perform new algorithm runs
+            _, ax_gen = plt.subplots(2, 1, num=f'Task Set: {1}', clear=True)
+            plot_task_losses(job_scheduler, ax=ax_gen[0])
+
+
             print(f'  {alg_repr} - Run: {i_run + 1}/{n_run}', end='\r')
 
             t_start = time.time()
-            t_ex, ch_ex = alg_func(job_scheduler, ChannelAvailableTime)
+            t_ex, ch_ex, T = alg_func(job_scheduler, ChannelAvailableTime) # Added Sequence T
             t_run = time.time() - t_start
 
             check_valid(job_scheduler, t_ex, ch_ex)
@@ -208,16 +210,29 @@ for ii in np.arange(NumSteps): # Main Loop to evaluate schedulers
 
             # plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, alg_repr=alg_repr, ax=None)
 
-        t_run_mean[alg_repr][ii] = t_run_iter[alg_repr][ii].mean()
-        l_ex_mean[alg_repr][ii] = l_ex_iter[alg_repr][ii].mean()
+            t_run_mean[alg_repr][ii] = t_run_iter[alg_repr][ii].mean()
+            l_ex_mean[alg_repr][ii] = l_ex_iter[alg_repr][ii].mean()
 
-        print('')
-        print(f"    Avg. Runtime: {t_run_mean[alg_repr][ii]:.2f} (s)")
-        print(f"    Avg. Execution Loss: {l_ex_mean[alg_repr][ii]:.2f}")
+            print('')
+            print(f"    Avg. Runtime: {t_run_mean[alg_repr][ii]:.2f} (s)")
+            print(f"    Avg. Execution Loss: {l_ex_mean[alg_repr][ii]:.2f}")
 
-    plot_results(t_run_iter[ii], l_ex_iter[ii], ax=ax_gen[1])
+            plot_results(t_run_iter[ii], l_ex_iter[ii], ax=ax_gen[1])
 
-    # TODO Put jobs in job_scheduler at the end of the master list "job", Finish plotting
+            for n = indexExecution:
+                new_job(n).Id = queue((n)).Id;
+                new_job(n).StartTime = t_ex((n)) + queue((n)).Duration;
+                new_job(n).slope = queue((n)).slope;
+                new_job(n).DropTime = queue((n)).DropTime;
+                new_job(n).DropRelativeTime = queue((n)).DropTime + new_job(n).StartTime; % Update with new start time and job DropTime
+                new_job(n).DropCost = queue((n)).DropCost;
+                new_job(n).Duration = queue((n)).Duration;
+                new_job(n).Type = queue((n)).Type;
+                
+                # metrics.JobRevistCount([queue(n).Id]) = metrics.JobRevistCount([queue(n).Id]) + 1;
+                # JobRevistTime{queue(n).Id}(metrics.JobRevistCount(queue(n).Id)) = timeSec;
+
+            # TODO Put jobs in job_scheduler at the end of the master list "job", Finish plotting
 
 
 

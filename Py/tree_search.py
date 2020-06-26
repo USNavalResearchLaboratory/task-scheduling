@@ -713,9 +713,9 @@ def earliest_release(tasks: list, ch_avail: list, do_swap=False):
     if do_swap:
         node.check_swaps()
 
-    t_ex, ch_ex = node.t_ex, node.ch_ex
+    t_ex, ch_ex, T = node.t_ex, node.ch_ex, node.seq # Added T= output sequence of the node
 
-    return t_ex, ch_ex
+    return t_ex, ch_ex, T
 
 
 def earliest_drop(tasks: list, ch_avail: list, do_swap=False):
