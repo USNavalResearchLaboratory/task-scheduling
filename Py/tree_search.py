@@ -360,7 +360,7 @@ class SearchNode:   # TODO: subclass TreeNode for B&B?
         n = min(w, key=w.__getitem__)
         if n not in self._children:
             # self.add_child(n)
-            self._children[n] = SearchNode(self._seq + [n])     # TODO: need copy?
+            self._children[n] = SearchNode(self._seq + [n])
             self._seq_unk.remove(n)
 
         return self[n]
@@ -575,7 +575,7 @@ def mcts_orig(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
             print(f'Assigning Task {n + 1}/{n_tasks}', end='\r')
 
         # Perform Roll-outs
-        for _ in range(n_mc[n]):       # TODO: variable number of roll-outs by stage for efficiency
+        for _ in range(n_mc[n]):
             node_mc = node.roll_out(do_copy=True)
 
             if node_mc.l_ex < node_best.l_ex:  # Update best node
@@ -636,7 +636,7 @@ def mcts(tasks: list, ch_avail: list, n_mc: int, verbose=False):
         if loss < loss_min:
             node_best, loss_min = node, loss
 
-        do_search = tree.n_visits < n_mc     # FIXME: runtime control
+        do_search = tree.n_visits < n_mc
 
     t_ex, ch_ex = node_best.t_ex, node_best.ch_ex
 

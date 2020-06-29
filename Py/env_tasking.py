@@ -160,7 +160,7 @@ class StepTaskingEnv(BaseTaskingEnv):
         self.state[action, 0] = 0
         obs = self.state
 
-        self.node.seq_extend([action])      # TODO: use private method w/o validity check?
+        self.node.seq_extend([action])
         reward = -1 * self.tasks[action].loss_func(self.node.t_ex[action])
 
         done = len(self.node.seq_rem) == 0
@@ -192,7 +192,7 @@ def wrap_agent_run_lim(env, agent):
 
         observation, reward, done = env.reset(tasks, ch_avail), 0, False
         while not done:
-            agent.action_space = env.action_space       # FIXME: hacked to allow proper StepTasking behavior
+            agent.action_space = env.action_space
             action = agent.act(observation, reward, done)
             observation, reward, done, info = env.step(action)
 
@@ -239,7 +239,7 @@ def main():
 
     obs, reward, done = env.reset(), 0, False
     while not done:
-        agent.action_space = env.action_space   # FIXME: hacked to allow proper StepTasking behavior
+        agent.action_space = env.action_space
         act = agent.act(obs, reward, done)
         observation, reward, done, info = env.step(act)
         print(reward)

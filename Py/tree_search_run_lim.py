@@ -122,7 +122,7 @@ def mcts_orig(tasks: list, ch_avail: list, max_runtime=float('inf'), n_mc=None, 
             print(f'Assigning Task {n + 1}/{n_tasks}', end='\r')
 
         # Perform Roll-outs
-        for _ in range(n_mc[n]):       # TODO: variable number of roll-outs by stage for efficiency
+        for _ in range(n_mc[n]):
             node_mc = node.roll_out(do_copy=True)
 
             if node_mc.l_ex < node_best.l_ex:  # Update best node
