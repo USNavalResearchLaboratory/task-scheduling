@@ -18,15 +18,15 @@ RP = 0.04
 Tmax = 50
 
 ## Specify Algorithms
-from tree_search import branch_bound, random_sequencer, earliest_release, est_alg_kw
+from tree_search import branch_bound, random_sequencer, ert_alg_kw, est_alg_kw
 from functools import partial
 from util.generic import algorithm_repr, check_rng
-from util.plot import plot_task_losses, plot_schedule, plot_results
+from util.plot import plot_task_losses, plot_schedule, scatter_loss_runtime
 from util.results import check_valid, eval_loss
 
 from math import factorial, floor
 
-alg_funcs = [partial(earliest_release, do_swap=True)]
+alg_funcs = [partial(ert_alg_kw, do_swap=True)]
              #partial(branch_bound, verbose=False),
              # partial(mc_tree_search, n_mc=[floor(.1 * factorial(n)) for n in range(n_tasks, 0, -1)], verbose=False),
              # partial(random_sequencer),
@@ -217,17 +217,17 @@ for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
             print(f"    Avg. Runtime: {t_run_mean[alg_repr][ii]:.2f} (s)")
             print(f"    Avg. Execution Loss: {l_ex_mean[alg_repr][ii]:.2f}")
 
-            plot_results(t_run_iter[ii], l_ex_iter[ii], ax=ax_gen[1])
+            scatter_loss_runtime(t_run_iter[ii], l_ex_iter[ii], ax=ax_gen[1])
 
-            for n = indexExecution:
-                new_job(n).Id = queue((n)).Id;
-                new_job(n).StartTime = t_ex((n)) + queue((n)).Duration;
-                new_job(n).slope = queue((n)).slope;
-                new_job(n).DropTime = queue((n)).DropTime;
-                new_job(n).DropRelativeTime = queue((n)).DropTime + new_job(n).StartTime; % Update with new start time and job DropTime
-                new_job(n).DropCost = queue((n)).DropCost;
-                new_job(n).Duration = queue((n)).Duration;
-                new_job(n).Type = queue((n)).Type;
+            # for n = indexExecution:
+            #     new_job(n).Id = queue((n)).Id;
+            #     new_job(n).StartTime = t_ex((n)) + queue((n)).Duration;
+            #     new_job(n).slope = queue((n)).slope;
+            #     new_job(n).DropTime = queue((n)).DropTime;
+            #     new_job(n).DropRelativeTime = queue((n)).DropTime + new_job(n).StartTime; % Update with new start time and job DropTime
+            #     new_job(n).DropCost = queue((n)).DropCost;
+            #     new_job(n).Duration = queue((n)).Duration;
+            #     new_job(n).Type = queue((n)).Type;
                 
                 # metrics.JobRevistCount([queue(n).Id]) = metrics.JobRevistCount([queue(n).Id]) + 1;
                 # JobRevistTime{queue(n).Id}(metrics.JobRevistCount(queue(n).Id)) = timeSec;

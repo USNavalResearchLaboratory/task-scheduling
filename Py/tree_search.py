@@ -705,9 +705,9 @@ def earliest_release(tasks: list, ch_avail: list, do_swap=False):
     if do_swap:
         node.check_swaps()
 
-    t_ex, ch_ex, T = node.t_ex, node.ch_ex, node.seq # Added T= output sequence of the node
+    t_ex, ch_ex = node.t_ex, node.ch_ex
 
-    return t_ex, ch_ex, T
+    return t_ex, ch_ex
 
 
 def earliest_drop(tasks: list, ch_avail: list, do_swap=False):
@@ -772,6 +772,22 @@ def est_alg_kw(tasks: list, ch_avail: list):
     t_ex, ch_ex = FlexDARMultiChannelSequenceScheduler(T, tasks, ChannelAvailableTime, RP)
 
     return t_ex, ch_ex
+
+
+def ert_alg_kw(tasks: list, ch_avail: list, do_swap=False):
+
+    TreeNode._tasks = tasks
+    TreeNode._ch_avail_init = ch_avail
+
+    seq = list(np.argsort([task.t_release for task in tasks]))
+    node = TreeNode(seq)
+
+    if do_swap:
+        node.check_swaps()
+
+    t_ex, ch_ex, T = node.t_ex, node.ch_ex, node.seq
+
+    return t_ex, ch_ex, T
 
 
 def main():

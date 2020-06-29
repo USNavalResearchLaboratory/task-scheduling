@@ -133,7 +133,7 @@ def mcts_orig(tasks: list, ch_avail: list, max_runtime=float('inf'), n_mc=None, 
                 run = False
                 break
 
-        if not run:
+        if not run:     # TODO: refactor nested break to func w/ return?
             break
 
         # Assign next task from earliest available channel
