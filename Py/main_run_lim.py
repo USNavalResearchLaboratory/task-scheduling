@@ -44,7 +44,7 @@ def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time gen
     return rng.uniform(0, 2, n_ch)
 
 
-max_runtimes = np.logspace(-2, -1, 11)
+max_runtimes = np.logspace(-2, 0, 11)
 
 # Algorithms
 
@@ -102,7 +102,12 @@ for i_gen in range(n_gen):      # Generate new scheduling problem
 
 print('')
 
-# _, ax_results = plt.subplots(num='Results', clear=True)
-# plot_loss_runtime(max_runtimes, l_ex_mean, ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
+# Average results across random task sets
+l_ex_mean_gen = np.array([tuple(l_ex_mean[alg_repr][:, i].mean() for alg_repr in alg_reprs) for i in range(n_runtimes)],
+                         dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float])))
+
+_, ax_results = plt.subplots(num='Results', clear=True)
+plot_loss_runtime(max_runtimes, l_ex_mean_gen,
+                  ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
 
 

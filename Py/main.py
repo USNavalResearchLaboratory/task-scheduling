@@ -31,7 +31,7 @@ plt.style.use('seaborn')
 # %% Inputs
 n_gen = 2      # number of task scheduling problems
 
-n_tasks = 6
+n_tasks = 8
 n_channels = 2
 
 task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
@@ -73,6 +73,9 @@ t_run_mean = np.array(list(zip(*np.empty((len(alg_reprs), n_gen)))),
 l_ex_mean = np.array(list(zip(*np.empty((len(alg_reprs), n_gen)))),
                      dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float])))
 
+# l_ex_mean = np.array([tuple(np.empty(len(alg_reprs))) for _ in range(n_gen)],
+#                      dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float])))     # TODO: simpler array init?
+
 for i_gen in range(n_gen):      # Generate new scheduling problem
     print(f'Task Set: {i_gen + 1}/{n_gen}')
 
@@ -110,6 +113,7 @@ for i_gen in range(n_gen):      # Generate new scheduling problem
 print('')
 
 _, ax_results = plt.subplots(num='Results', clear=True)
-scatter_loss_runtime(t_run_mean, l_ex_mean, ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
+scatter_loss_runtime(t_run_mean, l_ex_mean,
+                     ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
 
 
