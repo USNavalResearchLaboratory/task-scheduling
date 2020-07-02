@@ -35,7 +35,7 @@ class GenericTask:
             t_plot = np.arange(*self.plot_lim, 0.01)
         elif t_plot[0] < self.t_release:
             t_plot = t_plot[t_plot >= self.t_release]
-            if t_plot.size == 0:
+            if t_plot.size == 0:                                # TODO: Why did I does this, fix outside.
                 t_plot = [self.t_release, self.t_release+1]
 
         try:

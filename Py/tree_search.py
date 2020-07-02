@@ -707,7 +707,7 @@ def earliest_release(tasks: list, ch_avail: list, do_swap=False):
 
     t_ex, ch_ex = node.t_ex, node.ch_ex
 
-    return t_ex, ch_ex
+    return t_ex, ch_ex, seq
 
 
 def earliest_drop(tasks: list, ch_avail: list, do_swap=False):
