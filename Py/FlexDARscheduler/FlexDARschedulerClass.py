@@ -18,7 +18,7 @@ RP = 0.04
 # Tmax = 3
 
 ## Specify Algorithms
-from tree_search import branch_bound, random_sequencer, earliest_release, est_alg_kw
+from tree_search import branch_bound, random_sequencer, ert_alg_kw, est_alg_kw
 from functools import partial
 from util.generic import algorithm_repr, check_rng
 from util.plot import plot_task_losses, plot_schedule, plot_loss_runtime, scatter_loss_runtime
@@ -26,7 +26,7 @@ from util.results import check_valid, eval_loss
 
 from math import factorial, floor
 
-alg_funcs = [partial(earliest_release, do_swap=True)]
+alg_funcs = [partial(ert_alg_kw, do_swap=True)]
              #partial(branch_bound, verbose=False),
              # partial(mc_tree_search, n_mc=[floor(.1 * factorial(n)) for n in range(n_tasks, 0, -1)], verbose=False),
              # partial(random_sequencer),
@@ -126,7 +126,8 @@ from tasks import ReluDropTask
 job = []
 cnt = 0 # Make 0-based, saves a lot of trouble later when indexing into python zero-based vectors
 for ii in range(Nsearch):
-    job.append(ReluDropTask(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropTimeFixed[ii], SearchParams.DropCost[ii]))
+    # job.append(ReluDropTask(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropTimeFixed[ii], SearchParams.DropCost[ii]))
+    job.append(ReluDropTask(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropCost[ii]))
     job[ii].Id = cnt # Numeric Identifier for each job
     cnt = cnt + 1
     if job[ii].slope == 0.4:
@@ -139,7 +140,8 @@ for ii in range(Nsearch):
     # A.append(tasks)
     # del tasks
 for ii in range(Ntrack):
-    job.append(ReluDropTask(TrackParams.JobDuration[ii], 0, TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropTimeFixed[ii], TrackParams.DropCost[ii]))
+    # job.append(ReluDropTask(TrackParams.JobDuration[ii], 0, TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropTimeFixed[ii], TrackParams.DropCost[ii]))
+    job.append(ReluDropTask(TrackParams.JobDuration[ii], 0, TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropCost[ii]))
     job[cnt].Id = cnt # Numeric Identifier for each job
     if job[cnt].slope == 0.25:
         job[cnt].Type = 'Tlow' # Low Priority Track
@@ -223,15 +225,7 @@ for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
 
 
             _, ax_gen = plt.subplots(2, 1, num=f'Task Set: {1}', clear=True)
-            try:
-                plot_task_losses(job_scheduler, ax=ax_gen[0])
-            except:
-                print("Something went wrong")
-            # else:
-            #     print("Nothing went wrong")
-
-
-
+            plot_task_losses(job_scheduler, ax=ax_gen[0])
 
             print(f'  {alg_repr} - Run: {i_run + 1}/{n_run}', end='\r')
 
@@ -267,7 +261,7 @@ for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
             # plot_loss_runtime(max_runtimes, l_ex_mean[i_gen], ax=ax_gen[1])
             for n in range(len(job_scheduler)):
                 job_scheduler[n].t_release = t_ex[n] + job_scheduler[n].duration # Update Release Times based on execution + duration
-                job_scheduler[n].t_drop = job_scheduler[n].t_release + job_scheduler[n].t_drop_fixed # Update Drop time from new start time
+                # job_scheduler[n].t_drop = job_scheduler[n].t_release + job_scheduler[n].t_drop_fixed # Update Drop time from new start time   TODO: delete?
                 job.append(job_scheduler[n])
                 # print(job_scheduler[n].Id)
                 Job_Revisit_Count[job_scheduler[n].Id] = Job_Revisit_Count[job_scheduler[n].Id] + 1
