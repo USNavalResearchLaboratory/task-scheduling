@@ -53,11 +53,12 @@ class DiscreteSet(Space):
 
     def __init__(self, elements):
         self.elements = np.sort(np.asarray(list(elements)).flatten())
+        self.n = self.elements.size
         super().__init__((self.n,), self.elements.dtype)
 
-    @property
-    def n(self):
-        return self.elements.size
+    # @property
+    # def n(self):
+    #     return self.elements.size
 
     def sample(self):
         return self.np_random.choice(self.elements)
@@ -93,10 +94,8 @@ class BaseTaskingEnv(gym.Env):
 
         _low, _high = list(zip(task_gen.duration_lim, task_gen.t_release_lim, task_gen.slope_lim,
                                task_gen.t_drop_lim, task_gen.l_drop_lim, ))
-        obs_low = np.broadcast_to(np.asarray(_low), (n_tasks, 5))
-        obs_high = np.broadcast_to(np.asarray(_high), (n_tasks, 5))
-
-        self.observation_space = Box(obs_low, obs_high, dtype=np.float64)
+        self._obs_low = np.broadcast_to(np.asarray(_low), (n_tasks, 5))
+        self._obs_high = np.broadcast_to(np.asarray(_high), (n_tasks, 5))
 
     def reset(self, tasks=None, ch_avail=None):     # TODO: added arguments to control Env state. OK?
         self.tasks = self.task_gen.rand_tasks(self.n_tasks) if tasks is None else tasks
@@ -121,9 +120,10 @@ class BaseTaskingEnv(gym.Env):
 class SeqTaskingEnv(BaseTaskingEnv):
     """Tasking environment, entire sequence selected at once."""
 
-    @property
-    def action_space(self):
-        return Sequence(self.n_tasks)
+    def __init__(self, n_tasks, task_gen, n_ch, ch_avail_gen):
+        super().__init__(n_tasks, task_gen, n_ch, ch_avail_gen)
+        self.observation_space = Box(self._obs_low, self._obs_high, dtype=np.float64)
+        self.action_space = Sequence(self.n_tasks)
 
     def reset(self, tasks=None, ch_avail=None):
         super().reset(tasks, ch_avail)
@@ -144,6 +144,14 @@ class SeqTaskingEnv(BaseTaskingEnv):
 class StepTaskingEnv(BaseTaskingEnv):
     """Tasking environment, tasks scheduled sequentially."""
 
+    def __init__(self, n_tasks, task_gen, n_ch, ch_avail_gen):
+        super().__init__(n_tasks, task_gen, n_ch, ch_avail_gen)
+        _obs_low_step = np.concatenate((np.zeros((self.n_tasks, 1)), self._obs_low), axis=1)
+        _obs_high_step = np.concatenate((np.ones((self.n_tasks, 1)), self._obs_high), axis=1)
+        self.observation_space = Box(self._obs_low, self._obs_high, dtype=np.float64)
+
+        self.loss_agg = None
+
     @property
     def action_space(self):
         return DiscreteSet(self.node.seq_rem)
@@ -151,17 +159,20 @@ class StepTaskingEnv(BaseTaskingEnv):
     def reset(self, tasks=None, ch_avail=None):
         super().reset(tasks, ch_avail)
 
+        self.loss_agg = self.node.l_ex
+
         # self.state = obs_relu_drop(self.tasks)
         self.state = np.concatenate((np.ones((self.n_tasks, 1)), obs_relu_drop(self.tasks)), axis=1)
         return self.state
 
     def step(self, action: int):
         # obs = obs_relu_drop(self.tasks)
-        self.state[action, 0] = 0
+        self.state[action, 0] = 0       # Set first element of task vector to zero, indicating 'scheduled'.
         obs = self.state
 
         self.node.seq_extend([action])
-        reward = -1 * self.tasks[action].loss_func(self.node.t_ex[action])
+        # reward = -1 * self.tasks[action].loss_func(self.node.t_ex[action])
+        reward, self.loss_agg = self.loss_agg - self.node.l_ex, self.node.l_ex
 
         done = len(self.node.seq_rem) == 0
 
