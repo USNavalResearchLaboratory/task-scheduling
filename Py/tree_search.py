@@ -220,9 +220,6 @@ class TreeNodeBound(TreeNode):
         """
 
     def __init__(self, seq=None):
-        if seq is None:
-            seq = []
-
         self._l_lo = 0.
         self._l_up = float('inf')
         super().__init__(seq)
@@ -286,14 +283,16 @@ class SearchNode:   # TODO: subclass TreeNode for B&B?
     # TODO: docstring describes properties as attributes. OK? Subclasses, too.
 
     n_tasks = None
+    l_up = None
 
     def __init__(self, seq=None):
         if seq is None:
             seq = []
-
         self._seq = seq
+
         self._n_visits = 0
         self._l_avg = 0.
+        self._l_min = float('inf')  # FIXME: min? ordered statistic?
         self._children = {}
 
         self._seq_unk = set(range(self.n_tasks)) - set(seq)     # set of unexplored task indices
@@ -335,15 +334,6 @@ class SearchNode:   # TODO: subclass TreeNode for B&B?
         return self._l_avg - 10 / (self._n_visits + 1)       # FIXME: placeholder. Need real metric and user control.
         # return np.random.random()
 
-    # def add_child(self, n):
-    #     if n in self.seq_rem:
-    #         if n in self.seq_c:
-    #             self._children[n] = SearchNode(self.seq + [n])
-    #         else:
-    #             raise ValueError("Child node already exists.")
-    #     else:
-    #         raise ValueError(f"Input index must be in {self.seq_rem}.")
-
     def select_child(self):
         """
         Select a child node according to exploration/exploitation objective minimization.
@@ -354,12 +344,14 @@ class SearchNode:   # TODO: subclass TreeNode for B&B?
 
         """
 
+        # TODO: learn selection function with value network? Fast EST based selection?
+        # TODO: add epsilon-greedy selector?
+
         w = {n: node.weight for (n, node) in self._children.items()}
         w.update({n: -10 for n in self._seq_unk})   # FIXME: value? random permute?
 
         n = min(w, key=w.__getitem__)
         if n not in self._children:
-            # self.add_child(n)
             self._children[n] = SearchNode(self._seq + [n])
             self._seq_unk.remove(n)
 
@@ -395,22 +387,27 @@ class SearchNode:   # TODO: subclass TreeNode for B&B?
         self._n_visits += 1
         self._l_avg = loss_total / self._n_visits
 
-    def backup(self, seq, loss):
+    def backup(self, seq: list, loss):
         """
         Updates search attributes for all descendant nodes corresponding to an index sequence.
 
         Parameters
         ----------
         seq : list of int
-            Partial task index sequence.
+            Complete task index sequence.
         loss : float
             Loss of a complete solution descending from the node.
 
         """
 
+        if len(seq) != SearchNode.n_tasks:
+            raise ValueError('Sequence must be complete.')
+
+        seq_rem = seq[len(self._seq):]
+
         node = self
         node.update_stats(loss)
-        for n in seq:
+        for n in seq_rem:
             node = node[n]
             node.update_stats(loss)
 
@@ -619,6 +616,7 @@ def mcts(tasks: list, ch_avail: list, n_mc: int, verbose=False):
     # TreeNode._rng = check_rng(rng)
 
     SearchNode.n_tasks = len(tasks)
+    SearchNode.l_up = TreeNodeBound().l_up
     tree = SearchNode()
 
     loss_min = float('inf')
@@ -813,6 +811,7 @@ def main():
     # t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True, rng=None)
 
     SearchNode.n_tasks = n_tasks
+    SearchNode.l_up = TreeNodeBound().l_up
 
     node = SearchNode()
     child = node.select_child()

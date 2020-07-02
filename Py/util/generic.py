@@ -41,7 +41,7 @@ def algorithm_repr(alg):
         Compact string representation of the algorithm.
 
     """
-    keys_del = ['ch_avail', 'verbose', 'rng']
+    keys_del = ['verbose', 'rng']
     params = copy.deepcopy(alg.keywords)
     for key in keys_del:
         try:

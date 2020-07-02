@@ -69,7 +69,7 @@ def branch_bound(tasks: list, ch_avail: list, max_runtime=float('inf'), verbose=
             # print(f'Search progress: {100*progress:.1f}% - Loss < {node_best.l_ex:.3f}', end='\r')
             print(f'# Remaining Nodes = {len(stack)}, Loss < {node_best.l_ex:.3f}', end='\r')
 
-    t_ex, ch_ex = node_best.t_ex, node_best.ch_ex  # optimal
+    t_ex, ch_ex = node_best.t_ex, node_best.ch_ex
 
     return t_ex, ch_ex
 

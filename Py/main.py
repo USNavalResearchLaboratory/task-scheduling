@@ -30,7 +30,7 @@ n_tasks = 8
 n_channels = 2
 
 task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-                             t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=None)       # task set generator
+                             t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)       # task set generator
 
 
 def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time generator
@@ -44,13 +44,18 @@ env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen)
 random_agent = wrap_agent(env, RandomAgent(env.action_space))
 
 alg_funcs = [partial(branch_bound, verbose=False),
-             partial(mcts_orig, n_mc=[floor(.1 * factorial(n)) for n in range(n_tasks, 0, -1)], verbose=False),
-             partial(mcts, n_mc=.1*factorial(n_tasks), verbose=False),
-             partial(earliest_release, do_swap=True),
-             partial(random_sequencer),
              partial(random_agent)]
 
-alg_n_iter = [2, 2, 1, 1, 5, 5]       # number of runs per problem
+alg_n_iter = [1, 2]       # number of runs per problem
+
+# alg_funcs = [partial(branch_bound, verbose=False),
+#              partial(mcts_orig, n_mc=[floor(.1 * factorial(n)) for n in range(n_tasks, 0, -1)], verbose=False),
+#              partial(mcts, n_mc=.1*factorial(n_tasks), verbose=False),
+#              partial(earliest_release, do_swap=True),
+#              partial(random_sequencer),
+#              partial(random_agent)]
+#
+# alg_n_iter = [2, 2, 1, 1, 5, 5]       # number of runs per problem
 
 alg_reprs = list(map(algorithm_repr, alg_funcs))    # string representations
 
@@ -107,5 +112,3 @@ print('')
 _, ax_results = plt.subplots(num='Results', clear=True)
 scatter_loss_runtime(t_run_mean, l_ex_mean,
                      ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
-
-
