@@ -9,7 +9,10 @@ def drange(start, stop, step):
 import numpy as np
 import matplotlib.pyplot as plt
 import time     # TODO: use builtin module timeit instead? or cProfile?
+import random
+import math
 
+random.seed(30)
 
 #%% Set up Problem
 N = 8 # Number of Jobs to process simultaneously
@@ -18,7 +21,7 @@ RP = 0.04
 # Tmax = 3
 
 ## Specify Algorithms
-from tree_search import branch_bound, random_sequencer, earliest_release, est_alg_kw
+from tree_search import branch_bound, random_sequencer, earliest_release
 from functools import partial
 from util.generic import algorithm_repr, check_rng
 from util.plot import plot_task_losses, plot_schedule, plot_loss_runtime, scatter_loss_runtime
@@ -27,12 +30,15 @@ from more_itertools import locate
 
 from math import factorial, floor
 
-alg_funcs = [partial(earliest_release, do_swap=True)]
+alg_funcs = [partial(earliest_release, do_swap=True),
+             partial(random_sequencer),
+             partial(branch_bound, verbose=False)]
+
              #partial(branch_bound, verbose=False),
              # partial(mc_tree_search, n_mc=[floor(.1 * factorial(n)) for n in range(n_tasks, 0, -1)], verbose=False),
-             # partial(random_sequencer),
+             #
              # partial(random_agent)]
-alg_n_runs = [1]       # number of runs per problem
+alg_n_runs = [1]*len(alg_funcs)       # number of runs per problem
 alg_reprs = list(map(algorithm_repr, alg_funcs))
 
 
@@ -127,7 +133,8 @@ from tasks import ReluDropTask
 job = []
 cnt = 0 # Make 0-based, saves a lot of trouble later when indexing into python zero-based vectors
 for ii in range(Nsearch):
-    job.append(ReluDropTask(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropTimeFixed[ii], SearchParams.DropCost[ii]))
+    # job.append(ReluDropTask(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropTimeFixed[ii], SearchParams.DropCost[ii]))
+    job.append(ReluDropTask(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropCost[ii]))
     job[ii].Id = cnt # Numeric Identifier for each job
     cnt = cnt + 1
     if job[ii].slope == 0.4:
@@ -140,7 +147,8 @@ for ii in range(Nsearch):
     # A.append(tasks)
     # del tasks
 for ii in range(Ntrack):
-    job.append(ReluDropTask(TrackParams.JobDuration[ii], 0, TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropTimeFixed[ii], TrackParams.DropCost[ii]))
+    # job.append(ReluDropTask(TrackParams.JobDuration[ii], 0, TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropTimeFixed[ii], TrackParams.DropCost[ii]))
+    job.append(ReluDropTask(TrackParams.JobDuration[ii], 0, TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropCost[ii]))
     job[cnt].Id = cnt # Numeric Identifier for each job
     if job[cnt].slope == 0.25:
         job[cnt].Type = 'Tlow' # Low Priority Track
@@ -177,32 +185,43 @@ l_ex_mean = np.array(list(zip(*np.empty((len(alg_reprs), NumSteps)))),
                      dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float])))
 
 ## Metrics
-Job_Revisit_Count = np.zeros(len(job))
+Job_Revisit_Count = np.zeros((len(job), len(alg_reprs)))
 # Job_Revisit_Time = []*len(job)
 # Job_Revisit_Time = []
 # Job_Revisit_Time = list(range(len(job)))
 Job_Revisit_Time = []
-for ii in range(len(job)): # Create a list of empty lists
-    Job_Revisit_Time.append([])
+for ii in range(len(job)): # Create a list of empty lists --> make it multi-dimensional to support different algorithms
+    elem = []
+    for jj in range(len(alg_reprs)):
+        elem.append([])
+    Job_Revisit_Time.append(elem)
 
+RunTime = np.zeros((NumSteps,len(alg_reprs)))
+Cost = np.zeros((NumSteps,len(alg_reprs)))
 
 # metrics.JobRevistCount([queue(n).Id]) = metrics.JobRevistCount([queue(n).Id]) + 1;
 # JobRevistTime{ queue(n).Id }( metrics.JobRevistCount(queue(n).Id) )     = timeSec;
 
 
 ## Begin Main Loop
+idx_alg = 0
 for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
+    print(alg_repr)
+    for ii in range(len(job)): # Reset Release Times to 0 for all jobs
+        job[ii].t_release = 0
     for i_run in range(n_run):  # Perform new algorithm runs: Should never be more than 1 in this code
 
         ChannelAvailableTime = np.zeros(K)
         for ii in np.arange(NumSteps): # Main Loop to evaluate schedulers
             timeSec = ii*RP # Current time
 
-            if timeSec % RP*10 == 0:
-                print('time =', timeSec)
-
             if np.min(ChannelAvailableTime) > timeSec:
+                RunTime[ii, idx_alg] = math.nan
+                Cost[ii, idx_alg] = math.nan
                 continue # Jump to next Resource Period
+
+            if timeSec % RP*1 == 0:
+                print('time =', timeSec)
 
             # Reassess Track Priorities
             for jj in range(len(job)):
@@ -224,20 +243,12 @@ for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
 
 
             _, ax_gen = plt.subplots(2, 1, num=f'Task Set: {1}', clear=True)
-            try:
-                plot_task_losses(job_scheduler, ax=ax_gen[0])
-            except:
-                print("Something went wrong")
-            # else:
-            #     print("Nothing went wrong")
-
-
-
+            plot_task_losses(job_scheduler, ax=ax_gen[0])
 
             print(f'  {alg_repr} - Run: {i_run + 1}/{n_run}', end='\r')
 
             t_start = time.time()
-            t_ex, ch_ex, T = alg_func(job_scheduler, ChannelAvailableTime) # Added Sequence T
+            t_ex, ch_ex = alg_func(job_scheduler, ChannelAvailableTime) # Added Sequence T
             t_run = time.time() - t_start
 
             # Update ChannelAvailable Time
@@ -252,6 +263,8 @@ for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
 
             t_run_iter[alg_repr][ii, i_run] = t_run
             l_ex_iter[alg_repr][ii, i_run] = l_ex
+            RunTime[ii,idx_alg] = t_run
+            Cost[ii,idx_alg] = l_ex
 
             # plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, alg_repr=alg_repr, ax=None)
 
@@ -268,12 +281,13 @@ for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
             # plot_loss_runtime(max_runtimes, l_ex_mean[i_gen], ax=ax_gen[1])
             for n in range(len(job_scheduler)):
                 job_scheduler[n].t_release = t_ex[n] + job_scheduler[n].duration # Update Release Times based on execution + duration
-                job_scheduler[n].t_drop = job_scheduler[n].t_release + job_scheduler[n].t_drop_fixed # Update Drop time from new start time
+                # job_scheduler[n].t_drop = job_scheduler[n].t_release + job_scheduler[n].t_drop_fixed # Update Drop time from new start time   TODO: delete?
                 job.append(job_scheduler[n])
                 # print(job_scheduler[n].Id)
-                Job_Revisit_Count[job_scheduler[n].Id] = Job_Revisit_Count[job_scheduler[n].Id] + 1
-                Job_Revisit_Time[job_scheduler[n].Id].append(timeSec)
+                Job_Revisit_Count[job_scheduler[n].Id, idx_alg] = Job_Revisit_Count[job_scheduler[n].Id, idx_alg] + 1
+                Job_Revisit_Time[job_scheduler[n].Id][idx_alg].append(timeSec)
                 # TODO: Update Drop Times - Done
+    idx_alg = idx_alg + 1  # Increment which algorithm is being examined
 
                 # new_job.append( job_scheduler.pop)
                 # new_job(n).Id = queue((n)).Id;
@@ -289,31 +303,99 @@ for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
                 # JobRevistTime{queue(n).Id}(metrics.JobRevistCount(queue(n).Id)) = timeSec;
 
             # TODO Put jobs in job_scheduler at the end of the master list "job", Finish plotting - Done
-
 ## Performance Assessment
-# IMPORTANT: Job_Revisit_Time  records when the jobs are visited. We want the "Revisit Rate" which requires the np.diff below
-mean_revisit_time = np.array([np.mean(np.diff(RT)) for RT in Job_Revisit_Time])
-
-
-plt.figure(100)
-plt.plot(mean_revisit_time)
-plt.xlabel('Job ID')
-plt.ylabel('Revisit Rate')
+Alg_time = np.nanmean(RunTime, axis = 0)
+Alg_cost = np.nanmean(Cost, axis = 0)
+plt.figure(99)
+for ii in range(len(alg_reprs)):
+    plt.plot(Alg_time[ii], Alg_cost[ii], marker = "o", label = alg_reprs[ii])
+plt.xlabel('Run Time')
+plt.ylabel('Cost')
+plt.legend()
 plt.show()
-a = 1
+
+
+scatter_loss_runtime(t_run_iter[0], l_ex_iter[0], ax=ax_gen[1])
+
+# TODO: Create Utility Function --> how often algorithms go beyond bounds, verify everything is working correctly
+
+
+
+# IMPORTANT: Job_Revisit_Time  records when the jobs are visited. We want the "Revisit Rate" which requires the np.diff below
+# TODO: Redesign for multiple algorithms
+mean_revisit_time = np.zeros((len(job), len(alg_reprs)))
+for ii in range(len(job)):
+    for jj in range(len(alg_reprs)):
+        mean_revisit_time[ii,jj] = np.mean(np.diff(Job_Revisit_Time[ii][jj]))
+
+# mean_revisit_time = np.array([np.mean(np.diff(RT)) for RT in Job_Revisit_Time])
 
 # Display Revisit Rate by Job Type
 job_type = np.array([task.Type for task in job])
 job_unique = np.unique(job_type)
+N_job_types = len(job_unique)
 index_pos_list = []
 for type in job_unique:
     job_type == type
     A = np.where(job_type == type)
     index_pos_list.append(A[:])
 
-mean_revisit_time_job_type = np.zeros(len(job_unique))
+# mean_revisit_time_job_type = np.zeros(len(job_unique))
+# for ii in range(len(job_unique)):
+#     mean_revisit_time_job_type[ii] = np.mean(   mean_revisit_time[index_pos_list[ii]]   )
+
+
+idx_sort = np.argsort(job_type)
+last_index = np.zeros(len(job_unique))
+for jj in range(len(job_unique)):
+    last_index[jj] = np.where(job_type[idx_sort] == job_unique[jj])[0][-1]
+
+last_index = last_index.astype(int)
+first_index = np.append(0, last_index[0:N_job_types-1]+1 ).astype(int)
+UB_revisit_rate = np.array([job[idx_sort[first_index[idx]]].t_drop for idx in range(N_job_types)])
+# desired_revisit_rate = job[idx_sort[first_index]].t_drop
+
+mean_revisit_time_job_type = np.zeros((len(job_unique),len(alg_reprs)))
 for ii in range(len(job_unique)):
-    mean_revisit_time_job_type[ii] = np.mean(   mean_revisit_time[index_pos_list[ii]]   )
+    for jj in range(len(alg_reprs)):
+        idx_support = idx_sort[first_index[ii]:last_index[ii]]
+        mean_revisit_time_job_type[ii,jj] = np.mean(mean_revisit_time[idx_support,jj])
+
+
+
+color_scheme_bound = ['b', 'g', 'r', 'm', 'k']
+color_scheme = [['cyan', 'teal','navy','aquamarine'], ['lime', 'yellowgreen', 'chartreuse', 'lightgreen'], ['crimson', 'tomato', 'salmon', 'coral'],
+                ['magenta', 'maroon', 'voilet', 'fushia'], ['grey', 'chocolate', 'brown', 'beige'] ]
+plt.figure(100)
+plt.grid
+for ii in range(N_job_types):
+    x = np.arange(first_index[ii],last_index[ii])
+    y = UB_revisit_rate[ii] * np.ones(np.shape(x))
+    if ii == 0:
+        plt.plot(x, y, color_scheme_bound[0], label = 'UB')
+    else:
+        plt.plot(x, y, color_scheme_bound[0])
+    plt.text(x[0], y[0], 'Upper-Bound: '+job_unique[ii])
+    for jj in range(len(alg_reprs)):
+        if ii == 0:
+            plt.plot(x, mean_revisit_time[idx_sort[x],jj], color_scheme[0][jj], marker="o", label = alg_reprs[jj])
+        else:
+            plt.plot(x, mean_revisit_time[idx_sort[x],jj], color_scheme[0][jj], marker="o")
+
+        # y2 = mean_revisit_time_job_type[ii,jj] * np.ones(np.shape(x))
+        # plt.plot(x, y2, color_scheme[ii])
+        # plt.text(x[0], y2[0], 'Mean: '+job_unique[ii])
+plt.xlabel('Sorted Job ID')
+plt.ylabel('Revisit Rate')
+plt.grid(True)
+plt.show()
+plt.legend()
+
+
+plt.figure(101)
+plt.plot(job_unique, mean_revisit_time_job_type)
+plt.xlabel('Job Type')
+
 
 
 
