@@ -31,7 +31,7 @@ n_tasks = 6
 n_channels = 2
 
 task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-                             t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=None)       # task set generator
+                             t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)       # task set generator
 
 
 def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time generator
@@ -104,5 +104,3 @@ l_ex_mean_gen = np.array([tuple(l_ex_mean[alg_repr][:, i].mean() for alg_repr in
 _, ax_results = plt.subplots(num='Results', clear=True)
 plot_loss_runtime(max_runtimes, l_ex_mean_gen,
                   ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
-
-

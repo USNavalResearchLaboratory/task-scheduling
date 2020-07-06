@@ -14,17 +14,7 @@ from util.plot import plot_task_losses
 
 from tree_search import TreeNode
 from tasks import ReluDropGenerator
-
-
-# Map tasks to RL observations
-def obs_relu_drop(tasks):
-    """Convert tasks list into Gym observation."""
-
-    # _params = [(task.duration, task.t_release, task.slope, task.t_drop, task.l_drop) for task in tasks]
-    # params = np.array(_params, dtype=[('duration', np.float), ('t_release', np.float),
-    #                                   ('slope', np.float), ('t_drop', np.float), ('l_drop', np.float)])
-    # params.view(np.float).reshape(*params.shape, -1)
-    return np.asarray([[task.duration, task.t_release, task.slope, task.t_drop, task.l_drop] for task in tasks])
+from SL_policy import obs_relu_drop
 
 
 # Gym Spaces
@@ -236,10 +226,9 @@ def main():
     def ch_avail_generator(n_ch, rng=check_rng(None)):  # channel availability time generator
         return rng.uniform(0, 2, n_ch)
 
-
     params = {'n_tasks': 8,
               'task_gen': ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-                                            t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=None),
+                                            t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None),
               'n_ch': 2,
               'ch_avail_gen': ch_avail_generator}
 
@@ -254,7 +243,6 @@ def main():
         act = agent.act(obs, reward, done)
         observation, reward, done, info = env.step(act)
         print(reward)
-
 
     # act = deepq.learn(task_env,
     #                   network='mlp',
