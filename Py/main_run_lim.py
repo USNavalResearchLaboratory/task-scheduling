@@ -5,13 +5,8 @@ Define a set of task objects and scheduling algorithms. Assess achieved loss and
 
 """
 
-# TODO: Account for algorithm runtime before evaluating execution loss!!
-
-# TODO: limit execution time of algorithms using signal module?
-# TODO: add proper main() def, __name__ conditional execution?
 # TODO: use builtin module timeit instead? or cProfile?
 
-from math import factorial, floor
 from functools import partial
 from itertools import product
 

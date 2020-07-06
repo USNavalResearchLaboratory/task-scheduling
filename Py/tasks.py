@@ -20,28 +20,27 @@ class GenericTask:
 
     """
 
-    def __init__(self, duration, t_release, loss_func):
+    def __init__(self, duration, t_release, loss_func=None):
         self.duration = duration
         self.t_release = t_release
-        self.loss_func = loss_func
 
-        self.plot_lim = (t_release, t_release + duration)
+        self._loss_func = loss_func
 
     def __repr__(self):
         return f"GenericTask(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
+
+    def loss_func(self, t):
+        return self._loss_func(t)
+
+    @property
+    def plot_lim(self):
+        return self.t_release, self.t_release + self.duration
 
     def plot_loss(self, t_plot=None, ax=None):
         if t_plot is None:
             t_plot = np.arange(*self.plot_lim, 0.01)
         elif t_plot[0] < self.t_release:
             t_plot = t_plot[t_plot >= self.t_release]
-            if t_plot.size == 0:                                # TODO: Why did I does this, fix outside.
-                t_plot = [self.t_release, self.t_release+1]
-
-        try:
-            x_lim = t_plot[0], t_plot[-1]
-        except:
-            print('Something Went Wrong')
 
         x_lim = t_plot[0], t_plot[-1]
         y_lim = self.loss_func(list(x_lim))
@@ -68,7 +67,7 @@ class GenericTask:
 
 class ReluDropTask(GenericTask):
     """
-    Generates a rectified linear loss function with a constant drop penalty.
+    Generates a rectified linear loss function task with a constant drop penalty.
 
     Parameters
     ----------
@@ -79,67 +78,67 @@ class ReluDropTask(GenericTask):
     slope : float
         Function slope between release and drop times.
     t_drop : float
-        Drop time.
+        Drop time relative to release time.
     l_drop : float
         Constant loss after drop time.
 
     """
 
-    def __init__(self, duration, t_release, slope, t_drop, t_drop_fixed, l_drop):
-        # super().__init__(duration, t_release, loss_func(0))
+    def __init__(self, duration, t_release, slope, t_drop, l_drop):
+        # super().__init__(duration, t_release, loss_relu_drop(t_release, slope, t_drop, l_drop))
+        super().__init__(duration, t_release)
         self.slope = slope
         self.t_drop = t_drop
-        self.t_drop_fixed = t_drop_fixed
         self.l_drop = l_drop
-        self.t_release = t_release
-        self.duration = duration
-        self.plot_lim = (t_release, t_drop + duration)
 
-        if l_drop < slope * (t_drop - t_release):
+        if l_drop < slope * t_drop:     # TODO: invoker checker on all attribute setters
             raise ValueError("Function is not monotonically non-decreasing.")
 
     def __repr__(self):
         return f"ReluDropTask(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
 
     def loss_func(self, t):
-        t = np.asarray(t)[np.newaxis]
-        loss = self.slope * (t - self.t_release)
-        loss[t < self.t_release] = np.inf
+        t = np.asarray(t)[np.newaxis] - self.t_release      # relative time
+        loss = self.slope * t
+        loss[t < 0] = np.inf
         loss[t >= self.t_drop] = self.l_drop
         return loss.squeeze(axis=0)
 
-
-    # def loss_relu_drop(t_release, slope, t_drop, l_drop):
-    # """
-    # Rectified linear loss function with a constant drop penalty.
-    #
-    # Parameters
-    # ----------
-    # t_release : float
-    #     Earliest time the task may be scheduled. Loss at t_release is zero.
-    # slope : float
-    #     Function slope between release and drop times.
-    # t_drop : float
-    #     Drop time.
-    # l_drop : float
-    #     Constant loss after drop time.
-    #
-    # Returns
-    # -------
-    # function
-    #     Incurred loss
-    #
-    # """
-    # return loss_func
-
-    # def loss_func(self,t):
-    #     t = np.asarray(t)[np.newaxis]
-    #     loss = self.slope * (t - self.t_release)
-    #     loss[t < self.t_release] = np.inf
-    #     loss[t >= self.t_drop] = self.l_drop
-    #     return loss.squeeze(axis=0)
+    @property
+    def plot_lim(self):
+        return self.t_release, self.t_release + max(self.duration, self.t_drop)
 
 
+# def loss_relu_drop(t_release, slope, t_drop, l_drop):
+#     """
+#     Rectified linear loss function with a constant drop penalty.
+#
+#     Parameters
+#     ----------
+#     t_release : float
+#         Earliest time the task may be scheduled. Loss at t_release is zero.
+#     slope : float
+#         Function slope between release and drop times.
+#     t_drop : float
+#         Drop time.
+#     l_drop : float
+#         Constant loss after drop time.
+#
+#     Returns
+#     -------
+#     function
+#         Incurred loss
+#
+#     """
+#
+#     def loss_func(t):
+#         t = np.asarray(t)[np.newaxis]
+#         loss = slope * (t - t_release)
+#         loss[t < t_release] = np.inf
+#         loss[t >= t_drop] = l_drop
+#         return loss.squeeze(axis=0)
+#
+#     return loss_func
 
 
 # %% Task generation objects        # TODO: generalize, add docstrings
@@ -168,11 +167,3 @@ class ReluDropGenerator(GenericTaskGenerator):
         l_drop = self.rng.uniform(*self.l_drop_lim, n_tasks)
 
         return [ReluDropTask(*args) for args in zip(duration, t_release, slope, t_drop, l_drop)]
-
-    def loss_func(self,t):
-        t = np.asarray(t)[np.newaxis]
-        loss = self.slope * (t - self.t_release)
-        loss[t < self.t_release] = np.inf
-        loss[t >= self.t_drop] = self.l_drop
-        return loss.squeeze(axis=0)
-

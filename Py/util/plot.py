@@ -41,10 +41,7 @@ def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
         y_lim = min([y_lim[0], y_lim_gca[0]]), max([y_lim[1], y_lim_gca[1]])
 
     for task in tasks:
-        try:
-            task.plot_loss(t_plot, ax)
-        except:
-            print('Something Went Wrong')
+        task.plot_loss(t_plot, ax)
 
     ax.set(xlabel='t', ylabel='Loss')
     ax.set_xlim(*x_lim)

@@ -5,11 +5,6 @@ Define a set of task objects and scheduling algorithms. Assess achieved loss and
 
 """
 
-# TODO: Account for algorithm runtime before evaluating execution loss!!
-
-# TODO: limit execution time of algorithms using signal module?
-# TODO: add proper main() def, __name__ conditional execution?
-
 from time import perf_counter       # TODO: use builtin module timeit instead? or cProfile?
 from math import factorial, floor
 from functools import partial
@@ -72,9 +67,6 @@ t_run_mean = np.array(list(zip(*np.empty((len(alg_reprs), n_gen)))),
 
 l_ex_mean = np.array(list(zip(*np.empty((len(alg_reprs), n_gen)))),
                      dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float])))
-
-# l_ex_mean = np.array([tuple(np.empty(len(alg_reprs))) for _ in range(n_gen)],
-#                      dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float])))     # TODO: simpler array init?
 
 for i_gen in range(n_gen):      # Generate new scheduling problem
     print(f'Task Set: {i_gen + 1}/{n_gen}')
