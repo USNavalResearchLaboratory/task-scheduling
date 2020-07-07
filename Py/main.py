@@ -5,6 +5,7 @@ Define a set of task objects and scheduling algorithms. Assess achieved loss and
 
 """
 
+import logging
 from time import perf_counter       # TODO: use builtin module timeit instead? or cProfile?
 from math import factorial, floor
 from functools import partial
@@ -21,6 +22,10 @@ from tree_search import branch_bound, mcts_orig, mcts, random_sequencer, earlies
 from env_tasking import SeqTaskingEnv, StepTaskingEnv, wrap_agent, RandomAgent
 
 plt.style.use('seaborn')
+
+# logging.basicConfig(level=logging.INFO,       # TODO: use logging?
+#                     format='%(asctime)s - %(levelname)s - %(message)s',
+#                     datefmt='%H:%M:%S')
 
 
 # %% Inputs
@@ -41,7 +46,7 @@ def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time gen
 # Algorithms
 
 env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen)
-random_agent = wrap_agent(env, RandomAgent(env.action_space))
+random_agent = wrap_agent(env, RandomAgent(env.action_space))       # TODO: pickle save/load?
 
 alg_funcs = [partial(branch_bound, verbose=False),
              partial(random_agent)]

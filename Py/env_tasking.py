@@ -87,7 +87,8 @@ class BaseTaskingEnv(gym.Env):
         self._obs_low = np.broadcast_to(np.asarray(_low), (n_tasks, 5))
         self._obs_high = np.broadcast_to(np.asarray(_high), (n_tasks, 5))
 
-    def reset(self, tasks=None, ch_avail=None):     # TODO: added arguments to control Env state. OK?
+    def reset(self, tasks=None, ch_avail=None):
+        # TODO: n_tasks check for manual reset, or need attribute setters.
         self.tasks = self.task_gen.rand_tasks(self.n_tasks) if tasks is None else tasks
         self.ch_avail = self.ch_avail_gen(self.n_ch) if ch_avail is None else ch_avail
 
@@ -157,7 +158,7 @@ class StepTaskingEnv(BaseTaskingEnv):
 
     def step(self, action: int):
         # obs = obs_relu_drop(self.tasks)
-        self.state[action, 0] = 0       # Set first element of task vector to zero, indicating 'scheduled'.
+        self.state[action][0] = 0       # Set first element of task vector to zero, indicating 'scheduled'.
         obs = self.state
 
         self.node.seq_extend([action])

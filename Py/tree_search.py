@@ -460,7 +460,7 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
         if verbose:
             # progress = 1 - sum([math.factorial(len(node.seq_rem)) for node in stack]) / math.factorial(len(tasks))
             # print(f'Search progress: {100*progress:.1f}% - Loss < {node_best.l_ex:.3f}', end='\r')
-            print(f'# Remaining Nodes = {len(stack)}, Loss < {node_best.l_ex:.3f}', end='\r')
+            print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.l_ex:.3f}', end='\r')
 
     t_ex, ch_ex = node_best.t_ex, node_best.ch_ex  # optimal
 

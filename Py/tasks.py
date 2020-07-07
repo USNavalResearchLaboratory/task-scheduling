@@ -167,3 +167,21 @@ class ReluDropGenerator(GenericTaskGenerator):
         l_drop = self.rng.uniform(*self.l_drop_lim, n_tasks)
 
         return [ReluDropTask(*args) for args in zip(duration, t_release, slope, t_drop, l_drop)]
+
+
+class PermuteTaskGenerator(GenericTaskGenerator):
+    def __init__(self, tasks, rng=None):
+        super().__init__(rng)
+        self.tasks = tasks      # list of tasks
+
+    def rand_tasks(self, n_tasks):      # FIXME: unused parameter. FIX CLASS!
+        return self.rng.permutation(self.tasks)
+
+
+class DeterministicTaskGenerator(GenericTaskGenerator):
+    def __init__(self, tasks, rng=None):
+        super().__init__(rng)
+        self.tasks = tasks      # list of tasks
+
+    def rand_tasks(self, n_tasks):      # FIXME: unused parameter. FIX CLASS!
+        return self.tasks
