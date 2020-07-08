@@ -1,7 +1,11 @@
+import shutil
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 from tensorflow import keras
+from tensorboard import program
+import webbrowser
 
 from util.generic import check_rng
 from util.results import check_valid, eval_loss
@@ -51,7 +55,8 @@ def data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen=1):
     return x_full, y_full
 
 
-def train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train, n_gen_val):
+def train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train, n_gen_val, do_tensorboard=False):
+
     x_train, y_train = data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train)
     x_val, y_val = data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_val)
 
@@ -67,10 +72,23 @@ def train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train, n_gen_val
                   loss='sparse_categorical_crossentropy',
                   metrics=['accuracy'])
 
-    callbacks = [keras.callbacks.EarlyStopping(patience=100, monitor='val_loss', min_delta=0.),
-                 keras.callbacks.TensorBoard(log_dir='./logs/TF_train')]
+    callbacks = [keras.callbacks.EarlyStopping(patience=100, monitor='val_loss', min_delta=0.)]
 
-    history = model.fit(x_train, y_train, epochs=1000, batch_size=32, sample_weight=None,
+    if do_tensorboard:
+        log_dir = './logs/TF_train'
+        try:
+            shutil.rmtree(log_dir)
+        except FileNotFoundError:
+            pass
+
+        callbacks.append(keras.callbacks.TensorBoard(log_dir=log_dir))
+
+        tb = program.TensorBoard()
+        tb.configure(argv=[None, '--logdir', log_dir])
+        url = tb.launch()
+        webbrowser.open(url)
+
+    history = model.fit(x_train, y_train, epochs=2000, batch_size=32, sample_weight=None,
                         validation_data=(x_val, y_val),
                         callbacks=callbacks)
 
