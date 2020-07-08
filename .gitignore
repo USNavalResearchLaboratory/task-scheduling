@@ -1,5 +1,6 @@
 # Logs
 Py/logs/
+Py/models/temp/
 
 # test
 *.m~

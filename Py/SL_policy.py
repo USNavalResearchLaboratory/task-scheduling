@@ -1,4 +1,5 @@
 import shutil
+import time
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -55,7 +56,8 @@ def data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen=1):
     return x_full, y_full
 
 
-def train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train, n_gen_val, do_tensorboard=False):
+def train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train, n_gen_val,
+             do_tensorboard=False, save=False):
 
     x_train, y_train = data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train)
     x_val, y_val = data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_val)
@@ -88,7 +90,7 @@ def train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train, n_gen_val
         url = tb.launch()
         webbrowser.open(url)
 
-    history = model.fit(x_train, y_train, epochs=2000, batch_size=32, sample_weight=None,
+    history = model.fit(x_train, y_train, epochs=1000, batch_size=32, sample_weight=None,
                         validation_data=(x_val, y_val),
                         callbacks=callbacks)
 
@@ -107,6 +109,9 @@ def train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train, n_gen_val
         plt.plot(history.epoch, history.history['val_accuracy'], label='validation')
         plt.legend()
         plt.gca().set(xlabel='epoch', ylabel='accuracy')
+
+    if save:
+        model.save('./models/temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S')))
 
     return model    # TODO: wrap model for main.py
 
