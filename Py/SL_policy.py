@@ -12,16 +12,6 @@ from tree_search import branch_bound, mcts_orig, mcts, random_sequencer, earlies
 plt.style.use('seaborn')
 
 
-def obs_relu_drop(tasks):
-    """Generate observation array from list of tasks."""
-
-    # _params = [(task.duration, task.t_release, task.slope, task.t_drop, task.l_drop) for task in tasks]
-    # params = np.array(_params, dtype=[('duration', np.float), ('t_release', np.float),
-    #                                   ('slope', np.float), ('t_drop', np.float), ('l_drop', np.float)])
-    # params.view(np.float).reshape(*params.shape, -1)
-    return np.asarray([[task.duration, task.t_release, task.slope, task.t_drop, task.l_drop] for task in tasks])
-
-
 def data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen=1):
 
     # TODO: generate sample weights to prioritize earliest task selections??
@@ -40,16 +30,14 @@ def data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen=1):
         # l_ex = eval_loss(tasks, t_ex)
 
         seq = np.argsort(t_ex).tolist()     # optimal sequence
-        state = np.concatenate((np.ones((n_tasks, 1)), obs_relu_drop(tasks)), axis=1)
+        state = np.array([[1] + task.gen_rep for task in tasks])
 
         x = np.empty((n_tasks, *state.shape))
         # x = np.empty((n_tasks, n_tasks))
-        # y = np.zeros((n_tasks, n_tasks), dtype=np.int)
         y = np.zeros(n_tasks, dtype=np.int)
         for i, n in enumerate(seq):
             x[i] = state
             # x[i] = state[:, 0]
-            # y[i][n] = 1
             y[i] = n
 
             state[n][0] = 0
@@ -67,25 +55,26 @@ def train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train, n_gen_val
     x_train, y_train = data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train)
     x_val, y_val = data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_val)
 
-    model = keras.Sequential([keras.layers.Flatten(input_shape=(n_tasks, 6)),
-                              keras.layers.Dense(100, activation='relu'),
+    model = keras.Sequential([keras.layers.Flatten(input_shape=x_train.shape[1:]),
+                              keras.layers.Dense(60, activation='relu'),
+                              # keras.layers.Dense(30, activation='relu'),
+                              # keras.layers.Dense(30, activation='relu'),
                               # keras.layers.Dropout(0.2),
                               # keras.layers.Dense(100, activation='relu'),
-                              keras.layers.Dense(n_tasks, activation=None)])
+                              keras.layers.Dense(n_tasks, activation='softmax')])
 
-    model.compile(optimizer='adam',
+    model.compile(optimizer='rmsprop',
                   loss='sparse_categorical_crossentropy',
                   metrics=['accuracy'])
 
-    callbacks = [keras.callbacks.EarlyStopping(patience=10, monitor='val_loss')]
-                 # keras.callbacks.TensorBoard(log_dir='./logs')]
+    callbacks = [keras.callbacks.EarlyStopping(patience=100, monitor='val_loss', min_delta=0.),
+                 keras.callbacks.TensorBoard(log_dir='./logs/TF_train')]
 
-    history = model.fit(x_train, y_train, epochs=500, batch_size=32, sample_weight=None,
+    history = model.fit(x_train, y_train, epochs=1000, batch_size=32, sample_weight=None,
                         validation_data=(x_val, y_val),
-                        callbacks=None)
+                        callbacks=callbacks)
 
     # test_loss, test_acc = model.evaluate(x_test, y_test)
-
     # model.save_weights('./weights/my_model')
 
     if True:
@@ -111,10 +100,8 @@ def main():
     task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
                                  t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)  # task set generator
 
-
     # task_gen = PermuteTaskGenerator(task_gen.rand_tasks(n_tasks))   # FIXME
-    task_gen = DeterministicTaskGenerator(task_gen.rand_tasks(n_tasks))  # FIXME
-
+    # task_gen = DeterministicTaskGenerator(task_gen.rand_tasks(n_tasks))  # FIXME
 
     def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
         # TODO: rng is a mutable default argument!
@@ -123,7 +110,7 @@ def main():
 
     # x, y = data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen=10)
 
-    train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train=10, n_gen_val=1)
+    train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train=100, n_gen_val=10)
 
 
 if __name__ == '__main__':

@@ -14,7 +14,6 @@ from util.plot import plot_task_losses
 
 from tree_search import TreeNode
 from tasks import ReluDropGenerator
-from SL_policy import obs_relu_drop
 
 
 # Gym Spaces
@@ -119,11 +118,9 @@ class SeqTaskingEnv(BaseTaskingEnv):
     def reset(self, tasks=None, ch_avail=None):
         super().reset(tasks, ch_avail)
 
-        # self.state = obs_relu_drop(self.tasks)
-        return obs_relu_drop(self.tasks)
+        return np.array([task.gen_rep for task in self.tasks])
 
     def step(self, action: list):
-        # obs = obs_relu_drop(self.tasks)
         obs = None      # since Env is Done
 
         self.node.seq = action
@@ -152,12 +149,10 @@ class StepTaskingEnv(BaseTaskingEnv):
 
         self.loss_agg = self.node.l_ex
 
-        # self.state = obs_relu_drop(self.tasks)
-        self.state = np.concatenate((np.ones((self.n_tasks, 1)), obs_relu_drop(self.tasks)), axis=1)
+        self.state = np.array([[1] + task.gen_rep for task in self.tasks])
         return self.state
 
     def step(self, action: int):
-        # obs = obs_relu_drop(self.tasks)
         self.state[action][0] = 0       # Set first element of task vector to zero, indicating 'scheduled'.
         obs = self.state
 

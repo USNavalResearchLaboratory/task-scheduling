@@ -17,6 +17,8 @@ class GenericTask:
         Time duration of the task.
     t_release : float
         Earliest time the task may be scheduled.
+    loss_func : function, optional
+        Maps execution time to scheduling loss.
 
     """
 
@@ -30,13 +32,26 @@ class GenericTask:
         return f"GenericTask(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
 
     def loss_func(self, t):
+        """Loss function versus time."""
         return self._loss_func(t)
 
     @property
     def plot_lim(self):
+        """2-tuple of limits for automatic plotting."""
         return self.t_release, self.t_release + self.duration
 
     def plot_loss(self, t_plot=None, ax=None):
+        """
+        Plot loss function.
+
+        Parameters
+        ----------
+        t_plot : ndarray, optional
+            Series of times for loss evaluation.
+        ax : matplotlib.axes.Axes, optional
+            Plotting axes object.
+        """
+
         if t_plot is None:
             t_plot = np.arange(*self.plot_lim, 0.01)
         elif t_plot[0] < self.t_release:
@@ -97,7 +112,18 @@ class ReluDropTask(GenericTask):
     def __repr__(self):
         return f"ReluDropTask(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
 
+    @property
+    def gen_rep(self):
+        """A parametric representation of the task."""
+
+        # _params = [(task.duration, task.t_release, task.slope, task.t_drop, task.l_drop) for task in tasks]
+        # params = np.array(_params, dtype=[('duration', np.float), ('t_release', np.float),
+        #                                   ('slope', np.float), ('t_drop', np.float), ('l_drop', np.float)])
+        # params.view(np.float).reshape(*params.shape, -1)
+        return [self.duration, self.t_release, self.slope, self.t_drop, self.l_drop]
+
     def loss_func(self, t):
+        """Loss function versus time."""
         t = np.asarray(t)[np.newaxis] - self.t_release      # relative time
         loss = self.slope * t
         loss[t < 0] = np.inf
@@ -106,6 +132,7 @@ class ReluDropTask(GenericTask):
 
     @property
     def plot_lim(self):
+        """2-tuple of limits for automatic plotting."""
         return self.t_release, self.t_release + max(self.duration, self.t_drop)
 
 
