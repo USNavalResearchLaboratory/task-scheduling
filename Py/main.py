@@ -6,7 +6,7 @@ Define a set of task objects and scheduling algorithms. Assess achieved loss and
 """
 
 import logging
-from time import perf_counter       # TODO: use builtin module timeit instead? or cProfile?
+from time import perf_counter
 from math import factorial, floor
 from functools import partial
 
@@ -24,13 +24,13 @@ from SL_policy import wrap_model
 
 plt.style.use('seaborn')
 
-# logging.basicConfig(level=logging.INFO,       # TODO: use logging?
+# logging.basicConfig(level=logging.INFO,
 #                     format='%(asctime)s - %(levelname)s - %(message)s',
 #                     datefmt='%H:%M:%S')
 
 
 # %% Inputs
-n_gen = 10      # number of task scheduling problems
+n_gen = 20      # number of task scheduling problems
 
 n_tasks = 8
 n_channels = 2
@@ -40,9 +40,7 @@ task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_li
 
 
 def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time generator
-    # TODO: rng is a mutable default argument!
-    # return rng.uniform(0, 2, n_ch)
-    return np.zeros(n_ch)
+    return rng.uniform(0, 0, n_ch)
 
 
 # Algorithms
@@ -138,4 +136,4 @@ if 'branch_bound' in alg_reprs:
     _, ax_results_norm = plt.subplots(num='Results Normalized', clear=True)
     scatter_loss_runtime(t_run_mean_norm, l_ex_mean_norm,
                          ax=ax_results_norm, ax_kwargs={'title': 'Performance relative to B&B optimal',
-                                                        'ylabel': 'Relative Loss (%)'})
+                                                        'ylabel': 'Additional Loss (Normalized)'})

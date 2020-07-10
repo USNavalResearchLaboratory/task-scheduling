@@ -62,6 +62,9 @@ def train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train, n_gen_val
 
     # TODO: customize output layers to avoid illegal actions
     # TODO: train using complete tree info, not just B&B solution?
+    # TODO: sort tasks by release time, etc.?
+    # TODO: one-hot state encoding for order?
+    # TODO: task parameter shift for channel availability
 
     x_train, y_train = data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train)
     x_val, y_val = data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_val)

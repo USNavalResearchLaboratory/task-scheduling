@@ -5,8 +5,6 @@ Define a set of task objects and scheduling algorithms. Assess achieved loss and
 
 """
 
-# TODO: use builtin module timeit instead? or cProfile?
-
 from functools import partial
 from itertools import product
 
@@ -35,7 +33,6 @@ task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_li
 
 
 def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time generator
-    # TODO: rng is a mutable default argument!
     return rng.uniform(0, 2, n_ch)
 
 
@@ -104,3 +101,5 @@ l_ex_mean_gen = np.array([tuple(l_ex_mean[alg_repr][:, i].mean() for alg_repr in
 _, ax_results = plt.subplots(num='Results', clear=True)
 plot_loss_runtime(max_runtimes, l_ex_mean_gen,
                   ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
+
+# TODO: error bars!

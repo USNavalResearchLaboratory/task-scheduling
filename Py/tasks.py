@@ -102,12 +102,41 @@ class ReluDropTask(GenericTask):
     def __init__(self, duration, t_release, slope, t_drop, l_drop):
         # super().__init__(duration, t_release, loss_relu_drop(t_release, slope, t_drop, l_drop))
         super().__init__(duration, t_release)
-        self.slope = slope
-        self.t_drop = t_drop
-        self.l_drop = l_drop
+        self._slope = slope
+        self._t_drop = t_drop
+        self._l_drop = l_drop
 
-        if l_drop < slope * t_drop:     # TODO: invoker checker on all attribute setters
-            raise ValueError("Function is not monotonically non-decreasing.")
+    @property
+    def slope(self):
+        return self._slope
+
+    @slope.setter
+    def slope(self, slope):
+        self.check_non_decreasing(slope, self.t_drop, self.l_drop)
+        self._slope = slope
+
+    @property
+    def t_drop(self):
+        return self._t_drop
+
+    @t_drop.setter
+    def t_drop(self, t_drop):
+        self.check_non_decreasing(self.slope, t_drop, self.l_drop)
+        self._t_drop = t_drop
+
+    @property
+    def l_drop(self):
+        return self._l_drop
+
+    @l_drop.setter
+    def l_drop(self, l_drop):
+        self.check_non_decreasing(self.slope, self.t_drop, l_drop)
+        self._l_drop = l_drop
+
+    @staticmethod
+    def check_non_decreasing(slope, t_drop, l_drop):
+        if l_drop < slope * t_drop:
+            raise ValueError("Loss function must be monotonically non-decreasing.")
 
     def __repr__(self):
         return f"ReluDropTask(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"

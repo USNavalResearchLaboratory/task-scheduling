@@ -87,7 +87,9 @@ class BaseTaskingEnv(gym.Env):
         self._obs_high = np.broadcast_to(np.asarray(_high), (n_tasks, 5))
 
     def reset(self, tasks=None, ch_avail=None):
-        # TODO: n_tasks check for manual reset, or need attribute setters.
+        if len(tasks) != self.n_tasks or len(ch_avail) != self.n_ch:
+            raise ValueError(f"Env requires {self.n_tasks} tasks and {self.n_ch} channels.")
+
         self.tasks = self.task_gen.rand_tasks(self.n_tasks) if tasks is None else tasks
         self.ch_avail = self.ch_avail_gen(self.n_ch) if ch_avail is None else ch_avail
 

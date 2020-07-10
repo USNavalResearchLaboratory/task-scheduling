@@ -348,16 +348,6 @@ def main():
 
     SearchNode.n_tasks = n_tasks
 
-    node = SearchNode()
-    child = node.select_child()
-    leaf = node.simulate()
-    pass
-
-    t_ex, ch_ex = mcts_orig(tasks, ch_avail, n_mc=[1000 for n in range(n_tasks, 0, -1)], verbose=False)
-    print(t_ex)
-    t_ex, ch_ex = mcts(tasks, ch_avail, verbose=False)
-    print(t_ex)
-
 
 if __name__ == '__main__':
     main()
