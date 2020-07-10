@@ -20,6 +20,7 @@ from util.plot import plot_task_losses, plot_schedule, scatter_loss_runtime
 from tasks import ReluDropGenerator
 from tree_search import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release
 from env_tasking import SeqTaskingEnv, StepTaskingEnv, wrap_agent, RandomAgent
+from SL_policy import wrap_model
 
 plt.style.use('seaborn')
 
@@ -29,7 +30,7 @@ plt.style.use('seaborn')
 
 
 # %% Inputs
-n_gen = 2      # number of task scheduling problems
+n_gen = 10      # number of task scheduling problems
 
 n_tasks = 8
 n_channels = 2
@@ -40,18 +41,25 @@ task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_li
 
 def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time generator
     # TODO: rng is a mutable default argument!
-    return rng.uniform(0, 2, n_ch)
+    # return rng.uniform(0, 2, n_ch)
+    return np.zeros(n_ch)
 
 
 # Algorithms
 
+# model = './models/2020-07-09_08-39-48'
+model = './models/2020-07-09_08-53-15'
+nn_policy = wrap_model(model)
+
 env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen)
-random_agent = wrap_agent(env, RandomAgent(env.action_space))       # TODO: pickle save/load?
+random_agent = wrap_agent(env, RandomAgent(env.action_space))       # TODO: pickle save_model/load?
 
 alg_funcs = [partial(branch_bound, verbose=False),
-             partial(random_agent)]
+             partial(mcts, n_mc=.1*factorial(n_tasks), verbose=False),
+             partial(random_agent),
+             partial(nn_policy)]
 
-alg_n_iter = [1, 2]       # number of runs per problem
+alg_n_iter = [1, 5, 10, 1]       # number of runs per problem
 
 # alg_funcs = [partial(branch_bound, verbose=False),
 #              partial(mcts_orig, n_mc=[floor(.1 * factorial(n)) for n in range(n_tasks, 0, -1)], verbose=False),
@@ -112,8 +120,22 @@ for i_gen in range(n_gen):      # Generate new scheduling problem
 
     scatter_loss_runtime(t_run_iter[i_gen], l_ex_iter[i_gen], ax=ax_gen[1])
 
-print('')
 
+# %% Results
 _, ax_results = plt.subplots(num='Results', clear=True)
 scatter_loss_runtime(t_run_mean, l_ex_mean,
                      ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
+
+# Relative to B&B
+if 'branch_bound' in alg_reprs:
+    l_ex_mean_bb = l_ex_mean['branch_bound'].copy()
+    t_run_mean_norm = t_run_mean.copy()
+    l_ex_mean_norm = l_ex_mean.copy()
+    for rep in alg_reprs:
+        l_ex_mean_norm[rep] -= l_ex_mean_bb
+        l_ex_mean_norm[rep] /= l_ex_mean_bb
+
+    _, ax_results_norm = plt.subplots(num='Results Normalized', clear=True)
+    scatter_loss_runtime(t_run_mean_norm, l_ex_mean_norm,
+                         ax=ax_results_norm, ax_kwargs={'title': 'Performance relative to B&B optimal',
+                                                        'ylabel': 'Relative Loss (%)'})

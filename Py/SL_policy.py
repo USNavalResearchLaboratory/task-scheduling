@@ -12,13 +12,14 @@ from util.generic import check_rng
 from util.results import check_valid, eval_loss
 
 from tasks import ReluDropGenerator, PermuteTaskGenerator, DeterministicTaskGenerator
-from tree_search import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release
+from tree_search import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release, TreeNode
 
 plt.style.use('seaborn')
 
 
 def data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen=1):
 
+    # TODO: make a generator object in tasks.py, pass to training func
     # TODO: generate sample weights to prioritize earliest task selections??
 
     x_gen = []
@@ -57,14 +58,17 @@ def data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen=1):
 
 
 def train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train, n_gen_val,
-             do_tensorboard=False, save=False):
+             plot_history=True, do_tensorboard=False, save_model=False):
+
+    # TODO: customize output layers to avoid illegal actions
+    # TODO: train using complete tree info, not just B&B solution?
 
     x_train, y_train = data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train)
     x_val, y_val = data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_val)
 
     model = keras.Sequential([keras.layers.Flatten(input_shape=x_train.shape[1:]),
                               keras.layers.Dense(60, activation='relu'),
-                              # keras.layers.Dense(30, activation='relu'),
+                              keras.layers.Dense(60, activation='relu'),
                               # keras.layers.Dense(30, activation='relu'),
                               # keras.layers.Dropout(0.2),
                               # keras.layers.Dense(100, activation='relu'),
@@ -74,7 +78,7 @@ def train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train, n_gen_val
                   loss='sparse_categorical_crossentropy',
                   metrics=['accuracy'])
 
-    callbacks = [keras.callbacks.EarlyStopping(patience=100, monitor='val_loss', min_delta=0.)]
+    callbacks = [keras.callbacks.EarlyStopping(patience=60, monitor='val_loss', min_delta=0.)]
 
     if do_tensorboard:
         log_dir = './logs/TF_train'
@@ -94,10 +98,7 @@ def train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train, n_gen_val
                         validation_data=(x_val, y_val),
                         callbacks=callbacks)
 
-    # test_loss, test_acc = model.evaluate(x_test, y_test)
-    # model.save_weights('./weights/my_model')
-
-    if True:
+    if plot_history:
         plt.figure(num='training history', clear=True, figsize=(10, 4.8))
         plt.subplot(1, 2, 1)
         plt.plot(history.epoch, history.history['loss'], label='training')
@@ -110,14 +111,38 @@ def train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train, n_gen_val
         plt.legend()
         plt.gca().set(xlabel='epoch', ylabel='accuracy')
 
-    if save:
+    if save_model:
         model.save('./models/temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S')))
 
-    return model    # TODO: wrap model for main.py
+    return model
+
+
+def wrap_model(model):
+    if type(model) == str:
+        model = keras.models.load_model(model)
+
+    def scheduling_model(tasks, ch_avail):
+        TreeNode._tasks = tasks
+        TreeNode._ch_avail_init = ch_avail
+
+        state = np.array([[1] + task.gen_rep for task in tasks])
+        seq = []
+        for _ in range(len(tasks)):
+            p = model.predict(state[np.newaxis]).squeeze(0)
+            p[seq] = 0.     # FIXME: hacked to disallow previously scheduled tasks
+            n = p.argmax()
+
+            seq.append(n)
+            state[n][0] = 0
+
+        node = TreeNode(seq)
+        return node.t_ex, node.ch_ex
+
+    return scheduling_model
 
 
 def main():
-    n_tasks = 5
+    n_tasks = 8
     n_channels = 2
 
     task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
@@ -133,7 +158,19 @@ def main():
 
     # x, y = data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen=10)
 
-    train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train=100, n_gen_val=10)
+    model = train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train=100, n_gen_val=10,
+                     plot_history=True, do_tensorboard=False, save_model=True)
+    # model = './models/2020-07-09_08-39-48'
+
+    scheduler = wrap_model(model)
+
+    tasks = task_gen.rand_tasks(n_tasks)
+    ch_avail = ch_avail_gen(n_channels)
+
+    t_ex, ch_ex = scheduler(tasks, ch_avail)
+
+    print(t_ex)
+    print(ch_ex)
 
 
 if __name__ == '__main__':
