@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 from util.generic import algorithm_repr, check_rng
 from util.results import check_valid, eval_loss
-from util.plot import plot_task_losses, plot_schedule, plot_loss_runtime
+from util.plot import plot_task_losses, plot_schedule, plot_loss_runtime, plot_loss_runtime_std
 
 from tasks import ReluDropGenerator
 from tree_search_run_lim import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release
@@ -90,16 +90,17 @@ for i_gen in range(n_gen):      # Generate new scheduling problem
 
         l_ex_mean[alg_repr][i_gen] = l_ex_iter[alg_repr][i_gen].mean(-1)
 
-    plot_loss_runtime(max_runtimes, l_ex_mean[i_gen], ax=ax_gen[1])
+    # plot_loss_runtime(max_runtimes, l_ex_mean[i_gen], ax=ax_gen[1])
+    plot_loss_runtime_std(max_runtimes, l_ex_iter[i_gen], do_std=False, ax=ax_gen[1])
 
 print('')
 
 # Average results across random task sets
-l_ex_mean_gen = np.array([tuple(l_ex_mean[alg_repr][:, i].mean() for alg_repr in alg_reprs) for i in range(n_runtimes)],
-                         dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float])))
-
 _, ax_results = plt.subplots(num='Results', clear=True)
-plot_loss_runtime(max_runtimes, l_ex_mean_gen,
-                  ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
 
-# TODO: error bars!
+# l_ex_mean_gen = np.array([tuple(l_ex_mean[alg_repr][:, i].mean() for alg_repr in alg_reprs)
+#                           for i in range(n_runtimes)], dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float])))
+# plot_loss_runtime(max_runtimes, l_ex_mean_gen,
+#                   ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
+plot_loss_runtime_std(max_runtimes, l_ex_mean.transpose(), do_std=False,
+                      ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})

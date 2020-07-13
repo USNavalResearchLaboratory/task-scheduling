@@ -163,3 +163,24 @@ def plot_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):    # TODO: combine 
     ax.grid(True)
     ax.legend()
     ax.set(**ax_kwargs)
+
+
+def plot_loss_runtime_std(t_run, l_ex, do_std=True, ax=None, ax_kwargs=None):
+    if ax is None:
+        _, ax = plt.subplots()
+
+    if ax_kwargs is None:
+        ax_kwargs = {}
+
+    for alg_repr in l_ex.dtype.names:
+        l_mean = l_ex[alg_repr].mean(-1)
+        if do_std:
+            l_std = l_ex[alg_repr].std(-1)
+            ax.errorbar(t_run, l_mean, yerr=l_std, label=alg_repr)
+        else:
+            ax.plot(t_run, l_mean, label=alg_repr)
+
+    ax.set(xlabel='Runtime (s)', ylabel='Loss')
+    ax.grid(True)
+    ax.legend()
+    ax.set(**ax_kwargs)

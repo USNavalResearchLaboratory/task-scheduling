@@ -30,7 +30,7 @@ plt.style.use('seaborn')
 
 
 # %% Inputs
-n_gen = 20      # number of task scheduling problems
+n_gen = 2      # number of task scheduling problems
 
 n_tasks = 8
 n_channels = 2
@@ -90,8 +90,8 @@ for i_gen in range(n_gen):      # Generate new scheduling problem
     tasks = task_gen(n_tasks)
     ch_avail = ch_avail_gen(n_channels)
 
-    # _, ax_gen = plt.subplots(2, 1, num=f'Task Set: {i_gen + 1}', clear=True)
-    # plot_task_losses(tasks, ax=ax_gen[0])
+    _, ax_gen = plt.subplots(2, 1, num=f'Task Set: {i_gen + 1}', clear=True)
+    plot_task_losses(tasks, ax=ax_gen[0])
 
     for alg_repr, alg_func, n_iter in zip(alg_reprs, alg_funcs, alg_n_iter):
         for iter_ in range(n_iter):      # Perform new algorithm runs
@@ -116,10 +116,13 @@ for i_gen in range(n_gen):      # Generate new scheduling problem
         print(f"    Avg. Runtime: {t_run_mean[alg_repr][i_gen]:.2f} (s)")
         print(f"    Avg. Execution Loss: {l_ex_mean[alg_repr][i_gen]:.2f}")
 
-    # scatter_loss_runtime(t_run_iter[i_gen], l_ex_iter[i_gen], ax=ax_gen[1])
+    scatter_loss_runtime(t_run_iter[i_gen], l_ex_iter[i_gen], ax=ax_gen[1])
 
 
 # %% Results
+
+# TODO: print mean loss/runtime values to stdout or file??
+
 _, ax_results = plt.subplots(num='Results', clear=True)
 scatter_loss_runtime(t_run_mean, l_ex_mean,
                      ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
