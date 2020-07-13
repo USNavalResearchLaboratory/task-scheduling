@@ -19,7 +19,6 @@ plt.style.use('seaborn')
 
 def data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen=1):
 
-    # TODO: make a generator object in tasks.py, pass to training func
     # TODO: generate sample weights to prioritize earliest task selections??
 
     x_gen = []
@@ -27,18 +26,18 @@ def data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen=1):
     for i_gen in range(n_gen):
         print(f'Task Set: {i_gen + 1}/{n_gen}', end='\n')
 
-        tasks = task_gen.rand_tasks(n_tasks)
+        tasks = task_gen(n_tasks)
         ch_avail = ch_avail_gen(n_channels)
 
         t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True)
+        seq = np.argsort(t_ex).tolist()  # optimal sequence
 
         # check_valid(tasks, t_ex, ch_ex)
         # l_ex = eval_loss(tasks, t_ex)
 
-        seq = np.argsort(t_ex).tolist()     # optimal sequence
         state = np.array([[1] + task.gen_rep for task in tasks])
 
-        x = np.empty((n_tasks, *state.shape))
+        x = np.empty((n_tasks, *state.shape))       # TODO: one-hot state encoding for order?
         # x = np.empty((n_tasks, n_tasks))
         y = np.zeros(n_tasks, dtype=np.int)
         for i, n in enumerate(seq):
@@ -51,10 +50,7 @@ def data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen=1):
         x_gen.append(x)
         y_gen.append(y)
 
-    x_full = np.concatenate(x_gen)
-    y_full = np.concatenate(y_gen)
-
-    return x_full, y_full
+    return np.concatenate(x_gen), np.concatenate(y_gen)
 
 
 def train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train, n_gen_val,
@@ -62,8 +58,8 @@ def train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train, n_gen_val
 
     # TODO: customize output layers to avoid illegal actions
     # TODO: train using complete tree info, not just B&B solution?
+
     # TODO: sort tasks by release time, etc.?
-    # TODO: one-hot state encoding for order?
     # TODO: task parameter shift for channel availability
 
     x_train, y_train = data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train)
@@ -151,8 +147,8 @@ def main():
     task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
                                  t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)  # task set generator
 
-    # task_gen = PermuteTaskGenerator(task_gen.rand_tasks(n_tasks))   # FIXME
-    # task_gen = DeterministicTaskGenerator(task_gen.rand_tasks(n_tasks))  # FIXME
+    # task_gen = PermuteTaskGenerator(task_gen(n_tasks))   # FIXME
+    # task_gen = DeterministicTaskGenerator(task_gen(n_tasks))  # FIXME
 
     def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
         # TODO: rng is a mutable default argument!
@@ -167,7 +163,7 @@ def main():
 
     scheduler = wrap_model(model)
 
-    tasks = task_gen.rand_tasks(n_tasks)
+    tasks = task_gen(n_tasks)
     ch_avail = ch_avail_gen(n_channels)
 
     t_ex, ch_ex = scheduler(tasks, ch_avail)

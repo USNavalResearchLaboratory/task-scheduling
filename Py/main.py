@@ -87,11 +87,11 @@ l_ex_mean = np.array(list(zip(*np.empty((len(alg_reprs), n_gen)))),
 for i_gen in range(n_gen):      # Generate new scheduling problem
     print(f'Task Set: {i_gen + 1}/{n_gen}')
 
-    tasks = task_gen.rand_tasks(n_tasks)
+    tasks = task_gen(n_tasks)
     ch_avail = ch_avail_gen(n_channels)
 
-    _, ax_gen = plt.subplots(2, 1, num=f'Task Set: {i_gen + 1}', clear=True)
-    plot_task_losses(tasks, ax=ax_gen[0])
+    # _, ax_gen = plt.subplots(2, 1, num=f'Task Set: {i_gen + 1}', clear=True)
+    # plot_task_losses(tasks, ax=ax_gen[0])
 
     for alg_repr, alg_func, n_iter in zip(alg_reprs, alg_funcs, alg_n_iter):
         for iter_ in range(n_iter):      # Perform new algorithm runs
@@ -116,7 +116,7 @@ for i_gen in range(n_gen):      # Generate new scheduling problem
         print(f"    Avg. Runtime: {t_run_mean[alg_repr][i_gen]:.2f} (s)")
         print(f"    Avg. Execution Loss: {l_ex_mean[alg_repr][i_gen]:.2f}")
 
-    scatter_loss_runtime(t_run_iter[i_gen], l_ex_iter[i_gen], ax=ax_gen[1])
+    # scatter_loss_runtime(t_run_iter[i_gen], l_ex_iter[i_gen], ax=ax_gen[1])
 
 
 # %% Results
@@ -126,14 +126,21 @@ scatter_loss_runtime(t_run_mean, l_ex_mean,
 
 # Relative to B&B
 if 'branch_bound' in alg_reprs:
+    t_run_mean_bb = t_run_mean['branch_bound'].copy()
     l_ex_mean_bb = l_ex_mean['branch_bound'].copy()
+
     t_run_mean_norm = t_run_mean.copy()
     l_ex_mean_norm = l_ex_mean.copy()
     for rep in alg_reprs:
+        # t_run_mean_norm[rep] -= t_run_mean_bb
+        # t_run_mean_norm[rep] /= t_run_mean_bb
         l_ex_mean_norm[rep] -= l_ex_mean_bb
         l_ex_mean_norm[rep] /= l_ex_mean_bb
 
-    _, ax_results_norm = plt.subplots(num='Results Normalized', clear=True)
+    _, ax_results_norm = plt.subplots(num='Results (Normalized)', clear=True)
     scatter_loss_runtime(t_run_mean_norm, l_ex_mean_norm,
                          ax=ax_results_norm, ax_kwargs={'title': 'Performance relative to B&B optimal',
-                                                        'ylabel': 'Additional Loss (Normalized)'})
+                                                        'ylabel': 'Excess Loss (Normalized)',
+                                                        # 'xlabel': 'Runtime Difference (Normalized)'
+                                                        }
+                         )

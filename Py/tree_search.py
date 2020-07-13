@@ -94,7 +94,7 @@ class TreeNode:     # TODO: rename?
     ch_avail = property(lambda self: self._ch_avail)
     l_ex = property(lambda self: self._l_ex)
 
-    def seq_extend(self, seq_ext: list):
+    def seq_extend(self, seq_ext: list, check_valid=True):
         """
         Extends node sequence and updates attributes using sequence-to-schedule approach.
 
@@ -102,18 +102,18 @@ class TreeNode:     # TODO: rename?
         ----------
         seq_ext : list of int
             Sequence of indices referencing cls._tasks.
+        check_valid : bool
+            Perform check of index sequence validity.
 
         """
 
-        seq_ext_set = set(seq_ext)
-        if len(seq_ext) != len(seq_ext_set):
-            raise ValueError("Input 'seq_ext' must have unique values.")
-        if not seq_ext_set.issubset(self._seq_rem):
-            raise ValueError("Values in 'seq_ext' must not be in the current node sequence.")
+        if check_valid:
+            seq_ext_set = set(seq_ext)
+            if len(seq_ext) != len(seq_ext_set):
+                raise ValueError("Input 'seq_ext' must have unique values.")
+            if not seq_ext_set.issubset(self._seq_rem):
+                raise ValueError("Values in 'seq_ext' must not be in the current node sequence.")
 
-        self._seq_extend(seq_ext)   # TODO: just do unique checks based on input flag? append method?
-
-    def _seq_extend(self, seq_ext: list):
         self._seq += seq_ext
         self._seq_rem -= set(seq_ext)
 
@@ -147,7 +147,7 @@ class TreeNode:     # TODO: rename?
 
         for n in seq_iter:
             node_new = deepcopy(self)  # new TreeNode object
-            node_new._seq_extend([n])
+            node_new.seq_extend([n], check_valid=False)
             yield node_new
 
     def roll_out(self, do_copy=False):
@@ -170,10 +170,10 @@ class TreeNode:     # TODO: rename?
 
         if do_copy:
             node_new = deepcopy(self)  # new TreeNode object
-            node_new._seq_extend(seq_ext)
+            node_new.seq_extend(seq_ext, check_valid=False)
             return node_new
         else:
-            self._seq_extend(seq_ext)
+            self.seq_extend(seq_ext, check_valid=False)
 
     def check_swaps(self):
         """Try adjacent task swapping, overwrite node if loss drops."""
@@ -230,7 +230,7 @@ class TreeNodeBound(TreeNode):
     l_lo = property(lambda self: self._l_lo)
     l_up = property(lambda self: self._l_up)
 
-    def _seq_extend(self, seq: list):
+    def seq_extend(self, seq: list, check_valid=True):
         """
         Sets node sequence and iteratively updates all dependent attributes.
 
@@ -238,13 +238,15 @@ class TreeNodeBound(TreeNode):
         ----------
         seq : list of list
             Sequence of indices referencing cls._tasks.
+        check_valid : bool
+            Perform check of index sequence validity.
 
         """
 
-        super()._seq_extend(seq)
+        super().seq_extend(seq, check_valid)
 
         # Add bound attributes
-        t_ex_max = (max([self._tasks[n].t_release for n in self._seq_rem] + list(self._ch_avail))
+        t_ex_max = (max([self._tasks[n].t_release for n in self._seq_rem] + [min(self._ch_avail)])
                     + sum([self._tasks[n].duration for n in self._seq_rem]))  # maximum execution time for bounding
 
         self._l_lo = self._l_ex
@@ -253,7 +255,8 @@ class TreeNodeBound(TreeNode):
             self._l_lo += self._tasks[n].loss_func(max(self._tasks[n].t_release, min(self._ch_avail)))
             self._l_up += self._tasks[n].loss_func(t_ex_max)
 
-        if len(self._seq_rem) > 0 and self._l_lo == self._l_up:  # roll-out if bounds converge
+        # Roll-out if bounds converge
+        if len(self._seq_rem) > 0 and self._l_lo == self._l_up:
             self.roll_out()
 
 
@@ -579,7 +582,7 @@ def mcts_orig(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
                 node_best = node_mc
 
         # Assign next task from earliest available channel
-        node._seq_extend([node_best.seq[n]])
+        node.seq_extend([node_best.seq[n]], check_valid=False)
 
     t_ex, ch_ex = node_best.t_ex, node_best.ch_ex
 
@@ -798,7 +801,7 @@ def main():
     def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
         return rng.uniform(0, 2, n_ch)
 
-    tasks = task_gen.rand_tasks(n_tasks)
+    tasks = task_gen(n_tasks)
     ch_avail = ch_avail_gen(n_channels)
 
     TreeNode._tasks = tasks

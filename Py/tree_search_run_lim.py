@@ -137,7 +137,7 @@ def mcts_orig(tasks: list, ch_avail: list, max_runtime=float('inf'), n_mc=None, 
             break
 
         # Assign next task from earliest available channel
-        node._seq_extend([node_best.seq[n]])
+        node.seq_extend([node_best.seq[n]], check_valid=False)
 
     t_ex, ch_ex = node_best.t_ex, node_best.ch_ex
 
@@ -334,7 +334,7 @@ def main():
     def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
         return rng.uniform(0, 2, n_ch)
 
-    tasks = task_gen.rand_tasks(n_tasks)
+    tasks = task_gen(n_tasks)
     ch_avail = ch_avail_gen(n_channels)
 
     TreeNode._tasks = tasks

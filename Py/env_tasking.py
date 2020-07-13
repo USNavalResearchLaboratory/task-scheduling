@@ -87,11 +87,25 @@ class BaseTaskingEnv(gym.Env):
         self._obs_high = np.broadcast_to(np.asarray(_high), (n_tasks, 5))
 
     def reset(self, tasks=None, ch_avail=None):
-        if len(tasks) != self.n_tasks or len(ch_avail) != self.n_ch:
-            raise ValueError(f"Env requires {self.n_tasks} tasks and {self.n_ch} channels.")
 
-        self.tasks = self.task_gen.rand_tasks(self.n_tasks) if tasks is None else tasks
-        self.ch_avail = self.ch_avail_gen(self.n_ch) if ch_avail is None else ch_avail
+        if tasks is None:
+            self.tasks = self.task_gen(self.n_tasks)
+        else:
+            if len(tasks) == self.n_tasks:
+                self.tasks = tasks
+            else:
+                raise ValueError(f"Env requires {self.n_tasks} tasks.")
+
+        if ch_avail is None:
+            self.ch_avail = self.ch_avail_gen(self.n_ch)
+        else:
+            if len(ch_avail) == self.n_ch:
+                self.ch_avail = ch_avail
+            else:
+                raise ValueError(f"Env requires {self.n_ch} channels.")
+
+        # self.tasks = self.task_gen.rand_tasks(self.n_tasks) if tasks is None else tasks
+        # self.ch_avail = self.ch_avail_gen(self.n_ch) if ch_avail is None else ch_avail
 
         TreeNode._tasks = self.tasks
         TreeNode._ch_avail_init = self.ch_avail

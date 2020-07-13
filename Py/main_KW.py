@@ -100,7 +100,7 @@ Y = np.empty([0])
 for i_gen in range(n_gen):      # Generate new tasks
     print(f'Task Set: {i_gen + 1}/{n_gen}')
 
-    tasks = task_gen.rand_tasks(n_tasks)
+    tasks = task_gen(n_tasks)
     ch_avail = ch_avail_gen(n_channels,rng)
 
     _, ax_gen = plt.subplots(2, 1, num=f'Task Set: {i_gen + 1}', clear=True)

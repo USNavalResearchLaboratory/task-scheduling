@@ -202,7 +202,7 @@ class GenericTaskGenerator:
     def __init__(self, rng=None):
         self.rng = check_rng(rng)
 
-    def rand_tasks(self, n_tasks):
+    def __call__(self, n_tasks):
         raise NotImplementedError
 
 
@@ -215,7 +215,7 @@ class ReluDropGenerator(GenericTaskGenerator):
         self.t_drop_lim = t_drop_lim
         self.l_drop_lim = l_drop_lim
 
-    def rand_tasks(self, n_tasks):
+    def __call__(self, n_tasks):
         duration = self.rng.uniform(*self.duration_lim, n_tasks)
         t_release = self.rng.uniform(*self.t_release_lim, n_tasks)
         slope = self.rng.uniform(*self.slope_lim, n_tasks)
@@ -230,7 +230,7 @@ class PermuteTaskGenerator(GenericTaskGenerator):
         super().__init__(rng)
         self.tasks = tasks      # list of tasks
 
-    def rand_tasks(self, n_tasks):      # FIXME: unused parameter. FIX CLASS!
+    def __call__(self, n_tasks):
         return self.rng.permutation(self.tasks)
 
 
@@ -239,5 +239,5 @@ class DeterministicTaskGenerator(GenericTaskGenerator):
         super().__init__(rng)
         self.tasks = tasks      # list of tasks
 
-    def rand_tasks(self, n_tasks):      # FIXME: unused parameter. FIX CLASS!
+    def __call__(self, n_tasks):
         return self.tasks
