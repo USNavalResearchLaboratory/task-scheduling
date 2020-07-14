@@ -81,7 +81,7 @@ class BaseTaskingEnv(gym.Env):
 
         self.reward_range = (-float('inf'), 0)
 
-        _low, _high = list(zip(task_gen.duration_lim, task_gen.t_release_lim, task_gen.slope_lim,
+        _low, _high = list(zip(task_gen.t_release_lim, task_gen.duration_lim, task_gen.slope_lim,
                                task_gen.t_drop_lim, task_gen.l_drop_lim, ))
         self._obs_low = np.broadcast_to(np.asarray(_low), (n_tasks, 5))
         self._obs_high = np.broadcast_to(np.asarray(_high), (n_tasks, 5))
@@ -165,11 +165,13 @@ class StepTaskingEnv(BaseTaskingEnv):
 
         self.loss_agg = self.node.l_ex
 
-        self.state = np.array([[1] + task.gen_rep for task in self.tasks])
+        self.state = np.array([[0 for _ in range(self.n_tasks)] + task.gen_rep for task in tasks])
+        # self.state = np.array([[1] + task.gen_rep for task in self.tasks])
         return self.state
 
     def step(self, action: int):
-        self.state[action][0] = 0       # Set first element of task vector to zero, indicating 'scheduled'.
+        self.state[action][len(self.node.seq)] = 1      # one-hot encoding of task execution index
+        # self.state[action][0] = 0       # Set first element of task vector to zero, indicating 'scheduled'.
         obs = self.state
 
         self.node.seq_extend([action])
@@ -239,7 +241,7 @@ def main():
         return rng.uniform(0, 2, n_ch)
 
     params = {'n_tasks': 8,
-              'task_gen': ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+              'task_gen': ReluDropGenerator(t_release_lim=(0, 4), duration_lim=(3, 6), slope_lim=(0.5, 2),
                                             t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None),
               'n_ch': 2,
               'ch_avail_gen': ch_avail_generator}

@@ -35,17 +35,18 @@ def data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen=1):
         # check_valid(tasks, t_ex, ch_ex)
         # l_ex = eval_loss(tasks, t_ex)
 
-        state = np.array([[1] + task.gen_rep for task in tasks])
+        state = np.array([[0 for _ in range(n_tasks)] + task.gen_rep for task in tasks])        # one-hot
+        # state = np.array([[1] + task.gen_rep for task in tasks])      # binary
+        # state = np.ones((n_tasks, 1))     # no task parameters
 
-        x = np.empty((n_tasks, *state.shape))       # TODO: one-hot state encoding for order?
-        # x = np.empty((n_tasks, n_tasks))
+        x = np.empty((n_tasks, *state.shape))
         y = np.zeros(n_tasks, dtype=np.int)
         for i, n in enumerate(seq):
             x[i] = state
-            # x[i] = state[:, 0]
             y[i] = n
 
-            state[n][0] = 0
+            state[n][i] = 1
+            # state[n][0] = 0
 
         x_gen.append(x)
         y_gen.append(y)
@@ -144,16 +145,14 @@ def main():
     n_tasks = 8
     n_channels = 2
 
-    task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+    task_gen = ReluDropGenerator(t_release_lim=(0, 4), duration_lim=(3, 6), slope_lim=(0.5, 2),
                                  t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)  # task set generator
 
-    # task_gen = PermuteTaskGenerator(task_gen(n_tasks))   # FIXME
-    # task_gen = DeterministicTaskGenerator(task_gen(n_tasks))  # FIXME
+    # task_gen = PermuteTaskGenerator(task_gen(n_tasks))
+    # task_gen = DeterministicTaskGenerator(task_gen(n_tasks))
 
     def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
-        # TODO: rng is a mutable default argument!
-        # return rng.uniform(0, 2, n_ch)
-        return np.zeros(n_ch)
+        return rng.uniform(0, 0, n_ch)
 
     # x, y = data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen=10)
 

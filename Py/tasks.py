@@ -114,6 +114,8 @@ class ReluDropTask(GenericTask):
 
     @slope.setter
     def slope(self, slope):
+        # if slope <= 0:
+        #     raise ValueError("Slope must be positive.")       # FIXME
         self.check_non_decreasing(slope, self.t_drop, self.l_drop)
         self._slope = slope
 
@@ -148,7 +150,7 @@ class ReluDropTask(GenericTask):
         # params = np.array(_params, dtype=[('duration', np.float), ('t_release', np.float),
         #                                   ('slope', np.float), ('t_drop', np.float), ('l_drop', np.float)])
         # params.view(np.float).reshape(*params.shape, -1)
-        return [self.t_release, self.duration, self.slope, self.t_drop, self.l_drop]
+        return [self.t_release, self.duration, self.slope, self.t_drop, self.l_drop]    # TODO: add dropped flag?
 
     def time_shift(self, t):
         """Re-parameterize task after time elapses. Return loss incurred."""
@@ -160,23 +162,27 @@ class ReluDropTask(GenericTask):
             return 0.
 
         t_excess = t - self.t_release
-        if t_excess <= 0:   # update release time, no loss incurred
-            self.t_release = -t_excess
-            return 0.
-        else:       # release time becomes zero, loss is incurred, drop time and loss are updated
-            self.t_release = 0.
+        self.t_release = max(0., -t_excess)
+        if self.is_available:
+            # Loss is incurred, drop time and loss are updated
             loss_inc = self.loss_func(t_excess)
             self.t_drop = max(0., self.t_drop - t_excess)
             self.l_drop = self.l_drop - loss_inc
             return loss_inc
+        else:
+            return 0.   # No loss incurred
 
     @property
-    def is_available(self):     # TODO: uses??
+    def is_available(self):     # TODO: uses?? array rep?
         return self.t_release == 0.
 
     @property
     def is_dropped(self):
-        return self.t_drop == 0.
+        return self.is_available and self.t_drop == 0.
+
+    # @property
+    # def priority(self):
+    #     return self.l_drop / self.t_drop
 
     def loss_func(self, t):
         """Loss function versus time."""
@@ -235,22 +241,22 @@ class GenericTaskGenerator:
 
 
 class ReluDropGenerator(GenericTaskGenerator):
-    def __init__(self, duration_lim, t_release_lim, slope_lim, t_drop_lim, l_drop_lim, rng=None):
+    def __init__(self, t_release_lim, duration_lim, slope_lim, t_drop_lim, l_drop_lim, rng=None):
         super().__init__(rng)
-        self.duration_lim = duration_lim
         self.t_release_lim = t_release_lim
+        self.duration_lim = duration_lim
         self.slope_lim = slope_lim
         self.t_drop_lim = t_drop_lim
         self.l_drop_lim = l_drop_lim
 
     def __call__(self, n_tasks):
-        duration = self.rng.uniform(*self.duration_lim, n_tasks)
         t_release = self.rng.uniform(*self.t_release_lim, n_tasks)
+        duration = self.rng.uniform(*self.duration_lim, n_tasks)
         slope = self.rng.uniform(*self.slope_lim, n_tasks)
         t_drop = self.rng.uniform(*self.t_drop_lim, n_tasks)
         l_drop = self.rng.uniform(*self.l_drop_lim, n_tasks)
 
-        return [ReluDropTask(*args) for args in zip(duration, t_release, slope, t_drop, l_drop)]
+        return [ReluDropTask(*args) for args in zip(t_release, duration, slope, t_drop, l_drop)]
 
 
 class PermuteTaskGenerator(GenericTaskGenerator):

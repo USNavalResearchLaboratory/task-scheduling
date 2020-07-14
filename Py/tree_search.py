@@ -795,7 +795,7 @@ def main():
     n_tasks = 8
     n_channels = 2
 
-    task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+    task_gen = ReluDropGenerator(t_release_lim=(0, 4), duration_lim=(3, 6), slope_lim=(0.5, 2),
                                  t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=None)  # task set generator
 
     def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
