@@ -13,18 +13,18 @@ class GenericTask:
 
     Parameters
     ----------
-    duration : float
-        Time duration of the task.
     t_release : float
         Earliest time the task may be scheduled.
+    duration : float
+        Time duration of the task.
     loss_func : function, optional
         Maps execution time to scheduling loss.
 
     """
 
-    def __init__(self, duration, t_release, loss_func=None):
-        self.duration = duration
+    def __init__(self, t_release, duration, loss_func=None):
         self.t_release = t_release
+        self.duration = duration
 
         self._loss_func = loss_func
 
@@ -86,12 +86,12 @@ class ReluDropTask(GenericTask):
 
     Parameters
     ----------
+    t_release : float
+        Earliest time the task may be scheduled.
     duration : float
         Time duration of the task.
-    t_release : float
-        Earliest time the task may be scheduled. Loss at t_release is zero.
     slope : float
-        Function slope between release and drop times.
+        Function slope between release and drop times. Loss at release time is zero.
     t_drop : float
         Drop time relative to release time.
     l_drop : float
@@ -99,12 +99,14 @@ class ReluDropTask(GenericTask):
 
     """
 
-    def __init__(self, duration, t_release, slope, t_drop, l_drop):
-        # super().__init__(duration, t_release, loss_relu_drop(t_release, slope, t_drop, l_drop))
-        super().__init__(duration, t_release)
+    def __init__(self, t_release, duration, slope, t_drop, l_drop):
+        super().__init__(t_release, duration)
         self._slope = slope
         self._t_drop = t_drop
         self._l_drop = l_drop
+
+    def __repr__(self):
+        return f"ReluDropTask(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
 
     @property
     def slope(self):
@@ -138,22 +140,48 @@ class ReluDropTask(GenericTask):
         if l_drop < slope * t_drop:
             raise ValueError("Loss function must be monotonically non-decreasing.")
 
-    def __repr__(self):
-        return f"ReluDropTask(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
-
     @property
     def gen_rep(self):
-        """A parametric representation of the task."""
+        """An array representation of the parametric task."""
 
         # _params = [(task.duration, task.t_release, task.slope, task.t_drop, task.l_drop) for task in tasks]
         # params = np.array(_params, dtype=[('duration', np.float), ('t_release', np.float),
         #                                   ('slope', np.float), ('t_drop', np.float), ('l_drop', np.float)])
         # params.view(np.float).reshape(*params.shape, -1)
-        return [self.duration, self.t_release, self.slope, self.t_drop, self.l_drop]
+        return [self.t_release, self.duration, self.slope, self.t_drop, self.l_drop]
+
+    def time_shift(self, t):
+        """Re-parameterize task after time elapses. Return loss incurred."""
+
+        if t <= 0:
+            raise ValueError("Shift time must be positive.")
+
+        if self.is_dropped:
+            return 0.
+
+        t_excess = t - self.t_release
+        if t_excess <= 0:   # update release time, no loss incurred
+            self.t_release = -t_excess
+            return 0.
+        else:       # release time becomes zero, loss is incurred, drop time and loss are updated
+            self.t_release = 0.
+            loss_inc = self.loss_func(t_excess)
+            self.t_drop = max(0., self.t_drop - t_excess)
+            self.l_drop = self.l_drop - loss_inc
+            return loss_inc
+
+    @property
+    def is_available(self):     # TODO: uses??
+        return self.t_release == 0.
+
+    @property
+    def is_dropped(self):
+        return self.t_drop == 0.
 
     def loss_func(self, t):
         """Loss function versus time."""
         t = np.asarray(t)[np.newaxis] - self.t_release      # relative time
+
         loss = self.slope * t
         loss[t < 0] = np.inf
         loss[t >= self.t_drop] = self.l_drop
