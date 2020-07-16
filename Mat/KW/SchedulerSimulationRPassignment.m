@@ -8,7 +8,7 @@ close all
 
 FLAG.profile = 1;
 FLAG.save = 0;
-FLAG.check = 0;
+FLAG.check = 0; 
 FLAG.FixedPriority = 0; % Used to keep same inputs to sequence-schedulers for all algorithms
                         % Something is broken here. EST is doing better
                         % than BB, but checked for same inputs get same
@@ -29,7 +29,7 @@ cnt_apr = 1;
 approach_string{cnt_apr} = 'EST'; cnt_apr = cnt_apr + 1;
 approach_string{cnt_apr} = 'BB'; cnt_apr = cnt_apr + 1;
 % approach_string{cnt_apr} = 'ED'; cnt_apr = cnt_apr + 1;
-% approach_string{cnt_apr} = 'NN'; cnt_apr = cnt_apr + 1;
+approach_string{cnt_apr} = 'NN'; cnt_apr = cnt_apr + 1;
 
 
 % approach_string{2} = 'NN_Single';
@@ -38,7 +38,7 @@ approach_string{cnt_apr} = 'BB'; cnt_apr = cnt_apr + 1;
 % approach_string{3} = 'BB';
 
 K = 1; % Number of timelines
-N = 3;
+N = 8;
 
 
 %% Setup Supervised Learning Function
@@ -54,7 +54,7 @@ SearchParams.NbeamsPerRow = [28 29 14 9 10 9 8 7 6];
 SearchParams.DwellTime = [36 36 36 18 18 18 18 18 18]*1e-3;
 SearchParams.RevistRate = [2.5 5 5 5 5 5 5 5 5]; 
 SearchParams.RevisitRateUB = SearchParams.RevistRate + 0.1; % Upper Bound on Revisit Rate
-SearchParams.Penalty = 100*ones(size(SearchParams.RevistRate)); % Penalty for exceeding UB
+SearchParams.Penalty = 300*ones(size(SearchParams.RevistRate)); % Penalty for exceeding UB
 SearchParams.Slope = 1./SearchParams.RevistRate;
 Nsearch = sum(SearchParams.NbeamsPerRow);
 SearchParams.JobDuration = [];
@@ -128,7 +128,10 @@ plot_en = 1;
 if plot_en
     figure(1); clf; hold all; grid on;
     tt = 0:0.1:6;
-    plot(tt,costPWlinear(tt, SearchParams.Slope' ,0, SearchParams.RevisitRateUB', SearchParams.Penalty'),'LineWidth',3)
+%     plot(tt,costPWlinear(tt, SearchParams.Slope' ,0, SearchParams.RevisitRateUB', SearchParams.Penalty'),'LineWidth',3)
+    plot(tt,costPWlinear(tt, SearchParams.Slope(1)' ,0, SearchParams.RevisitRateUB(1)', SearchParams.Penalty(1)'),'LineWidth',3)
+    plot(tt,costPWlinear(tt, SearchParams.Slope(2)' ,0, SearchParams.RevisitRateUB(1)', SearchParams.Penalty(1)'),'LineWidth',3)
+   
     plot(tt,costPWlinear(tt, TrackParams.Slope' ,0, TrackParams.RevisitRateUB', TrackParams.Penalty'),'LineWidth',3)
 
     %     plot(tt,cost_linear(tt, 1/tier_RR(1), 0))
@@ -137,9 +140,16 @@ if plot_en
 %     legend('Search','Track 1','Track 2', 'Track 3','Location','best')
     xlabel('Time (s)')
     ylabel('Cost')
-    title('Cost vs. Time')
+    title('Cost vs. Time by Job Type')
+    ylim([0 1.5])
     pretty_plot(gcf)
 end
+leg_str{1} = 'HS';
+leg_str{2} = 'AHS';
+leg_str{3} = 'T_{high}';
+leg_str{4} = 'T_{med}';
+leg_str{5} = 'T_{low}';
+legend(leg_str)
 
 
 
@@ -161,7 +171,12 @@ elseif any(strcmpi(approach_string,'MCTS'))
     load(NNstring)  
 elseif any(strcmpi(approach_string,'NN'))
 %     NNstring = './NN_REPO/net_task_4_K_1_Filter16_20200409T163534.mat';   
-    NNstring = './NN_REPO/net_task_4_K_1_Filter16_20200409T192710.mat';
+%     NNstring = './NN_REPO/net_task_4_K_1_Filter16_20200409T192710.mat';
+    if N == 4
+        NNstring = './NN_REPO/net_task_4_K_1_Filter16_20200421T184043.mat';
+    elseif N == 8
+        NNstring = './NN_REPO/net_task_8_K_1_FINAL.mat';
+    end
     load(NNstring)
 end
 
@@ -417,9 +432,12 @@ for IterAlg = 1:length(approach_string)
             metrics.JobRevistCount([queue(n).Id]) = metrics.JobRevistCount([queue(n).Id]) + 1;
             JobRevistTime{ queue(n).Id }( metrics.JobRevistCount(queue(n).Id) )     = timeSec;          
         end
-        % Update Channel Available Time
+        % Update Channel Available Time % This is not optimal. 
         if length(indexExecution) > 0
-            ChannelAvailableTime = new_job(n).StartTime; % Use last visited index n
+            availTimes = sort([new_job(indexExecution).StartTime],'descend');
+            for c_index = 1:K
+                ChannelAvailableTime(c_index) = availTimes(c_index); % Use last visited index n
+            end
         else
             keyboard
         end
@@ -534,14 +552,14 @@ for IterAlg = 1:length(approach_string)
     end
     
 %     figure(4 + (IterAlg-1)*4); clf;
-    figure(4); 
-    subplot(length(approach_string),1,IterAlg)
+    figure(4+300+IterAlg); 
+%     subplot(length(approach_string),1,IterAlg)
     % subplot(2,2,[3]);
     cla; hold all;
     plot(metrics.RevisitRate,[1:size(metrics.RevisitRate,2)],'bd','MarkerSize',8,'LineWidth',3)
     plot(1./[job_master.slope],[job_master.Id],'ro')
     
-    xlabel('Revist Rate (s)')
+    xlabel('Revisit Period (s)')
     ylabel('Job Id')
     grid on;
     aa = axis;
@@ -554,11 +572,11 @@ for IterAlg = 1:length(approach_string)
         text(metrics.JobTypeRR(nn), SearchId(nn)  ,[metrics.UniqueJobTypes{nn} ' = '  num2str(metrics.JobTypeRR(nn)) '\rightarrow'],'LineWidth',6,'HorizontalAlignment','right')
     end
     
-    title(sprintf('Job Revisit Rate %s \n Utility = %0.2f,  Penalty = %0.2f',approach_string{IterAlg},TotalUtility,TotalPenalty))
-    legend('Achieved Rate','Desired Rate')
+    title(sprintf('Job Revisit Period %s \n Utility = %0.2f,  Penalty = %0.2f',approach_string{IterAlg},TotalUtility,-TotalPenalty))
+    legend('Achieved Period','Desired Period')
     pretty_plot(gcf)
     if FLAG.save
-        fname = ['.\Figures\' approach_string{IterAlg} '_Achieved_Rate'];
+        fname = ['.\Figures\' approach_string{IterAlg} '_Achieved_Period'];
         saveas(gcf,[fname '.fig'])
         saveas(gcf,[fname '.epsc'])
     end

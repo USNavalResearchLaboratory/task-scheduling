@@ -16,13 +16,13 @@ addpath(genpath('C:\Users\wagnerk\Desktop\WU_6B72_CRM\CRM_REPO\Mat\KW'))
 %% Implementation and Comparison
 
 
-MONTE = 1;
+MONTE = 100;
 % NumSamps = 1*1e3;
 clear Cost DropPercent RunTime
 tstart = tic;
 cnt.N = 1;
-N_vec = 10;
-K = 2;
+N_vec = 8;
+K = 1;
 
 
 
@@ -35,9 +35,9 @@ for N = N_vec
     %     NNstring = sprintf('net_task_%i_K_%i_FINAL.mat',N,K);
     %     load(NNstring)
     
-    %     NNstring = sprintf('net_task_%i_K_%i_FINAL.mat',N,K);
-    if 0
-        NNstring = sprintf('net_task_%i_K_%i_TEMP.mat',N,K);
+        NNstring = sprintf('net_task_%i_K_%i_FINAL.mat',N,K);
+    if 1
+%         NNstring = sprintf('net_task_%i_K_%i_TEMP.mat',N,K);
         load(NNstring);
         data.net = net;
     end
@@ -81,12 +81,12 @@ for N = N_vec
         DropPercent.EST(monte,cnt.N) = NumDropTask/N;
         RunTime.EST(monte,cnt.N) = toc;
         
-        tic
-        datain = data;
-        datain.scheduler = 'normal';
-        [Cost.ESTn(monte,cnt.N),t_ex,NumDropTask,T] = ESTalgorithm(datain);
-        DropPercent.ESTn(monte,cnt.N) = NumDropTask/N;
-        RunTime.ESTn(monte,cnt.N) = toc;
+%         tic
+%         datain = data;
+%         datain.scheduler = 'normal';
+%         [Cost.ESTn(monte,cnt.N),t_ex,NumDropTask,T] = ESTalgorithm(datain);
+%         DropPercent.ESTn(monte,cnt.N) = NumDropTask/N;
+%         RunTime.ESTn(monte,cnt.N) = toc;
         
         % EST with Task Swapping
         tic
@@ -153,7 +153,7 @@ for N = N_vec
         
         
         % Policy Neural Net Implementation
-        if 0
+        if 1
             tic
             [Cost.NN(monte,cnt.N),t_ex,NumDropTask,T] = NeuralNetSchedulerAlgorithm(data);
             DropPercent.NN(monte,cnt.N) = NumDropTask/N;
@@ -175,26 +175,40 @@ try
     RunTime = rmfield(RunTime,'STD');
 end
 leg_str = fieldnames(RunTime);
-% leg_str{1} = 'EST';
+
+
+leg_str{1} = 'EST';
 % leg_str{2} = 'EST Swap';
-% leg_str{3} = 'ED';
+leg_str{2} = 'ED';
 % leg_str{4} = 'ED Swap';
-% leg_str{5} = 'BB';
-% leg_str{6} = 'NN';
+leg_str{3} = 'BB';
+leg_str{4} = 'NN';
 % leg_str{7} = 'MctsNN';
-% leg_str{8} = 'MCTS';
+% leg_str{5} = 'MCTS';
+leg_str(5:end) = []
 % leg_str{9} = 'MctsNN2';
 
 
-color_shape{1}= 'bv';
-color_shape{2}= 'rs';
-color_shape{3}= 'gd';
-color_shape{4}= 'm*';
-color_shape{5}= 'co';
-color_shape{6} = 'k^';
-color_shape{7} = 'y>';
-color_shape{8} = 'b+';
-color_shape{9} = 'g>';
+shape{1}= 'v';
+shape{2}= 's';
+shape{3}= 'd';
+shape{4}= 'o';
+shape{5}= '*';
+shape{6} = '^';
+shape{7} = '>';
+shape{8} = '+';
+shape{9} = '>';
+
+colorRGB{1}= color('blue');
+colorRGB{2}= color('red');
+colorRGB{3}= color('green');
+colorRGB{4}= color('darkblue');
+colorRGB{5}= color('purple');
+colorRGB{6} = color('darkgreen');
+colorRGB{7} = color('orange');
+colorRGB{8} = color('violet');
+colorRGB{9} = color('lightgreen');
+
 
 for jj = 1:length(leg_str)
     RunTime.mu(jj) = mean(RunTime.(leg_str{jj}));
@@ -205,7 +219,7 @@ end
 
 figure(22); clf; hold all; grid on;
 for jj = 1:length(leg_str)
-    plot(RunTime.mu(jj),Cost.mu(jj),color_shape{jj},'MarkerSize',12,'LineWidth',3)
+    plot(RunTime.mu(jj),Cost.mu(jj),shape{jj},'Color',colorRGB{jj},'MarkerSize',20,'LineWidth',3)
 end
 % plot(mean(RunTime.EST,1),mean(Cost.EST,1),color_shape{1},'MarkerSize',12,'LineWidth',3)
 % plot(mean(RunTime.EstSwap,1),mean(Cost.EstSwap,1),color_shape{2},'MarkerSize',12,'LineWidth',3)
@@ -222,8 +236,8 @@ xlabel(sprintf('RunTime (seconds) (K = %i Channels)', K ))
 ylabel(sprintf('Average Cost (K = %i Channels)',K))
 
 for jj = 1:length(leg_str)
-    errorbar(RunTime.mu(jj),Cost.mu(jj),Cost.STD(jj),color_shape{jj},'MarkerSize',5,'LineWidth',1,'CapSize',18)
-    errorbar(RunTime.mu(jj),Cost.mu(jj),RunTime.STD(jj),'horizontal',color_shape{jj},'MarkerSize',5,'LineWidth',1,'CapSize',18)
+    errorbar(RunTime.mu(jj),Cost.mu(jj),Cost.STD(jj),'Color',colorRGB{jj},'MarkerSize',5,'LineWidth',1,'CapSize',18)
+    errorbar(RunTime.mu(jj),Cost.mu(jj),RunTime.STD(jj),'horizontal','Color',colorRGB{jj},'MarkerSize',5,'LineWidth',1,'CapSize',18)
 end
 
 pretty_plot(gcf)
