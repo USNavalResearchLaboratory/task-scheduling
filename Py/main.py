@@ -45,19 +45,22 @@ def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time gen
 
 # Algorithms
 
+env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen, state_type='binary')
+
+random_agent = wrap_agent(env, RandomAgent(env.action_space))       # TODO: pickle save_model/load?
+
 # model = './models/2020-07-09_08-39-48'
 model = './models/2020-07-09_08-53-15'
-nn_policy = wrap_model(model)
+nn_policy = wrap_model(env, model)
 
-env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen)
-random_agent = wrap_agent(env, RandomAgent(env.action_space))       # TODO: pickle save_model/load?
 
 alg_funcs = [partial(branch_bound, verbose=False),
              partial(mcts, n_mc=.1*factorial(n_tasks), verbose=False),
+             partial(earliest_release, do_swap=True),
              partial(random_agent),
              partial(nn_policy)]
 
-alg_n_iter = [1, 5, 10, 1]       # number of runs per problem
+alg_n_iter = [1, 5, 1, 10, 1]       # number of runs per problem
 
 # alg_funcs = [partial(branch_bound, verbose=False),
 #              partial(mcts_orig, n_mc=[floor(.1 * factorial(n)) for n in range(n_tasks, 0, -1)], verbose=False),

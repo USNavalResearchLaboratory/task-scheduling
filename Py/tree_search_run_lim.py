@@ -36,7 +36,7 @@ def branch_bound(tasks: list, ch_avail: list, max_runtime=float('inf'), verbose=
 
     t_run = perf_counter()
 
-    TreeNode._tasks = tasks
+    TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = check_rng(rng)
 
@@ -103,7 +103,7 @@ def mcts_orig(tasks: list, ch_avail: list, max_runtime=float('inf'), n_mc=None, 
 
     t_run = perf_counter()
 
-    TreeNode._tasks = tasks
+    TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = check_rng(rng)
 
@@ -172,7 +172,7 @@ def mcts(tasks: list, ch_avail: list, max_runtime, verbose=False):
 
     t_run = perf_counter()
 
-    TreeNode._tasks = tasks
+    TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
     # TreeNode._rng = check_rng(rng)
 
@@ -223,7 +223,7 @@ def random_sequencer(tasks: list, ch_avail: list, max_runtime=float('inf'), rng=
 
     t_run = perf_counter()
 
-    TreeNode._tasks = tasks
+    TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = check_rng(rng)
 
@@ -263,7 +263,7 @@ def earliest_release(tasks: list, ch_avail: list, max_runtime=float('inf'), do_s
 
     t_run = perf_counter()
 
-    TreeNode._tasks = tasks
+    TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
 
     seq = list(np.argsort([task.t_release for task in tasks]))
@@ -306,7 +306,7 @@ def earliest_drop(tasks: list, ch_avail: list, max_runtime=float('inf'), do_swap
 
     t_run = perf_counter()
 
-    TreeNode._tasks = tasks
+    TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
 
     seq = list(np.argsort([task.t_drop for task in tasks]))
@@ -337,7 +337,7 @@ def main():
     tasks = task_gen(n_tasks)
     ch_avail = ch_avail_gen(n_channels)
 
-    TreeNode._tasks = tasks
+    TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = check_rng(None)
 

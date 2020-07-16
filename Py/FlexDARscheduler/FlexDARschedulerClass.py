@@ -141,7 +141,7 @@ for ii in range(Nsearch):
         job[ii].Type = 'HS' # Horizon Search (Used to determine revisit rates by job type
     else:
         job[ii].Type = 'AHS' # Above horizon search
-    job[ii].Priority = job[ii].loss_func(0) # Priority used to select which jobs to give to scheduler
+    job[ii].Priority = job[ii](0) # Priority used to select which jobs to give to scheduler
 
     # tasks = ReluDropTask(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropCost[ii])
     # A.append(tasks)
@@ -156,7 +156,7 @@ for ii in range(Ntrack):
         job[cnt].Type = 'Tmed' # Medium Priority Track
     else:
         job[cnt].Type = 'Thigh' # High Priority Track
-    job[cnt].Priority = job[cnt].loss_func(0)
+    job[cnt].Priority = job[cnt](0)
     cnt = cnt + 1
 
 
@@ -225,7 +225,7 @@ for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
 
             # Reassess Track Priorities
             for jj in range(len(job)):
-                job[jj].Priority = job[jj].loss_func(timeSec)
+                job[jj].Priority = job[jj](timeSec)
 
             priority = np.array([task.Priority for task in job])
             priority_Idx = np.argsort(-1*priority) # Note: Multiple by -1 to reverse order or [::-1] reverses sort order to be descending.

@@ -1,6 +1,5 @@
 import shutil
 import time
-import os
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,12 +12,16 @@ from util.generic import check_rng
 from util.results import check_valid, eval_loss
 
 from tasks import ReluDropGenerator, PermuteTaskGenerator, DeterministicTaskGenerator
-from tree_search import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release, TreeNode
+from tree_search import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release, TreeNode, TreeNodeShift
+from env_tasking import StepTaskingEnv
 
 plt.style.use('seaborn')
 
 
-def data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen=1):
+def data_gen(env, n_gen=1):
+
+    if not isinstance(env, StepTaskingEnv):
+        raise NotImplementedError("Tasking environment must be step Env.")
 
     # TODO: generate sample weights to prioritize earliest task selections??
 
@@ -27,36 +30,24 @@ def data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen=1):
     for i_gen in range(n_gen):
         print(f'Task Set: {i_gen + 1}/{n_gen}', end='\n')
 
-        tasks = task_gen(n_tasks)
-        ch_avail = ch_avail_gen(n_channels)
+        env.reset()
 
-        t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True)
-        seq = np.argsort(t_ex).tolist()  # optimal sequence
+        t_ex, ch_ex = branch_bound(env.node.tasks, env.node.ch_avail, verbose=True)
+        seq = np.argsort(t_ex)     # optimal sequence
 
         # check_valid(tasks, t_ex, ch_ex)
         # l_ex = eval_loss(tasks, t_ex)
 
-        state = np.array([[0 for _ in range(n_tasks)] + task.gen_rep for task in tasks])        # one-hot
-        # state = np.array([[1] + task.gen_rep for task in tasks])      # binary
-        # state = np.ones((n_tasks, 1))     # no task parameters
+        for n in seq:
+            x_gen.append(env.state.copy())
+            y_gen.append(n)
 
-        x = np.empty((n_tasks, *state.shape))
-        y = np.zeros(n_tasks, dtype=np.int)
-        for i, n in enumerate(seq):
-            x[i] = state
-            y[i] = n
+            env.step(n)
 
-            state[n][i] = 1
-            # state[n][0] = 0
-
-        x_gen.append(x)
-        y_gen.append(y)
-
-    return np.concatenate(x_gen), np.concatenate(y_gen)
+    return np.array(x_gen), np.array(y_gen)
 
 
-def train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train, n_gen_val,
-             plot_history=True, do_tensorboard=False, save_model=False):
+def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=False, save_model=False):
 
     # TODO: customize output layers to avoid illegal actions
     # TODO: train using complete tree info, not just B&B solution?
@@ -64,8 +55,8 @@ def train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train, n_gen_val
     # TODO: sort tasks by release time, etc.?
     # TODO: task parameter shift for channel availability
 
-    x_train, y_train = data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train)
-    x_val, y_val = data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_val)
+    x_train, y_train = data_gen(env, n_gen_train)
+    x_val, y_val = data_gen(env, n_gen_val)
 
     model = keras.Sequential([keras.layers.Flatten(input_shape=x_train.shape[1:]),
                               keras.layers.Dense(60, activation='relu'),
@@ -73,7 +64,7 @@ def train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train, n_gen_val
                               # keras.layers.Dense(30, activation='relu'),
                               # keras.layers.Dropout(0.2),
                               # keras.layers.Dense(100, activation='relu'),
-                              keras.layers.Dense(n_tasks, activation='softmax')])
+                              keras.layers.Dense(env.n_tasks, activation='softmax')])
 
     model.compile(optimizer='rmsprop',
                   loss='sparse_categorical_crossentropy',
@@ -112,34 +103,30 @@ def train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train, n_gen_val
         plt.legend()
         plt.gca().set(xlabel='epoch', ylabel='accuracy')
 
-    if save_model:
-        save_str = './models/temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
-        os.mkdir(save_str)
-        model.save(save_str)
+    if save_model:      # TODO: pickle model and env together in dict? or just wrapped model func??
+        model.save('./models/temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S')))
 
     return model
 
 
-def wrap_model(model):
+def wrap_model(env, model):
+    if not isinstance(env, StepTaskingEnv):
+        raise NotImplementedError("Tasking environment must be step Env.")
+
     if type(model) == str:
         model = keras.models.load_model(model)
 
     def scheduling_model(tasks, ch_avail):
-        TreeNode._tasks = tasks
-        TreeNode._ch_avail_init = ch_avail
+        observation, reward, done = env.reset(tasks, ch_avail), 0, False
+        while not done:
+            p = model.predict(observation[np.newaxis]).squeeze(0)
 
-        state = np.array([[1] + task.gen_rep for task in tasks])
-        seq = []
-        for _ in range(len(tasks)):
-            p = model.predict(state[np.newaxis]).squeeze(0)
-            p[seq] = 0.     # FIXME: hacked to disallow previously scheduled tasks
-            n = p.argmax()
+            seq_rem = env.action_space.elements.tolist()
+            action = seq_rem[p[seq_rem].argmax()]        # FIXME: hacked to disallow previously scheduled tasks
 
-            seq.append(n)
-            state[n][0] = 0
+            observation, reward, done, info = env.step(action)
 
-        node = TreeNode(seq)
-        return node.t_ex, node.ch_ex
+        return env.node.t_ex, env.node.ch_ex
 
     return scheduling_model
 
@@ -157,13 +144,12 @@ def main():
     def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
         return rng.uniform(0, 0, n_ch)
 
-    # x, y = data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen=10)
+    env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen, cls_node=TreeNodeShift, state_type='one-hot')
 
-    model = train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train=1, n_gen_val=10,
-                     plot_history=True, do_tensorboard=False, save_model=True)
+    model = train_sl(env, n_gen_train=10, n_gen_val=1, plot_history=True, do_tensorboard=False, save_model=True)
     # model = './models/2020-07-09_08-39-48'
 
-    scheduler = wrap_model(model)
+    scheduler = wrap_model(env, model)
 
     tasks = task_gen(n_tasks)
     ch_avail = ch_avail_gen(n_channels)

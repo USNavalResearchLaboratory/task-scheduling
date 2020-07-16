@@ -37,36 +37,49 @@ class TreeNode:     # TODO: rename?
     """
     # TODO: docstring describes properties as attributes. OK? Subclasses, too.
 
-    _tasks = []  # TODO: needs to be overwritten by invoking scripts... OK?
-    _ch_avail_init = []
+    _tasks_init = []    # TODO: needs to be overwritten by invoking scripts... OK?
+    _ch_avail_init = np.array([], dtype=np.float)
     _rng = None
 
     def __init__(self, seq=None):
-        if seq is None:
-            seq = []
+        self._tasks = deepcopy(self._tasks_init)
+        self._ch_avail = np.array(self._ch_avail_init).copy()  # timeline availability
 
-        if self._n_tasks == 0 or self._n_ch == 0:
+        if self.n_tasks == 0 or self.n_ch == 0:
             raise AttributeError("Cannot instantiate objects before assigning "
-                                 "the '_tasks' and '_n_ch class attributes.")
+                                 "the '_tasks' and 'n_ch class attributes.")
+        elif min(self._ch_avail) < 0.:
+            raise ValueError("Initial channel availabilities must be non-negative.")
 
         self._seq = []
+        self._seq_rem = set(range(self.n_tasks))
 
-        self._seq_rem = set(range(self._n_tasks))
+        self._t_ex = np.full(self.n_tasks, np.nan)
+        self._ch_ex = np.full(self.n_tasks, -1)    # TODO: masked array?
 
-        self._t_ex = np.full(self._n_tasks, np.nan)  # task execution times (NaN for unscheduled)
-        self._ch_ex = np.full(self._n_tasks, -1)    # TODO: masked array?
+        self._l_ex = 0.  # incurred loss
 
-        self._ch_avail = self._ch_avail_init.copy()     # timeline availability
-
-        self._l_ex = 0.  # partial sequence loss
-
-        self.seq_extend(seq)
+        if seq is None:
+            seq = []
+        if len(seq) > 0:
+            self.seq_extend(seq)
 
     def __repr__(self):
-        return f"TreeNode(sequence: {self.seq}, partial loss:{self.l_ex:.3f})"
+        return f"TreeNode(sequence: {self.seq}, loss incurred:{self.l_ex:.3f})"
 
-    _n_tasks = property(lambda self: len(self._tasks))
-    _n_ch = property(lambda self: len(self._ch_avail_init))
+    def summary(self):
+        print(f'TreeNode\n--------\nsequence: {self.seq}\nexecution time: {self.t_ex}'
+              f'\nexecution channel: {self.ch_ex}\nloss incurred: {self.l_ex:.2f}')
+
+    tasks = property(lambda self: self._tasks)
+    ch_avail = property(lambda self: self._ch_avail)
+    n_tasks = property(lambda self: len(self._tasks))
+    n_ch = property(lambda self: len(self._ch_avail))
+
+    seq_rem = property(lambda self: self._seq_rem)
+    t_ex = property(lambda self: self._t_ex)
+    ch_ex = property(lambda self: self._ch_ex)
+    l_ex = property(lambda self: self._l_ex)
 
     @property
     def seq(self):
@@ -88,12 +101,6 @@ class TreeNode:     # TODO: rename?
         else:
             self.seq_extend(seq[len(self._seq):])
 
-    seq_rem = property(lambda self: self._seq_rem)
-    t_ex = property(lambda self: self._t_ex)
-    ch_ex = property(lambda self: self._ch_ex)
-    ch_avail = property(lambda self: self._ch_avail)
-    l_ex = property(lambda self: self._l_ex)
-
     def seq_extend(self, seq_ext: list, check_valid=True):
         """
         Extends node sequence and updates attributes using sequence-to-schedule approach.
@@ -107,6 +114,11 @@ class TreeNode:     # TODO: rename?
 
         """
 
+        if len(seq_ext) == 0:
+            return
+        else:
+            seq_ext = list(seq_ext)     # FIXME: move to loop
+
         if check_valid:
             seq_ext_set = set(seq_ext)
             if len(seq_ext) != len(seq_ext_set):
@@ -114,16 +126,20 @@ class TreeNode:     # TODO: rename?
             if not seq_ext_set.issubset(self._seq_rem):
                 raise ValueError("Values in 'seq_ext' must not be in the current node sequence.")
 
-        self._seq += seq_ext
-        self._seq_rem -= set(seq_ext)
-
         for n in seq_ext:
-            ch = int(np.argmin(self.ch_avail))  # assign task to channel with earliest availability
+            self._update_ex(n)
 
-            self._ch_ex[n] = ch
-            self._t_ex[n] = max(self._tasks[n].t_release, self._ch_avail[ch])
-            self._ch_avail[ch] = self._t_ex[n] + self._tasks[n].duration
-            self._l_ex += self._tasks[n].loss_func(self._t_ex[n])
+    def _update_ex(self, n):
+        self._seq.append(n)
+        self._seq_rem.remove(n)
+
+        ch = int(np.argmin(self.ch_avail))  # assign task to channel with earliest availability
+        self._ch_ex[n] = ch
+
+        self._t_ex[n] = max(self._tasks[n].t_release, self._ch_avail[ch])
+        self._l_ex += self._tasks[n](self._t_ex[n])
+
+        self._ch_avail[ch] = self._t_ex[n] + self._tasks[n].duration
 
     def branch(self, do_permute=True):
         """
@@ -252,12 +268,53 @@ class TreeNodeBound(TreeNode):
         self._l_lo = self._l_ex
         self._l_up = self._l_ex
         for n in self._seq_rem:  # update loss bounds
-            self._l_lo += self._tasks[n].loss_func(max(self._tasks[n].t_release, min(self._ch_avail)))
-            self._l_up += self._tasks[n].loss_func(t_ex_max)
+            self._l_lo += self._tasks[n](max(self._tasks[n].t_release, min(self._ch_avail)))
+            self._l_up += self._tasks[n](t_ex_max)
 
         # Roll-out if bounds converge
         if len(self._seq_rem) > 0 and self._l_lo == self._l_up:
             self.roll_out()
+
+
+class TreeNodeShift(TreeNode):
+
+    # TODO: docstring
+
+    def __init__(self, seq=None):
+        self.t_origin = 0.
+        super().__init__(seq)
+
+        if len(self._seq) == 0:
+            self._shift_origin()
+
+    def __repr__(self):
+        return f"TreeNodeShift(sequence: {self.seq}, loss incurred:{self.l_ex:.3f})"
+
+    def _shift_origin(self):
+        ch_avail_min = min(self._ch_avail)
+        if ch_avail_min == 0.:
+            return
+
+        self.t_origin += ch_avail_min
+        self._ch_avail -= ch_avail_min
+        for n, task in enumerate(self._tasks):
+            loss_inc = task.shift_origin(ch_avail_min)
+            if n in self._seq_rem:
+                self._l_ex += loss_inc
+
+    def _update_ex(self, n):
+        self._seq.append(n)
+        self._seq_rem.remove(n)
+
+        ch = int(np.argmin(self.ch_avail))  # assign task to channel with earliest availability
+        self._ch_ex[n] = ch
+
+        t_ex_rel = max(self._tasks[n].t_release, self._ch_avail[ch])  # relative to time origin
+        self._t_ex[n] = self.t_origin + t_ex_rel  # absolute time
+        self._l_ex += self._tasks[n](t_ex_rel)
+
+        self._ch_avail[ch] = t_ex_rel + self._tasks[n].duration  # relative to time origin
+        self._shift_origin()
 
 
 class SearchNode:   # TODO: subclass TreeNode for B&B?
@@ -438,7 +495,7 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
 
     """
 
-    TreeNode._tasks = tasks
+    TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = check_rng(rng)
 
@@ -493,7 +550,7 @@ def branch_bound_with_stats(tasks: list, ch_avail: list, verbose=False, rng=None
 
     """
 
-    TreeNode._tasks = tasks
+    TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = check_rng(rng)
 
@@ -559,7 +616,7 @@ def mcts_orig(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
 
     """
 
-    TreeNode._tasks = tasks
+    TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = check_rng(rng)
 
@@ -614,7 +671,7 @@ def mcts(tasks: list, ch_avail: list, n_mc: int, verbose=False):
 
     # TODO: add exploration/exploitation input control.
 
-    TreeNode._tasks = tasks
+    TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
     # TreeNode._rng = check_rng(rng)
 
@@ -665,7 +722,7 @@ def random_sequencer(tasks: list, ch_avail: list, rng=None):
 
     """
 
-    TreeNode._tasks = tasks
+    TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = check_rng(rng)
 
@@ -697,7 +754,7 @@ def earliest_release(tasks: list, ch_avail: list, do_swap=False):
 
     """
 
-    TreeNode._tasks = tasks
+    TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
 
     seq = list(np.argsort([task.t_release for task in tasks]))
@@ -732,7 +789,7 @@ def earliest_drop(tasks: list, ch_avail: list, do_swap=False):
 
     """
 
-    TreeNode._tasks = tasks
+    TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
 
     seq = list(np.argsort([task.t_drop for task in tasks]))
@@ -777,7 +834,7 @@ def est_alg_kw(tasks: list, ch_avail: list):
 
 def ert_alg_kw(tasks: list, ch_avail: list, do_swap=False):
 
-    TreeNode._tasks = tasks
+    TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
 
     seq = list(np.argsort([task.t_release for task in tasks]))
@@ -804,12 +861,15 @@ def main():
     tasks = task_gen(n_tasks)
     ch_avail = ch_avail_gen(n_channels)
 
-    TreeNode._tasks = tasks
+    TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = check_rng(None)
 
-    # node = TreeNode([3, 1])
-    # node.seq = [3, 1, 4]
+    # seq = [3, 1, 4]
+    seq = np.random.permutation(n_tasks)
+    node, node_s = TreeNode(seq), TreeNodeShift(seq)
+    print(node.t_ex)
+    print(node_s.t_ex)
 
     # t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True, rng=None)
 
