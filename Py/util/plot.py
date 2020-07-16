@@ -30,8 +30,8 @@ def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
         t_plot = np.arange(*x_lim, 0.01)
 
     x_lim = t_plot[0], t_plot[-1]
-    y_lim = min([task.loss_func(x_lim[0]) for task in tasks]), max([task.loss_func(x_lim[1]) for task in tasks])
-    # y_lim = 0, 1 + max([task.loss_func(float('inf')) for task in tasks])
+    y_lim = min([task(x_lim[0]) for task in tasks]), max([task(x_lim[1]) for task in tasks])
+    # y_lim = 0, 1 + max([task(float('inf')) for task in tasks])
 
     if ax is None:
         _, ax = plt.subplots()

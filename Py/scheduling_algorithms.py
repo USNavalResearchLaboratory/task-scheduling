@@ -21,9 +21,9 @@ class BranchBoundNode:
     # _rng = None
 
     def __init__(self, N, K, ch_avail_init: float):
-        # if self._n_tasks == 0 or self._n_ch == 0:
+        # if self.n_tasks == 0 or self.n_ch == 0:
         #     raise AttributeError("Cannot instantiate objects before assigning "
-        #                          "the '_tasks' and '_n_ch class attributes.")
+        #                          "the '_tasks' and 'n_ch class attributes.")
 
         self.T = np.empty([0],dtype = int)
         self.PF = np.array(range(N))
@@ -38,17 +38,17 @@ class BranchBoundNode:
 
         # self._seq = []
         #
-        # self._seq_rem = set(range(self._n_tasks))
+        # self._seq_rem = set(range(self.n_tasks))
         #
-        # self._t_ex = np.full(self._n_tasks, np.nan)  # task execution times (NaN for unscheduled)
-        # self._ch_ex = np.full(self._n_tasks, np.nan, dtype=np.int)  # task execution channels
+        # self._t_ex = np.full(self.n_tasks, np.nan)  # task execution times (NaN for unscheduled)
+        # self._ch_ex = np.full(self.n_tasks, np.nan, dtype=np.int)  # task execution channels
         #
         # self._ch_avail = copy.deepcopy(self._ch_avail_init)  # timeline availability
         #
         # self._l_ex = 0.  # partial sequence loss
         #
         # self.seq = seq
-        # self.PF = set(range(self._n_tasks))
+        # self.PF = set(range(self.n_tasks))
         # self.NS = []
     def candidate_task(self, tasks: list):
         curTaskIndex = np.argmin([tasks[n].t_release for n in self.PF]).tolist()
@@ -308,14 +308,14 @@ def branch_bound_rules(tasks: list, ch_avail_init: list, verbose=False, rng=None
                 # for n in range(len(newNode.T)):
                 #     print(n)
                 #     curJobId = newNode.T[n]
-                #     Cprime += Cprime + tasks[curJobId].loss_func(newNode.t_ex[curJobId])
+                #     Cprime += Cprime + tasks[curJobId](newNode.t_ex[curJobId])
 
-                    # self._l_ex += self._tasks[n].loss_func(self._t_ex[n])
+                    # self._l_ex += self._tasks[n](self._t_ex[n])
                     # ch = self.ch_early
                     # self._ch_ex[n] = ch
                     # self._t_ex[n] = max(self._tasks[n].t_release, self._ch_avail[ch])
                     # self._ch_avail[ch] = self._t_ex[n] + self._tasks[n].duration
-                    # self._l_ex += self._tasks[n].loss_func(self._t_ex[n])
+                    # self._l_ex += self._tasks[n](self._t_ex[n])
 
                 TimeExecutionInput = curNode.t_ex.copy()
                 ChannelAvailableTimeInput = curNode.ch_avail.copy()
@@ -486,7 +486,7 @@ class TreeNode:
     def __init__(self, seq: list):
         if self._n_tasks == 0 or self._n_ch == 0:
             raise AttributeError("Cannot instantiate objects before assigning "
-                                 "the '_tasks' and '_n_ch class attributes.")
+                                 "the '_tasks' and 'n_ch class attributes.")
 
         self._seq = []
 
@@ -754,7 +754,7 @@ def branch_bound2(tasks: list, ch_avail: list, verbose=False, rng=None):
 
     """
 
-    TreeNode._tasks = tasks
+    TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = check_rng(rng)
 
