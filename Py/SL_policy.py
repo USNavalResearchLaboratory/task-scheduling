@@ -1,5 +1,6 @@
 import shutil
 import time
+import os
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -112,7 +113,9 @@ def train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train, n_gen_val
         plt.gca().set(xlabel='epoch', ylabel='accuracy')
 
     if save_model:
-        model.save('./models/temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S')))
+        save_str = './models/temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
+        os.mkdir(save_str)
+        model.save(save_str)
 
     return model
 
@@ -156,7 +159,7 @@ def main():
 
     # x, y = data_gen(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen=10)
 
-    model = train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train=100, n_gen_val=10,
+    model = train_sl(task_gen, n_tasks, ch_avail_gen, n_channels, n_gen_train=1, n_gen_val=10,
                      plot_history=True, do_tensorboard=False, save_model=True)
     # model = './models/2020-07-09_08-39-48'
 
