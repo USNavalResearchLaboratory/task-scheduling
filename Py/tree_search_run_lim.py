@@ -67,7 +67,7 @@ def branch_bound(tasks: list, ch_avail: list, max_runtime=float('inf'), verbose=
         if verbose:
             # progress = 1 - sum([math.factorial(len(node.seq_rem)) for node in stack]) / math.factorial(len(tasks))
             # print(f'Search progress: {100*progress:.1f}% - Loss < {node_best.l_ex:.3f}', end='\r')
-            print(f'# Remaining Nodes = {len(stack)}, Loss < {node_best.l_ex:.3f}', end='\r')
+            print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.l_ex:.3f}', end='\r')
 
     t_ex, ch_ex = node_best.t_ex, node_best.ch_ex
 
@@ -137,7 +137,7 @@ def mcts_orig(tasks: list, ch_avail: list, max_runtime=float('inf'), n_mc=None, 
             break
 
         # Assign next task from earliest available channel
-        node._seq_extend([node_best.seq[n]])
+        node.seq_extend([node_best.seq[n]], check_valid=False)
 
     t_ex, ch_ex = node_best.t_ex, node_best.ch_ex
 
@@ -328,13 +328,13 @@ def main():
     n_tasks = 8
     n_channels = 2
 
-    task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+    task_gen = ReluDropGenerator(t_release_lim=(0, 4), duration_lim=(3, 6), slope_lim=(0.5, 2),
                                  t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=None)  # task set generator
 
     def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
         return rng.uniform(0, 2, n_ch)
 
-    tasks = task_gen.rand_tasks(n_tasks)
+    tasks = task_gen(n_tasks)
     ch_avail = ch_avail_gen(n_channels)
 
     TreeNode._tasks = tasks
@@ -347,16 +347,6 @@ def main():
     # t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True, rng=None)
 
     SearchNode.n_tasks = n_tasks
-
-    node = SearchNode()
-    child = node.select_child()
-    leaf = node.simulate()
-    pass
-
-    t_ex, ch_ex = mcts_orig(tasks, ch_avail, n_mc=[1000 for n in range(n_tasks, 0, -1)], verbose=False)
-    print(t_ex)
-    t_ex, ch_ex = mcts(tasks, ch_avail, verbose=False)
-    print(t_ex)
 
 
 if __name__ == '__main__':

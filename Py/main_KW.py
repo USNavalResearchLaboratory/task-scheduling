@@ -39,7 +39,7 @@ n_gen = 10      # number of task scheduling problems
 n_tasks = 8
 n_channels = 1
 
-task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+task_gen = ReluDropGenerator(t_release_lim=(0, 4), duration_lim=(3, 6), slope_lim=(0.5, 2),
                              t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=rng)       # task set generator
 
 def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time generator
@@ -100,7 +100,7 @@ Y = np.empty([0])
 for i_gen in range(n_gen):      # Generate new tasks
     print(f'Task Set: {i_gen + 1}/{n_gen}')
 
-    tasks = task_gen.rand_tasks(n_tasks)
+    tasks = task_gen(n_tasks)
     ch_avail = ch_avail_gen(n_channels,rng)
 
     _, ax_gen = plt.subplots(2, 1, num=f'Task Set: {i_gen + 1}', clear=True)

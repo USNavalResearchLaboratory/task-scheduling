@@ -133,8 +133,8 @@ from tasks import ReluDropTask
 job = []
 cnt = 0 # Make 0-based, saves a lot of trouble later when indexing into python zero-based vectors
 for ii in range(Nsearch):
-    # job.append(ReluDropTask(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropTimeFixed[ii], SearchParams.DropCost[ii]))
-    job.append(ReluDropTask(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropCost[ii]))
+    # job.append(0, ReluDropTask(SearchParams.JobDuration[ii], SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropTimeFixed[ii], SearchParams.DropCost[ii]))
+    job.append(ReluDropTask(0, SearchParams.JobDuration[ii], SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropCost[ii]))
     job[ii].Id = cnt # Numeric Identifier for each job
     cnt = cnt + 1
     if job[ii].slope == 0.4:
@@ -147,8 +147,8 @@ for ii in range(Nsearch):
     # A.append(tasks)
     # del tasks
 for ii in range(Ntrack):
-    # job.append(ReluDropTask(TrackParams.JobDuration[ii], 0, TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropTimeFixed[ii], TrackParams.DropCost[ii]))
-    job.append(ReluDropTask(TrackParams.JobDuration[ii], 0, TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropCost[ii]))
+    # job.append(ReluDropTask(0, TrackParams.JobDuration[ii], TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropTimeFixed[ii], TrackParams.DropCost[ii]))
+    job.append(ReluDropTask(0, TrackParams.JobDuration[ii], TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropCost[ii]))
     job[cnt].Id = cnt # Numeric Identifier for each job
     if job[cnt].slope == 0.25:
         job[cnt].Type = 'Tlow' # Low Priority Track

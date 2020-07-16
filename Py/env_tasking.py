@@ -14,7 +14,6 @@ from util.plot import plot_task_losses
 
 from tree_search import TreeNode
 from tasks import ReluDropGenerator
-from SL_policy import obs_relu_drop
 
 
 # Gym Spaces
@@ -82,14 +81,31 @@ class BaseTaskingEnv(gym.Env):
 
         self.reward_range = (-float('inf'), 0)
 
-        _low, _high = list(zip(task_gen.duration_lim, task_gen.t_release_lim, task_gen.slope_lim,
+        _low, _high = list(zip(task_gen.t_release_lim, task_gen.duration_lim, task_gen.slope_lim,
                                task_gen.t_drop_lim, task_gen.l_drop_lim, ))
         self._obs_low = np.broadcast_to(np.asarray(_low), (n_tasks, 5))
         self._obs_high = np.broadcast_to(np.asarray(_high), (n_tasks, 5))
 
-    def reset(self, tasks=None, ch_avail=None):     # TODO: added arguments to control Env state. OK?
-        self.tasks = self.task_gen.rand_tasks(self.n_tasks) if tasks is None else tasks
-        self.ch_avail = self.ch_avail_gen(self.n_ch) if ch_avail is None else ch_avail
+    def reset(self, tasks=None, ch_avail=None):
+
+        if tasks is None:
+            self.tasks = self.task_gen(self.n_tasks)
+        else:
+            if len(tasks) == self.n_tasks:
+                self.tasks = tasks
+            else:
+                raise ValueError(f"Env requires {self.n_tasks} tasks.")
+
+        if ch_avail is None:
+            self.ch_avail = self.ch_avail_gen(self.n_ch)
+        else:
+            if len(ch_avail) == self.n_ch:
+                self.ch_avail = ch_avail
+            else:
+                raise ValueError(f"Env requires {self.n_ch} channels.")
+
+        # self.tasks = self.task_gen.rand_tasks(self.n_tasks) if tasks is None else tasks
+        # self.ch_avail = self.ch_avail_gen(self.n_ch) if ch_avail is None else ch_avail
 
         TreeNode._tasks = self.tasks
         TreeNode._ch_avail_init = self.ch_avail
@@ -118,11 +134,9 @@ class SeqTaskingEnv(BaseTaskingEnv):
     def reset(self, tasks=None, ch_avail=None):
         super().reset(tasks, ch_avail)
 
-        # self.state = obs_relu_drop(self.tasks)
-        return obs_relu_drop(self.tasks)
+        return np.array([task.gen_rep for task in self.tasks])
 
     def step(self, action: list):
-        # obs = obs_relu_drop(self.tasks)
         obs = None      # since Env is Done
 
         self.node.seq = action
@@ -151,13 +165,13 @@ class StepTaskingEnv(BaseTaskingEnv):
 
         self.loss_agg = self.node.l_ex
 
-        # self.state = obs_relu_drop(self.tasks)
-        self.state = np.concatenate((np.ones((self.n_tasks, 1)), obs_relu_drop(self.tasks)), axis=1)
+        self.state = np.array([[0 for _ in range(self.n_tasks)] + task.gen_rep for task in tasks])
+        # self.state = np.array([[1] + task.gen_rep for task in self.tasks])
         return self.state
 
     def step(self, action: int):
-        # obs = obs_relu_drop(self.tasks)
-        self.state[action, 0] = 0       # Set first element of task vector to zero, indicating 'scheduled'.
+        self.state[action][len(self.node.seq)] = 1      # one-hot encoding of task execution index
+        # self.state[action][0] = 0       # Set first element of task vector to zero, indicating 'scheduled'.
         obs = self.state
 
         self.node.seq_extend([action])
@@ -227,7 +241,7 @@ def main():
         return rng.uniform(0, 2, n_ch)
 
     params = {'n_tasks': 8,
-              'task_gen': ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+              'task_gen': ReluDropGenerator(t_release_lim=(0, 4), duration_lim=(3, 6), slope_lim=(0.5, 2),
                                             t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None),
               'n_ch': 2,
               'ch_avail_gen': ch_avail_generator}

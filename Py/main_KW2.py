@@ -29,7 +29,7 @@ n_run = 1       # number of runs per problem
 ch_avail = np.zeros(2)     # channel availability times
 
 n_tasks = 8      # number of tasks
-task_gen = partial(ReluDropGenerator(rng).rand_tasks, n_tasks)
+task_gen = partial(ReluDropGenerator(rng), n_tasks)
 
 # Algorithms
 algorithms = [partial(est_task_swap_alg, ch_avail=ch_avail),
