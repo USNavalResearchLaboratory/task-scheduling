@@ -6,6 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from util.generic import check_rng
 
+np.set_printoptions(precision=2)
+plt.style.use('seaborn')
+
 
 class GenericTask:
     """
@@ -22,14 +25,14 @@ class GenericTask:
 
     """
 
-    def __init__(self, t_release, duration, loss_func=None):
-        self.t_release = t_release
+    def __init__(self, duration, t_release, loss_func=None):
         self.duration = duration
+        self.t_release = t_release
 
         self._loss_func = loss_func
 
     def __repr__(self):
-        return f"GenericTask(release time:{self.t_release:.2f}, duration: {self.duration:.2f})"
+        return f"GenericTask(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
 
     def __call__(self, t):
         """Loss function versus time."""
@@ -61,8 +64,7 @@ class GenericTask:
             t_plot = t_plot[t_plot >= self.t_release]
 
         x_lim = t_plot[0], t_plot[-1]
-        y_lim = self(list(x_lim))
-        # y_lim = 0, 1 + self(float('inf'))
+        y_lim = self(x_lim)
 
         if ax is None:
             _, ax = plt.subplots()
@@ -102,14 +104,14 @@ class ReluDropTask(GenericTask):
 
     """
 
-    def __init__(self, t_release, duration, slope, t_drop, l_drop):
-        super().__init__(t_release, duration)
+    def __init__(self, duration, t_release, slope, t_drop, l_drop):
+        super().__init__(duration, t_release)
         self._slope = slope
         self._t_drop = t_drop
         self._l_drop = l_drop
 
     def __repr__(self):
-        return f"ReluDropTask(release time:{self.t_release:.2f}, duration: {self.duration:.2f})"
+        return f"ReluDropTask(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
 
     def __call__(self, t):
         """Loss function versus time."""
@@ -118,7 +120,10 @@ class ReluDropTask(GenericTask):
         loss = self.slope * t
         loss[t < 0] = np.inf
         loss[t >= self.t_drop] = self.l_drop
-        return loss.squeeze(axis=0)
+        if loss.size == 1:
+            return np.asscalar(loss)
+        else:
+            return loss.squeeze(axis=0)
 
     @property
     def slope(self):
@@ -126,8 +131,6 @@ class ReluDropTask(GenericTask):
 
     @slope.setter
     def slope(self, slope):
-        # if slope <= 0:
-        #     raise ValueError("Slope must be positive.")       # FIXME
         self.check_non_decreasing(slope, self.t_drop, self.l_drop)
         self._slope = slope
 
@@ -160,12 +163,9 @@ class ReluDropTask(GenericTask):
         if t <= 0:
             raise ValueError("Shift time must be positive.")
 
-        if self.is_dropped:
-            return 0.
-
         t_excess = t - self.t_release
         self.t_release = max(0., -t_excess)
-        if self.is_available:
+        if self.t_release == 0.:
             # Loss is incurred, drop time and loss are updated
             loss_inc = self(t_excess)
             self.t_drop = max(0., self.t_drop - t_excess)
@@ -174,33 +174,32 @@ class ReluDropTask(GenericTask):
         else:
             return 0.   # No loss incurred
 
-    @property
-    def is_available(self):     # TODO: uses?? array rep?
-        return self.t_release == 0.
-
-    @property
-    def is_dropped(self):
-        return self.is_available and self.t_drop == 0.
-
-    @property
-    def param_rep(self):
+    def gen_features(self, *funcs):
         """An array representation of the parametric task."""
 
         # _params = [(task.duration, task.t_release, task.slope, task.t_drop, task.l_drop) for task in tasks]
         # params = np.array(_params, dtype=[('duration', np.float), ('t_release', np.float),
         #                                   ('slope', np.float), ('t_drop', np.float), ('l_drop', np.float)])
         # params.view(np.float).reshape(*params.shape, -1)
-        return self.t_release, self.duration, self.slope, self.t_drop, self.l_drop    # TODO: add dropped flag?
+
+        if len(funcs) == 0:     # default, return task parameters
+            return [self.duration, self.t_release, self.slope, self.t_drop, self.l_drop]
+
+        features = []
+        for func in funcs:
+            features.append(func(self))
+
+        return features
 
     def summary(self):
-        print(f'ReluDropTask\n------------\nrelease time: {self.t_release:.2f}'
-              f'\nduration: {self.duration:.2f}\nslope: {self.slope:.2f}'
+        print(f'ReluDropTask\n------------\nduration: {self.duration:.2f}'
+              f'\nrelease time: {self.t_release:.2f}\nslope: {self.slope:.2f}'
               f'\ndrop time: {self.t_drop:.2f}\ndrop loss: {self.l_drop:.2f}')
 
     @property
     def plot_lim(self):
         """2-tuple of limits for automatic plotting."""
-        return self.t_release, self.t_release + max(self.duration, self.t_drop)
+        return self.t_release, self.t_release + max(self.duration, self.t_drop) + 1
 
 
 # def loss_relu_drop(t_release, slope, t_drop, l_drop):
@@ -245,16 +244,16 @@ class GenericTaskGenerator:
 
 
 class ReluDropGenerator(GenericTaskGenerator):
-    def __init__(self, t_release_lim, duration_lim, slope_lim, t_drop_lim, l_drop_lim, rng=None):
+    def __init__(self, duration_lim, t_release_lim, slope_lim, t_drop_lim, l_drop_lim, rng=None):
         super().__init__(rng)
-        self.t_release_lim = t_release_lim
         self.duration_lim = duration_lim
+        self.t_release_lim = t_release_lim
         self.slope_lim = slope_lim
         self.t_drop_lim = t_drop_lim
         self.l_drop_lim = l_drop_lim
 
-        self._sort_dict = {'t_release': lambda task: task.t_release,
-                           'duration': lambda task: task.duration,
+        self._sort_dict = {'duration': lambda task: task.duration,
+                           't_release': lambda task: task.t_release,
                            'slope': lambda task: task.slope,
                            't_drop': lambda task: task.t_drop,
                            'l_drop': lambda task: task.l_drop,
@@ -263,13 +262,13 @@ class ReluDropGenerator(GenericTaskGenerator):
 
     def __call__(self, n_tasks, sort_key=None):
         """Randomly generate a list of tasks."""
-        t_release = self.rng.uniform(*self.t_release_lim, n_tasks)
         duration = self.rng.uniform(*self.duration_lim, n_tasks)
+        t_release = self.rng.uniform(*self.t_release_lim, n_tasks)
         slope = self.rng.uniform(*self.slope_lim, n_tasks)
         t_drop = self.rng.uniform(*self.t_drop_lim, n_tasks)
         l_drop = self.rng.uniform(*self.l_drop_lim, n_tasks)
 
-        task_list = [ReluDropTask(*args) for args in zip(t_release, duration, slope, t_drop, l_drop)]
+        task_list = [ReluDropTask(*args) for args in zip(duration, t_release, slope, t_drop, l_drop)]
 
         if sort_key is None:        # FIXME: does sorting belong here or external to class?
             return task_list
@@ -282,8 +281,8 @@ class ReluDropGenerator(GenericTaskGenerator):
     @property
     def param_rep_lim(self):
         """Low and high tuples bounding parametric task representations."""
-        # return self.t_release_lim, self.duration_lim, self.slope_lim, self.t_drop_lim, self.l_drop_lim
-        return zip(self.t_release_lim, self.duration_lim, self.slope_lim, self.t_drop_lim, self.l_drop_lim)
+        # return self.duration_lim, self.t_release_lim, self.slope_lim, self.t_drop_lim, self.l_drop_lim
+        return zip(self.duration_lim, self.t_release_lim, self.slope_lim, self.t_drop_lim, self.l_drop_lim)
 
 
 class PermuteTaskGenerator(GenericTaskGenerator):
@@ -305,12 +304,11 @@ class DeterministicTaskGenerator(GenericTaskGenerator):
 
 
 def main():
-    task_gen = ReluDropGenerator(t_release_lim=(0, 4), duration_lim=(3, 6), slope_lim=(0.5, 2),
+    task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
                                  t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=None)  # task set generator
 
     task = task_gen(1)[0]
-    a = 1
-
+    pass
 
 if __name__ == '__main__':
     main()

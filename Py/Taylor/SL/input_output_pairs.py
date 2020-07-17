@@ -35,7 +35,7 @@ def input_output_pairs_function(number_of_sets,number_of_tasks,number_of_feature
         lengths = inputs_before[i,2*number_of_tasks:3*number_of_tasks]
         features[2,:] = lengths
 
-        # print("\nF = \n\n{}".format(features))
+        # print("\nF = \n\n{}".format(gen_features))
 
         EST = inputs_before[i,3*number_of_tasks:4*number_of_tasks]
 

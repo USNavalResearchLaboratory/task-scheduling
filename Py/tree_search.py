@@ -1,6 +1,7 @@
 """Multi-channel Tree Search objects and algorithms."""
 
 from copy import deepcopy
+import time
 import math
 import numpy as np
 from util.generic import check_rng
@@ -8,6 +9,8 @@ from util.generic import check_rng
 from tasks import ReluDropGenerator
 
 from sequence2schedule import FlexDARMultiChannelSequenceScheduler
+
+np.set_printoptions(precision=2)
 
 
 class TreeNode:     # TODO: rename?
@@ -59,9 +62,7 @@ class TreeNode:     # TODO: rename?
 
         self._l_ex = 0.  # incurred loss
 
-        if seq is None:
-            seq = []
-        if len(seq) > 0:
+        if seq is not None and len(seq) > 0:
             self.seq_extend(seq)
 
     def __repr__(self):
@@ -77,6 +78,8 @@ class TreeNode:     # TODO: rename?
     n_ch = property(lambda self: len(self._ch_avail))
 
     seq_rem = property(lambda self: self._seq_rem)
+    ch_min = property(lambda self: int(np.argmin(self.ch_avail)))
+
     t_ex = property(lambda self: self._t_ex)
     ch_ex = property(lambda self: self._ch_ex)
     l_ex = property(lambda self: self._l_ex)
@@ -116,8 +119,6 @@ class TreeNode:     # TODO: rename?
 
         if len(seq_ext) == 0:
             return
-        else:
-            seq_ext = list(seq_ext)     # FIXME: move to loop
 
         if check_valid:
             seq_ext_set = set(seq_ext)
@@ -127,13 +128,11 @@ class TreeNode:     # TODO: rename?
                 raise ValueError("Values in 'seq_ext' must not be in the current node sequence.")
 
         for n in seq_ext:
-            self._update_ex(n)
+            self._seq.append(n)
+            self._seq_rem.remove(n)
+            self._update_ex(n, self.ch_min)     # assign task to channel with earliest availability
 
-    def _update_ex(self, n):
-        self._seq.append(n)
-        self._seq_rem.remove(n)
-
-        ch = int(np.argmin(self.ch_avail))  # assign task to channel with earliest availability
+    def _update_ex(self, n, ch):
         self._ch_ex[n] = ch
 
         self._t_ex[n] = max(self._tasks[n].t_release, self._ch_avail[ch])
@@ -302,11 +301,7 @@ class TreeNodeShift(TreeNode):
             if n in self._seq_rem:
                 self._l_ex += loss_inc
 
-    def _update_ex(self, n):
-        self._seq.append(n)
-        self._seq_rem.remove(n)
-
-        ch = int(np.argmin(self.ch_avail))  # assign task to channel with earliest availability
+    def _update_ex(self, n, ch):
         self._ch_ex[n] = ch
 
         t_ex_rel = max(self._tasks[n].t_release, self._ch_avail[ch])  # relative to time origin
@@ -499,23 +494,23 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
     TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = check_rng(rng)
 
-    stack = [TreeNodeBound()]  # Initialize Stack
+    stack = [TreeNodeBound()]  # initialize stack
 
     node_best = stack[0].roll_out(do_copy=True)  # roll-out initial solution
 
     # Iterate
     while len(stack) > 0:
-        node = stack.pop()  # Extract Node
+        node = stack.pop()  # extract node
 
         # Branch
         for node_new in node.branch(do_permute=True):
             # Bound
-            if node_new.l_lo < node_best.l_ex:  # New node is not dominated
+            if node_new.l_lo < node_best.l_ex:  # new node is not dominated
                 if node_new.l_up < node_best.l_ex:
                     node_best = node_new.roll_out(do_copy=True)  # roll-out a new best node
-                    stack = [s for s in stack if s.l_lo < node_best.l_ex]  # Cut Dominated Nodes
+                    stack = [s for s in stack if s.l_lo < node_best.l_ex]  # cut dominated nodes
 
-                stack.append(node_new)  # Add New Node to Stack, LIFO
+                stack.append(node_new)  # add new node to stack, LIFO
 
         if verbose:
             # progress = 1 - sum([math.factorial(len(node.seq_rem)) for node in stack]) / math.factorial(len(tasks))
@@ -849,10 +844,10 @@ def ert_alg_kw(tasks: list, ch_avail: list, do_swap=False):
 
 
 def main():
-    n_tasks = 8
+    n_tasks = 5
     n_channels = 2
 
-    task_gen = ReluDropGenerator(t_release_lim=(0, 4), duration_lim=(3, 6), slope_lim=(0.5, 2),
+    task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
                                  t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=None)  # task set generator
 
     def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
@@ -866,12 +861,13 @@ def main():
     TreeNode._rng = check_rng(None)
 
     # seq = [3, 1, 4]
-    seq = np.random.permutation(n_tasks)
-    node, node_s = TreeNode(seq), TreeNodeShift(seq)
-    print(node.t_ex)
-    print(node_s.t_ex)
+    # seq = np.random.permutation(n_tasks)
+    # node, node_s = TreeNode(seq), TreeNodeShift(seq)
+    # print(node.t_ex)
+    # print(node_s.t_ex)
 
-    # t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True, rng=None)
+    t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True, rng=None)
+    return
 
     SearchNode.n_tasks = n_tasks
     SearchNode.l_up = TreeNodeBound().l_up

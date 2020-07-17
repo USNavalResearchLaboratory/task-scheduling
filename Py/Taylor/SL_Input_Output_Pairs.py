@@ -45,7 +45,7 @@ for i in range(len(inputs_before)):
     lengths = inputs_before[i,2*number_of_tasks:3*number_of_tasks]
     features[2,:] = lengths
 
-    # print("\nF = \n\n{}".format(features))
+    # print("\nF = \n\n{}".format(gen_features))
 
     EST = inputs_before[i,3*number_of_tasks:4*number_of_tasks]
 
