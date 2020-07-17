@@ -51,6 +51,7 @@ random_agent = wrap_agent(env, RandomAgent(env.action_space))       # TODO: pick
 
 # model = './models/2020-07-09_08-39-48'
 model = './models/2020-07-09_08-53-15'
+model = './models/temp/2020-07-17_07-57-17'
 nn_policy = wrap_model(env, model)
 
 
