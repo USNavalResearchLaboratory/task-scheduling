@@ -913,3 +913,110 @@ def prune_NodeStats(NodeStats):
 
 
     return NodeStats
+
+
+
+
+def stats2nnXYgen(NodeStats, tasks: list, env):
+
+    # Store initial data
+    tasks_init = copy.deepcopy(env.node._tasks_init)
+    ch_avail_init = copy.deepcopy(env.node._ch_avail_init)
+    # node._ch_avail_init = ch_avail
+
+
+
+    N = len(tasks)
+    SeqCost = np.array([node.l_ex for node in NodeStats])
+
+    sortIdx = np.argsort(SeqCost) # Organize Costs in Ascending order
+    OptimalSeq = NodeStats[sortIdx[0]].seq
+
+    # Expand Children of All NodeStats
+    cnt = 1
+    RecordSeq = np.zeros([N, 1])
+    CostFinal = np.array([0])
+    zeroVec = np.zeros([N,1])
+    y_gen = []
+    x_gen = []
+
+    for jj in sortIdx:
+        env.reset(tasks_init, ch_avail_init)  # Reset the state
+        curNode = NodeStats[jj]
+        BestSeq = curNode.seq
+        for kk in range(N):
+            node = np.array(BestSeq[0:kk])
+            optimal_action = BestSeq[kk]
+            T = node.copy()
+            new_seq = np.transpose( [np.append(T, -1*np.ones([N - len(T), 1]) )] )
+
+            if cnt == 1:
+                VisitIndicator = 0
+            else:
+                SeqDiff = (RecordSeq - new_seq)  # TODO: Start Here
+                # SeqDiff = bsxfun( @ plus, RecordSeq, -new_seq );
+                # VisitIndicator = sum(sum(SeqDiff == zeroVec, 1) == N);
+                # VisitIndicator = sum(~any(SeqDiff))
+                # temp = np.reshape(SeqDiff, -1)
+                # VisitIndicator = not(any(temp))
+                VisitIndicator = not(all(SeqDiff.any(axis=0)))
+                # % if VisitIndicator ~= VisitIndicator2
+                # % keyboard
+                # % end
+
+            if VisitIndicator == 0:
+                if cnt == 1:
+                    RecordSeq[:, cnt-1] = new_seq[:,0]
+                    CostFinal[cnt - 1] = curNode.l_ex
+                else:
+                    RecordSeq = np.append(RecordSeq, new_seq,1)
+                    CostFinal = np.append(CostFinal, curNode.l_ex)
+
+                x_gen.append(env.state.copy())
+                y_gen.append(optimal_action)
+                env.step(optimal_action)
+                cnt = cnt + 1
+            else: # Still need to update the environment to move through the tree. No data recorded for SL due to suboptimality of decision
+                env.step(optimal_action)
+
+                # for n in seq:
+                #     x_gen.append(env.state.copy())
+                #     y_gen.append(n)
+                #     env.step(n)
+
+                # Y[cnt-1] = optimal_action.copy()
+
+                # PFtree = np.zeros([N, N])
+
+                # for ind1 in range(len(node)):
+                #     ind2 = node[ind1]
+                #     PFtree[ind1,ind2] = 1
+
+                # IND = sub2ind([N N], [1:length(node)]',node);
+                # PFtree[IND] = 1
+
+                # PfStatus = np.zeros([3, N])
+                # PfStatus[0,:] = 1
+                # for nn in range(len(node)):
+                #     PfStatus[:, node[nn] ] = [0, 0, 1] # Infeasible Already Assigned
+
+                # PF[5:5+N,:] = PFtree
+                # PF[5+N:N+8,:] = PfStatus
+                # A = copy.deepcopy(PF)
+
+                # X[:,:, cnt] = [PF, PFtree, PfStatus]
+
+                # Timeline ignored for now -
+                # KTW 13APR2020 - flipped PFtree and PFStatus location.Need to
+                # match NeuralNetSchedulerAlgorithm.As long as they both match
+                # everything will work better.My personal preference is
+                # location you are in tree, then what nodes you visited, but
+                # again doesn't matter as long as it's consistent with
+                # implementation of NN - scheduler
+
+                # Note: Could find if node is dominated by calculating cost at the partial sequence and comparing
+                # across other partial nodes. Not doing at the moment.
+
+
+    return x_gen, y_gen
+

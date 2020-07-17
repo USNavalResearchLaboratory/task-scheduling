@@ -17,7 +17,7 @@ import webbrowser
 from util.generic import check_rng
 from util.results import check_valid, eval_loss
 
-from scheduling_algorithms import stats2nnXY
+from scheduling_algorithms import stats2nnXY, stats2nnXYgen
 from tasks import ReluDropGenerator, PermuteTaskGenerator, DeterministicTaskGenerator
 from tree_search import branch_bound, branch_bound_with_stats,mcts_orig, mcts, random_sequencer, earliest_release, TreeNode, TreeNodeShift
 from env_tasking import StepTaskingEnv
@@ -25,7 +25,7 @@ from env_tasking import StepTaskingEnv
 plt.style.use('seaborn')
 
 
-def data_gen(env, n_gen=1):
+def data_gen(env, n_gen=1, gen_method=False):
 
     if not isinstance(env, StepTaskingEnv):
         raise NotImplementedError("Tasking environment must be step Env.")
@@ -39,25 +39,28 @@ def data_gen(env, n_gen=1):
 
         env.reset()
 
-        t_ex, ch_ex = branch_bound(env.node.tasks, env.node.ch_avail, verbose=True)
-        t_ex, ch_ex, NodeStats = branch_bound_with_stats(env.node.tasks, env.node.ch_avail)
-        [Xnow, Ynow] = stats2nnXY(NodeStats, env.node.tasks)
+        if gen_method:
+            t_ex, ch_ex = branch_bound(env.node.tasks, env.node.ch_avail, verbose=True)
+            seq = np.argsort(t_ex)     # optimal sequence
+            # check_valid(tasks, t_ex, ch_ex)
+            # l_ex = eval_loss(tasks, t_ex)
 
-        seq = np.argsort(t_ex)     # optimal sequence
+            for n in seq:
+                x_gen.append(env.state.copy())
+                y_gen.append(n)
+                env.step(n)
 
-        # check_valid(tasks, t_ex, ch_ex)
-        # l_ex = eval_loss(tasks, t_ex)
+        else:
+            t_ex, ch_ex, NodeStats = branch_bound_with_stats(env.node.tasks, env.node.ch_avail)
+            [Xnow, Ynow] = stats2nnXY(NodeStats, env.node.tasks)
+            [x_gen, y_gen] = stats2nnXYgen(NodeStats, env.node.tasks, env)
 
-        for n in seq:
-            x_gen.append(env.state.copy())
-            y_gen.append(n)
 
-            env.step(n)
 
     return np.array(x_gen), np.array(y_gen)
 
 
-def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=False, save_model=False):
+def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=False, save_model=False, gen_method=False):
 
     # TODO: customize output layers to avoid illegal actions
     # TODO: train using complete tree info, not just B&B solution?
@@ -65,7 +68,7 @@ def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=Fals
     # TODO: sort tasks by release time, etc.?
     # TODO: task parameter shift for channel availability
 
-    x_train, y_train = data_gen(env, n_gen_train)
+    x_train, y_train = data_gen(env, n_gen_train, gen_method)
     x_val, y_val = data_gen(env, n_gen_val)
 
     model = keras.Sequential([keras.layers.Flatten(input_shape=x_train.shape[1:]),
@@ -101,7 +104,9 @@ def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=Fals
                         callbacks=callbacks)
 
     if plot_history:
-        plt.figure(num='training history', clear=True, figsize=(10, 4.8))
+        # plt.figure(num='training history', clear=True, figsize=(10, 4.8))
+        plt.figure(figsize=(10, 4.8))
+
         plt.subplot(1, 2, 1)
         plt.plot(history.epoch, history.history['loss'], label='training')
         plt.plot(history.epoch, history.history['val_loss'], label='validation')
@@ -112,6 +117,7 @@ def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=Fals
         plt.plot(history.epoch, history.history['val_accuracy'], label='validation')
         plt.legend()
         plt.gca().set(xlabel='epoch', ylabel='accuracy')
+        plt.show()
 
     if save_model:      # TODO: pickle model and env together in dict? or just wrapped model func??
         save_str = './models/temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
@@ -145,7 +151,7 @@ def wrap_model(env, model):
 
 
 def main():
-    n_tasks = 4
+    n_tasks = 6
     n_channels = 1
 
     task_gen = ReluDropGenerator(t_release_lim=(0, 4), duration_lim=(3, 6), slope_lim=(0.5, 2),
@@ -159,7 +165,11 @@ def main():
 
     env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen, cls_node=TreeNodeShift, state_type='one-hot')
 
-    model = train_sl(env, n_gen_train=10, n_gen_val=1, plot_history=True, do_tensorboard=False, save_model=True)
+
+
+    model = train_sl(env, n_gen_train=100, n_gen_val=1, plot_history=True, do_tensorboard=False, save_model=True, gen_method=False)
+    model = train_sl(env, n_gen_train=100, n_gen_val=1, plot_history=True, do_tensorboard=False, save_model=True, gen_method=True)
+
     # model = './models/2020-07-09_08-39-48'
 
     scheduler = wrap_model(env, model)

@@ -45,7 +45,7 @@ def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time gen
 
 # Algorithms
 
-env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen, state_type='binary')
+env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen, state_type='one-hot')
 
 random_agent = wrap_agent(env, RandomAgent(env.action_space))       # TODO: pickle save_model/load?
 
