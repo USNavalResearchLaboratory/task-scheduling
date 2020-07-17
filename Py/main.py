@@ -22,6 +22,7 @@ from tree_search import branch_bound, mcts_orig, mcts, random_sequencer, earlies
 from env_tasking import SeqTaskingEnv, StepTaskingEnv, wrap_agent, RandomAgent
 from SL_policy import wrap_model
 
+np.set_printoptions(precision=2)
 plt.style.use('seaborn')
 
 # logging.basicConfig(level=logging.INFO,
@@ -32,10 +33,10 @@ plt.style.use('seaborn')
 # %% Inputs
 n_gen = 2      # number of task scheduling problems
 
-n_tasks = 8
+n_tasks = 5
 n_channels = 2
 
-task_gen = ReluDropGenerator(t_release_lim=(0, 4), duration_lim=(3, 6), slope_lim=(0.5, 2),
+task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
                              t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)       # task set generator
 
 
@@ -45,13 +46,13 @@ def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time gen
 
 # Algorithms
 
-env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen, state_type='one-hot')
+env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen, seq_encoding='binary')
 
 random_agent = wrap_agent(env, RandomAgent(env.action_space))       # TODO: pickle save_model/load?
 
 # model = './models/2020-07-09_08-39-48'
 model = './models/2020-07-09_08-53-15'
-model = './models/temp/2020-07-17_07-57-17'
+# model = './models/temp/2020-07-17_07-57-17'
 nn_policy = wrap_model(env, model)
 
 
