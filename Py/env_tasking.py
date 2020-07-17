@@ -12,8 +12,10 @@ from baselines import logger
 from util.generic import check_rng
 from util.plot import plot_task_losses
 
-from tree_search import TreeNode
+from tree_search import TreeNode, TreeNodeShift
 from tasks import ReluDropGenerator
+
+np.set_printoptions(precision=2)
 
 
 # Gym Spaces
@@ -45,10 +47,6 @@ class DiscreteSet(Space):
         self.n = self.elements.size
         super().__init__((self.n,), self.elements.dtype)
 
-    # @property
-    # def n(self):
-    #     return self.elements.size
-
     def sample(self):
         return self.np_random.choice(self.elements)
 
@@ -66,14 +64,14 @@ class DiscreteSet(Space):
 class BaseTaskingEnv(gym.Env):
     """Base environment for task scheduling."""
 
-    # TODO: properties and access control?
-
-    def __init__(self, n_tasks, task_gen, n_ch, ch_avail_gen, cls_node=TreeNode):
+    def __init__(self, n_tasks, task_gen, n_ch, ch_avail_gen, cls_node=TreeNode, feature_funcs=None):
         self.n_tasks = n_tasks
         self.task_gen = task_gen
 
         self.n_ch = n_ch
         self.ch_avail_gen = ch_avail_gen
+
+        self.feature_funcs = feature_funcs if feature_funcs is not None else {}
 
         self.cls_node = cls_node
         self.node = None
@@ -81,22 +79,25 @@ class BaseTaskingEnv(gym.Env):
 
         self.reward_range = (-float('inf'), 0)
 
-        # TODO: LIMITS CHANGE for shift node class?!?
-
         _low, _high = self.task_gen.param_rep_lim
+        if self.cls_node == TreeNodeShift:      # FIXME: limits change for shift node class!
+            _low = (_low[0], 0., _low[2], 0., 0.)   # FIXME: RELU specific!!
         self._param_rep_low = np.broadcast_to(np.array(_low), (self.n_tasks, len(_low)))
         self._param_rep_high = np.broadcast_to(np.array(_high), (self.n_tasks, len(_high)))
 
     @property
-    def _state_tasks(self):
-        return np.array([task.param_rep for task in self.node.tasks])
+    def feature_names(self):
+        return tuple(self.feature_funcs.keys())
 
-    def reset(self, tasks=None, ch_avail=None):
-        # TreeNode._tasks_init = self.task_gen(self.n_tasks) if tasks is None else tasks
-        # TreeNode._ch_avail_init = self.ch_avail_gen(self.n_ch) if ch_avail is None else ch_avail
-        # self.node = TreeNode()
-        self.cls_node._tasks_init = self.task_gen(self.n_tasks) if tasks is None else tasks
-        self.cls_node._ch_avail_init = self.ch_avail_gen(self.n_ch) if ch_avail is None else ch_avail
+    @property
+    def _state_tasks(self):
+        return np.array([task.gen_features(*self.feature_funcs.values()) for task in self.node.tasks])
+
+    def reset(self, tasks=None, ch_avail=None, persist=False):
+        if not persist:     # use new random (or user-specified) tasks/channels
+            self.cls_node._tasks_init = self.task_gen(self.n_tasks) if tasks is None else tasks
+            self.cls_node._ch_avail_init = self.ch_avail_gen(self.n_ch) if ch_avail is None else ch_avail
+
         self.node = self.cls_node()
 
     def step(self, action: list):
@@ -114,40 +115,42 @@ class BaseTaskingEnv(gym.Env):
 class SeqTaskingEnv(BaseTaskingEnv):
     """Tasking environment, entire sequence selected at once."""
 
-    def __init__(self, n_tasks, task_gen, n_ch, ch_avail_gen, cls_node=TreeNode):
-        super().__init__(n_tasks, task_gen, n_ch, ch_avail_gen, cls_node)
+    def __init__(self, n_tasks, task_gen, n_ch, ch_avail_gen, cls_node=TreeNode, feature_funcs=None):
+        super().__init__(n_tasks, task_gen, n_ch, ch_avail_gen, cls_node, feature_funcs)
         self.observation_space = Box(self._param_rep_low, self._param_rep_high, dtype=np.float64)
         self.action_space = Sequence(self.n_tasks)
 
-    def reset(self, tasks=None, ch_avail=None):
-        super().reset(tasks, ch_avail)
+    def reset(self, tasks=None, ch_avail=None, persist=False):
+        super().reset(tasks, ch_avail, persist)
         return self._state_tasks
 
     def step(self, action: list):
         self.node.seq = action
         reward = -1 * self.node.l_ex
 
-        return None, reward, True, {}       # Done, no observation
+        return None, reward, True, {}       # Episode is done, no observation
 
 
 class StepTaskingEnv(BaseTaskingEnv):
     """Tasking environment, tasks scheduled sequentially."""
 
-    # TODO: add option for sim time shifting and task re-parametrization. New TreeNode subclass??
+    # TODO: add option for task reordering?
 
-    def __init__(self, n_tasks, task_gen, n_ch, ch_avail_gen, cls_node=TreeNode, state_type='binary'):
-        self.state_type = state_type
-        if self.state_type == 'binary':
+    def __init__(self, n_tasks, task_gen, n_ch, ch_avail_gen, cls_node=TreeNode, feature_funcs=None,
+                 seq_encoding='binary', masking=False):
+
+        self.state_params = {'seq_encoding': seq_encoding,
+                             'masking': masking}
+
+        if self.state_params['seq_encoding'] == 'binary':
             self._state_seq_init = np.ones((n_tasks, 1))
-        elif self.state_type == 'one-hot':
+        elif self.state_params['seq_encoding'] == 'one-hot':
             self._state_seq_init = np.zeros(2 * (n_tasks,))
         else:
             raise ValueError("Unrecognized state type.")
         self._state_seq = None
 
-        super().__init__(n_tasks, task_gen, n_ch, ch_avail_gen, cls_node)
-
-        # TODO: LIMITS CHANGE for shift node class?!?
+        super().__init__(n_tasks, task_gen, n_ch, ch_avail_gen, cls_node, feature_funcs)
 
         _state_low = np.concatenate((np.zeros(self._state_seq_init.shape), self._param_rep_low), axis=1)
         _state_high = np.concatenate((np.ones(self._state_seq_init.shape), self._param_rep_high), axis=1)
@@ -161,10 +164,13 @@ class StepTaskingEnv(BaseTaskingEnv):
 
     @property
     def state(self):
-        return np.concatenate((self._state_seq, self._state_tasks), axis=1)
+        state_tasks = self._state_tasks
+        if self.state_params['masking']:
+            state_tasks[self.node.seq] = 0.
+        return np.concatenate((self._state_seq, state_tasks), axis=1)
 
-    def reset(self, tasks=None, ch_avail=None):
-        super().reset(tasks, ch_avail)
+    def reset(self, tasks=None, ch_avail=None, persist=False):
+        super().reset(tasks, ch_avail, persist)
 
         self.loss_agg = self.node.l_ex
 
@@ -172,15 +178,16 @@ class StepTaskingEnv(BaseTaskingEnv):
         return self.state
 
     def step(self, action: int):
-        if self.state_type == 'binary':
+        if self.state_params['seq_encoding'] == 'binary':
             self._state_seq[action][0] = 0
-        elif self.state_type == 'one-hot':
+        elif self.state_params['seq_encoding'] == 'one-hot':
             self._state_seq[action][len(self.node.seq)] = 1
         else:
             raise ValueError("Unrecognized state type.")
 
         self.node.seq_extend([action])
-        reward, self.loss_agg = self.loss_agg - self.node.l_ex, self.node.l_ex      # TODO: reward OK for shift node?
+        reward, self.loss_agg = self.loss_agg - self.node.l_ex, self.node.l_ex
+        # reward = self.node.tasks[action](self.node.t_ex[action])      # TODO: reward OK for shift node?
 
         done = len(self.node.seq_rem) == 0
 
@@ -237,21 +244,35 @@ def main():
     def ch_avail_generator(n_ch, rng=check_rng(None)):  # channel availability time generator
         return rng.uniform(0, 2, n_ch)
 
-    params = {'n_tasks': 8,
-              'task_gen': ReluDropGenerator(t_release_lim=(0, 4), duration_lim=(3, 6), slope_lim=(0.5, 2),
+    feature_dict = {'duration': lambda self: self.duration,
+                    'release time': lambda self: self.t_release,
+                    'slope': lambda self: self.slope,
+                    'drop time': lambda self: self.t_drop,
+                    'drop loss': lambda self: self.l_drop,
+                    'is available': lambda self: self.t_release == 0.,
+                    'is dropped': lambda self: self.t_release == 0. and self.t_drop == 0.
+                    }
+
+    params = {'n_tasks': 5,
+              'task_gen': ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
                                             t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None),
               'n_ch': 2,
-              'ch_avail_gen': ch_avail_generator}
+              'ch_avail_gen': ch_avail_generator,
+              'cls_node': TreeNodeShift,
+              'feature_funcs': feature_dict,
+              'seq_encoding': 'binary',
+              'masking': False}
 
     # env = SeqTaskingEnv(**params)
     env = StepTaskingEnv(**params)
 
     agent = RandomAgent(env.action_space)
 
-    obs, reward, done = env.reset(), 0, False
+    observation, reward, done = env.reset(), 0, False
     while not done:
         agent.action_space = env.action_space
-        act = agent.act(obs, reward, done)
+        act = agent.act(observation, reward, done)
+        print(observation)
         observation, reward, done, info = env.step(act)
         print(reward)
 
