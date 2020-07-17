@@ -148,7 +148,7 @@ def main():
     n_tasks = 4
     n_channels = 1
 
-    task_gen = ReluDropGenerator(t_release_lim=(0, 4), duration_lim=(3, 6), slope_lim=(0.5, 2),
+    task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
                                  t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)  # task set generator
 
     # task_gen = PermuteTaskGenerator(task_gen(n_tasks))
@@ -157,7 +157,7 @@ def main():
     def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
         return rng.uniform(0, 0, n_ch)
 
-    env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen, cls_node=TreeNodeShift, state_type='one-hot')
+    env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen, cls_node=TreeNodeShift, seq_encoding='one-hot')
 
     model = train_sl(env, n_gen_train=10, n_gen_val=1, plot_history=True, do_tensorboard=False, save_model=True)
     # model = './models/2020-07-09_08-39-48'
