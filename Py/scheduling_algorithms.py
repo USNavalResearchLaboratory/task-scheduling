@@ -974,7 +974,12 @@ def stats2nnXYgen(NodeStats, tasks: list, env):
 
                 x_gen.append(env.state.copy())
                 y_gen.append(optimal_action)
-                env.step(optimal_action)
+                try:
+                    env.step(optimal_action)
+                except:
+                    a = 1
+                    env.step(optimal_action)
+
                 cnt = cnt + 1
             else: # Still need to update the environment to move through the tree. No data recorded for SL due to suboptimality of decision
                 env.step(optimal_action)

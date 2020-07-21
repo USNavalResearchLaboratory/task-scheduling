@@ -19,7 +19,7 @@ from util.results import check_valid, eval_loss
 
 from scheduling_algorithms import stats2nnXY, stats2nnXYgen
 from tasks import ReluDropGenerator, PermuteTaskGenerator, DeterministicTaskGenerator
-from tree_search import branch_bound, branch_bound_with_stats,mcts_orig, mcts, random_sequencer, earliest_release, TreeNode, TreeNodeShift
+from tree_search import branch_bound, branch_bound_with_stats,mcts_orig, mcts, random_sequencer, earliest_release, TreeNode, TreeNodeShift, TreeNodeBound
 from env_tasking import StepTaskingEnv
 
 plt.style.use('seaborn')
@@ -52,9 +52,10 @@ def data_gen(env, n_gen=1, gen_method=False):
 
         else:
             t_ex, ch_ex, NodeStats = branch_bound_with_stats(env.node.tasks, env.node.ch_avail)
-            [Xnow, Ynow] = stats2nnXY(NodeStats, env.node.tasks)
-            [x_gen, y_gen] = stats2nnXYgen(NodeStats, env.node.tasks, env)
-
+            # [Xnow, Ynow] = stats2nnXY(NodeStats, env.node.tasks)
+            [x_temp, y_temp] = stats2nnXYgen(NodeStats, env.node.tasks, env)
+            x_gen = x_gen + x_temp
+            y_gen = y_gen + y_temp
 
 
     return np.array(x_gen), np.array(y_gen)
@@ -69,7 +70,7 @@ def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=Fals
     # TODO: task parameter shift for channel availability
 
     x_train, y_train = data_gen(env, n_gen_train, gen_method)
-    x_val, y_val = data_gen(env, n_gen_val)
+    x_val, y_val = data_gen(env, n_gen_val, gen_method)
     x_train = x_train.reshape(np.append(x_train.shape, 1))
     x_val = x_val.reshape(np.append(x_val.shape, 1))
 
@@ -80,10 +81,12 @@ def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=Fals
     input_shape = x_train[0].shape
     model = keras.Sequential([keras.layers.Conv2D(32, kernel_size=(2, 2), strides=(1, 1), activation='relu', input_shape=input_shape),
                               # keras.layers.MaxPool2D(pool_size=(2, 2), strides=(2, 2)),
+                              keras.layers.Dropout(0.2),
                               keras.layers.Conv2D(64, (2, 2), activation='relu'),
+                              keras.layers.Conv2D(128, (2, 2), activation='relu'),
                               # keras.layers.MaxPooling2D(pool_size=(2, 2)),
                               keras.layers.Flatten(),
-                              keras.layers.Dense(60, activation='relu'),
+                              keras.layers.Dense(128, activation='relu'),
                               keras.layers.Dense(60, activation='relu'),
                               # keras.layers.Dense(30, activation='relu'),
                               # keras.layers.Dropout(0.2),
@@ -104,7 +107,7 @@ def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=Fals
                   loss='sparse_categorical_crossentropy',
                   metrics=['accuracy'])
 
-    callbacks = [keras.callbacks.EarlyStopping(patience=60, monitor='val_loss', min_delta=0.)]
+    callbacks = [keras.callbacks.EarlyStopping(patience=20, monitor='val_loss', min_delta=0.)]
 
     if do_tensorboard:
         log_dir = './logs/TF_train'
@@ -122,7 +125,7 @@ def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=Fals
 
 
 
-    history = model.fit(x_train, y_train, epochs=1000, batch_size=32, sample_weight=None,
+    history = model.fit(x_train, y_train, epochs=1000, batch_size=100, sample_weight=None,
                         validation_data=(x_val, y_val),
                         callbacks=callbacks)
 
@@ -135,11 +138,14 @@ def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=Fals
         plt.plot(history.epoch, history.history['val_loss'], label='validation')
         plt.legend()
         plt.gca().set(xlabel='epoch', ylabel='loss')
+        plt.ylim(0,2)
+        plt.title('Training Samples: ' + str(len(x_train)) )
         plt.subplot(1, 2, 2)
         plt.plot(history.epoch, history.history['accuracy'], label='training')
         plt.plot(history.epoch, history.history['val_accuracy'], label='validation')
         plt.legend()
         plt.gca().set(xlabel='epoch', ylabel='accuracy')
+        plt.ylim(0, 1)
         plt.show()
 
     if save_model:      # TODO: pickle model and env together in dict? or just wrapped model func??
@@ -164,7 +170,7 @@ def wrap_model(env, model):
             obs = observation.reshape(np.append(observation.shape, 1))
             obs = obs.reshape(np.append(1, obs.shape))
             p = model.predict(obs).squeeze(0)
-            p = model.predict(observation[np.newaxis]).squeeze(0)
+            # p = model.predict(observation[np.newaxis]).squeeze(0)
 
             seq_rem = env.action_space.elements.tolist()
             action = seq_rem[p[seq_rem].argmax()]        # FIXME: hacked to disallow previously scheduled tasks
@@ -189,12 +195,17 @@ def main():
     def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
         return rng.uniform(0, 0, n_ch)
 
-    env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen, cls_node=TreeNodeShift, state_type='one-hot')
+    env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen, cls_node=TreeNodeShift, seq_encoding='one-hot')
+    # env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen, cls_node=TreeNode, seq_encoding='one-hot')
 
 
+    n_total = 10000
+    n_gen_train = np.int(np.round(n_total*.8))
+    n_gen_val = np.int(n_total - n_gen_train)
 
-    # model = train_sl(env, n_gen_train=10, n_gen_val=1, plot_history=True, do_tensorboard=False, save_model=True, gen_method=False)
-    model = train_sl(env, n_gen_train=10000, n_gen_val=1, plot_history=True, do_tensorboard=False, save_model=True, gen_method=True)
+
+    model = train_sl(env, n_gen_train=n_gen_train, n_gen_val=n_gen_val, plot_history=True, do_tensorboard=False, save_model=True, gen_method=False)
+    model = train_sl(env, n_gen_train=n_gen_train, n_gen_val=n_gen_val, plot_history=True, do_tensorboard=False, save_model=True, gen_method=True)
 
     # model = './models/2020-07-09_08-39-48'
 
