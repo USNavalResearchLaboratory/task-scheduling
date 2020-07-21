@@ -70,14 +70,35 @@ def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=Fals
 
     x_train, y_train = data_gen(env, n_gen_train, gen_method)
     x_val, y_val = data_gen(env, n_gen_val)
+    x_train = x_train.reshape(np.append(x_train.shape, 1))
+    x_val = x_val.reshape(np.append(x_val.shape, 1))
 
-    model = keras.Sequential([keras.layers.Flatten(input_shape=x_train.shape[1:]),
+    # x_train = x_train.reshape(60000, 28, 28, 1)
+    # x_test = x_test.reshape(10000, 28, 28, 1)
+
+    # current_shape = np.append(x_train[0].shape, 1)
+    input_shape = x_train[0].shape
+    model = keras.Sequential([keras.layers.Conv2D(32, kernel_size=(2, 2), strides=(1, 1), activation='relu', input_shape=input_shape),
+                              # keras.layers.MaxPool2D(pool_size=(2, 2), strides=(2, 2)),
+                              keras.layers.Conv2D(64, (2, 2), activation='relu'),
+                              # keras.layers.MaxPooling2D(pool_size=(2, 2)),
+                              keras.layers.Flatten(),
                               keras.layers.Dense(60, activation='relu'),
                               keras.layers.Dense(60, activation='relu'),
                               # keras.layers.Dense(30, activation='relu'),
                               # keras.layers.Dropout(0.2),
                               # keras.layers.Dense(100, activation='relu'),
                               keras.layers.Dense(env.n_tasks, activation='softmax')])
+
+
+
+    # model = keras.Sequential([keras.layers.Flatten(input_shape=x_train.shape[1:]),
+    #                           keras.layers.Dense(60, activation='relu'),
+    #                           keras.layers.Dense(60, activation='relu'),
+    #                           # keras.layers.Dense(30, activation='relu'),
+    #                           # keras.layers.Dropout(0.2),
+    #                           # keras.layers.Dense(100, activation='relu'),
+    #                           keras.layers.Dense(env.n_tasks, activation='softmax')])
 
     model.compile(optimizer='rmsprop',
                   loss='sparse_categorical_crossentropy',
@@ -98,6 +119,8 @@ def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=Fals
         tb.configure(argv=[None, '--logdir', log_dir])
         url = tb.launch()
         webbrowser.open(url)
+
+
 
     history = model.fit(x_train, y_train, epochs=1000, batch_size=32, sample_weight=None,
                         validation_data=(x_val, y_val),
@@ -138,6 +161,9 @@ def wrap_model(env, model):
     def scheduling_model(tasks, ch_avail):
         observation, reward, done = env.reset(tasks, ch_avail), 0, False
         while not done:
+            obs = observation.reshape(np.append(observation.shape, 1))
+            obs = obs.reshape(np.append(1, obs.shape))
+            p = model.predict(obs).squeeze(0)
             p = model.predict(observation[np.newaxis]).squeeze(0)
 
             seq_rem = env.action_space.elements.tolist()
@@ -151,7 +177,7 @@ def wrap_model(env, model):
 
 
 def main():
-    n_tasks = 6
+    n_tasks = 4
     n_channels = 1
 
     task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
@@ -163,12 +189,12 @@ def main():
     def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
         return rng.uniform(0, 0, n_ch)
 
-    env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen, cls_node=TreeNodeShift, seq_encoding='one-hot')
+    env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen, cls_node=TreeNodeShift, state_type='one-hot')
 
 
 
-    model = train_sl(env, n_gen_train=100, n_gen_val=1, plot_history=True, do_tensorboard=False, save_model=True, gen_method=False)
-    model = train_sl(env, n_gen_train=100, n_gen_val=1, plot_history=True, do_tensorboard=False, save_model=True, gen_method=True)
+    # model = train_sl(env, n_gen_train=10, n_gen_val=1, plot_history=True, do_tensorboard=False, save_model=True, gen_method=False)
+    model = train_sl(env, n_gen_train=10000, n_gen_val=1, plot_history=True, do_tensorboard=False, save_model=True, gen_method=True)
 
     # model = './models/2020-07-09_08-39-48'
 
