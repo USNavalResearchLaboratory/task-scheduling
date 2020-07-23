@@ -29,7 +29,8 @@ class GenericTask:
         self.duration = duration
         self.t_release = t_release
 
-        self._loss_func = loss_func
+        if callable(loss_func):
+            self._loss_func = loss_func
 
     def __repr__(self):
         return f"GenericTask(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
@@ -182,14 +183,10 @@ class ReluDropTask(GenericTask):
         #                                   ('slope', np.float), ('t_drop', np.float), ('l_drop', np.float)])
         # params.view(np.float).reshape(*params.shape, -1)
 
-        if len(funcs) == 0:     # default, return task parameters
+        if len(funcs) > 0:
+            return [func(self) for func in funcs]
+        else:   # default, return task parameters
             return [self.duration, self.t_release, self.slope, self.t_drop, self.l_drop]
-
-        features = []
-        for func in funcs:
-            features.append(func(self))
-
-        return features
 
     def summary(self):
         print(f'ReluDropTask\n------------\nduration: {self.duration:.2f}'
@@ -252,39 +249,32 @@ class ReluDropGenerator(GenericTaskGenerator):
         self.t_drop_lim = t_drop_lim
         self.l_drop_lim = l_drop_lim
 
-        self._sort_dict = {'duration': lambda task: task.duration,
-                           't_release': lambda task: task.t_release,
-                           'slope': lambda task: task.slope,
-                           't_drop': lambda task: task.t_drop,
-                           'l_drop': lambda task: task.l_drop,
-                           'priority': lambda task: task.l_drop / task.t_drop
-                           }
-
-    def __call__(self, n_tasks, sort_key=None):
+    def __call__(self, n_tasks):
         """Randomly generate a list of tasks."""
+
         duration = self.rng.uniform(*self.duration_lim, n_tasks)
         t_release = self.rng.uniform(*self.t_release_lim, n_tasks)
         slope = self.rng.uniform(*self.slope_lim, n_tasks)
         t_drop = self.rng.uniform(*self.t_drop_lim, n_tasks)
         l_drop = self.rng.uniform(*self.l_drop_lim, n_tasks)
 
-        task_list = [ReluDropTask(*args) for args in zip(duration, t_release, slope, t_drop, l_drop)]
+        return [ReluDropTask(*args) for args in zip(duration, t_release, slope, t_drop, l_drop)]
 
-        if sort_key is None:        # FIXME: does sorting belong here or external to class?
-            return task_list
-        else:
-            if type(sort_key) == str:
-                sort_key = self._sort_dict[sort_key]
-            task_list.sort(key=sort_key)
-            return task_list
+        # for _ in range(n_tasks):      # FIXME: use yield?
+        #     yield ReluDropTask(self.rng.uniform(*self.duration_lim),
+        #                        self.rng.uniform(*self.t_release_lim),
+        #                        self.rng.uniform(*self.slope_lim),
+        #                        self.rng.uniform(*self.t_drop_lim),
+        #                        self.rng.uniform(*self.l_drop_lim),
+        #                        )
 
     @property
     def param_rep_lim(self):
         """Low and high tuples bounding parametric task representations."""
-        # return self.duration_lim, self.t_release_lim, self.slope_lim, self.t_drop_lim, self.l_drop_lim
         return zip(self.duration_lim, self.t_release_lim, self.slope_lim, self.t_drop_lim, self.l_drop_lim)
 
 
+# TODO: update/formalize generators below
 class PermuteTaskGenerator(GenericTaskGenerator):
     def __init__(self, tasks, rng=None):
         super().__init__(rng)

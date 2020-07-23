@@ -1,5 +1,8 @@
 # Logs
 Py/logs/
+
+# Temporary agents and models
+Py/agents/temp/
 Py/models/temp/
 
 # test

@@ -1,3 +1,4 @@
+dill
 tensorboard
 baselines
 gym

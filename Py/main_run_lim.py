@@ -43,6 +43,8 @@ max_runtimes = np.logspace(-2, 0, 11)
 env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen)
 random_agent = wrap_agent_run_lim(env, RandomAgent(env.action_space))
 
+# TODO: import learner changes from main.py
+
 alg_funcs = [partial(branch_bound, verbose=False),
              partial(mcts_orig, n_mc=None, verbose=False),
              partial(mcts, verbose=False),

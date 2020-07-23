@@ -1,5 +1,7 @@
 import shutil
 import time
+from functools import partial
+import dill
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,64 +15,55 @@ from util.results import check_valid, eval_loss
 
 from tasks import ReluDropGenerator, PermuteTaskGenerator, DeterministicTaskGenerator
 from tree_search import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release, TreeNode, TreeNodeShift
-from env_tasking import StepTaskingEnv
+from env_tasking import StepTaskingEnv, data_gen
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
 
 
-def data_gen(env, n_gen=1):
+def train_policy(n_tasks, task_gen, n_channels, ch_avail_gen,
+                 n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv, env_params=None,
+                 model=None, compile_params=None, fit_params=None,
+                 do_tensorboard=False, plot_history=True, save=False, save_dir=None):
 
-    if not isinstance(env, StepTaskingEnv):
-        raise NotImplementedError("Tasking environment must be step Env.")
-
-    # TODO: generate sample weights to prioritize earliest task selections??
-
-    x_gen = []
-    y_gen = []
-    for i_gen in range(n_gen):
-        print(f'Task Set: {i_gen + 1}/{n_gen}', end='\n')
-
-        env.reset()
-
-        t_ex, ch_ex = branch_bound(env.node.tasks, env.node.ch_avail, verbose=True)
-        seq = np.argsort(t_ex)     # optimal sequence
-
-        # check_valid(tasks, t_ex, ch_ex)
-        # l_ex = eval_loss(tasks, t_ex)
-
-        for n in seq:
-            x_gen.append(env.state.copy())
-            y_gen.append(n)
-
-            env.step(n)
-
-    return np.array(x_gen), np.array(y_gen)
-
-
-def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=False, save_model=False):
-
+    # FIXME: don't pack TF params in func arguments, user has to define all or none!!
     # TODO: customize output layers to avoid illegal actions
-    # TODO: train using complete tree info, not just B&B solution?
 
-    # TODO: sort tasks by release time, etc.?
+    if env_params is None:
+        env_params = {}
 
-    x_train, y_train = data_gen(env, n_gen_train)
-    x_val, y_val = data_gen(env, n_gen_val)
+    # Create environment
+    env = env_cls(n_tasks, task_gen, n_channels, ch_avail_gen, **env_params)
 
-    model = keras.Sequential([keras.layers.Flatten(input_shape=x_train.shape[1:]),
-                              keras.layers.Dense(60, activation='relu'),
-                              keras.layers.Dense(60, activation='relu'),
-                              # keras.layers.Dense(30, activation='relu'),
-                              # keras.layers.Dropout(0.2),
-                              # keras.layers.Dense(100, activation='relu'),
-                              keras.layers.Dense(env.n_tasks, activation='softmax')])
+    # Generate state-action data pairs
+    d_train = data_gen(env, n_gen_train)
+    d_val = data_gen(env, n_gen_val)
 
-    model.compile(optimizer='rmsprop',
-                  loss='sparse_categorical_crossentropy',
-                  metrics=['accuracy'])
+    # Train policy model
+    if model is None:
+        model = keras.Sequential([keras.layers.Flatten(input_shape=env.observation_space.shape),
+                                  keras.layers.Dense(60, activation='relu'),
+                                  keras.layers.Dense(60, activation='relu'),
+                                  # keras.layers.Dense(30, activation='relu'),
+                                  # keras.layers.Dropout(0.2),
+                                  # keras.layers.Dense(100, activation='relu'),
+                                  keras.layers.Dense(n_tasks, activation='softmax')])
 
-    callbacks = [keras.callbacks.EarlyStopping(patience=60, monitor='val_loss', min_delta=0.)]
+    if compile_params is None:
+        compile_params = {'optimizer': 'rmsprop',
+                          'loss': 'sparse_categorical_crossentropy',
+                          'metrics': ['accuracy']
+                          }
+
+    if fit_params is None:
+        fit_params = {'epochs': 1000,
+                      'batch_size': 32,
+                      'sample_weight': None,
+                      'validation_data': d_val,
+                      'callbacks': [keras.callbacks.EarlyStopping(patience=60, monitor='val_loss', min_delta=0.)]
+                      }
+
+    model.compile(**compile_params)
 
     if do_tensorboard:
         log_dir = './logs/TF_train'
@@ -79,16 +72,14 @@ def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=Fals
         except FileNotFoundError:
             pass
 
-        callbacks.append(keras.callbacks.TensorBoard(log_dir=log_dir))
+        fit_params['callbacks'].append(keras.callbacks.TensorBoard(log_dir=log_dir))
 
         tb = program.TensorBoard()
         tb.configure(argv=[None, '--logdir', log_dir])
         url = tb.launch()
         webbrowser.open(url)
 
-    history = model.fit(x_train, y_train, epochs=1000, batch_size=32, sample_weight=None,
-                        validation_data=(x_val, y_val),
-                        callbacks=callbacks)
+    history = model.fit(*d_train, **fit_params)
 
     if plot_history:
         plt.figure(num='training history', clear=True, figsize=(10, 4.8))
@@ -103,13 +94,27 @@ def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=Fals
         plt.legend()
         plt.gca().set(xlabel='epoch', ylabel='accuracy')
 
-    if save_model:      # TODO: pickle model and env together in dict? or just wrapped model func??
-        model.save('./models/temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S')))
+    if save:
+        if save_dir is None:
+            save_dir = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
 
-    return model
+        model.save('./models/' + save_dir)      # save TF model
+
+        with open('./models/' + save_dir + '/env.pkl', 'wb') as file:
+            dill.dump(env, file)    # save environment
+
+    return wrap_policy(env, model)
 
 
-def wrap_model(env, model):
+def load_policy(load_dir):
+    with open('./models/' + load_dir + '/env.pkl', 'rb') as file:
+        env = dill.load(file)
+    model = keras.models.load_model('./models/' + load_dir)
+
+    return wrap_policy(env, model)
+
+
+def wrap_policy(env, model):
     if not isinstance(env, StepTaskingEnv):
         raise NotImplementedError("Tasking environment must be step Env.")
 
@@ -119,10 +124,9 @@ def wrap_model(env, model):
     def scheduling_model(tasks, ch_avail):
         observation, reward, done = env.reset(tasks, ch_avail), 0, False
         while not done:
-            p = model.predict(observation[np.newaxis]).squeeze(0)
-
+            prob = model.predict(observation[np.newaxis]).squeeze(0)
             seq_rem = env.action_space.elements.tolist()
-            action = seq_rem[p[seq_rem].argmax()]        # FIXME: hacked to disallow previously scheduled tasks
+            action = seq_rem[prob[seq_rem].argmax()]        # FIXME: hacked to disallow previously scheduled tasks
 
             observation, reward, done, info = env.step(action)
 
@@ -144,12 +148,32 @@ def main():
     def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
         return rng.uniform(0, 0, n_ch)
 
-    env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen, cls_node=TreeNodeShift, seq_encoding='one-hot')
+    features = np.array([('duration', lambda self: self.duration, task_gen.duration_lim),
+                         ('release time', lambda self: self.t_release, (0., task_gen.t_release_lim[1])),
+                         ('slope', lambda self: self.slope, task_gen.slope_lim),
+                         ('drop time', lambda self: self.t_drop, (0., task_gen.t_drop_lim[1])),
+                         ('drop loss', lambda self: self.l_drop, (0., task_gen.l_drop_lim[1])),
+                         ('is available', lambda self: 1 if self.t_release == 0. else 0, (0, 1)),
+                         ('is dropped', lambda self: 1 if self.l_drop == 0. else 0, (0, 1)),
+                         ],
+                        dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
-    model = train_sl(env, n_gen_train=10, n_gen_val=1, plot_history=True, do_tensorboard=False, save_model=True)
-    # model = './models/2020-07-09_08-39-48'
+    def sort_key(self, n):
+        if n in self.node.seq:
+            return float('inf')
+        else:
+            return self.node.tasks[n].t_release
 
-    scheduler = wrap_model(env, model)
+    env_cls = StepTaskingEnv
+    env_params = {'cls_node': TreeNodeShift,
+                  'features': features,
+                  'sort_key': sort_key,
+                  'seq_encoding': 'indicator'
+                  }
+
+    scheduler = train_policy(n_tasks, task_gen, n_channels, ch_avail_gen,
+                             env_cls=env_cls, env_params=env_params,
+                             do_tensorboard=False)
 
     tasks = task_gen(n_tasks)
     ch_avail = ch_avail_gen(n_channels)
