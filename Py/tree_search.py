@@ -12,7 +12,7 @@ from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
 np.set_printoptions(precision=2)
 
-# TODO: docstrings describe properties as attributes. OK? Subclasses, too.
+# TODO: docstrings describe properties as attributes - OK?
 
 
 class TreeNode:
@@ -70,6 +70,7 @@ class TreeNode:
         return f"TreeNode(sequence: {self.seq}, loss incurred:{self.l_ex:.3f})"
 
     def summary(self):
+        """Print a string describing important node attributes."""
         print(f'TreeNode\n--------\nsequence: {self.seq}\nexecution time: {self.t_ex}'
               f'\nexecution channel: {self.ch_ex}\nloss incurred: {self.l_ex:.2f}')
 
@@ -211,31 +212,31 @@ class TreeNodeBound(TreeNode):
     """
     Node object with additional loss bounding attributes.
 
-        Parameters
-        ----------
-        seq : list of int
-            Partial task index sequence.
+    Parameters
+    ----------
+    seq : list of int
+        Partial task index sequence.
 
-        Attributes
-        ----------
-        seq : list of int
-            Partial task index sequence.
-        t_ex : ndarray
-            Task execution times. NaN for unscheduled.
-        ch_ex : ndarray
-            Task execution channels. -1 for unscheduled.
-        ch_avail : ndarray
-            Channel availability times.
-        l_ex : float
-            Total loss of scheduled tasks.
-        seq_rem: set
-            Unscheduled task indices.
-        l_lo: float
-            Lower bound on total loss for descendant nodes.
-        l_up: float
-            Upper bound on total loss for descendant nodes.
+    Attributes
+    ----------
+    seq : list of int
+        Partial task index sequence.
+    t_ex : ndarray
+        Task execution times. NaN for unscheduled.
+    ch_ex : ndarray
+        Task execution channels. -1 for unscheduled.
+    ch_avail : ndarray
+        Channel availability times.
+    l_ex : float
+        Total loss of scheduled tasks.
+    seq_rem: set
+        Unscheduled task indices.
+    l_lo: float
+        Lower bound on total loss for descendant nodes.
+    l_up: float
+        Upper bound on total loss for descendant nodes.
 
-        """
+    """
 
     def __init__(self, seq=None):
         self._l_lo = 0.
@@ -279,20 +280,20 @@ class TreeNodeBound(TreeNode):
 
 
 class TreeNodeShift(TreeNode):
-
-    # TODO: docstring
-
     def __init__(self, seq=None):
         self.t_origin = 0.
         super().__init__(seq)
 
         if len(self._seq) == 0:
-            self._shift_origin()
+            self.shift_origin()
 
     def __repr__(self):
         return f"TreeNodeShift(sequence: {self.seq}, loss incurred:{self.l_ex:.3f})"
 
-    def _shift_origin(self):
+    def shift_origin(self):
+        """Shifts the time origin to the earliest channel availability and invokes shift method of each task,
+        adding each incurred loss to the total."""
+
         ch_avail_min = min(self._ch_avail)
         if ch_avail_min == 0.:
             return
@@ -302,7 +303,7 @@ class TreeNodeShift(TreeNode):
         for n, task in enumerate(self._tasks):
             loss_inc = task.shift_origin(ch_avail_min)
             if n in self._seq_rem:
-                self._l_ex += loss_inc
+                self._l_ex += loss_inc      # TODO
 
     def _update_ex(self, n, ch):
         self._ch_ex[n] = ch
@@ -312,7 +313,7 @@ class TreeNodeShift(TreeNode):
         self._l_ex += self._tasks[n](t_ex_rel)
 
         self._ch_avail[ch] = t_ex_rel + self._tasks[n].duration  # relative to time origin
-        self._shift_origin()
+        self.shift_origin()
 
 
 class SearchNode:
@@ -856,7 +857,6 @@ def main():
     node, node_s = TreeNode(seq), TreeNodeShift(seq)
     print(node.t_ex)
     print(node_s.t_ex)
-    return
 
     t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True, rng=None)
 

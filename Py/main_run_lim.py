@@ -1,5 +1,5 @@
 """
-Task scheduling example.
+Task scheduler comparison with restricted algorithm runtime.
 
 Define a set of task objects and scheduling algorithms. Assess achieved loss and runtime.
 

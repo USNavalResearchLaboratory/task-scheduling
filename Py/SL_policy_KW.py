@@ -195,8 +195,8 @@ def main():
     def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
         return rng.uniform(0, 0, n_ch)
 
-    env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen, cls_node=TreeNodeShift, seq_encoding='one-hot')
-    # env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen, cls_node=TreeNode, seq_encoding='one-hot')
+    env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen, node_cls=TreeNodeShift, seq_encoding='one-hot')
+    # env = StepTaskingEnv(n_tasks, task_gen, n_ch, ch_avail_gen, node_cls=TreeNode, seq_encoding='one-hot')
 
 
     n_total = 10000

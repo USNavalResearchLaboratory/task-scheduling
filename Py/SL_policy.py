@@ -21,19 +21,61 @@ np.set_printoptions(precision=2)
 plt.style.use('seaborn')
 
 
-def train_policy(n_tasks, task_gen, n_channels, ch_avail_gen,
+def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
                  n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv, env_params=None,
                  model=None, compile_params=None, fit_params=None,
                  do_tensorboard=False, plot_history=True, save=False, save_dir=None):
+    """
+    Train a policy network via supervised learning.
 
-    # FIXME: don't pack TF params in func arguments, user has to define all or none!!
+    Parameters
+    ----------
+    n_tasks : int
+        Number of tasks.
+    task_gen : GenericTaskGenerator
+        Task generation object.
+    n_ch: int
+        Number of channels.
+    ch_avail_gen : callable
+        Returns random initial channel availabilities.
+    n_gen_train : int
+        Number of tasking problems to generate for agent training.
+    n_gen_val : int
+        Number of tasking problems to generate for agent validation.
+    env_cls : BaseTaskingEnv or callable
+        Gym environment class.
+    env_params : dict, optional
+        Parameters for environment initialization.
+    model : tf.keras.Model, optional
+        Neural network model.
+    compile_params : dict, optional
+        Parameters for the model compile method.
+    fit_params : dict, optional
+        Parameters for the mode fit method.
+    do_tensorboard : bool
+        If True, Tensorboard is used for training visualization.
+    plot_history : bool
+        If True, training is visualized using plotting modules.
+    save : bool
+        If True, the network and environment are serialized.
+    save_dir : str, optional
+        String representation of sub-directory to save to.
+
+    Returns
+    -------
+    scheduler : function
+        Wrapped policy. Takes tasks and channel availabilities and produces task execution times/channels.
+
+    """
+
+    # TODO: don't pack TF params in func arguments? user has to define all or none...
     # TODO: customize output layers to avoid illegal actions
 
     if env_params is None:
         env_params = {}
 
     # Create environment
-    env = env_cls(n_tasks, task_gen, n_channels, ch_avail_gen, **env_params)
+    env = env_cls(n_tasks, task_gen, n_ch, ch_avail_gen, **env_params)
 
     # Generate state-action data pairs
     d_train = data_gen(env, n_gen_train)
@@ -107,6 +149,7 @@ def train_policy(n_tasks, task_gen, n_channels, ch_avail_gen,
 
 
 def load_policy(load_dir):
+    """Loads network model and environment, returns wrapped scheduling function."""
     with open('./models/' + load_dir + '/env.pkl', 'rb') as file:
         env = dill.load(file)
     model = keras.models.load_model('./models/' + load_dir)
@@ -115,6 +158,7 @@ def load_policy(load_dir):
 
 
 def wrap_policy(env, model):
+    """Generate scheduling function by running a policy on a single environment episode."""
     if not isinstance(env, StepTaskingEnv):
         raise NotImplementedError("Tasking environment must be step Env.")
 
@@ -158,16 +202,16 @@ def main():
                          ],
                         dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
-    def sort_key(self, n):
+    def sort_func(self, n):
         if n in self.node.seq:
             return float('inf')
         else:
             return self.node.tasks[n].t_release
 
     env_cls = StepTaskingEnv
-    env_params = {'cls_node': TreeNodeShift,
+    env_params = {'node_cls': TreeNodeShift,
                   'features': features,
-                  'sort_key': sort_key,
+                  'sort_func': sort_func,
                   'seq_encoding': 'indicator'
                   }
 

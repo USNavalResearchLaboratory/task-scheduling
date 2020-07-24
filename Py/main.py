@@ -1,5 +1,5 @@
 """
-Task scheduling example.
+Task scheduler comparison.
 
 Define a set of task objects and scheduling algorithms. Assess achieved loss and runtime.
 
@@ -57,7 +57,7 @@ features = np.array([('duration', lambda self: self.duration, task_gen.duration_
                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
 
-def sort_key(self, n):
+def sort_func(self, n):
     if n in self.node.seq:
         return float('inf')
     else:
@@ -65,9 +65,9 @@ def sort_key(self, n):
 
 
 env_cls = StepTaskingEnv
-env_params = {'cls_node': TreeNodeShift,
+env_params = {'node_cls': TreeNodeShift,
               'features': features,
-              'sort_key': sort_key,
+              'sort_func': sort_func,
               'seq_encoding': 'indicator'
               }
 
