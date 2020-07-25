@@ -4,6 +4,7 @@ from time import perf_counter
 from math import floor, factorial
 import numpy as np
 from util.generic import check_rng
+from util.results import eval_loss
 
 from tasks import ReluDropGenerator
 from tree_search import TreeNode, TreeNodeBound, SearchNode
@@ -69,9 +70,7 @@ def branch_bound(tasks: list, ch_avail: list, max_runtime=float('inf'), verbose=
             # print(f'Search progress: {100*progress:.1f}% - Loss < {node_best.l_ex:.3f}', end='\r')
             print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.l_ex:.3f}', end='\r')
 
-    t_ex, ch_ex = node_best.t_ex, node_best.ch_ex
-
-    return t_ex, ch_ex
+    return node_best.t_ex, node_best.ch_ex
 
 
 def mcts_orig(tasks: list, ch_avail: list, max_runtime=float('inf'), n_mc=None, verbose=False, rng=None):
@@ -102,6 +101,7 @@ def mcts_orig(tasks: list, ch_avail: list, max_runtime=float('inf'), n_mc=None, 
     """
 
     t_run = perf_counter()
+    run = True
 
     TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
@@ -116,13 +116,10 @@ def mcts_orig(tasks: list, ch_avail: list, max_runtime=float('inf'), n_mc=None, 
     elif type(n_mc) == int:
         n_mc = n_tasks * [n_mc]
 
-    run = True
-    for n in range(n_tasks):
-        if verbose:
-            print(f'Assigning Task {n + 1}/{n_tasks}', end='\r')
+    def _roll_outs(n_roll):
+        nonlocal node_best, run
 
-        # Perform Roll-outs
-        for _ in range(n_mc[n]):
+        for _ in range(n_roll):
             node_mc = node.roll_out(do_copy=True)
 
             if node_mc.l_ex < node_best.l_ex:  # Update best node
@@ -131,17 +128,21 @@ def mcts_orig(tasks: list, ch_avail: list, max_runtime=float('inf'), n_mc=None, 
             # Check run conditions
             if perf_counter() - t_run >= max_runtime:
                 run = False
-                break
+                return
 
-        if not run:     # TODO: refactor nested break to func w/ return?
+    for n in range(n_tasks):
+        if verbose:
+            print(f'Assigning Task {n + 1}/{n_tasks}', end='\r')
+
+        _roll_outs(n_mc[n])
+
+        if not run:
             break
 
         # Assign next task from earliest available channel
-        node.seq_extend([node_best.seq[n]], check_valid=False)
+        node.seq_extend(node_best.seq[n], check_valid=False)
 
-    t_ex, ch_ex = node_best.t_ex, node_best.ch_ex
-
-    return t_ex, ch_ex
+    return node_best.t_ex, node_best.ch_ex
 
 
 def mcts(tasks: list, ch_avail: list, max_runtime, verbose=False):
@@ -179,6 +180,8 @@ def mcts(tasks: list, ch_avail: list, max_runtime, verbose=False):
     SearchNode.n_tasks = len(tasks)
     tree = SearchNode()
 
+    node_best = None
+
     loss_min = float('inf')
     while perf_counter() - t_run < max_runtime:
         if verbose:
@@ -193,9 +196,7 @@ def mcts(tasks: list, ch_avail: list, max_runtime, verbose=False):
         if loss < loss_min:
             node_best, loss_min = node, loss
 
-    t_ex, ch_ex = node_best.t_ex, node_best.ch_ex
-
-    return t_ex, ch_ex
+    return node_best.t_ex, node_best.ch_ex
 
 
 def random_sequencer(tasks: list, ch_avail: list, max_runtime=float('inf'), rng=None):
@@ -229,13 +230,11 @@ def random_sequencer(tasks: list, ch_avail: list, max_runtime=float('inf'), rng=
 
     node = TreeNode().roll_out(do_copy=True)
 
-    t_ex, ch_ex = node.t_ex, node.ch_ex
-
     runtime = perf_counter() - t_run
     if runtime >= max_runtime:
         raise RuntimeError(f"Algorithm timeout: {runtime} > {max_runtime}.")
 
-    return t_ex, ch_ex
+    return node.t_ex, node.ch_ex
 
 
 def earliest_release(tasks: list, ch_avail: list, max_runtime=float('inf'), do_swap=False):
@@ -272,13 +271,11 @@ def earliest_release(tasks: list, ch_avail: list, max_runtime=float('inf'), do_s
     if do_swap:
         node.check_swaps()
 
-    t_ex, ch_ex = node.t_ex, node.ch_ex
-
     runtime = perf_counter() - t_run
     if runtime >= max_runtime:
         raise RuntimeError(f"Algorithm timeout: {runtime} > {max_runtime}.")
 
-    return t_ex, ch_ex
+    return node.t_ex, node.ch_ex
 
 
 def earliest_drop(tasks: list, ch_avail: list, max_runtime=float('inf'), do_swap=False):
@@ -315,13 +312,11 @@ def earliest_drop(tasks: list, ch_avail: list, max_runtime=float('inf'), do_swap
     if do_swap:
         node.check_swaps()
 
-    t_ex, ch_ex = node.t_ex, node.ch_ex
-
     runtime = perf_counter() - t_run
     if runtime >= max_runtime:
         raise RuntimeError(f"Algorithm timeout: {runtime} > {max_runtime}.")
 
-    return t_ex, ch_ex
+    return node.t_ex, node.ch_ex
 
 
 def main():
@@ -329,24 +324,32 @@ def main():
     n_channels = 2
 
     task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-                                 t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=None)  # task set generator
+                                 t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=100)  # task set generator
 
-    def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
+    def ch_avail_gen(n_ch, rng=check_rng(300)):  # channel availability time generator
         return rng.uniform(0, 2, n_ch)
 
     tasks = task_gen(n_tasks)
     ch_avail = ch_avail_gen(n_channels)
 
-    TreeNode._tasks_init = tasks
-    TreeNode._ch_avail_init = ch_avail
-    TreeNode._rng = check_rng(None)
+    # TreeNode._tasks_init = tasks
+    # TreeNode._ch_avail_init = ch_avail
+    # TreeNode._rng = check_rng(None)
 
     # node = TreeNode([3, 1])
     # node.seq = [3, 1, 4]
 
     # t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True, rng=None)
+    # print(t_ex)
+    # print(ch_ex)
 
-    SearchNode.n_tasks = n_tasks
+    t_ex, ch_ex = mcts_orig(tasks, ch_avail, max_runtime=60, n_mc=100, verbose=True, rng=200)
+
+    print(t_ex)
+    print(ch_ex)
+    print(eval_loss(tasks, t_ex))
+
+    # SearchNode.n_tasks = n_tasks
 
 
 if __name__ == '__main__':

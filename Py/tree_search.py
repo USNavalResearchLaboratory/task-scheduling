@@ -12,8 +12,10 @@ from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
 np.set_printoptions(precision=2)
 
+# TODO: docstrings describe properties as attributes - OK?
 
-class TreeNode:     # TODO: rename?
+
+class TreeNode:
     """
     Node object for mapping sequences into optimal execution times and channels.
 
@@ -38,7 +40,6 @@ class TreeNode:     # TODO: rename?
         Unscheduled task indices.
 
     """
-    # TODO: docstring describes properties as attributes. OK? Subclasses, too.
 
     _tasks_init = []    # TODO: needs to be overwritten by invoking scripts... OK?
     _ch_avail_init = np.array([], dtype=np.float)
@@ -58,7 +59,7 @@ class TreeNode:     # TODO: rename?
         self._seq_rem = set(range(self.n_tasks))
 
         self._t_ex = np.full(self.n_tasks, np.nan)
-        self._ch_ex = np.full(self.n_tasks, -1)    # TODO: masked array?
+        self._ch_ex = np.full(self.n_tasks, -1)
 
         self._l_ex = 0.  # incurred loss
 
@@ -69,6 +70,7 @@ class TreeNode:     # TODO: rename?
         return f"TreeNode(sequence: {self.seq}, loss incurred:{self.l_ex:.3f})"
 
     def summary(self):
+        """Print a string describing important node attributes."""
         print(f'TreeNode\n--------\nsequence: {self.seq}\nexecution time: {self.t_ex}'
               f'\nexecution channel: {self.ch_ex}\nloss incurred: {self.l_ex:.2f}')
 
@@ -104,19 +106,21 @@ class TreeNode:     # TODO: rename?
         else:
             self.seq_extend(seq[len(self._seq):])
 
-    def seq_extend(self, seq_ext: list, check_valid=True):
+    def seq_extend(self, seq_ext, check_valid=True):
         """
         Extends node sequence and updates attributes using sequence-to-schedule approach.
 
         Parameters
         ----------
-        seq_ext : list of int
+        seq_ext : int or list of int
             Sequence of indices referencing cls._tasks.
         check_valid : bool
             Perform check of index sequence validity.
 
         """
 
+        if isinstance(seq_ext, (int, np.integer)):
+            seq_ext = [seq_ext]
         if len(seq_ext) == 0:
             return
 
@@ -162,7 +166,7 @@ class TreeNode:     # TODO: rename?
 
         for n in seq_iter:
             node_new = deepcopy(self)  # new TreeNode object
-            node_new.seq_extend([n], check_valid=False)
+            node_new.seq_extend(n, check_valid=False)
             yield node_new
 
     def roll_out(self, do_copy=False):
@@ -208,31 +212,31 @@ class TreeNodeBound(TreeNode):
     """
     Node object with additional loss bounding attributes.
 
-        Parameters
-        ----------
-        seq : list of int
-            Partial task index sequence.
+    Parameters
+    ----------
+    seq : list of int
+        Partial task index sequence.
 
-        Attributes
-        ----------
-        seq : list of int
-            Partial task index sequence.
-        t_ex : ndarray
-            Task execution times. NaN for unscheduled.
-        ch_ex : ndarray
-            Task execution channels. -1 for unscheduled.
-        ch_avail : ndarray
-            Channel availability times.
-        l_ex : float
-            Total loss of scheduled tasks.
-        seq_rem: set
-            Unscheduled task indices.
-        l_lo: float
-            Lower bound on total loss for descendant nodes.
-        l_up: float
-            Upper bound on total loss for descendant nodes.
+    Attributes
+    ----------
+    seq : list of int
+        Partial task index sequence.
+    t_ex : ndarray
+        Task execution times. NaN for unscheduled.
+    ch_ex : ndarray
+        Task execution channels. -1 for unscheduled.
+    ch_avail : ndarray
+        Channel availability times.
+    l_ex : float
+        Total loss of scheduled tasks.
+    seq_rem: set
+        Unscheduled task indices.
+    l_lo: float
+        Lower bound on total loss for descendant nodes.
+    l_up: float
+        Upper bound on total loss for descendant nodes.
 
-        """
+    """
 
     def __init__(self, seq=None):
         self._l_lo = 0.
@@ -276,20 +280,20 @@ class TreeNodeBound(TreeNode):
 
 
 class TreeNodeShift(TreeNode):
-
-    # TODO: docstring
-
     def __init__(self, seq=None):
         self.t_origin = 0.
         super().__init__(seq)
 
         if len(self._seq) == 0:
-            self._shift_origin()
+            self.shift_origin()
 
     def __repr__(self):
         return f"TreeNodeShift(sequence: {self.seq}, loss incurred:{self.l_ex:.3f})"
 
-    def _shift_origin(self):
+    def shift_origin(self):
+        """Shifts the time origin to the earliest channel availability and invokes shift method of each task,
+        adding each incurred loss to the total."""
+
         ch_avail_min = min(self._ch_avail)
         if ch_avail_min == 0.:
             return
@@ -299,7 +303,7 @@ class TreeNodeShift(TreeNode):
         for n, task in enumerate(self._tasks):
             loss_inc = task.shift_origin(ch_avail_min)
             if n in self._seq_rem:
-                self._l_ex += loss_inc
+                self._l_ex += loss_inc      # TODO
 
     def _update_ex(self, n, ch):
         self._ch_ex[n] = ch
@@ -309,10 +313,10 @@ class TreeNodeShift(TreeNode):
         self._l_ex += self._tasks[n](t_ex_rel)
 
         self._ch_avail[ch] = t_ex_rel + self._tasks[n].duration  # relative to time origin
-        self._shift_origin()
+        self.shift_origin()
 
 
-class SearchNode:   # TODO: subclass TreeNode for B&B?
+class SearchNode:
     """
     Node object for Monte Carlo tree search.
 
@@ -335,7 +339,6 @@ class SearchNode:   # TODO: subclass TreeNode for B&B?
         Weighting for minimization objective during child node selection.
 
     """
-    # TODO: docstring describes properties as attributes. OK? Subclasses, too.
 
     n_tasks = None
     l_up = None
@@ -517,9 +520,7 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
             # print(f'Search progress: {100*progress:.1f}% - Loss < {node_best.l_ex:.3f}', end='\r')
             print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.l_ex:.3f}', end='\r')
 
-    t_ex, ch_ex = node_best.t_ex, node_best.ch_ex  # optimal
-
-    return t_ex, ch_ex
+    return node_best.t_ex, node_best.ch_ex  # optimal
 
 
 def branch_bound_with_stats(tasks: list, ch_avail: list, verbose=False, rng=None):
@@ -581,9 +582,8 @@ def branch_bound_with_stats(tasks: list, ch_avail: list, verbose=False, rng=None
             # print(f'Search progress: {100*progress:.1f}% - Loss < {l_best:.3f}', end='\r')
             print(f'# Remaining Nodes = {len(stack)}, Loss < {l_best:.3f}', end='\r')
 
-    t_ex, ch_ex = node_best.t_ex, node_best.ch_ex  # optimal
-    NodeStats.pop(0) # Remove First Initialization stage
-    return t_ex, ch_ex, NodeStats
+    NodeStats.pop(0)    # Remove First Initialization stage
+    return node_best.t_ex, node_best.ch_ex, NodeStats
 
 
 def mcts_orig(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
@@ -634,11 +634,9 @@ def mcts_orig(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
                 node_best = node_mc
 
         # Assign next task from earliest available channel
-        node.seq_extend([node_best.seq[n]], check_valid=False)
+        node.seq_extend(node_best.seq[n], check_valid=False)
 
-    t_ex, ch_ex = node_best.t_ex, node_best.ch_ex
-
-    return t_ex, ch_ex
+    return node_best.t_ex, node_best.ch_ex
 
 
 def mcts(tasks: list, ch_avail: list, n_mc: int, verbose=False):
@@ -674,6 +672,8 @@ def mcts(tasks: list, ch_avail: list, n_mc: int, verbose=False):
     SearchNode.l_up = TreeNodeBound().l_up
     tree = SearchNode()
 
+    node_best = None
+
     loss_min = float('inf')
     do_search = True
     while do_search:
@@ -691,9 +691,7 @@ def mcts(tasks: list, ch_avail: list, n_mc: int, verbose=False):
 
         do_search = tree.n_visits < n_mc
 
-    t_ex, ch_ex = node_best.t_ex, node_best.ch_ex
-
-    return t_ex, ch_ex
+    return node_best.t_ex, node_best.ch_ex
 
 
 def random_sequencer(tasks: list, ch_avail: list, rng=None):
@@ -723,9 +721,7 @@ def random_sequencer(tasks: list, ch_avail: list, rng=None):
 
     node = TreeNode().roll_out(do_copy=True)
 
-    t_ex, ch_ex = node.t_ex, node.ch_ex
-
-    return t_ex, ch_ex
+    return node.t_ex, node.ch_ex
 
 
 def earliest_release(tasks: list, ch_avail: list, do_swap=False):
@@ -758,9 +754,7 @@ def earliest_release(tasks: list, ch_avail: list, do_swap=False):
     if do_swap:
         node.check_swaps()
 
-    t_ex, ch_ex = node.t_ex, node.ch_ex
-
-    return t_ex, ch_ex
+    return node.t_ex, node.ch_ex
 
 
 def earliest_drop(tasks: list, ch_avail: list, do_swap=False):
@@ -793,9 +787,7 @@ def earliest_drop(tasks: list, ch_avail: list, do_swap=False):
     if do_swap:
         node.check_swaps()
 
-    t_ex, ch_ex = node.t_ex, node.ch_ex
-
-    return t_ex, ch_ex
+    return node.t_ex, node.ch_ex
 
 
 def est_alg_kw(tasks: list, ch_avail: list):
@@ -860,14 +852,13 @@ def main():
     TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = check_rng(None)
 
-    # seq = [3, 1, 4]
-    # seq = np.random.permutation(n_tasks)
-    # node, node_s = TreeNode(seq), TreeNodeShift(seq)
-    # print(node.t_ex)
-    # print(node_s.t_ex)
+    seq = [3, 1, 4]
+    seq = np.random.permutation(n_tasks)
+    node, node_s = TreeNode(seq), TreeNodeShift(seq)
+    print(node.t_ex)
+    print(node_s.t_ex)
 
     t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True, rng=None)
-    return
 
     SearchNode.n_tasks = n_tasks
     SearchNode.l_up = TreeNodeBound().l_up
