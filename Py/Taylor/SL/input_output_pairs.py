@@ -17,12 +17,12 @@ def input_output_pairs_function(number_of_sets,number_of_tasks,number_of_feature
     print("\n\tShape of Inputs (Before) = {}".format(numpy.shape(inputs_before)))
 
 
-    ##### SL Input-Output Pairs #####
+    ##### SL Input-Output Pairs ##### !!!!! UPDATE AS TASKS AND FEATURES UPDATE !!!!!
 
     X = numpy.zeros([(number_of_features)+number_of_tasks,(number_of_sets*number_of_tasks*number_of_tasks)])
     Y = numpy.zeros([1,number_of_sets*number_of_tasks])
 
-    for i in range(len(inputs_before)): ##### KEEP UP-TO-DATE OR GENERALIZE #####
+    for i in range(len(inputs_before)):
 
         features = numpy.zeros([number_of_features,number_of_tasks])
 
@@ -35,7 +35,7 @@ def input_output_pairs_function(number_of_sets,number_of_tasks,number_of_feature
         lengths = inputs_before[i,2*number_of_tasks:3*number_of_tasks]
         features[2,:] = lengths
 
-        # print("\nF = \n\n{}".format(gen_features))
+        # print("\nF = \n\n{}".format(features))
 
         EST = inputs_before[i,3*number_of_tasks:4*number_of_tasks]
 
@@ -77,17 +77,17 @@ def input_output_pairs_function(number_of_sets,number_of_tasks,number_of_feature
     inputs_after = X
     outputs_after = Y
 
-    numpy.savetxt('SL_Inputs.txt',inputs_after,fmt='%.3e')
-    numpy.savetxt('SL_Outputs.txt',outputs_after,fmt='%.3e')
+    # numpy.savetxt('SL_Inputs.txt',inputs_after,fmt='%.3e')
+    # numpy.savetxt('SL_Outputs.txt',outputs_after,fmt='%.3e')
 
     return inputs_after, outputs_after
 
 
     ##### Documentation #####
 
-    # https://numpy.org/doc/stable/reference/generated/numpy.ndarray.shape.html
+    # https://numpy.org/doc/stable/reference/generated/numpy.shape.html
     # https://numpy.org/doc/stable/reference/generated/numpy.zeros.html
-    # https://numpy.org/doc/1.18/reference/generated/numpy.concatenate.html
-    # https://numpy.org/devdocs/reference/generated/numpy.savetxt.html
+    # https://numpy.org/doc/stable/reference/generated/numpy.concatenate.html
+    # https://numpy.org/doc/stable/reference/generated/numpy.savetxt.html
 
     # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html

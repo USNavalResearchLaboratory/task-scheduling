@@ -1,29 +1,33 @@
+#%% Terminal:
+
 import os
 os.system('cls')
-
-
-##### Formatting #####
 
 print("\n")
 
 
-##### Import Statements #####
+#%% Import Statements:
 
-from task_generation_with_EST_algorithm import task_generation_with_EST_algorithm_function
-from cost import cost_function
+from task_generator_with_EST import task_generator_with_EST_function
 from training import training_function
+from training_with_n_dimensional_regression import training_with_n_dimensional_regression_function
+from training_with_equation import training_with_equation_function
 from testing import testing_function
+from testing_with_n_dimensional_regression import testing_with_n_dimensional_regression_function
+from testing_with_equation import testing_with_equation_function
 from analysis_EST import analysis_EST_function
+from cost import cost_function
 
 import itertools
 import math
+import matplotlib.pyplot
 import numpy
 
 
-##### User-Specified Inputs (Environment) #####
+#%% User-Specified Inputs:
 
-number_of_sets_training = 10000 # !!!!! HERE !!!!!
-number_of_sets_testing = 100 # !!!!! HERE !!!!!
+number_of_sets_training = 100000
+number_of_sets_testing = 100
 
 number_of_tasks = 3
 
@@ -31,40 +35,51 @@ number_of_features = 3
 
 maximum_weight_of_tasks = 10
 
+order_of_features = {'Release Times': 1,'Weights': 2,'Lengths': 3}
 
-##### Environment (Observations) #####
+zero_cost_reward = 100
 
-training_inputs = task_generation_with_EST_algorithm_function(number_of_sets_training,number_of_tasks,number_of_features,maximum_weight_of_tasks)
-testing_inputs = task_generation_with_EST_algorithm_function(number_of_sets_testing,number_of_tasks,number_of_features,maximum_weight_of_tasks)
+steps_for_feature_discretization = {'Release Times': 3,'Weights': 3,'Lengths': 3}
 
-F_training = training_inputs[:,0:number_of_tasks*number_of_features]
-F_testing = testing_inputs[:,0:number_of_tasks*number_of_features]
+episodes = 30
+
+alpha = 1.0
+gamma = 0.00
+epsilon = 0.10
+
+
+#%% Definitions of Variables Based on User-Specified Inputs:
+
+r_N_index = order_of_features["Release Times"]
+w_N_index = order_of_features["Weights"]
+l_N_index = order_of_features["Lengths"]
+
+features_indices = [r_N_index,w_N_index,l_N_index]
+
+r_N_steps = steps_for_feature_discretization["Release Times"]
+w_N_steps = steps_for_feature_discretization["Weights"]
+l_N_steps = steps_for_feature_discretization["Lengths"]
+
+number_of_steps = [r_N_steps,w_N_steps,l_N_steps]
+
+
+#%% Task Generator with Earliest Start Time (EST) Algorithm:
+
+training_inputs = task_generator_with_EST_function(number_of_sets_training,number_of_tasks,number_of_features,maximum_weight_of_tasks,r_N_index)
+testing_inputs = task_generator_with_EST_function(number_of_sets_testing,number_of_tasks,number_of_features,maximum_weight_of_tasks,r_N_index)
+
+F_training = training_inputs[:,:number_of_tasks*number_of_features]
+F_testing = testing_inputs[:,:number_of_tasks*number_of_features]
 
 EST_training = training_inputs[:,number_of_tasks*number_of_features:]
 EST_testing = testing_inputs[:,number_of_tasks*number_of_features:]
 
-# print("\nF (Training) = \n\n{}".format(F_training))
-# print("\nF (Testing) = \n\n{}".format(F_testing))
 
-# print("\nEST (Training) = \n\n{}".format(EST_training))
-# print("\nEST (Testing) = \n\n{}".format(EST_testing))
-
-r_N_training = F_training[:,0:1*number_of_tasks]
-w_N_training = F_training[:,1*number_of_tasks:2*number_of_tasks]
-l_N_training = F_training[:,2*number_of_tasks:3*number_of_tasks]
-
-r_N_testing = F_testing[:,0:1*number_of_tasks]
-w_N_testing = F_testing[:,1*number_of_tasks:2*number_of_tasks]
-l_N_testing = F_testing[:,2*number_of_tasks:3*number_of_tasks]
-
-
-##### Cost / Reward #####
-
-print("\n\nExecuting 'cost.py' ...")
-
-cost_matrix = [numpy.zeros([number_of_sets_training,math.factorial(number_of_tasks)])][0]
+#%% Permutations:
 
 permutations = itertools.permutations(list(range(1,number_of_tasks+1)))
+
+sequences = numpy.zeros([math.factorial(number_of_tasks),number_of_tasks])
 
 count = 0
 
@@ -72,127 +87,122 @@ for i in list(permutations):
 
     sequence = numpy.asarray(i)
 
-    sequences = numpy.zeros([number_of_sets_training,number_of_tasks])
-
-    for j in range(number_of_sets_training):
-
-        sequences[j,:] = sequence
-
-    cost = cost_function(r_N_training,w_N_training,l_N_training,sequences)
-
-    cost_matrix[:,count] = cost[:,0]
+    sequences[count,:] = sequence
 
     count += 1
 
-# print("\nCost Matrix = \n\n{}".format(cost_matrix))
-print("\n\tCost Matrix = {}".format(numpy.shape(cost_matrix)))
 
-reward_matrix = numpy.zeros([numpy.shape(cost_matrix)[0],numpy.shape(cost_matrix)[1]])
+#%% Training (Q-Learning):
 
-for i in range(numpy.shape(cost_matrix)[0]):
+# Q, total_loss_training_over_training, total_reward_training_over_training, total_loss_testing_over_training, total_reward_testing_over_training = training_function(number_of_tasks,features_indices,number_of_steps,F_training,F_testing,sequences,zero_cost_reward,episodes,alpha,gamma,epsilon)
+# Q, total_loss_training_over_training, total_reward_training_over_training, total_loss_testing_over_training, total_reward_testing_over_training = training_with_n_dimensional_regression_function(number_of_tasks,features_indices,number_of_steps,F_training,F_testing,sequences,zero_cost_reward,episodes,alpha,gamma,epsilon)
+Q, total_loss_training_over_training, total_reward_training_over_training, total_loss_testing_over_training, total_reward_testing_over_training = training_with_equation_function(number_of_tasks,features_indices,number_of_steps,F_training,F_testing,sequences,zero_cost_reward,episodes,alpha,gamma,epsilon)
 
-    for j in range(numpy.shape(cost_matrix)[1]):
+#%% Testing:
 
-        cost_value = cost_matrix[i,j]
+print("\n\nExecuting 'testing.py' ...")
 
-        if cost_value == 0:
-            reward_value = 100 # !!!!! HERE !!!!!
-        else:
-            reward_value = 1/cost_value
-            
-        reward_matrix[i,j] = reward_value
+# results = testing_function(number_of_tasks,features_indices,number_of_steps,F_testing,Q)
+# results = testing_with_n_dimensional_regression_function(number_of_tasks,features_indices,number_of_steps,F_testing,Q)
+results = testing_with_equation_function(number_of_tasks,features_indices,number_of_steps,F_testing,Q)
 
-# print("\nReward Matrix = \n\n{}".format(reward_matrix))
-print("\n\tReward Matrix = {}".format(numpy.shape(reward_matrix)))
+print("\n\tTESTING FINISHED\n")
 
 
-##### Training (Q-Learning) #####
+#%% Analysis (Comparison to EST):
 
-number_of_states = [3,3,3] # !!!!! HERE !!!!!
-
-episodes = 10 # !!!!! HERE !!!!!
-
-alpha = 0.75 # !!!!! HERE !!!!!
-gamma = 0.00 # !!!!! HERE !!!!!
-epsilon = 0.75 # !!!!! HERE !!!!!
-
-Q = training_function(number_of_tasks,number_of_states,F_training,reward_matrix,episodes,alpha,gamma,epsilon)
-
-
-##### Testing #####
-
-results = testing_function(number_of_tasks,F_testing,Q,number_of_states)
-
-
-##### Analysis (EST and Total Loss => Cost) #####
-
-permutations_for_analysis = itertools.permutations(list(range(1,number_of_tasks+1)))
-
-permutations_for_analysis_as_arrays = numpy.zeros([math.factorial(number_of_tasks),number_of_tasks])
-
-count = 0
-
-for i in list(permutations_for_analysis):
-
-    sequence = numpy.asarray(i)
-
-    permutations_for_analysis_as_arrays[count,:] = sequence-1
-
-    count += 1
-
-actions_EST = numpy.zeros(number_of_sets_testing)
+results_EST = numpy.zeros(number_of_sets_testing)
 
 for i in range(len(EST_testing)):
-    
+
     an_array = EST_testing[i,:]
 
-    for j in range(len(permutations_for_analysis_as_arrays)):
-        
-        another_array = permutations_for_analysis_as_arrays[j,:]
-        
+    for j in range(len(sequences)):
+
+        another_array = sequences[j,:]-1
+
         comparison = an_array == another_array
-        
+
         equal_arrays = comparison.all()
 
         if equal_arrays == True:
 
-            actions_EST[i] = j
+            results_EST[i] = j
 
-accuracy_EST = analysis_EST_function(actions_EST,results)
+comparison_to_EST = analysis_EST_function(results_EST,results)
 
-loss_matrix = numpy.zeros([len(results)])
+
+#%% Analysis (Total Loss):
+
+loss_after_training = numpy.zeros([len(results)])
+loss_after_training_EST = numpy.zeros([len(results_EST)])
 
 for i in range(len(results)):
-    
-    action = results[i]
 
-    loss_value = cost_matrix[i,action.astype('int')]
+    r_continuous = F_testing[i,(r_N_index-1)*number_of_tasks:(r_N_index*number_of_tasks)]
+    w_continuous = F_testing[i,(w_N_index-1)*number_of_tasks:(w_N_index*number_of_tasks)]
+    l_continuous = F_testing[i,(l_N_index-1)*number_of_tasks:(l_N_index*number_of_tasks)]
 
-    loss_matrix[i] = loss_value
+    action = results[i].astype('int')
+    action_EST = results_EST[i].astype('int')
 
-total_loss = numpy.sum(loss_matrix)
+    sequence = sequences[action,:]
+    sequence_EST = sequences[action_EST,:]
 
-# print("\nLoss = \n\n{}".format(loss_matrix))
-print("\n\tTotal Loss = {:0.1f}".format(total_loss))
+    r_continuous_reshape = numpy.reshape(r_continuous,(1,number_of_tasks))
+    w_continuous_reshape = numpy.reshape(w_continuous,(1,number_of_tasks))
+    l_continuous_reshape = numpy.reshape(l_continuous,(1,number_of_tasks))
+
+    sequence_reshape = numpy.reshape(sequence,(1,number_of_tasks))
+    sequence_EST_reshape = numpy.reshape(sequence_EST,(1,number_of_tasks))
+
+    loss_value = cost_function(r_continuous_reshape,w_continuous_reshape,l_continuous_reshape,sequence_reshape)
+    loss_value_EST = cost_function(r_continuous_reshape,w_continuous_reshape,l_continuous_reshape,sequence_EST_reshape)
+
+    loss_after_training[i] = loss_value
+    loss_after_training_EST[i] = loss_value_EST
+
+total_loss_after_training = numpy.sum(loss_after_training)
+total_loss_after_training_EST = numpy.sum(loss_after_training_EST)
+
+print("\nTotal Loss After Training = {:0.1f}".format(total_loss_after_training))
+print("\nTotal Loss After Training (EST) = {:0.1f}".format(total_loss_after_training_EST))
 
 
-##### Formatting #####
+#%% Plots:
+
+figure, (plot_1,plot_2,plot_3,plot_4) = matplotlib.pyplot.subplots(1,4)
+figure.suptitle('Total Loss and Reward Over Training')
+plot_1.plot(total_loss_training_over_training,'k')
+plot_1.set_title('Total Loss (Training)')
+plot_2.plot(total_reward_training_over_training,'b')
+plot_2.set_title('Total Reward (Training)')
+plot_3.plot(total_loss_testing_over_training,'k')
+plot_3.set_title('Total Loss (Testing)')
+plot_4.plot(total_reward_testing_over_training,'b')
+plot_4.set_title('Total Reward (Testing)')
+
+
+#%% Terminal:
 
 print("\n")
 
+matplotlib.pyplot.show()
 
-##### Documentation #####
 
-# https://docs.python.org/2/library/itertools.html
+#%% Documentation:
+
+# https://docs.python.org/3/library/itertools.html
 
 # https://docs.python.org/3/library/math.html
 
+# https://matplotlib.org/api/pyplot_api.html
+
 # https://numpy.org/doc/stable/reference/generated/numpy.zeros.html
 # https://numpy.org/doc/stable/reference/generated/numpy.asarray.html
-# https://numpy.org/doc/1.18/reference/generated/numpy.shape.html
-# https://docs.scipy.org/doc/numpy-1.10.1/reference/generated/numpy.sum.html
+# https://numpy.org/doc/stable/reference/generated/numpy.reshape.html
+# https://numpy.org/doc/stable/reference/generated/numpy.sum.html
 
 # Examples => https://amunategui.github.io/reinforcement-learning/index.html
 #             https://www.learndatasci.com/tutorials/reinforcement-q-learning-scratch-python-openai-gym/
 #             https://medium.com/@m.alzantot/deep-reinforcement-learning-demysitifed-episode-2-policy-iteration-value-iteration-and-q-978f9e89ddaa#:~:text=Many%20reinforcement%20learning%20introduce%20the,agent%20starting%20from%20state%20s%20.&text=Q%20is%20a%20function%20of,and%20returns%20a%20real%20value
-

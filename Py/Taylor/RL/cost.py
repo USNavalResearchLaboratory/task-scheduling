@@ -1,14 +1,14 @@
-def cost_function(r_N,w_N,l_N,sequences):
+def cost_function(r_N,w_N,l_N,sequence):
 
     # print("\n\nExecuting 'cost.py' ...")
 
 
-    ##### Import Statements #####
+    #%% Import Statements:
 
     import numpy
 
 
-    ##### Execution Time #####
+    #%% Execution Time:
 
     rows = numpy.shape(r_N)[0]
     columns = numpy.shape(r_N)[1]
@@ -21,7 +21,7 @@ def cost_function(r_N,w_N,l_N,sequences):
 
         for j in range(columns):
 
-            task = sequences[i,j].astype('int')
+            task = sequence[i,j].astype('int')
 
             r_N_sorted[i,j] = r_N[i,task-1]
             w_N_sorted[i,j] = w_N[i,task-1]
@@ -50,9 +50,9 @@ def cost_function(r_N,w_N,l_N,sequences):
     # print("\n\tShape of Execution Times = {}".format(numpy.shape(e_N)))
 
 
-    ##### Cost \ Reward #####
+    #%% Cost:
 
-    cost = numpy.zeros([rows,1])
+    cost = numpy.zeros(rows)
 
     for i in range(rows):
 
@@ -68,18 +68,18 @@ def cost_function(r_N,w_N,l_N,sequences):
 
             cost_cumulative += cost_individual
 
-        cost[i,0] = cost_cumulative
+        cost[i] = cost_cumulative
 
     # print("\nCost = \n\n{}".format(cost))
     # print("\n\tShape of Costs = {}".format(numpy.shape(cost)))
 
 
-    ##### Export and Return Statements #####
+    #%% Export and Return Statements:
 
     return cost
 
 
-    ##### Documentation #####
+    #%% Documentation:
 
-    # https://numpy.org/doc/1.18/reference/generated/numpy.shape.html
+    # https://numpy.org/doc/stable/reference/generated/numpy.shape.html
     # https://numpy.org/doc/stable/reference/generated/numpy.zeros.html

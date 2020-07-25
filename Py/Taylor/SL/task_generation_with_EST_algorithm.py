@@ -8,7 +8,7 @@ def task_generation_with_EST_algorithm_function(number_of_sets,number_of_tasks,n
     import numpy
 
 
-    ##### Task Generator #####
+    ##### Task Generator ##### !!!!! UPDATE AS FEATURES UPDATE !!!!!
 
     def task_generator(number_of_tasks,maximum_weight_of_tasks):
 
@@ -22,7 +22,7 @@ def task_generation_with_EST_algorithm_function(number_of_sets,number_of_tasks,n
         return r_N, w_N, l_N
 
 
-    ##### Data (Fix "N" and Generate "MC" Sets of Tasks) #####
+    ##### Data (Fix "N" and Generate "MC" Sets of Tasks) ##### !!!!! UPDATE AS FEATURES UPDATE !!!!!
 
     MC = numpy.zeros([number_of_sets,number_of_tasks*number_of_features])
 
@@ -45,7 +45,7 @@ def task_generation_with_EST_algorithm_function(number_of_sets,number_of_tasks,n
     print("\n\tShape of Sets = {}".format(numpy.shape(MC)))
 
 
-    ##### Earliest Start Time Algorithm #####
+    ##### Earliest Start Time Algorithm ##### !!!!! UPDATE AS FEATURES UPDATE !!!!!
 
     EST = numpy.zeros([number_of_sets,number_of_tasks])
 
@@ -89,7 +89,7 @@ def task_generation_with_EST_algorithm_function(number_of_sets,number_of_tasks,n
 
     inputs_before = MC_with_EST
 
-    numpy.savetxt('Inputs_Before.txt',inputs_before,fmt='%.3e')
+    # numpy.savetxt('Inputs_Before.txt',inputs_before,fmt='%.3e')
 
     return inputs_before
 
@@ -98,10 +98,10 @@ def task_generation_with_EST_algorithm_function(number_of_sets,number_of_tasks,n
 
     # https://numpy.org/doc/stable/reference/random/generated/numpy.random.uniform.html
     # https://numpy.org/doc/stable/reference/generated/numpy.zeros.html
-    # https://numpy.org/doc/1.18/reference/generated/numpy.concatenate.html
-    # https://numpy.org/doc/1.18/reference/generated/numpy.shape.html
-    # https://numpy.org/doc/1.18/reference/generated/numpy.argmin.html
+    # https://numpy.org/doc/stable/reference/generated/numpy.concatenate.html
+    # https://numpy.org/doc/stable/reference/generated/numpy.shape.html
+    # https://numpy.org/doc/stable/reference/generated/numpy.argmin.html
     # https://numpy.org/doc/stable/reference/generated/numpy.where.html
-    # https://numpy.org/doc/1.18/reference/generated/numpy.delete.html
+    # https://numpy.org/doc/stable/reference/generated/numpy.delete.html
     # https://numpy.org/doc/stable/reference/generated/numpy.asarray.html
-    # https://numpy.org/devdocs/reference/generated/numpy.savetxt.html
+    # https://numpy.org/doc/stable/reference/generated/numpy.savetxt.html

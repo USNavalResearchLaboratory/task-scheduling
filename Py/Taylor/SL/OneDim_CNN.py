@@ -100,7 +100,7 @@ def OneDim_CNN_function(number_of_sets,number_of_tasks,number_of_features,maximu
 
 	CNN_results = numpy.transpose([CNN_ideal,CNN_prediction])
 
-	numpy.savetxt('CNN_Results.txt',CNN_results,fmt='%i')
+	# numpy.savetxt('CNN_Results.txt',CNN_results,fmt='%i')
 
 
 	##### Analysis of Results of Convolutional Neural Network #####
@@ -135,13 +135,13 @@ def OneDim_CNN_function(number_of_sets,number_of_tasks,number_of_features,maximu
 	# https://keras.io/api/models/sequential/
 	# https://keras.io/api/layers/convolution_layers/convolution1d/
 
-	# https://numpy.org/doc/stable/reference/generated/numpy.ndarray.shape.html
-	# https://numpy.org/doc/stable/reference/generated/numpy.zeros.html
+	# https://numpy.org/doc/stable/reference/generated/numpy.shape.html
+    # https://numpy.org/doc/stable/reference/generated/numpy.zeros.html
 	# https://numpy.org/doc/stable/reference/generated/numpy.ndarray.flatten.html
 	# https://numpy.org/doc/stable/reference/generated/numpy.reshape.html
 	# https://numpy.org/doc/stable/reference/generated/numpy.transpose.html
-	# https://numpy.org/doc/1.18/reference/generated/numpy.concatenate.html
-	# https://numpy.org/devdocs/reference/generated/numpy.savetxt.html
+    # https://numpy.org/doc/stable/reference/generated/numpy.concatenate.html
+    # https://numpy.org/doc/stable/reference/generated/numpy.savetxt.html
 
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html
 
