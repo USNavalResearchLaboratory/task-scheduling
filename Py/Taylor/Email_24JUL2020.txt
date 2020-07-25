@@ -1,0 +1,19 @@
+Kevin,
+
+I’ve attached my code as of now.
+
+I’ve attached Chapter 3 from “Reinforcement Learning and Dynamic Programming using Function Approximators”, to which I’ve been referring for most of the week. If you’d like, I can send the entire book. For DQNs, I’ve been mainly referring to the following tutorials.
+
+1.	Deep Reinforcement Learning: Build a Deep Q-Network (DQN) with TensorFlow 2 and Gym to Play CartPole
+(https://towardsdatascience.com/deep-reinforcement-learning-build-a-deep-q-network-dqn-to-play-cartpole-with-tensorflow-2-and-gym-8e105744b998)
+
+2.	Training Deep Q Learning and Deep Q Networks (DQN) Intro and Agent - Reinforcement Learning w/ Python Tutorial
+(https://pythonprogramming.net/training-deep-q-learning-dqn-reinforcement-learning-python-tutorial/)
+
+Hours: 7/20 – 7/24 => 20 Hours (Kevin), 20 Hours (Jesse)
+
+I haven’t received a reply from Vicki, so I haven’t complete the SAAR-N.
+
+Bests,
+
+Taylor
