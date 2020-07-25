@@ -79,11 +79,15 @@ def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=Fals
 
     # current_shape = np.append(x_train[0].shape, 1)
     input_shape = x_train[0].shape
-    model = keras.Sequential([keras.layers.Conv2D(32, kernel_size=(2, 2), strides=(1, 1), activation='relu', input_shape=input_shape),
+    model = keras.Sequential([keras.layers.BatchNormalization(input_shape=input_shape),
+                              keras.layers.Conv2D(32, kernel_size=(2, 2), strides=(1, 1), activation='relu'),
+                              keras.layers.BatchNormalization(),
                               # keras.layers.MaxPool2D(pool_size=(2, 2), strides=(2, 2)),
                               keras.layers.Dropout(0.2),
                               keras.layers.Conv2D(64, (2, 2), activation='relu'),
+                              keras.layers.BatchNormalization(),
                               keras.layers.Conv2D(128, (2, 2), activation='relu'),
+                              keras.layers.BatchNormalization(),
                               # keras.layers.MaxPooling2D(pool_size=(2, 2)),
                               keras.layers.Flatten(),
                               keras.layers.Dense(128, activation='relu'),
@@ -103,7 +107,8 @@ def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=Fals
     #                           # keras.layers.Dense(100, activation='relu'),
     #                           keras.layers.Dense(env.n_tasks, activation='softmax')])
 
-    model.compile(optimizer='rmsprop',
+    opt = keras.optimizers.Adam(learning_rate=0.001)
+    model.compile(optimizer=opt,
                   loss='sparse_categorical_crossentropy',
                   metrics=['accuracy'])
 
@@ -199,13 +204,13 @@ def main():
     # env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen, cls_node=TreeNode, seq_encoding='one-hot')
 
 
-    n_total = 10000
+    n_total = 1000
     n_gen_train = np.int(np.round(n_total*.8))
     n_gen_val = np.int(n_total - n_gen_train)
 
 
     model = train_sl(env, n_gen_train=n_gen_train, n_gen_val=n_gen_val, plot_history=True, do_tensorboard=False, save_model=True, gen_method=False)
-    model = train_sl(env, n_gen_train=n_gen_train, n_gen_val=n_gen_val, plot_history=True, do_tensorboard=False, save_model=True, gen_method=True)
+    # model = train_sl(env, n_gen_train=n_gen_train, n_gen_val=n_gen_val, plot_history=True, do_tensorboard=False, save_model=True, gen_method=True)
 
     # model = './models/2020-07-09_08-39-48'
 
