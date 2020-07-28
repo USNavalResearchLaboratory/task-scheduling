@@ -17,7 +17,7 @@ from util.generic import algorithm_repr, check_rng
 from util.results import check_valid, eval_loss
 from util.plot import plot_task_losses, plot_schedule, scatter_loss_runtime
 
-from tasks import ReluDropGenerator
+from generators import ReluDropGenerator
 from tree_search import TreeNode, TreeNodeShift, branch_bound, mcts_orig, mcts, random_sequencer, earliest_release
 from env_tasking import SeqTaskingEnv, StepTaskingEnv, train_agent, load_agent
 from SL_policy import wrap_policy, train_policy, load_policy
@@ -33,8 +33,8 @@ plt.style.use('seaborn')
 # %% Inputs
 n_gen = 10      # number of task scheduling problems
 
-n_tasks = 8
-n_channels = 2
+n_tasks = 12
+n_channels = 1
 
 task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
                              t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)       # task set generator
@@ -43,16 +43,18 @@ task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_li
 def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time generator
     return rng.uniform(0, 0, n_ch)
 
+# TODO: add functionality for loading problems and B&B solutions
+
 
 # Algorithms
 
-features = np.array([('duration', lambda self: self.duration, task_gen.duration_lim),
-                     ('release time', lambda self: self.t_release, (0., task_gen.t_release_lim[1])),
-                     ('slope', lambda self: self.slope, task_gen.slope_lim),
-                     ('drop time', lambda self: self.t_drop, (0., task_gen.t_drop_lim[1])),
-                     ('drop loss', lambda self: self.l_drop, (0., task_gen.l_drop_lim[1])),
-                     ('is available', lambda self: 1 if self.t_release == 0. else 0, (0, 1)),
-                     ('is dropped', lambda self: 1 if self.l_drop == 0. else 0, (0, 1)),
+features = np.array([('duration', lambda task: task.duration, task_gen.duration_lim),
+                     ('release time', lambda task: task.t_release, (0., task_gen.t_release_lim[1])),
+                     ('slope', lambda task: task.slope, task_gen.slope_lim),
+                     ('drop time', lambda task: task.t_drop, (0., task_gen.t_drop_lim[1])),
+                     ('drop loss', lambda task: task.l_drop, (0., task_gen.l_drop_lim[1])),
+                     ('is available', lambda task: 1 if task.t_release == 0. else 0, (0, 1)),
+                     ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
                      ],
                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
@@ -72,31 +74,41 @@ env_params = {'node_cls': TreeNodeShift,
               }
 
 
-random_agent = train_agent(n_tasks, task_gen, n_channels, ch_avail_gen,
-                           n_gen_train=0, n_gen_val=0, env_cls=env_cls, env_params=env_params,
-                           save=True, save_dir=None)
+# agent_file = None
+agent_file = 'temp/2020-07-24_14-31-45'
 
-# agent_file = 'temp/2020-07-23_15-35-02'
-# random_agent = load_agent(agent_file)
+if agent_file is None:
+    random_agent = train_agent(n_tasks, task_gen, n_channels, ch_avail_gen,
+                               n_gen_train=0, n_gen_val=0, env_cls=env_cls, env_params=env_params,
+                               save=True, save_dir=None)
+elif type(agent_file) == str:
+    random_agent = load_agent(agent_file)
+else:
+    raise ValueError("Parameter 'agent_file' must be string or None.")
 
 
-network_policy = train_policy(n_tasks, task_gen, n_channels, ch_avail_gen,
-                              n_gen_train=100, n_gen_val=10, env_cls=env_cls, env_params=env_params,
-                              model=None, compile_params=None, fit_params=None,
-                              do_tensorboard=False, plot_history=True, save=True, save_dir=None)
-
+policy_file = None
 # policy_file = 'temp/2020-07-23_13-09-17'
-# network_policy = load_policy(policy_file)
+
+if agent_file is None:
+    network_policy = train_policy(n_tasks, task_gen, n_channels, ch_avail_gen,
+                                  n_gen_train=10, n_gen_val=10, env_cls=env_cls, env_params=env_params,
+                                  model=None, compile_params=None, fit_params=None,
+                                  do_tensorboard=False, plot_history=True, save=True, save_dir=None)
+elif type(agent_file) == str:
+    network_policy = load_policy(policy_file)
+else:
+    raise ValueError("Parameter 'agent_file' must be string or None.")
 
 
 alg_funcs = [partial(branch_bound, verbose=False),
-             partial(mcts, n_mc=.1*factorial(n_tasks), verbose=False),
+             partial(mcts, n_mc=2000, verbose=False),
              partial(earliest_release, do_swap=True),
              partial(random_agent),
              partial(network_policy)
              ]
 
-alg_n_iter = [1, 5, 1, 10, 1]       # number of runs per problem
+alg_n_iter = [1, 5, 1, 50, 1]       # number of runs per problem
 alg_reprs = list(map(algorithm_repr, alg_funcs))    # string representations
 
 
@@ -152,7 +164,7 @@ for i_gen in range(n_gen):      # Generate new scheduling problem
 
 _, ax_results = plt.subplots(num='Results', clear=True)
 scatter_loss_runtime(t_run_mean, l_ex_mean,
-                     ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
+                     ax=ax_results, ax_kwargs={'title': f'Performance on random sets of {n_tasks} tasks'})
 
 print('\nAvg. Performance\n' + 16*'-')
 print(f"{'Algorithm:':<35}{'Loss:':<8}{'Runtime (s):':<10}")
@@ -175,8 +187,9 @@ if 'branch_bound' in alg_reprs:
 
     _, ax_results_norm = plt.subplots(num='Results (Normalized)', clear=True)
     scatter_loss_runtime(t_run_mean_norm, l_ex_mean_norm,
-                         ax=ax_results_norm, ax_kwargs={'title': 'Performance relative to B&B optimal',
-                                                        'ylabel': 'Excess Loss (Normalized)',
-                                                        # 'xlabel': 'Runtime Difference (Normalized)'
-                                                        }
+                         ax=ax_results_norm,
+                         ax_kwargs={'title': f'Relative Performance on random sets of {n_tasks} tasks',
+                                    'ylabel': 'Excess Loss (Normalized)',
+                                    # 'xlabel': 'Runtime Difference (Normalized)'
+                                    }
                          )

@@ -4,6 +4,7 @@ Py/logs/
 # Temporary agents and models
 Py/agents/temp/
 Py/models/temp/
+Py/data/schedules/temp/
 
 # test
 *.m~

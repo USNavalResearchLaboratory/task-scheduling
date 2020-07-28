@@ -6,7 +6,7 @@ import numpy as np
 from util.generic import check_rng
 from util.results import eval_loss
 
-from tasks import ReluDropGenerator
+from generators import ReluDropGenerator
 from tree_search import TreeNode, TreeNodeBound, SearchNode
 
 

@@ -6,7 +6,7 @@ import math
 import numpy as np
 from util.generic import check_rng
 
-from tasks import ReluDropGenerator
+from generators import ReluDropGenerator
 
 from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
@@ -140,9 +140,9 @@ class TreeNode:
         self._ch_ex[n] = ch
 
         self._t_ex[n] = max(self._tasks[n].t_release, self._ch_avail[ch])
-        self._l_ex += self._tasks[n](self._t_ex[n])
+        self._l_ex += self._tasks[n](self._t_ex[n])     # add task execution loss
 
-        self._ch_avail[ch] = self._t_ex[n] + self._tasks[n].duration
+        self._ch_avail[ch] = self._t_ex[n] + self._tasks[n].duration    # new channel availability
 
     def branch(self, do_permute=True):
         """
@@ -303,14 +303,14 @@ class TreeNodeShift(TreeNode):
         for n, task in enumerate(self._tasks):
             loss_inc = task.shift_origin(ch_avail_min)
             if n in self._seq_rem:
-                self._l_ex += loss_inc      # TODO
+                self._l_ex += loss_inc      # add loss incurred due to origin shift for any unscheduled tasks
 
     def _update_ex(self, n, ch):
         self._ch_ex[n] = ch
 
         t_ex_rel = max(self._tasks[n].t_release, self._ch_avail[ch])  # relative to time origin
-        self._t_ex[n] = self.t_origin + t_ex_rel  # absolute time
-        self._l_ex += self._tasks[n](t_ex_rel)
+        self._t_ex[n] = self.t_origin + t_ex_rel    # absolute time
+        self._l_ex += self._tasks[n](t_ex_rel)      # add task execution loss
 
         self._ch_avail[ch] = t_ex_rel + self._tasks[n].duration  # relative to time origin
         self.shift_origin()

@@ -15,7 +15,7 @@ from util.generic import algorithm_repr, check_rng
 from util.results import check_valid, eval_loss
 from util.plot import plot_task_losses, plot_schedule, plot_loss_runtime, plot_loss_runtime_std
 
-from tasks import ReluDropGenerator
+from generators import ReluDropGenerator
 from tree_search_run_lim import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release
 from env_tasking import SeqTaskingEnv, StepTaskingEnv, wrap_agent_run_lim, RandomAgent
 
@@ -44,6 +44,7 @@ env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen)
 random_agent = wrap_agent_run_lim(env, RandomAgent(env.action_space))
 
 # TODO: import learner changes from main.py
+# TODO: return NaN for algorithm timeout?
 
 alg_funcs = [partial(branch_bound, verbose=False),
              partial(mcts_orig, n_mc=None, verbose=False),

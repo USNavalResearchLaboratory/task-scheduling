@@ -18,7 +18,7 @@ from util.generic import check_rng
 from util.results import check_valid, eval_loss
 
 from scheduling_algorithms import stats2nnXY, stats2nnXYgen
-from tasks import ReluDropGenerator, PermuteTaskGenerator, DeterministicTaskGenerator
+from generators import ReluDropGenerator, PermuteTaskGenerator, DeterministicTaskGenerator
 from tree_search import branch_bound, branch_bound_with_stats,mcts_orig, mcts, random_sequencer, earliest_release, TreeNode, TreeNodeShift, TreeNodeBound
 from env_tasking import StepTaskingEnv
 

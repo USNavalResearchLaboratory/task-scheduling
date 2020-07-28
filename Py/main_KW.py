@@ -25,7 +25,7 @@ from util.generic import algorithm_repr, check_rng
 from util.results import check_valid, eval_loss
 from util.plot import plot_task_losses, plot_schedule, scatter_loss_runtime
 
-from tasks import ReluDropGenerator
+from generators import ReluDropGenerator
 from tree_search import mcts_orig, random_sequencer, earliest_release, est_alg_kw, branch_bound_with_stats, branch_bound
 from env_tasking import SeqTaskingEnv, StepTaskingEnv, wrap_agent, RandomAgent
 

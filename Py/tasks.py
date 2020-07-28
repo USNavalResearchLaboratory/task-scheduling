@@ -4,7 +4,6 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from util.generic import check_rng
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
@@ -54,6 +53,12 @@ class GenericTask:
             Series of times for loss evaluation.
         ax : matplotlib.axes.Axes, optional
             Plotting axes object.
+
+        Returns
+        -------
+        matplotlib.lines.Line2D
+            Loss function line
+
         """
 
         if t_plot is None:
@@ -156,7 +161,20 @@ class ReluDropTask(GenericTask):
             raise ValueError("Loss function must be monotonically non-decreasing.")
 
     def shift_origin(self, t):
-        """Shift the time origin, return any incurred loss, and re-parameterize the task."""
+        """
+        Shift the time origin, return any incurred loss, and re-parameterize the task.
+
+        Parameters
+        ----------
+        t : float
+            Positive value to shift the time origin by.
+
+        Returns
+        -------
+        float
+            Loss value of the task at the new time origin, before it is re-parameterized.
+
+        """
 
         if t <= 0:
             raise ValueError("Shift time must be positive.")
@@ -227,87 +245,3 @@ class ReluDropTask(GenericTask):
 #         return loss.squeeze(axis=0)
 #
 #     return loss_func
-
-
-# %% Task generation objects        # TODO: generalize, add docstrings
-class GenericTaskGenerator:
-    def __init__(self, rng=None):
-        self.rng = check_rng(rng)
-
-    def __call__(self, n_tasks):
-        raise NotImplementedError
-
-
-class ReluDropGenerator(GenericTaskGenerator):
-    """
-    Generator of random ReluDropTask objects.
-
-    Parameters
-    ----------
-    duration_lim : iterable of float
-    t_release_lim : iterable of float
-    slope_lim : iterable of float
-    t_drop_lim : iterable of float
-    l_drop_lim : iterable of float
-
-    """
-
-    def __init__(self, duration_lim, t_release_lim, slope_lim, t_drop_lim, l_drop_lim, rng=None):
-        super().__init__(rng)
-        self.duration_lim = duration_lim
-        self.t_release_lim = t_release_lim
-        self.slope_lim = slope_lim
-        self.t_drop_lim = t_drop_lim
-        self.l_drop_lim = l_drop_lim
-
-    def __call__(self, n_tasks):
-        """Randomly generate a list of tasks."""
-
-        duration = self.rng.uniform(*self.duration_lim, n_tasks)
-        t_release = self.rng.uniform(*self.t_release_lim, n_tasks)
-        slope = self.rng.uniform(*self.slope_lim, n_tasks)
-        t_drop = self.rng.uniform(*self.t_drop_lim, n_tasks)
-        l_drop = self.rng.uniform(*self.l_drop_lim, n_tasks)
-
-        return [ReluDropTask(*args) for args in zip(duration, t_release, slope, t_drop, l_drop)]
-
-        # for _ in range(n_tasks):      # FIXME: use yield?
-        #     yield ReluDropTask(self.rng.uniform(*self.duration_lim),
-        #                        self.rng.uniform(*self.t_release_lim),
-        #                        self.rng.uniform(*self.slope_lim),
-        #                        self.rng.uniform(*self.t_drop_lim),
-        #                        self.rng.uniform(*self.l_drop_lim),
-        #                        )
-
-    @property
-    def param_rep_lim(self):
-        """Low and high tuples bounding parametric task representations."""
-        return zip(self.duration_lim, self.t_release_lim, self.slope_lim, self.t_drop_lim, self.l_drop_lim)
-
-
-# TODO: update/formalize generators below
-class PermuteTaskGenerator(GenericTaskGenerator):
-    def __init__(self, tasks, rng=None):
-        super().__init__(rng)
-        self.tasks = tasks      # list of tasks
-
-    def __call__(self, n_tasks):
-        return self.rng.permutation(self.tasks)
-
-
-class DeterministicTaskGenerator(GenericTaskGenerator):
-    def __init__(self, tasks, rng=None):
-        super().__init__(rng)
-        self.tasks = tasks      # list of tasks
-
-    def __call__(self, n_tasks):
-        return self.tasks
-
-
-def main():
-    task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-                                 t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=None)  # task set generator
-
-
-if __name__ == '__main__':
-    main()
