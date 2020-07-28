@@ -25,7 +25,7 @@ from env_tasking import StepTaskingEnv
 plt.style.use('seaborn')
 
 
-def data_gen(env, n_gen=1, gen_method=False):
+def data_gen(env, n_gen=1, gen_method=True):
 
     if not isinstance(env, StepTaskingEnv):
         raise NotImplementedError("Tasking environment must be step Env.")
