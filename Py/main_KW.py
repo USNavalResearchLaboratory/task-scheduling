@@ -17,17 +17,17 @@ from functools import partial
 
 import numpy as np
 import matplotlib.pyplot as plt
-from scheduling_algorithms import branch_bound_rules, branch_bound2, stats2nnXY
+from scheduling_algorithms import stats2nnXY
 
 np.set_printoptions(linewidth=300) # Set printing to avoid line wrapping when displaying 2D array
 
 from util.generic import algorithm_repr, check_rng
 from util.results import check_valid, eval_loss
-from util.plot import plot_task_losses, plot_schedule, scatter_loss_runtime
+from util.plot import plot_task_losses, scatter_loss_runtime
 
-from generators import ReluDropGenerator
-from tree_search import mcts_orig, random_sequencer, earliest_release, est_alg_kw, branch_bound_with_stats, branch_bound
-from env_tasking import SeqTaskingEnv, StepTaskingEnv, wrap_agent, RandomAgent
+from generators.scheduling_problems import ReluDrop
+from tree_search import mcts_orig, earliest_release, branch_bound_with_stats
+from env_tasking import StepTaskingEnv, wrap_agent, RandomAgent
 
 plt.style.use('seaborn')
 rng = np.random.default_rng(100)
@@ -39,8 +39,8 @@ n_gen = 10      # number of task scheduling problems
 n_tasks = 8
 n_channels = 1
 
-task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-                             t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=rng)       # task set generator
+task_gen = ReluDrop(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+                    t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=rng)       # task set generator
 
 def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time generator
     # TODO: rng is a mutable default argument!
@@ -177,7 +177,7 @@ Ytest = Y[test_samples]
 # Train a Neural Network
 import tensorflow as tf
 
-from tensorflow.keras import datasets, layers, models
+from tensorflow.keras import layers, models
 import matplotlib.pyplot as plt
 
 # (train_images, train_labels), (test_images, test_labels) = datasets.cifar10.load_data() # Very slow on a laptop --> lots of data downloaded

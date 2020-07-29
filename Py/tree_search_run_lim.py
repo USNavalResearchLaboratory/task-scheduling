@@ -6,7 +6,7 @@ import numpy as np
 from util.generic import check_rng
 from util.results import eval_loss
 
-from generators import ReluDropGenerator
+from generators.tasks import ReluDrop as ReluDropGenerator
 from tree_search import TreeNode, TreeNodeBound, SearchNode
 
 
@@ -16,7 +16,7 @@ def branch_bound(tasks: list, ch_avail: list, max_runtime=float('inf'), verbose=
 
     Parameters
     ----------
-    tasks : list of GenericTask
+    tasks : list of tasks.Generic
     ch_avail : list of float
         Channel availability times.
     max_runtime : float
@@ -79,7 +79,7 @@ def mcts_orig(tasks: list, ch_avail: list, max_runtime=float('inf'), n_mc=None, 
 
     Parameters
     ----------
-    tasks : list of GenericTask
+    tasks : list of tasks.Generic
     ch_avail : list of float
         Channel availability times.
     n_mc : int or list of int
@@ -151,7 +151,7 @@ def mcts(tasks: list, ch_avail: list, max_runtime, verbose=False):
 
     Parameters
     ----------
-    tasks : list of GenericTask
+    tasks : list of tasks.Generic
     ch_avail : list of float
         Channel availability times.
     max_runtime : float
@@ -205,7 +205,7 @@ def random_sequencer(tasks: list, ch_avail: list, max_runtime=float('inf'), rng=
 
     Parameters
     ----------
-    tasks : list of GenericTask
+    tasks : list of tasks.Generic
     ch_avail : list of float
         Channel availability times.
     max_runtime : float
@@ -243,7 +243,7 @@ def earliest_release(tasks: list, ch_avail: list, max_runtime=float('inf'), do_s
 
     Parameters
     ----------
-    tasks : list of GenericTask
+    tasks : list of tasks.Generic
     ch_avail : list of float
         Channel availability times.
     max_runtime : float
@@ -284,7 +284,7 @@ def earliest_drop(tasks: list, ch_avail: list, max_runtime=float('inf'), do_swap
 
     Parameters
     ----------
-    tasks : list of ReluDropTask
+    tasks : list of tasks.Generic
     ch_avail : list of float
         Channel availability times.
     max_runtime : float

@@ -9,7 +9,7 @@ np.set_printoptions(precision=2)
 plt.style.use('seaborn')
 
 
-class GenericTask:
+class Generic:
     """
     Generic task objects.
 
@@ -32,7 +32,7 @@ class GenericTask:
             self._loss_func = loss_func
 
     def __repr__(self):
-        return f"GenericTask(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
+        return f"Generic(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
 
     def __call__(self, t):
         """Loss function versus time."""
@@ -88,7 +88,7 @@ class GenericTask:
         return plot_data
 
 
-class ReluDropTask(GenericTask):
+class ReluDrop(Generic):
     """
     Tasks with a rectified linear loss function task and a constant drop penalty.
 
@@ -114,7 +114,7 @@ class ReluDropTask(GenericTask):
         self._l_drop = l_drop
 
     def __repr__(self):
-        return f"ReluDropTask(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
+        return f"ReluDrop(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
 
     def __call__(self, t):
         """Loss function versus time."""
@@ -205,7 +205,7 @@ class ReluDropTask(GenericTask):
 
     def summary(self):
         """Print a string listing task parameters."""
-        print(f'ReluDropTask\n------------\nduration: {self.duration:.2f}'
+        print(f'ReluDrop\n------------\nduration: {self.duration:.2f}'
               f'\nrelease time: {self.t_release:.2f}\nslope: {self.slope:.2f}'
               f'\ndrop time: {self.t_drop:.2f}\ndrop loss: {self.l_drop:.2f}')
 

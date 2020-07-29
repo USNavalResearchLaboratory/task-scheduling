@@ -13,11 +13,11 @@ import matplotlib.pyplot as plt
 
 from util.generic import algorithm_repr, check_rng
 from util.results import check_valid, eval_loss
-from util.plot import plot_task_losses, plot_schedule, plot_loss_runtime, plot_loss_runtime_std
+from util.plot import plot_task_losses, plot_loss_runtime_std
 
-from generators import ReluDropGenerator
+from generators.tasks import ReluDrop as ReluDropGenerator
 from tree_search_run_lim import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release
-from env_tasking import SeqTaskingEnv, StepTaskingEnv, wrap_agent_run_lim, RandomAgent
+from env_tasking import StepTaskingEnv, wrap_agent_run_lim, RandomAgent
 
 plt.style.use('seaborn')
 

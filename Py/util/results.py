@@ -7,7 +7,7 @@ def check_valid(tasks, t_ex, ch_ex):
 
     Parameters
     ----------
-    tasks : list of GenericTask
+    tasks : list of Generic
     t_ex : ndarray
         Task execution times.
     ch_ex : ndarray
@@ -42,7 +42,7 @@ def eval_loss(tasks, t_ex):
 
     Parameters
     ----------
-    tasks : list of GenericTask
+    tasks : list of Generic
     t_ex : ndarray
         Task execution times.
 

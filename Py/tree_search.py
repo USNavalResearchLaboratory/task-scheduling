@@ -6,7 +6,7 @@ import math
 import numpy as np
 from util.generic import check_rng
 
-from generators import ReluDropGenerator
+from generators.tasks import ReluDrop as ReluDropGenerator
 
 from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
@@ -21,12 +21,12 @@ class TreeNode:
 
     Parameters
     ----------
-    seq : list of int
+    seq : Sequence of int
         Partial task index sequence.
 
     Attributes
     ----------
-    seq : list of int
+    seq : Sequence of int
         Partial task index sequence.
     t_ex : ndarray
         Task execution times. NaN for unscheduled.
@@ -41,8 +41,8 @@ class TreeNode:
 
     """
 
-    _tasks_init = []    # TODO: needs to be overwritten by invoking scripts... OK?
-    _ch_avail_init = np.array([], dtype=np.float)
+    _tasks_init = ()    # TODO: needs to be overwritten by invoking scripts... OK?
+    _ch_avail_init = ()
     _rng = None
 
     def __init__(self, seq=None):
@@ -112,7 +112,7 @@ class TreeNode:
 
         Parameters
         ----------
-        seq_ext : int or list of int
+        seq_ext : int or Sequence of int
             Sequence of indices referencing cls._tasks.
         check_valid : bool
             Perform check of index sequence validity.
@@ -476,8 +476,8 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : list of GenericTask
-    ch_avail : list of float
+    tasks : Sequence of tasks.Generic
+    ch_avail : Sequence of float
         Channel availability times.
     verbose : bool
         Enables printing of algorithm state information.
@@ -529,8 +529,8 @@ def branch_bound_with_stats(tasks: list, ch_avail: list, verbose=False, rng=None
 
     Parameters
     ----------
-    tasks : list of GenericTask
-    ch_avail : list of float
+    tasks : Sequence of tasks.Generic
+    ch_avail : Sequence of float
         Channel availability times.
     verbose : bool
         Enables printing of algorithm state information.
@@ -592,10 +592,10 @@ def mcts_orig(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : list of GenericTask
-    ch_avail : list of float
+    tasks : Sequence of tasks.Generic
+    ch_avail : Sequence of float
         Channel availability times.
-    n_mc : int or list of int
+    n_mc : int or Sequence of int
         Number of Monte Carlo roll-outs per task.
     verbose : bool
         Enables printing of algorithm state information.
@@ -645,8 +645,8 @@ def mcts(tasks: list, ch_avail: list, n_mc: int, verbose=False):
 
     Parameters
     ----------
-    tasks : list of GenericTask
-    ch_avail : list of float
+    tasks : Sequence of tasks.Generic
+    ch_avail : Sequence of float
         Channel availability times.
     n_mc : int
         Number of roll-outs performed.
@@ -700,8 +700,8 @@ def random_sequencer(tasks: list, ch_avail: list, rng=None):
 
     Parameters
     ----------
-    tasks : list of GenericTask
-    ch_avail : list of float
+    tasks : Sequence of tasks.Generic
+    ch_avail : Sequence of float
         Channel availability times.
     rng
         NumPy random number generator or seed. Default Generator if None.
@@ -730,8 +730,8 @@ def earliest_release(tasks: list, ch_avail: list, do_swap=False):
 
     Parameters
     ----------
-    tasks : list of GenericTask
-    ch_avail : list of float
+    tasks : Sequence of tasks.Generic
+    ch_avail : Sequence of float
         Channel availability times.
     do_swap : bool
         Enables task swapping
@@ -763,8 +763,8 @@ def earliest_drop(tasks: list, ch_avail: list, do_swap=False):
 
     Parameters
     ----------
-    tasks : list of ReluDropTask
-    ch_avail : list of float
+    tasks : Sequence of tasks.Generic
+    ch_avail : Sequence of float
         Channel availability times.
     do_swap : bool
         Enables task swapping.
@@ -796,8 +796,8 @@ def est_alg_kw(tasks: list, ch_avail: list):
 
     Parameters
     ----------
-    tasks : list of GenericTask
-    ch_avail : list of float
+    tasks : Sequence of tasks.Generic
+    ch_avail : Sequence of float
         Channel availability times.
 
     Returns

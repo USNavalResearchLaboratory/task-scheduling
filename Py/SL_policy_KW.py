@@ -15,11 +15,10 @@ from tensorboard import program
 import webbrowser
 
 from util.generic import check_rng
-from util.results import check_valid, eval_loss
 
-from scheduling_algorithms import stats2nnXY, stats2nnXYgen
-from generators import ReluDropGenerator, PermuteTaskGenerator, DeterministicTaskGenerator
-from tree_search import branch_bound, branch_bound_with_stats,mcts_orig, mcts, random_sequencer, earliest_release, TreeNode, TreeNodeShift, TreeNodeBound
+from scheduling_algorithms import stats2nnXYgen
+from generators.scheduling_problems import ReluDrop
+from tree_search import branch_bound, branch_bound_with_stats, TreeNodeShift
 from env_tasking import StepTaskingEnv
 
 plt.style.use('seaborn')
@@ -191,11 +190,11 @@ def main():
     n_tasks = 4
     n_channels = 1
 
-    task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-                                 t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)  # task set generator
+    task_gen = ReluDrop(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+                        t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)  # task set generator
 
-    # task_gen = PermuteTaskGenerator(task_gen(n_tasks))
-    # task_gen = DeterministicTaskGenerator(task_gen(n_tasks))
+    # task_gen = PermuteOrder(task_gen(n_tasks))
+    # task_gen = Deterministic(task_gen(n_tasks))
 
     def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
         return rng.uniform(0, 0, n_ch)

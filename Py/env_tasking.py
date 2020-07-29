@@ -1,5 +1,4 @@
 import time
-from functools import partial
 from types import MethodType
 import dill
 
@@ -7,19 +6,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import gym
-from gym.spaces import Discrete, Box, Space
-from gym.utils import seeding
+from gym.spaces import Box, Space
 
-import tensorflow as tf
-
-from baselines import logger
 # from baselines import deepq
 
 from util.generic import check_rng
 from util.plot import plot_task_losses
 
 from tree_search import TreeNode, TreeNodeShift, branch_bound
-from generators import ReluDropGenerator
+from generators.tasks import ReluDrop as ReluDropGenerator
 
 # np.set_printoptions(precision=2)
 
@@ -75,7 +70,7 @@ class BaseTaskingEnv(gym.Env):
     ----------
     n_tasks : int
         Number of tasks.
-    task_gen : GenericTaskGenerator
+    task_gen : generators.tasks.Base
         Task generation object.
     n_ch: int
         Number of channels.
@@ -154,9 +149,9 @@ class BaseTaskingEnv(gym.Env):
 
         Parameters
         ----------
-        tasks : iterable of GenericTask, optional
+        tasks : Sequence of tasks.Generic, optional
             Optional task set for non-random reset.
-        ch_avail : ndarray, optional
+        ch_avail : Sequence of float, optional
             Optional initial channel availabilities for non-random reset.
         persist : bool
             If True, keeps tasks and channels fixed during reset, regardless of other inputs.
@@ -217,7 +212,7 @@ class SeqTaskingEnv(BaseTaskingEnv):        # TODO: rename subclasses?
 
         Parameters
         ----------
-        action : iterable
+        action : Sequence of int
             Complete index sequence.
 
         Returns
@@ -249,7 +244,7 @@ class StepTaskingEnv(BaseTaskingEnv):
     ----------
     n_tasks : int
         Number of tasks.
-    task_gen : GenericTaskGenerator
+    task_gen : generators.tasks.Base
         Task generation object.
     n_ch: int
         Number of channels.
@@ -378,8 +373,9 @@ class RandomAgent(object):
 
 
 # Learning
-def data_gen(n_tasks, task_gen, n_ch, ch_avail_gen,
-             n_gen=1, env_cls=StepTaskingEnv, env_params=None, save=False, file_dir=None):
+# def data_gen(n_tasks, task_gen, n_ch, ch_avail_gen,
+#              n_gen=1, env_cls=StepTaskingEnv, env_params=None, save=False, file=None):
+def data_gen(env, n_gen=1, save=False):
     """
     Generate state-action data for learner training and evaluation.
 
@@ -407,7 +403,7 @@ def data_gen(n_tasks, task_gen, n_ch, ch_avail_gen,
     # TODO: train using complete tree info, not just B&B solution?
     # TODO: yield?
 
-    env = env_cls(n_tasks, task_gen, n_ch, ch_avail_gen, **env_params)
+    # env = env_cls(n_tasks, task_gen, n_ch, ch_avail_gen, **env_params)
 
     if not isinstance(env, StepTaskingEnv):
         raise NotImplementedError("Tasking environment must be step Env.")      # TODO: generalize?
@@ -450,7 +446,7 @@ def train_agent(n_tasks, task_gen, n_ch, ch_avail_gen,
     ----------
     n_tasks : int
         Number of tasks.
-    task_gen : GenericTaskGenerator
+    task_gen : generators.tasks.Base
         Task generation object.
     n_ch: int
         Number of channels.
@@ -555,7 +551,7 @@ def main():
     def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
         return rng.uniform(0, 2, n_ch)
 
-    # out = schedule_gen(4, task_gen, 1, ch_avail_gen, n_gen=1, save=True, file_dir='temp/2020-07-27_16-37-13')
+    # out = schedule_gen(4, task_gen, 1, ch_avail_gen, n_gen=1, save=True, file='temp/2020-07-27_16-37-13')
 
     #
     features = np.array([('duration', lambda task: task.duration, task_gen.duration_lim),

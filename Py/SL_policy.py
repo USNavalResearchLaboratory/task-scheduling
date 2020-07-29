@@ -1,6 +1,5 @@
 import shutil
 import time
-from functools import partial
 import dill
 
 import numpy as np
@@ -11,10 +10,9 @@ from tensorboard import program
 import webbrowser
 
 from util.generic import check_rng
-from util.results import check_valid, eval_loss
 
-from generators import ReluDropGenerator, PermuteTaskGenerator, DeterministicTaskGenerator
-from tree_search import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release, TreeNode, TreeNodeShift
+from generators.tasks import ReluDrop as ReluDropGenerator
+from tree_search import TreeNodeShift
 from env_tasking import StepTaskingEnv, data_gen
 
 np.set_printoptions(precision=2)
@@ -32,7 +30,7 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
     ----------
     n_tasks : int
         Number of tasks.
-    task_gen : GenericTaskGenerator
+    task_gen : Base
         Task generation object.
     n_ch: int
         Number of channels.
@@ -186,8 +184,8 @@ def main():
     task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
                                  t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)  # task set generator
 
-    # task_gen = PermuteTaskGenerator(task_gen(n_tasks))
-    # task_gen = DeterministicTaskGenerator(task_gen(n_tasks))
+    # task_gen = PermuteOrder(task_gen(n_tasks))
+    # task_gen = Deterministic(task_gen(n_tasks))
 
     def ch_avail_gen(n_chan, rng=check_rng(None)):  # channel availability time generator
         return rng.uniform(0, 0, n_chan)

@@ -116,10 +116,10 @@ for jj in range(Ntrack):
 
 # import numpy as np
 from tasks import ReluDropGenerator
-from tasks import ReluDropTask
+from tasks import ReluDrop
 
 # rng = np.random.default_rng(100)
-# task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+# task_gen = ReluDrop(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
 #                              t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=rng)       # task set generator
 # tasks = task_gen.rand_tasks(N)
 
@@ -127,7 +127,7 @@ from tasks import ReluDropTask
 job = []
 cnt = 0 # Make 0-based, saves a lot of trouble later when indexing into python zero-based vectors
 for ii in range(Nsearch):
-    job.append(ReluDropTask(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropTimeFixed[ii], SearchParams.DropCost[ii]))
+    job.append(ReluDrop(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropTimeFixed[ii], SearchParams.DropCost[ii]))
     job[ii].Id = cnt # Numeric Identifier for each job
     cnt = cnt + 1
     if job[ii].slope == 0.4:
@@ -136,11 +136,11 @@ for ii in range(Nsearch):
         job[ii].Type = 'AHS' # Above horizon search
     job[ii].Priority = job[ii](0) # Priority used to select which jobs to give to scheduler
 
-    # tasks = ReluDropTask(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropCost[ii])
+    # tasks = ReluDrop(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropCost[ii])
     # A.append(tasks)
     # del tasks
 for ii in range(Ntrack):
-    job.append(ReluDropTask(TrackParams.JobDuration[ii], 0, TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropTimeFixed[ii], TrackParams.DropCost[ii]))
+    job.append(ReluDrop(TrackParams.JobDuration[ii], 0, TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropTimeFixed[ii], TrackParams.DropCost[ii]))
     job[cnt].Id = cnt # Numeric Identifier for each job
     if job[cnt].slope == 0.25:
         job[cnt].Type = 'Tlow' # Low Priority Track
