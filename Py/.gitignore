@@ -1,0 +1,10 @@
+# Pycharm
+.idea/
+
+# Logs
+logs/
+
+# Temporary agents and models
+agents/temp/
+models/temp/
+data/schedules/temp/

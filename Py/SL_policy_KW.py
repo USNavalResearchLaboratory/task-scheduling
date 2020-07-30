@@ -14,12 +14,12 @@ from tensorflow import keras
 from tensorboard import program
 import webbrowser
 
-from util.generic import check_rng
+from radar_scheduling.util.generic import check_rng
 
 from scheduling_algorithms import stats2nnXYgen
-from generators.scheduling_problems import ReluDrop
-from tree_search import branch_bound, branch_bound_with_stats, TreeNodeShift
-from env_tasking import StepTaskingEnv
+from radar_scheduling.generators.scheduling_problems import ReluDrop
+from radar_scheduling.tree_search import branch_bound, branch_bound_with_stats, TreeNodeShift
+from radar_scheduling.env_tasking import StepTaskingEnv
 
 plt.style.use('seaborn')
 

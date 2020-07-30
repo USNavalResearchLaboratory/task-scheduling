@@ -1,7 +1,7 @@
 """Generator objects for tasks, channel availabilities, and complete tasking problems with optimal solutions."""
 
 import time
-import dill
+import pickle
 import warnings
 
 import numpy as np
@@ -14,8 +14,6 @@ from tree_search import branch_bound
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
-
-# TODO: make channel availability generators for access to rng limits?
 
 
 # Tasking problem and solution generators
@@ -47,9 +45,7 @@ def schedule_gen(n_tasks, task_gen, n_ch, ch_avail_gen, n_gen=0, save=False, fil
 
     """
 
-    # TODO: train using complete tree info, not just B&B solution?
-    # TODO: gitignore for ./data/ temps?
-    # TODO: move to tasks.py
+    # FIXME: delete?
 
     dict_gen = {'n_tasks': n_tasks, 'task_gen': task_gen,
                 'n_ch': n_ch, 'ch_avail_gen': ch_avail_gen,
@@ -60,10 +56,8 @@ def schedule_gen(n_tasks, task_gen, n_ch, ch_avail_gen, n_gen=0, save=False, fil
     # Search for existing file
     if file is not None:
         try:
-            with open('./data/schedules/' + file, 'rb') as file:
-                dict_gen_load = dill.load(file)
-
-            # TODO: check equivalence of generators?
+            with open('../data/schedules/' + file, 'rb') as file:
+                dict_gen_load = pickle.load(file)
 
             print('File already exists. Appending new data.')
             dict_gen.update(dict_gen_load)
@@ -85,15 +79,13 @@ def schedule_gen(n_tasks, task_gen, n_ch, ch_avail_gen, n_gen=0, save=False, fil
         dict_gen['t_ex'].append(t_ex)
         dict_gen['ch_ex'].append(ch_ex)
 
-        # TODO: yield??
-
     # Save schedules
     if save:
         if file is None:
             file = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
 
-        with open('./data/schedules/' + file, 'wb') as file:
-            dill.dump(dict_gen, file)    # save schedules
+        with open('../data/schedules/' + file, 'wb') as file:
+            pickle.dump(dict_gen, file)    # save schedules
 
     return dict_gen
 
@@ -119,7 +111,7 @@ class Random(Base):
         def ch_avail_gen(n_ch_, rng=check_rng(None)):  # channel availability time generator
             return rng.uniform(0, 1, n_ch_)
 
-        return cls(n_tasks, task_gen, n_ch, ch_avail_gen)
+        return cls(n_tasks, n_ch, task_gen, ch_avail_gen)
 
     def __call__(self, n_gen):
         for _ in range(n_gen):
@@ -136,11 +128,13 @@ class Random(Base):
                     # 't_ex': [], 'ch_ex': [],
                     }
 
+        # TODO: train using complete tree info, not just B&B solution?
+
         # Search for existing file
         if file is not None:
             try:
-                with open('./data/schedules/' + file, 'rb') as file:
-                    dict_gen_load = dill.load(file)
+                with open('../data/schedules/' + file, 'rb') as file:
+                    dict_gen_load = pickle.load(file)
 
                 # TODO: check equivalence of generators?
 
@@ -167,14 +161,14 @@ class Random(Base):
             if file is None:
                 file = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
 
-            with open('./data/schedules/' + file, 'wb') as file:
-                dill.dump(dict_gen, file)  # save schedules
+            with open('../data/schedules/' + file, 'wb') as file:
+                pickle.dump(dict_gen, file)  # save schedules
 
 
 class Load(Base):
     def __init__(self, file, iter_mode='once'):
-        with open('./data/schedules/' + file, 'rb') as file:
-            dict_gen = dill.load(file)
+        with open('../data/schedules/' + file, 'rb') as file:
+            dict_gen = pickle.load(file)
 
         super().__init__(dict_gen['n_tasks'], dict_gen['n_ch'])
 
@@ -203,15 +197,14 @@ class Load(Base):
 
 
 def main():
-    rand_gen = Random.relu_drop_default(n_tasks=8, n_ch=2)
+    rand_gen = Random.relu_drop_default(n_tasks=6, n_ch=2)
 
-    probs = list(rand_gen(n_gen=4))
+    probs = list(rand_gen(n_gen=3))
 
-    p = rand_gen.schedule_gen(n_gen=3, save=True)
+    p = list(rand_gen.schedule_gen(n_gen=3, save=True))
 
-    load_gen = Load('temp/2020-07-29_10-02-56')
-    probs2 = list(load_gen(n_gen=2))
-    pass
+    # load_gen = Load('temp/2020-07-29_10-02-56')
+    # probs2 = list(load_gen(n_gen=2))
 
 
 if __name__ == '__main__':

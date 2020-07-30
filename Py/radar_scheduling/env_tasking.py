@@ -12,9 +12,9 @@ from gym.spaces import Box, Space
 
 from util.generic import check_rng
 from util.plot import plot_task_losses
+from generators.tasks import ReluDrop as ReluDropGenerator
 
 from tree_search import TreeNode, TreeNodeShift, branch_bound
-from generators.tasks import ReluDrop as ReluDropGenerator
 
 # np.set_printoptions(precision=2)
 
@@ -160,7 +160,7 @@ class BaseTaskingEnv(gym.Env):
 
         if not persist:     # use new random (or user-specified) tasks/channels
             if tasks is None:
-                self.node_cls._tasks_init = self.task_gen(self.n_tasks)
+                self.node_cls._tasks_init = list(self.task_gen(self.n_tasks))
             elif len(tasks) == self.n_tasks:
                 self.node_cls._tasks_init = tasks
             else:
@@ -492,7 +492,7 @@ def train_agent(n_tasks, task_gen, n_ch, ch_avail_gen,
         if save_dir is None:
             save_dir = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
 
-        with open('./agents/' + save_dir, 'wb') as file:
+        with open('../agents/' + save_dir, 'wb') as file:
             dill.dump({'env': env, 'agent': agent}, file)    # save environment
 
     return wrap_agent(env, agent)
@@ -500,7 +500,7 @@ def train_agent(n_tasks, task_gen, n_ch, ch_avail_gen,
 
 def load_agent(load_dir):
     """Loads agent and environment, returns wrapped scheduling function."""
-    with open('./agents/' + load_dir, 'rb') as file:
+    with open('../agents/' + load_dir, 'rb') as file:
         pkl_dict = dill.load(file)
     return wrap_agent(**pkl_dict)
 

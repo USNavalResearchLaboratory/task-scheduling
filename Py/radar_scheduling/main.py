@@ -16,6 +16,7 @@ from util.results import check_valid, eval_loss
 from util.plot import plot_task_losses, scatter_loss_runtime
 
 from generators.scheduling_problems import Random as RandomProblem
+
 from tree_search import TreeNodeShift, branch_bound, mcts, earliest_release
 from env_tasking import StepTaskingEnv, train_agent, load_agent
 from SL_policy import train_policy, load_policy
@@ -30,9 +31,10 @@ plt.style.use('seaborn')
 # TODO: merge generator feature branch
 
 # %% Inputs
-n_gen = 10      # number of task scheduling problems
+n_gen = 5      # number of task scheduling problems
 
-problem_gen = RandomProblem.relu_drop_default(n_tasks=8, n_ch=2)
+problem_gen = RandomProblem.relu_drop_default(n_tasks=4, n_ch=2)
+# problem_gen = LoadProblem('temp/2020-07-29_10-02-56')
 
 
 # TODO: add functionality for loading problems and B&B solutions
@@ -93,11 +95,12 @@ else:
     raise ValueError("Parameter 'agent_file' must be string or None.")
 
 
-alg_funcs = [partial(branch_bound, verbose=False),
-             partial(mcts, n_mc=2000, verbose=False),
-             partial(earliest_release, do_swap=True),
-             partial(random_agent),
-             partial(network_policy),
+alg_funcs = [
+    partial(branch_bound, verbose=False),
+    partial(mcts, n_mc=200, verbose=False),
+    partial(earliest_release, do_swap=True),
+    partial(random_agent),
+    partial(network_policy),
              ]
 
 alg_n_iter = [1, 5, 1, 50, 1]       # number of runs per problem

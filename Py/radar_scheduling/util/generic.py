@@ -55,17 +55,3 @@ def algorithm_repr(alg):
     else:
         p_str = ", ".join([f"{key}={str(val)}" for key, val in params.items()])
         return f"{alg.func.__name__}({p_str})"
-
-
-# def save_scheduler(scheduler, file_str=None):     # TODO: delete?
-#     """Save scheduling function via data persistence."""
-#     if file_str is None:
-#         file_str = 'temp/{}.pkl'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
-#     with open('./schedulers/' + file_str, 'wb') as file:
-#         dill.dump(scheduler, file)
-#
-#
-# def load_scheduler(file_str):
-#     """Load scheduling function via data persistence."""
-#     with open('./schedulers/' + file_str, 'rb') as file:
-#         return dill.load(file)

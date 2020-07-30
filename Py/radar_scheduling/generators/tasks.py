@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from util.generic import check_rng
 
-from tasks import ReluDrop as ReluDropTask
+from radar_scheduling.tasks import ReluDrop as ReluDropTask
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')

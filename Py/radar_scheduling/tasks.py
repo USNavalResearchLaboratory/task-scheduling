@@ -77,8 +77,8 @@ class Generic:
             plt.title(self.__repr__())
         else:
             x_lim_gca, y_lim_gca = ax.get_xlim(), ax.get_ylim()
-            x_lim = min([x_lim[0], x_lim_gca[0]]), max([x_lim[1], x_lim_gca[1]])
-            y_lim = min([y_lim[0], y_lim_gca[0]]), max([y_lim[1], y_lim_gca[1]])
+            x_lim = min(x_lim[0], x_lim_gca[0]), max(x_lim[1], x_lim_gca[1])
+            y_lim = min(y_lim[0], y_lim_gca[0]), max(y_lim[1], y_lim_gca[1])
 
         ax.set_xlim(*x_lim)
         ax.set_ylim(*y_lim)
@@ -121,7 +121,7 @@ class ReluDrop(Generic):
         t = np.asarray(t)[np.newaxis] - self.t_release      # relative time
 
         loss = self.slope * t
-        loss[t < 0] = np.inf
+        loss[t < 0] = 0.
         loss[t >= self.t_drop] = self.l_drop
         if loss.size == 1:
             return np.asscalar(loss)

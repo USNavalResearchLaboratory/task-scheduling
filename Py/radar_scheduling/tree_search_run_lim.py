@@ -3,6 +3,7 @@
 from time import perf_counter
 from math import floor, factorial
 import numpy as np
+
 from util.generic import check_rng
 from util.results import eval_loss
 
@@ -66,7 +67,7 @@ def branch_bound(tasks: list, ch_avail: list, max_runtime=float('inf'), verbose=
                 break
 
         if verbose:
-            # progress = 1 - sum([math.factorial(len(node.seq_rem)) for node in stack]) / math.factorial(len(tasks))
+            # progress = 1 - sum(math.factorial(len(node.seq_rem)) for node in stack) / math.factorial(len(tasks))
             # print(f'Search progress: {100*progress:.1f}% - Loss < {node_best.l_ex:.3f}', end='\r')
             print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.l_ex:.3f}', end='\r')
 

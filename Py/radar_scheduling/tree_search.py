@@ -1,8 +1,6 @@
 """Multi-channel Tree Search objects and algorithms."""
 
 from copy import deepcopy
-import time
-import math
 import numpy as np
 from util.generic import check_rng
 
@@ -266,7 +264,7 @@ class TreeNodeBound(TreeNode):
 
         # Add bound attributes
         t_ex_max = (max([self._tasks[n].t_release for n in self._seq_rem] + [min(self._ch_avail)])
-                    + sum([self._tasks[n].duration for n in self._seq_rem]))  # maximum execution time for bounding
+                    + sum(self._tasks[n].duration for n in self._seq_rem))  # maximum execution time for bounding
 
         self._l_lo = self._l_ex
         self._l_up = self._l_ex
@@ -470,7 +468,7 @@ class SearchNode:
             node.update_stats(loss)
 
 
-def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
+def branch_bound(tasks, ch_avail, verbose=False, rng=None):
     """
     Branch and Bound algorithm.
 
@@ -516,14 +514,14 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
                 stack.append(node_new)  # add new node to stack, LIFO
 
         if verbose:
-            # progress = 1 - sum([math.factorial(len(node.seq_rem)) for node in stack]) / math.factorial(len(tasks))
+            # progress = 1 - sum(math.factorial(len(node.seq_rem)) for node in stack) / math.factorial(len(tasks))
             # print(f'Search progress: {100*progress:.1f}% - Loss < {node_best.l_ex:.3f}', end='\r')
             print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.l_ex:.3f}', end='\r')
 
     return node_best.t_ex, node_best.ch_ex  # optimal
 
 
-def branch_bound_with_stats(tasks: list, ch_avail: list, verbose=False, rng=None):
+def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
     """
     Branch and Bound algorithm.
 
@@ -566,7 +564,8 @@ def branch_bound_with_stats(tasks: list, ch_avail: list, verbose=False, rng=None
         for node_new in node.branch(do_permute=True):
             # Bound
             if len(node_new.seq) == len(tasks):
-                NodeStats.append(node_new) # Append any complete solutions, use for training NN. Can decipher what's good/bad based on final costs
+                # Append any complete solutions, use for training NN. Can decipher what's good/bad based on final costs
+                NodeStats.append(node_new)
 
             if node_new.l_lo < l_best:  # New node is not dominated
                 if node_new.l_up < l_best:
@@ -578,7 +577,7 @@ def branch_bound_with_stats(tasks: list, ch_avail: list, verbose=False, rng=None
                 stack.append(node_new)  # Add New Node to Stack, LIFO
 
         if verbose:
-            # progress = 1 - sum([math.factorial(len(node.seq_rem)) for node in stack]) / math.factorial(len(tasks))
+            # progress = 1 - sum(math.factorial(len(node.seq_rem)) for node in stack) / math.factorial(len(tasks))
             # print(f'Search progress: {100*progress:.1f}% - Loss < {l_best:.3f}', end='\r')
             print(f'# Remaining Nodes = {len(stack)}, Loss < {l_best:.3f}', end='\r')
 
@@ -586,7 +585,7 @@ def branch_bound_with_stats(tasks: list, ch_avail: list, verbose=False, rng=None
     return node_best.t_ex, node_best.ch_ex, NodeStats
 
 
-def mcts_orig(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
+def mcts_orig(tasks, ch_avail, n_mc, verbose=False, rng=None):
     """
     Monte Carlo tree search algorithm.
 
@@ -639,7 +638,7 @@ def mcts_orig(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
     return node_best.t_ex, node_best.ch_ex
 
 
-def mcts(tasks: list, ch_avail: list, n_mc: int, verbose=False):
+def mcts(tasks, ch_avail, n_mc, verbose=False):
     """
     Monte Carlo tree search algorithm.
 
@@ -694,7 +693,7 @@ def mcts(tasks: list, ch_avail: list, n_mc: int, verbose=False):
     return node_best.t_ex, node_best.ch_ex
 
 
-def random_sequencer(tasks: list, ch_avail: list, rng=None):
+def random_sequencer(tasks, ch_avail, rng=None):
     """
     Generates a random task sequence, determines execution times and channels.
 
@@ -724,7 +723,7 @@ def random_sequencer(tasks: list, ch_avail: list, rng=None):
     return node.t_ex, node.ch_ex
 
 
-def earliest_release(tasks: list, ch_avail: list, do_swap=False):
+def earliest_release(tasks, ch_avail, do_swap=False):
     """
     Earliest Start Times Algorithm.
 
@@ -757,7 +756,7 @@ def earliest_release(tasks: list, ch_avail: list, do_swap=False):
     return node.t_ex, node.ch_ex
 
 
-def earliest_drop(tasks: list, ch_avail: list, do_swap=False):
+def earliest_drop(tasks, ch_avail, do_swap=False):
     """
     Earliest Drop Times Algorithm.
 
@@ -790,7 +789,7 @@ def earliest_drop(tasks: list, ch_avail: list, do_swap=False):
     return node.t_ex, node.ch_ex
 
 
-def est_alg_kw(tasks: list, ch_avail: list):
+def est_alg_kw(tasks, ch_avail):
     """
     Earliest Start Times Algorithm using FlexDAR scheduler function.
 
@@ -819,7 +818,7 @@ def est_alg_kw(tasks: list, ch_avail: list):
     return t_ex, ch_ex
 
 
-def ert_alg_kw(tasks: list, ch_avail: list, do_swap=False):
+def ert_alg_kw(tasks, ch_avail, do_swap=False):
 
     TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
