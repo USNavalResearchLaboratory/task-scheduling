@@ -21,11 +21,11 @@ RP = 0.04
 # Tmax = 3
 
 ## Specify Algorithms
-from radar_scheduling.tree_search import branch_bound, random_sequencer, earliest_release
+from task_scheduling.tree_search import branch_bound, random_sequencer, earliest_release
 from functools import partial
-from radar_scheduling.util.generic import algorithm_repr
-from radar_scheduling.util.plot import plot_task_losses, scatter_loss_runtime
-from radar_scheduling.util.results import check_valid, eval_loss
+from task_scheduling.util.generic import algorithm_repr
+from task_scheduling.util.plot import plot_task_losses, scatter_loss_runtime
+from task_scheduling.util.results import check_valid, eval_loss
 
 alg_funcs = [partial(earliest_release, do_swap=True),
              partial(random_sequencer),
@@ -118,7 +118,7 @@ for jj in range(Ntrack):
 
 
 # import numpy as np
-from radar_scheduling.tasks import ReluDrop
+from task_scheduling.tasks import ReluDrop
 
 # rng = np.random.default_rng(100)
 # task_gen = ReluDrop(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),

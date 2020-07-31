@@ -21,13 +21,13 @@ from scheduling_algorithms import stats2nnXY
 
 np.set_printoptions(linewidth=300) # Set printing to avoid line wrapping when displaying 2D array
 
-from radar_scheduling.util.generic import algorithm_repr, check_rng
-from radar_scheduling.util.results import check_valid, eval_loss
-from radar_scheduling.util.plot import plot_task_losses, scatter_loss_runtime
+from task_scheduling.util.generic import algorithm_repr, check_rng
+from task_scheduling.util.results import check_valid, eval_loss
+from task_scheduling.util.plot import plot_task_losses, scatter_loss_runtime
 
-from radar_scheduling.generators.scheduling_problems import ReluDrop
-from radar_scheduling.tree_search import mcts_orig, earliest_release, branch_bound_with_stats
-from radar_scheduling.env_tasking import StepTaskingEnv, wrap_agent, RandomAgent
+from task_scheduling.generators.scheduling_problems import ReluDrop
+from task_scheduling.tree_search import mcts_orig, earliest_release, branch_bound_with_stats
+from task_scheduling.env_tasking import StepTaskingEnv, wrap_agent, RandomAgent
 
 plt.style.use('seaborn')
 rng = np.random.default_rng(100)

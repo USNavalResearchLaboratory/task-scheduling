@@ -38,6 +38,16 @@ class Generic:
         """Loss function versus time."""
         return self._loss_func(t)
 
+    def __eq__(self, other):
+        if not isinstance(other, Generic):
+            return False
+
+        conditions = [self.duration == other.duration,
+                      self.t_release == other.t_release,
+                      self._loss_func == other._loss_func]
+
+        return True if all(conditions) else False
+
     @property
     def plot_lim(self):
         """2-tuple of limits for automatic plotting."""
@@ -128,6 +138,18 @@ class ReluDrop(Generic):
         else:
             return loss.squeeze(axis=0)
 
+    def __eq__(self, other):
+        if not isinstance(other, ReluDrop):
+            return False
+
+        conditions = [self.duration == other.duration,
+                      self.t_release == other.t_release,
+                      self.slope == other.slope,
+                      self.t_drop == other.t_drop,
+                      self.l_drop == other.l_drop]
+
+        return True if all(conditions) else False
+
     @property
     def slope(self):
         return self._slope
@@ -192,12 +214,6 @@ class ReluDrop(Generic):
 
     def gen_features(self, *funcs):
         """Generate features from input functions. Defaults to the parametric representation."""
-
-        # _params = [(task.duration, task.t_release, task.slope, task.t_drop, task.l_drop) for task in tasks]
-        # params = np.array(_params, dtype=[('duration', np.float), ('t_release', np.float),
-        #                                   ('slope', np.float), ('t_drop', np.float), ('l_drop', np.float)])
-        # params.view(np.float).reshape(*params.shape, -1)
-
         if len(funcs) > 0:
             return [func(self) for func in funcs]
         else:   # default, return task parameters

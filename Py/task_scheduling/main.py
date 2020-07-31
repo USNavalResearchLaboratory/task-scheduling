@@ -16,10 +16,13 @@ from util.results import check_valid, eval_loss
 from util.plot import plot_task_losses, scatter_loss_runtime
 
 from generators.scheduling_problems import Random as RandomProblem
+from generators.scheduling_problems import Load as LoadProblem
 
 from tree_search import TreeNodeShift, branch_bound, mcts, earliest_release
 from env_tasking import StepTaskingEnv, train_agent, load_agent
 from SL_policy import train_policy, load_policy
+
+# TODO: structure imports properly w/o relying on PyCharm's path append of the content root
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
@@ -28,13 +31,12 @@ plt.style.use('seaborn')
 #                     format='%(asctime)s - %(levelname)s - %(message)s',
 #                     datefmt='%H:%M:%S')
 
-# TODO: merge generator feature branch
 
 # %% Inputs
-n_gen = 5      # number of task scheduling problems
+n_gen = 2      # number of task scheduling problems
 
 problem_gen = RandomProblem.relu_drop_default(n_tasks=4, n_ch=2)
-# problem_gen = LoadProblem('temp/2020-07-29_10-02-56')
+# problem_gen = LoadProblem('temp/2020-07-30_14-11-07')
 
 
 # TODO: add functionality for loading problems and B&B solutions
@@ -72,7 +74,8 @@ agent_file = None
 # agent_file = 'temp/2020-07-24_14-31-45'
 
 if agent_file is None:
-    random_agent = train_agent(problem_gen.n_tasks, problem_gen.task_gen, problem_gen.n_ch, problem_gen.ch_avail_gen,
+    random_agent = train_agent(problem_gen,
+                               # problem_gen.n_tasks, problem_gen.task_gen, problem_gen.n_ch, problem_gen.ch_avail_gen,
                                n_gen_train=0, n_gen_val=0, env_cls=env_cls, env_params=env_params,
                                save=True, save_dir=None)
 elif type(agent_file) == str:
@@ -84,12 +87,13 @@ else:
 policy_file = None
 # policy_file = 'temp/2020-07-23_13-09-17'
 
-if agent_file is None:
-    network_policy = train_policy(problem_gen.n_tasks, problem_gen.task_gen, problem_gen.n_ch, problem_gen.ch_avail_gen,
+if policy_file is None:
+    network_policy = train_policy(problem_gen,
+                                  # problem_gen.n_tasks, problem_gen.task_gen, problem_gen.n_ch, problem_gen.ch_avail_gen,
                                   n_gen_train=10, n_gen_val=10, env_cls=env_cls, env_params=env_params,
                                   model=None, compile_params=None, fit_params=None,
                                   do_tensorboard=False, plot_history=True, save=True, save_dir=None)
-elif type(agent_file) == str:
+elif type(policy_file) == str:
     network_policy = load_policy(policy_file)
 else:
     raise ValueError("Parameter 'agent_file' must be string or None.")

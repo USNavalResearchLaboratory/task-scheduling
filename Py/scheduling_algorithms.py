@@ -1,6 +1,6 @@
 import copy
 import numpy as np
-from radar_scheduling.util.generic import check_rng
+from task_scheduling.util.generic import check_rng
 # from tree_search import TreeNode
 # from tree_search import TreeNodeBound
 

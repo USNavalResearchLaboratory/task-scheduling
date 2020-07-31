@@ -1,14 +1,17 @@
 """Generator objects for tasks, channel availabilities, and complete tasking problems with optimal solutions."""
 
 import time
-import pickle
+import dill
 import warnings
+from collections import namedtuple
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from util.generic import check_rng
+
 from generators.tasks import ReluDrop as ReluDropGenerator
+from generators.channel_availabilities import Uniform as UniformChanGenerator
 
 from tree_search import branch_bound
 
@@ -56,8 +59,8 @@ def schedule_gen(n_tasks, task_gen, n_ch, ch_avail_gen, n_gen=0, save=False, fil
     # Search for existing file
     if file is not None:
         try:
-            with open('../data/schedules/' + file, 'rb') as file:
-                dict_gen_load = pickle.load(file)
+            with open('../../data/schedules/' + file, 'rb') as file:
+                dict_gen_load = dill.load(file)
 
             print('File already exists. Appending new data.')
             dict_gen.update(dict_gen_load)
@@ -84,17 +87,19 @@ def schedule_gen(n_tasks, task_gen, n_ch, ch_avail_gen, n_gen=0, save=False, fil
         if file is None:
             file = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
 
-        with open('../data/schedules/' + file, 'wb') as file:
-            pickle.dump(dict_gen, file)    # save schedules
+        with open('../../data/schedules/' + file, 'wb') as file:
+            dill.dump(dict_gen, file)    # save schedules
 
     return dict_gen
 
 
-# FIXME
+# FIXME: WIP
 class Base:
     def __init__(self, n_tasks, n_ch):
         self.n_tasks = n_tasks
         self.n_ch = n_ch
+
+        self._SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
 
 
 class Random(Base):
@@ -108,91 +113,118 @@ class Random(Base):
         task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
                                      t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)  # task set generator
 
-        def ch_avail_gen(n_ch_, rng=check_rng(None)):  # channel availability time generator
-            return rng.uniform(0, 1, n_ch_)
+        ch_avail_gen = UniformChanGenerator(lims=(0, 1))
 
         return cls(n_tasks, n_ch, task_gen, ch_avail_gen)
 
-    def __call__(self, n_gen):
+    def __call__(self, n_gen=1):
         for _ in range(n_gen):
-
             tasks = list(self.task_gen(self.n_tasks))
-            ch_avail = self.ch_avail_gen(self.n_ch)
+            ch_avail = list(self.ch_avail_gen(self.n_ch))
 
-            yield tasks, ch_avail
+            yield self._SchedulingProblem(tasks, ch_avail)
+
+    def __eq__(self, other):
+        if not isinstance(other, Random):
+            return False
+
+        conditions = [self.n_tasks == other.n_tasks,
+                      self.n_ch == other.n_ch,
+                      self.task_gen == other.task_gen,
+                      self.ch_avail_gen == other.ch_avail_gen]
+
+        return True if all(conditions) else False
 
     def schedule_gen(self, n_gen, save=False, file=None):
-        dict_gen = {'n_tasks': self.n_tasks, 'task_gen': self.task_gen,
-                    'n_ch': self.n_ch, 'ch_avail_gen': self.ch_avail_gen,
-                    'tasks': [], 'ch_avail': [],
+        dict_gen = {'problem_gen': self,
+                    # 'n_tasks': self.n_tasks, 'task_gen': self.task_gen,
+                    # 'n_ch': self.n_ch, 'ch_avail_gen': self.ch_avail_gen,
+                    'problems': [],
                     # 't_ex': [], 'ch_ex': [],
                     }
-
-        # TODO: train using complete tree info, not just B&B solution?
 
         # Search for existing file
         if file is not None:
             try:
-                with open('../data/schedules/' + file, 'rb') as file:
-                    dict_gen_load = pickle.load(file)
+                with open('../../data/schedules/' + file, 'rb') as file:
+                    dict_gen_load = dill.load(file)
 
-                # TODO: check equivalence of generators?
+                # Check equivalence of generators
+                if dict_gen_load['problem_gen'] == self:
+                    print('File already exists. Appending new data.')
+                    dict_gen.update(dict_gen_load)
 
-                print('File already exists. Appending new data.')
-                dict_gen.update(dict_gen_load)
             except FileNotFoundError:
                 pass
 
         # Generate tasks and find optimal schedules
-        for i_gen, (tasks, ch_avail) in enumerate(self(n_gen)):
+        for i_gen, problem in enumerate(self(n_gen)):
             print(f'Task Set: {i_gen + 1}/{n_gen}', end='\n')
 
-            # t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True)  # optimal scheduler
+            dict_gen['problems'].append(problem)
 
-            dict_gen['tasks'].append(tasks)
-            dict_gen['ch_avail'].append(ch_avail)
+            # TODO: train using complete tree info, not just B&B solution?
+            # t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True)  # optimal scheduler
             # dict_gen['t_ex'].append(t_ex)
             # dict_gen['ch_ex'].append(ch_ex)
 
-            yield tasks, ch_avail
+            # yield problem     # TODO: yield?
 
         # Save schedules
         if save:
             if file is None:
                 file = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
 
-            with open('../data/schedules/' + file, 'wb') as file:
-                pickle.dump(dict_gen, file)  # save schedules
+            with open('../../data/schedules/' + file, 'wb') as file:
+                dill.dump(dict_gen, file)  # save schedules
+
+        return dict_gen
 
 
 class Load(Base):
-    def __init__(self, file, iter_mode='once'):
+
+    # FIXME: just serialize this object with the data stored in its attributes? or serialize the Random one?!?!?!
+
+    def __init__(self, file, iter_mode='repeat', shuffle=True, rng=None):
         with open('../data/schedules/' + file, 'rb') as file:
-            dict_gen = pickle.load(file)
+            dict_gen = dill.load(file)
 
-        super().__init__(dict_gen['n_tasks'], dict_gen['n_ch'])
+        problem_gen = dict_gen['problem_gen']
 
-        self.problem_tasks = dict_gen['tasks']
-        self.problem_ch_avail = dict_gen['ch_avail']
+        super().__init__(problem_gen.n_tasks, problem_gen.n_ch)
+        self.task_gen = problem_gen.task_gen
+        self.ch_avail_gen = problem_gen.ch_avail_gen
 
-        self.n = len(self.problem_tasks)
-        self.i = 0
+        # super().__init__(dict_gen['n_tasks'], dict_gen['n_ch'])
+        # self.task_gen = dict_gen['task_gen']
+        # self.ch_avail_gen = dict_gen['ch_avail_gen']
+
+        self.problems = dict_gen['problems']
+
         self.iter_mode = iter_mode
+        self.shuffle = shuffle
+        self.rng = check_rng(rng)
 
-    def __call__(self, n_gen):
+        self.i = None
+        self.restart()
+
+    def restart(self):
+        self.i = 0
+        if self.shuffle:
+            self.rng.shuffle(self.problems)
+
+    def __call__(self, n_gen=1):
         for _ in range(n_gen):
-            if self.i == self.n:
+            if self.i == len(self.problems):
                 if self.iter_mode == 'once':
                     warnings.warn("Problem generator data has been exhausted.")
                     return
                 elif self.iter_mode == 'repeat':
                     self.i = 0
 
-            tasks = self.problem_tasks[self.i]
-            ch_avail = self.problem_ch_avail[self.i]
+            problem = self.problems[self.i]
 
-            yield tasks, ch_avail
-
+            yield problem
             self.i += 1
 
 

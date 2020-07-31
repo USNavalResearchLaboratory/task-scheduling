@@ -11,7 +11,7 @@ import webbrowser
 
 from util.generic import check_rng
 
-from generators.tasks import ReluDrop as ReluDropGenerator
+from generators.scheduling_problems import Random as RandomProblem
 from tree_search import TreeNodeShift
 from env_tasking import StepTaskingEnv, data_gen
 
@@ -19,7 +19,8 @@ np.set_printoptions(precision=2)
 plt.style.use('seaborn')
 
 
-def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
+def train_policy(problem_gen,
+                 # n_tasks, task_gen, n_ch, ch_avail_gen,
                  n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv, env_params=None,
                  model=None, compile_params=None, fit_params=None,
                  do_tensorboard=False, plot_history=False, save=False, save_dir=None):
@@ -73,7 +74,9 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
         env_params = {}
 
     # Create environment
-    env = env_cls(n_tasks, task_gen, n_ch, ch_avail_gen, **env_params)
+    env = env_cls(problem_gen,
+                  # n_tasks, task_gen, n_ch, ch_avail_gen,
+                  **env_params)
 
     # Generate state-action data pairs
     d_train = data_gen(env, n_gen_train)
@@ -87,7 +90,7 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
                                   # keras.layers.Dense(30, activation='relu'),
                                   # keras.layers.Dropout(0.2),
                                   # keras.layers.Dense(100, activation='relu'),
-                                  keras.layers.Dense(n_tasks, activation='softmax')])
+                                  keras.layers.Dense(env.n_tasks, activation='softmax')])
 
     if compile_params is None:
         compile_params = {'optimizer': 'rmsprop',
@@ -181,20 +184,22 @@ def main():
     n_tasks = 4
     n_ch = 1
 
-    task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-                                 t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)  # task set generator
+    # task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+    #                              t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)  # task set generator
 
     # task_gen = PermuteOrder(task_gen(n_tasks))
     # task_gen = Deterministic(task_gen(n_tasks))
 
-    def ch_avail_gen(n_chan, rng=check_rng(None)):  # channel availability time generator
-        return rng.uniform(0, 0, n_chan)
+    # def ch_avail_gen(n_chan, rng=check_rng(None)):  # channel availability time generator
+    #     return rng.uniform(0, 0, n_chan)
 
-    features = np.array([('duration', lambda task: task.duration, task_gen.duration_lim),
-                         ('release time', lambda task: task.t_release, (0., task_gen.t_release_lim[1])),
-                         ('slope', lambda task: task.slope, task_gen.slope_lim),
-                         ('drop time', lambda task: task.t_drop, (0., task_gen.t_drop_lim[1])),
-                         ('drop loss', lambda task: task.l_drop, (0., task_gen.l_drop_lim[1])),
+    problem_gen = RandomProblem.relu_drop_default(n_tasks, n_ch)
+
+    features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.duration_lim),
+                         ('release time', lambda task: task.t_release, (0., problem_gen.task_gen.t_release_lim[1])),
+                         ('slope', lambda task: task.slope, problem_gen.task_gen.slope_lim),
+                         ('drop time', lambda task: task.t_drop, (0., problem_gen.task_gen.t_drop_lim[1])),
+                         ('drop loss', lambda task: task.l_drop, (0., problem_gen.task_gen.l_drop_lim[1])),
                          ('is available', lambda task: 1 if task.t_release == 0. else 0, (0, 1)),
                          ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
                          ],
@@ -214,13 +219,15 @@ def main():
                   'masking': True
                   }
 
-    scheduler = train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
+    scheduler = train_policy(problem_gen,
+                             # n_tasks, task_gen, n_ch, ch_avail_gen,
                              n_gen_train=100, n_gen_val=20, env_cls=env_cls, env_params=env_params,
                              model=None, compile_params=None, fit_params=None,
                              do_tensorboard=True, plot_history=True, save=False, save_dir=None)
 
-    tasks = task_gen(n_tasks)
-    ch_avail = ch_avail_gen(n_ch)
+    # tasks = task_gen(n_tasks)
+    # ch_avail = ch_avail_gen(n_ch)
+    (tasks, ch_avail), = problem_gen()
 
     t_ex, ch_ex = scheduler(tasks, ch_avail)
 
