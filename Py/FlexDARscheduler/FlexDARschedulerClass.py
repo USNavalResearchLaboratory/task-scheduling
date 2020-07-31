@@ -31,8 +31,8 @@ from more_itertools import locate
 from math import factorial, floor
 
 alg_funcs = [partial(earliest_release, do_swap=True),
-             partial(random_sequencer)]
-             # partial(branch_bound, verbose=False)]
+             partial(random_sequencer),
+             partial(branch_bound, verbose=False)]
 
              #partial(branch_bound, verbose=False),
              # partial(mc_tree_search, n_mc=[floor(.1 * factorial(n)) for n in range(n_tasks, 0, -1)], verbose=False),
@@ -54,7 +54,7 @@ SearchParams.NbeamsPerRow = np.array([28, 29, 14, 9, 10, 9, 8, 7, 6])
 SearchParams.DwellTime = np.array([36, 36, 36, 18, 18, 18, 18, 18, 18])*1e-3
 SearchParams.RevistRate = np.array([2.5, 5, 5, 5, 5, 5, 5, 5, 5])
 SearchParams.RevisitRateUB = SearchParams.RevistRate + 0.1 # Upper Bound on Revisit Rate
-SearchParams.Penalty = 100*np.ones(np.shape(SearchParams.RevistRate)) # Penalty for exceeding UB
+SearchParams.Penalty = 300*np.ones(np.shape(SearchParams.RevistRate)) # Penalty for exceeding UB
 SearchParams.Slope = 1./SearchParams.RevistRate
 Nsearch = np.sum(SearchParams.NbeamsPerRow)
 SearchParams.JobDuration = np.array([])
@@ -71,7 +71,7 @@ for jj in range(len(SearchParams.NbeamsPerRow)):
 
 #%% Generate Track Tasks
 TrackParams = TaskParameters() # Initializes to something like matlab structure
-Ntrack = 0
+Ntrack = 10
 
 # Spawn tracks with uniformly distributed ranges and velocity
 MaxRangeNmi = 200 #
@@ -170,7 +170,7 @@ a = 1
 
 ## Record Algorithm Performance
 # %% Evaluate
-MaxTime = 10
+MaxTime = 20
 NumSteps = np.int(np.round(MaxTime/RP))
 t_run_iter = np.array(list(zip(*[np.empty((NumSteps, n_run)) for n_run in alg_n_runs])),
                       dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float], [(n_run,) for n_run in alg_n_runs])))
@@ -204,12 +204,15 @@ Cost = np.zeros((NumSteps,len(alg_reprs)))
 
 
 ## Begin Main Loop
-record = {'t_release': np.empty([NumSteps, len(alg_reprs), N]), 'duration': np.empty([NumSteps, len(alg_reprs), N]), 'slope': np.empty([NumSteps, len(alg_reprs), N]), 'drop_time': np.empty([NumSteps, len(alg_reprs), N]), 'drop_loss': np.empty([NumSteps, len(alg_reprs), N])}
+record = {'t_release': np.empty([NumSteps, len(alg_reprs), N]), 'duration': np.empty([NumSteps, len(alg_reprs), N]),
+          'slope': np.empty([NumSteps, len(alg_reprs), N]), 'drop_time': np.empty([NumSteps, len(alg_reprs), N]),
+          'drop_loss': np.empty([NumSteps, len(alg_reprs), N]), 'ch_avail': np.empty([NumSteps, len(alg_reprs), K])}
 record['t_release'][:] = np.NaN
 record['duration'][:] = np.NaN
 record['slope'][:] = np.NaN
 record['drop_time'][:] = np.NaN
 record['drop_loss'][:] = np.NaN
+record['ch_avail'][:] = np.NaN
 
 
 # record = TaskParameters() # Initialize as empty class
@@ -270,6 +273,7 @@ for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
             record['slope'][ii, idx_alg, :] = np.array([task.slope for task in job_scheduler])
             record['drop_time'][ii, idx_alg, :] = np.array([task.t_drop for task in job_scheduler])
             record['drop_loss'][ii, idx_alg, :] = np.array([task.l_drop for task in job_scheduler])
+            record['ch_avail'][ii, idx_alg, :] = ChannelAvailableTime
 
             # RECORD[ii,idx_alg] = [task.t_release for task in job_scheduler]
 
@@ -344,22 +348,25 @@ for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
 
             # TODO Put jobs in job_scheduler at the end of the master list "job", Finish plotting - Done
 ## Performance Assessment
+A = np.subtract( record['t_release'] , np.max(record['ch_avail'],axis=2)[:,:,None] )
 for ii in range(len(alg_reprs)):
     plt.figure(97+ii)
-    ax1 = plt.subplot(221)
+    ax1 = plt.subplot(321)
     plt.hist(np.ravel(record['t_release'][:, ii, :]), density=False, bins=100)
     plt.xlabel('t_release')
     plt.title(alg_reprs[ii])
-    ax2 = plt.subplot(222)
+    ax2 = plt.subplot(322)
     plt.hist(np.ravel(record['duration'][:, ii, :]), density=False, bins=100)
     plt.xlabel('duration')
-    ax3 = plt.subplot(223)
+    ax3 = plt.subplot(323)
     plt.hist(np.ravel(record['slope'][:, ii, :]), density=False, bins=100)
     plt.xlabel('slope')
-    ax4 = plt.subplot(224)
+    ax4 = plt.subplot(324)
     plt.hist(np.ravel(record['drop_time'][:, ii, :]), density=False, bins=100)
     plt.xlabel('drop_time')
-
+    ax5 = plt.subplot(325)
+    plt.hist(np.ravel(A[:, ii, :]), density=True, bins=100)
+    plt.xlabel('t_release - max(ch_avail)')
 
 
 
@@ -469,21 +476,29 @@ for jj in range(len(alg_reprs)):
 
 
 plt.figure(200)
-plt.plot(job_unique, mean_revisit_time_job_type)
+plt.plot(job_unique, mean_revisit_time_job_type, label=alg_reprs[jj])
 plt.xlabel('Job Type')
+plt.ylabel('Mean Revisit Time')
+plt.grid(True)
+plt.legend()
+plt.show()
 
 plt.figure(201)
 for jj in range(len(alg_reprs)):
     plt.plot(job_unique, Penalty[:,jj], label=alg_reprs[jj])
 plt.ylabel('Penalty')
+plt.xlabel('Job Type')
 plt.grid(True)
-plt.show()
 plt.legend()
+plt.show()
 
-
-
-
-
+Alg_Penalty = np.sum(Penalty,axis=0)
+plt.figure(202)
+for jj in range(len(alg_reprs)):
+    plt.plot(Alg_time[jj], Alg_Penalty[jj], marker='o', label=alg_reprs[jj])
+plt.xlabel('Run Time (s)')
+plt.ylabel('Penalty')
+plt.legend()
 
 
 

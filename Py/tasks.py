@@ -5,6 +5,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from util.generic import check_rng
+from scipy.stats import rv_discrete
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
@@ -249,25 +250,62 @@ class ReluDropGenerator(GenericTaskGenerator):
     slope_lim : iterable of float
     t_drop_lim : iterable of float
     l_drop_lim : iterable of float
+    discrete_flag:
 
     """
 
-    def __init__(self, duration_lim, t_release_lim, slope_lim, t_drop_lim, l_drop_lim, rng=None):
+    def __init__(self, duration_lim, t_release_lim, slope_lim, t_drop_lim, l_drop_lim, rng=None,
+                 discrete_flag=np.array([False, False, False, False, False])):
         super().__init__(rng)
         self.duration_lim = duration_lim
         self.t_release_lim = t_release_lim
         self.slope_lim = slope_lim
         self.t_drop_lim = t_drop_lim
         self.l_drop_lim = l_drop_lim
+        self.discrete_flag = discrete_flag
 
     def __call__(self, n_tasks):
         """Randomly generate a list of tasks."""
 
-        duration = self.rng.uniform(*self.duration_lim, n_tasks)
-        t_release = self.rng.uniform(*self.t_release_lim, n_tasks)
-        slope = self.rng.uniform(*self.slope_lim, n_tasks)
-        t_drop = self.rng.uniform(*self.t_drop_lim, n_tasks)
-        l_drop = self.rng.uniform(*self.l_drop_lim, n_tasks)
+        if self.discrete_flag[0]:
+            values = np.array(self.duration_lim)
+            probabilities = list(np.ones(len(values))/len(values))
+            distrib = rv_discrete(values=(range(len(values)), probabilities))
+            duration = values[distrib.rvs(size=n_tasks)]
+        else:
+            duration = self.rng.uniform(*self.duration_lim, n_tasks)
+
+        if self.discrete_flag[1]:
+            values = np.array(self.t_release_lim)
+            probabilities = list(np.ones(len(values)) / len(values))
+            distrib = rv_discrete(values=(range(len(values)), probabilities))
+            t_release = values[distrib.rvs(size=n_tasks)]
+        else:
+            t_release = self.rng.uniform(*self.t_release_lim, n_tasks)
+
+        if self.discrete_flag[2]:
+            values = np.array(self.slope_lim)
+            probabilities = list(np.ones(len(values)) / len(values))
+            distrib = rv_discrete(values=(range(len(values)), probabilities))
+            slope = values[distrib.rvs(size=n_tasks)]
+        else:
+            slope = self.rng.uniform(*self.slope_lim, n_tasks)
+
+        if self.discrete_flag[3]:
+            values = np.array(self.t_drop_lim)
+            probabilities = list(np.ones(len(values)) / len(values))
+            distrib = rv_discrete(values=(range(len(values)), probabilities))
+            t_drop = values[distrib.rvs(size=n_tasks)]
+        else:
+            t_drop = self.rng.uniform(*self.t_drop_lim, n_tasks)
+
+        if self.discrete_flag[4]:
+            values = np.array(self.l_drop_lim)
+            probabilities = list(np.ones(len(values)) / len(values))
+            distrib = rv_discrete(values=(range(len(values)), probabilities))
+            l_drop = values[distrib.rvs(size=n_tasks)]
+        else:
+            l_drop = self.rng.uniform(*self.l_drop_lim, n_tasks)
 
         return [ReluDropTask(*args) for args in zip(duration, t_release, slope, t_drop, l_drop)]
 
