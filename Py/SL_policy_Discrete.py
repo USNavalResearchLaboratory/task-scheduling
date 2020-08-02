@@ -10,7 +10,7 @@ from tensorflow import keras
 from tensorboard import program
 import webbrowser
 
-from util.generic import check_rng
+from util.generic import check_rng, Distribution
 from util.results import check_valid, eval_loss
 
 from tasks import ReluDropGenerator, PermuteTaskGenerator, DeterministicTaskGenerator
@@ -182,6 +182,14 @@ def wrap_policy(env, model):
 def main():
     n_tasks = 4
     n_channels = 1
+
+    duration_distro = Distribution(feature_name='duration', type='discrete', values=np.array([18e-3, 36e-3]), probs=(.25, .75))
+    a = duration_distro.gen_samps(size=10)
+    t_release_distro = Distribution(feature_name='duration', type='discrete', values=(18e-3, 36e-3), probs=(.25, .75))
+    slope_distro = Distribution(feature_name='duration', type='discrete', values=(18e-3, 36e-3), probs=(.25, .75))
+    duration_distro = Distribution(feature_name='duration', type='discrete', values=(18e-3, 36e-3), probs=(.25, .75))
+
+
 
     discrete_flag = np.array([True, False, False, False, False]) # Indicates whether feature is discrete or not
     task_gen = ReluDropGenerator(duration_lim=(18e-3, 36e-3), t_release_lim=(0, 6), slope_lim=(0.1, 2),

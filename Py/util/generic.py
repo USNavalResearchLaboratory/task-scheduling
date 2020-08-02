@@ -2,7 +2,8 @@ import copy
 import time
 import dill
 import numpy as np
-
+import scipy.stats as stats
+from scipy.stats import rv_discrete, uniform
 
 def check_rng(rng):
     """
@@ -69,3 +70,73 @@ def algorithm_repr(alg):
 #     """Load scheduling function via data persistence."""
 #     with open('./schedulers/' + file_str, 'rb') as file:
 #         return dill.load(file)
+
+
+class Distribution:
+    """
+    Random Number Generator Object
+
+    Parameters
+    ----------
+    feature_name: str, ex "duration"
+    type: str - representing distribution type  ex: 'uniform', 'discrete'
+    values: np-array of discrete values taken by distribution
+    probs: tuple of probabilites (same length as values)
+    lims: used to set (lower,upper) limits for uniform distribution
+
+    output
+    --------
+    distro: random variable object.   Usage distro.rvs(size=10) --> produces length 10 vector of rvs
+    distro.mean(), distro.var()  returns mean/vars of distribution
+    """
+
+    def __init__(self, feature_name: str, type: str, values=False, probs=False, lims=(0,1), distro = None, rng=None):
+        self.feature_name = feature_name  # Feature Name
+        self.type = type  # Distribution type
+        self.values = values
+        self.probs = probs
+        self.lims = lims
+
+        if type.lower() == 'uniform':
+            lower_lim = lims(0)
+            upper_lim = lims(1)
+            loc = lower_lim
+            scale = upper_lim - lower_lim
+            distro = uniform(name=feature_name, loc=loc, scale=scale)
+        elif type.lower() == 'discrete':
+            xk = np.arange(len(values))
+            distro = rv_discrete(name=feature_name, values=(xk, probs))
+
+        self.distro = distro
+
+    # def __call__(self):
+    #
+    #     if type.lower() == 'uniform':
+    #         lower_lim = lims(0)
+    #         upper_lim = lims(1)
+    #         loc = lower_lim
+    #         scale = upper_lim - lower_lim
+    #         distro = uniform(name=feature_name, loc=loc, scale=scale)
+    #     elif type.lower() == 'discrete':
+    #         # values =
+    #         distro = rv_discrete(name=feature_name, values=(values, probs))
+    #
+    #     return distro
+
+    def gen_samps(self, size=None):
+
+        if self.type.lower() == 'uniform':
+            samps = self.distro.rvs(size=size)
+        elif self.type.lower() == 'discrete':
+            samps_idx = self.distro.rvs(size=size)
+            samps = self.values[samps_idx]
+
+        return samps
+
+
+
+
+
+
+
+
