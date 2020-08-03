@@ -9,10 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from util.generic import check_rng
-
-from generators.tasks import ReluDrop as ReluDropGenerator
+from generators.tasks import ReluDrop as ReluDropTaskGenerator
 from generators.channel_availabilities import Uniform as UniformChanGenerator
-
 from tree_search import branch_bound
 
 np.set_printoptions(precision=2)
@@ -20,109 +18,32 @@ plt.style.use('seaborn')
 
 
 # Tasking problem and solution generators
-def schedule_gen(n_tasks, task_gen, n_ch, ch_avail_gen, n_gen=0, save=False, file=None):
-    """
-    Generate optimal schedules for randomly generated tasking problems.
-
-    Parameters
-    ----------
-    n_tasks : int
-        Number of tasks.
-    task_gen : generators.tasks.Base
-        Task generation object.
-    n_ch: int
-        Number of channels.
-    ch_avail_gen : callable
-        Returns random initial channel availabilities.
-    n_gen : int
-        Number of tasking problems to generate.
-    save : bool
-        If True, the tasking problems and optimal schedules are serialized.
-    file : str, optional
-        String representation of file path (relative to module root) to load from and/or save to.
-
-    Returns
-    -------
-    dict
-        Tasking problem generators and lists of tasking problems and their optimal schedules.
-
-    """
-
-    # FIXME: delete?
-
-    dict_gen = {'n_tasks': n_tasks, 'task_gen': task_gen,
-                'n_ch': n_ch, 'ch_avail_gen': ch_avail_gen,
-                'tasks': [], 'ch_avail': [],
-                't_ex': [], 'ch_ex': [],
-                }
-
-    # Search for existing file
-    if file is not None:
-        try:
-            with open('../../data/schedules/' + file, 'rb') as file:
-                dict_gen_load = dill.load(file)
-
-            print('File already exists. Appending new data.')
-            dict_gen.update(dict_gen_load)
-
-        except FileNotFoundError:
-            pass
-
-    # Generate tasks and find optimal schedules
-    for i_gen in range(n_gen):
-        print(f'Task Set: {i_gen + 1}/{n_gen}', end='\n')
-
-        tasks = task_gen(n_tasks)
-        ch_avail = ch_avail_gen(n_ch)
-
-        t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True)   # optimal scheduler
-
-        dict_gen['tasks'].append(tasks)
-        dict_gen['ch_avail'].append(ch_avail)
-        dict_gen['t_ex'].append(t_ex)
-        dict_gen['ch_ex'].append(ch_ex)
-
-    # Save schedules
-    if save:
-        if file is None:
-            file = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
-
-        with open('../../data/schedules/' + file, 'wb') as file:
-            dill.dump(dict_gen, file)    # save schedules
-
-    return dict_gen
-
-
-# FIXME: WIP
 class Base:
-    def __init__(self, n_tasks, n_ch):
+    def __init__(self, n_tasks, n_ch, rng=None):
         self.n_tasks = n_tasks
         self.n_ch = n_ch
-
-        self._SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
+        self.rng = check_rng(rng)
 
 
 class Random(Base):
-    def __init__(self, n_tasks, n_ch, task_gen, ch_avail_gen):
-        super().__init__(n_tasks, n_ch)
+    def __init__(self, n_tasks, n_ch, task_gen, ch_avail_gen, rng=None):
+        super().__init__(n_tasks, n_ch, rng)
         self.task_gen = task_gen
         self.ch_avail_gen = ch_avail_gen
 
+        self._SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
+        self._SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex'])
+
     @classmethod
-    def relu_drop_default(cls, n_tasks, n_ch):
-        task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-                                     t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)  # task set generator
+    def relu_drop_default(cls, n_tasks, n_ch, rng=None):
+        _rng = check_rng(rng)
 
-        ch_avail_gen = UniformChanGenerator(lims=(0, 1))
+        task_gen = ReluDropTaskGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+                                         t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=_rng)  # task set generator
 
-        return cls(n_tasks, n_ch, task_gen, ch_avail_gen)
+        ch_avail_gen = UniformChanGenerator(lim=(0, 1), rng=_rng)
 
-    def __call__(self, n_gen=1):
-        for _ in range(n_gen):
-            tasks = list(self.task_gen(self.n_tasks))
-            ch_avail = list(self.ch_avail_gen(self.n_ch))
-
-            yield self._SchedulingProblem(tasks, ch_avail)
+        return cls(n_tasks, n_ch, task_gen, ch_avail_gen, _rng)
 
     def __eq__(self, other):
         if not isinstance(other, Random):
@@ -135,78 +56,137 @@ class Random(Base):
 
         return True if all(conditions) else False
 
-    def schedule_gen(self, n_gen, save=False, file=None):
-        dict_gen = {'problem_gen': self,
-                    # 'n_tasks': self.n_tasks, 'task_gen': self.task_gen,
-                    # 'n_ch': self.n_ch, 'ch_avail_gen': self.ch_avail_gen,
-                    'problems': [],
-                    # 't_ex': [], 'ch_ex': [],
-                    }
+    # def __call__(self, n_gen=1):
+    #     for _ in range(n_gen):
+    #         tasks = list(self.task_gen(self.n_tasks))
+    #         ch_avail = list(self.ch_avail_gen(self.n_ch))
+    #
+    #         yield self._SchedulingProblem(tasks, ch_avail)
 
-        # Search for existing file
-        if file is not None:
-            try:
-                with open('../../data/schedules/' + file, 'rb') as file:
-                    dict_gen_load = dill.load(file)
+    def __call__(self, n_gen=1, solve=False, save=False, file=None):
 
-                # Check equivalence of generators
-                if dict_gen_load['problem_gen'] == self:
-                    print('File already exists. Appending new data.')
-                    dict_gen.update(dict_gen_load)
+        # FIXME: variable number of yielded arguments!? Modify problem_gen calls in train_'s and env.reset
 
-            except FileNotFoundError:
-                pass
+        # FIXME: save optimal solutions
+        # TODO: train using complete tree info, not just B&B solution?
+
+        if save:
+            dict_gen = {'problem_gen': self,
+                        'problems': [],
+                        }
+            if solve:
+                dict_gen.update(solutions=[])
 
         # Generate tasks and find optimal schedules
-        for i_gen, problem in enumerate(self(n_gen)):
-            print(f'Task Set: {i_gen + 1}/{n_gen}', end='\n')
+        for _ in range(n_gen):
+            tasks = list(self.task_gen(self.n_tasks))
+            ch_avail = list(self.ch_avail_gen(self.n_ch))
 
-            dict_gen['problems'].append(problem)
+            problem = self._SchedulingProblem(tasks, ch_avail)
+            if solve:
+                t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=False)  # optimal scheduler
+                solution = self._SchedulingSolution(t_ex, ch_ex)
 
-            # TODO: train using complete tree info, not just B&B solution?
-            # t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True)  # optimal scheduler
-            # dict_gen['t_ex'].append(t_ex)
-            # dict_gen['ch_ex'].append(ch_ex)
+                yield problem, solution
+            else:
+                yield problem
 
-            # yield problem     # TODO: yield?
+            if save:
+                dict_gen['problems'].append(problem)
+                if solve:
+                    dict_gen['solutions'].append(solution)
 
-        # Save schedules
         if save:
             if file is None:
                 file = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
+            else:
+                try:
+                    with open('data/schedules/' + file, 'rb') as file:
+                        dict_gen_load = dill.load(file)
 
-            with open('../../data/schedules/' + file, 'wb') as file:
+                    # Check equivalence of generators
+                    conditions = [dict_gen_load['problem_gen'] == self,
+                                  ('solutions' in dict_gen_load.keys()) == solve    # both generators do or do not solve
+                                  ]
+                    if all(conditions):
+                        print('File already exists. Appending existing data.')
+
+                        dict_gen['problems'] += dict_gen_load['problems']
+                        if solve:
+                            dict_gen['solutions'] += dict_gen_load['solutions']
+
+                except FileNotFoundError:
+                    pass
+
+            with open('data/schedules/' + file, 'wb') as file:
                 dill.dump(dict_gen, file)  # save schedules
 
-        return dict_gen
+
+    # def schedule_gen(self, n_gen, save=False, file=None):
+    #     dict_gen = {'problem_gen': self,
+    #                 'problems': [],
+    #                 # 't_ex': [], 'ch_ex': [],
+    #                 }
+    #
+    #     # Search for existing file
+    #     if file is not None:
+    #         try:
+    #             with open('data/schedules/' + file, 'rb') as file:
+    #                 dict_gen_load = dill.load(file)
+    #
+    #             # Check equivalence of generators
+    #             if dict_gen_load['problem_gen'] == self:
+    #                 print('File already exists. Appending new data.')
+    #                 dict_gen = dict_gen_load
+    #
+    #         except FileNotFoundError:
+    #             pass
+    #
+    #     # Generate tasks and find optimal schedules
+    #     for i_gen, problem in enumerate(self(n_gen)):
+    #         print(f'Task Set: {i_gen + 1}/{n_gen}', end='\n')
+    #
+    #         dict_gen['problems'].append(problem)
+    #
+    #         # FIXME: save optimal solutions
+    #         # TODO: train using complete tree info, not just B&B solution?
+    #
+    #         # t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True)  # optimal scheduler
+    #         # dict_gen['t_ex'].append(t_ex)
+    #         # dict_gen['ch_ex'].append(ch_ex)/**
+    #
+    #     # Save schedules
+    #     if save:
+    #         if file is None:
+    #             file = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
+    #
+    #         with open('data/schedules/' + file, 'wb') as file:
+    #             dill.dump(dict_gen, file)  # save schedules
+    #
+    #     return dict_gen['problems']
 
 
-class Load(Base):
+class Dataset(Base):
+    def __init__(self, problems, problem_gen, iter_mode='repeat', shuffle=True, rng=None):
+        self.problems = problems
 
-    # FIXME: just serialize this object with the data stored in its attributes? or serialize the Random one?!?!?!
-
-    def __init__(self, file, iter_mode='repeat', shuffle=True, rng=None):
-        with open('../data/schedules/' + file, 'rb') as file:
-            dict_gen = dill.load(file)
-
-        problem_gen = dict_gen['problem_gen']
-
-        super().__init__(problem_gen.n_tasks, problem_gen.n_ch)
+        # TODO: these attributes only needed for Env observation space lims
+        super().__init__(problem_gen.n_tasks, problem_gen.n_ch, rng)
         self.task_gen = problem_gen.task_gen
         self.ch_avail_gen = problem_gen.ch_avail_gen
 
-        # super().__init__(dict_gen['n_tasks'], dict_gen['n_ch'])
-        # self.task_gen = dict_gen['task_gen']
-        # self.ch_avail_gen = dict_gen['ch_avail_gen']
-
-        self.problems = dict_gen['problems']
-
         self.iter_mode = iter_mode
         self.shuffle = shuffle
-        self.rng = check_rng(rng)
 
         self.i = None
         self.restart()
+
+    @classmethod
+    def load(cls, file, iter_mode='repeat', shuffle=True, rng=None):
+        with open('data/schedules/' + file, 'rb') as file:
+            dict_gen = dill.load(file)
+
+        return cls(dict_gen['problems'], dict_gen['problem_gen'], iter_mode, shuffle, rng)
 
     def restart(self):
         self.i = 0
@@ -229,13 +209,12 @@ class Load(Base):
 
 
 def main():
-    rand_gen = Random.relu_drop_default(n_tasks=6, n_ch=2)
+    rand_gen = Random.relu_drop_default(n_tasks=3, n_ch=2, rng=None)
 
-    probs = list(rand_gen(n_gen=3))
+    print(list(rand_gen(2)))
+    print(list(rand_gen(3)))
 
-    p = list(rand_gen.schedule_gen(n_gen=3, save=True))
-
-    # load_gen = Load('temp/2020-07-29_10-02-56')
+    # load_gen = Dataset('temp/2020-07-29_10-02-56')
     # probs2 = list(load_gen(n_gen=2))
 
 

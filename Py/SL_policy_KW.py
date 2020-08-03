@@ -114,7 +114,7 @@ def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=Fals
     callbacks = [keras.callbacks.EarlyStopping(patience=20, monitor='val_loss', min_delta=0.)]
 
     if do_tensorboard:
-        log_dir = './logs/TF_train'
+        log_dir = 'logs/TF_train'
         try:
             shutil.rmtree(log_dir)
         except FileNotFoundError:
@@ -153,7 +153,7 @@ def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=Fals
         plt.show()
 
     if save_model:      # TODO: pickle model and env together in dict? or just wrapped model func??
-        save_str = './models/temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
+        save_str = 'models/temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
         if os.path.isdir(save_str) == False:
             os.mkdir(save_str)
         model.save(save_str)
@@ -211,7 +211,7 @@ def main():
     model = train_sl(env, n_gen_train=n_gen_train, n_gen_val=n_gen_val, plot_history=True, do_tensorboard=False, save_model=True, gen_method=False)
     # model = train_sl(env, n_gen_train=n_gen_train, n_gen_val=n_gen_val, plot_history=True, do_tensorboard=False, save_model=True, gen_method=True)
 
-    # model = './models/2020-07-09_08-39-48'
+    # model = 'models/2020-07-09_08-39-48'
 
     scheduler = wrap_model(env, model)
 

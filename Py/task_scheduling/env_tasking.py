@@ -421,7 +421,6 @@ def data_gen(env, n_gen=1, save=False, file=None):
 
     # TODO: generate sample weights to prioritize earliest task selections??
     # TODO: train using complete tree info, not just B&B solution?
-    # TODO: yield?
 
     # env = env_cls(n_tasks, task_gen, n_ch, ch_avail_gen, **env_params)
 
@@ -451,9 +450,11 @@ def data_gen(env, n_gen=1, save=False, file=None):
     x_set, y_set = np.array(x_list), np.array(y_list)
 
     # if save:
-    #     d_set = tf.data.Dataset.from_tensor_slices((x_set, y_set))       # FIXME
+    #     d_set = tf.data.Dataset.from_tensor_slices((x_set, y_set))       # TODO
 
-    return x_set, y_set     # TODO: partition data by tasking problem
+    # TODO: yield?
+    # TODO: partition data by tasking problem
+    return x_set, y_set
 
 
 def train_agent(problem_gen,
@@ -517,7 +518,7 @@ def train_agent(problem_gen,
         if save_dir is None:
             save_dir = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
 
-        with open('../agents/' + save_dir, 'wb') as file:
+        with open('agents/' + save_dir, 'wb') as file:
             dill.dump({'env': env, 'agent': agent}, file)    # save environment
 
     return wrap_agent(env, agent)
@@ -525,7 +526,7 @@ def train_agent(problem_gen,
 
 def load_agent(load_dir):
     """Loads agent and environment, returns wrapped scheduling function."""
-    with open('../agents/' + load_dir, 'rb') as file:
+    with open('agents/' + load_dir, 'rb') as file:
         pkl_dict = dill.load(file)
     return wrap_agent(**pkl_dict)
 
@@ -573,7 +574,7 @@ def main():
     n_tasks = 4
     n_ch = 2
 
-    # task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+    # task_gen = ReluDropTaskGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
     #                              t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)
     #
     # def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator

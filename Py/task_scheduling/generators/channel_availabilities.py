@@ -19,27 +19,27 @@ class Uniform(Base):
 
     Parameters
     ----------
-    lims : tuple of float or list of float
-        Limits for uniform RNG
+    lim : tuple of float or list of float
+        Lower and upper limits for uniform RNG
 
     """
 
-    def __init__(self, lims, rng=None):
+    def __init__(self, lim, rng=None):
         super().__init__(rng)
-        self.lims = lims
+        self.lim = lim
 
     def __call__(self, n_tasks):
         """Randomly generate a list of channel availabilities."""
         for _ in range(n_tasks):
-            yield self.rng.uniform(*self.lims)
+            yield self.rng.uniform(*self.lim)
 
     def __eq__(self, other):
         if not isinstance(other, Uniform):
             return False
 
-        return True if self.lims == other.lims else False
+        return True if self.lim == other.lim else False
 
     @property
     def param_repr_lim(self):
         """Low and high tuples bounding parametric task representations."""
-        return self.lims
+        return self.lim

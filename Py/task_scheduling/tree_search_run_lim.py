@@ -7,7 +7,7 @@ import numpy as np
 from util.generic import check_rng
 from util.results import eval_loss
 
-from generators.tasks import ReluDrop as ReluDropGenerator
+from generators.tasks import ReluDrop as ReluDropTaskGenerator
 from tree_search import TreeNode, TreeNodeBound, SearchNode
 
 
@@ -324,8 +324,8 @@ def main():
     n_tasks = 8
     n_channels = 2
 
-    task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-                                 t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=100)  # task set generator
+    task_gen = ReluDropTaskGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+                                     t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=100)  # task set generator
 
     def ch_avail_gen(n_ch, rng=check_rng(300)):  # channel availability time generator
         return rng.uniform(0, 2, n_ch)

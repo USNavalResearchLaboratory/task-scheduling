@@ -70,15 +70,15 @@ class ReluDrop(Base):
     Parameters
     ----------
     duration_lim : tuple of float or list of float
-        Limits for random generation of tasks.ReluDrop.duration
+        Lower and upper limits for random generation of tasks.ReluDrop.duration
     t_release_lim : tuple of float or list of float
-        Limits for random generation of tasks.ReluDrop.t_release
+        Lower and upper limits for random generation of tasks.ReluDrop.t_release
     slope_lim : tuple of float or list of float
-        Limits for random generation of tasks.ReluDrop.slope
+        Lower and upper limits for random generation of tasks.ReluDrop.slope
     t_drop_lim : tuple of float or list of float
-        Limits for random generation of tasks.ReluDrop.t_drop
+        Lower and upper limits for random generation of tasks.ReluDrop.t_drop
     l_drop_lim : tuple of float or list of float
-        Limits for random generation of tasks.ReluDrop.l_drop
+        Lower and upper limits for random generation of tasks.ReluDrop.l_drop
 
     """
 

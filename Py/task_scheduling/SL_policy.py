@@ -109,7 +109,7 @@ def train_policy(problem_gen,
     model.compile(**compile_params)
 
     if do_tensorboard:
-        log_dir = '../logs/TF_train'
+        log_dir = 'logs/TF_train'
         try:
             shutil.rmtree(log_dir)
         except FileNotFoundError:
@@ -142,8 +142,8 @@ def train_policy(problem_gen,
         if save_dir is None:
             save_dir = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
 
-        model.save('../models/' + save_dir)      # save TF model
-        with open('../models/' + save_dir + '/env.pkl', 'wb') as file:
+        model.save('models/' + save_dir)      # save TF model
+        with open('models/' + save_dir + '/env.pkl', 'wb') as file:
             dill.dump(env, file)    # save environment
 
     return wrap_policy(env, model)
@@ -151,9 +151,9 @@ def train_policy(problem_gen,
 
 def load_policy(load_dir):
     """Loads network model and environment, returns wrapped scheduling function."""
-    with open('../models/' + load_dir + '/env.pkl', 'rb') as file:
+    with open('models/' + load_dir + '/env.pkl', 'rb') as file:
         env = dill.load(file)
-    model = keras.models.load_model('../models/' + load_dir)
+    model = keras.models.load_model('models/' + load_dir)
 
     return wrap_policy(env, model)
 
@@ -184,7 +184,7 @@ def main():
     n_tasks = 4
     n_ch = 1
 
-    # task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+    # task_gen = ReluDropTaskGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
     #                              t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)  # task set generator
 
     # task_gen = PermuteOrder(task_gen(n_tasks))

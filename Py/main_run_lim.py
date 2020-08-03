@@ -15,7 +15,7 @@ from util.generic import algorithm_repr, check_rng
 from util.results import check_valid, eval_loss
 from util.plot import plot_task_losses, plot_loss_runtime_std
 
-from generators.tasks import ReluDrop as ReluDropGenerator
+from generators.tasks import ReluDrop as ReluDropTaskGenerator
 from tree_search_run_lim import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release
 from env_tasking import StepTaskingEnv, wrap_agent_run_lim, RandomAgent
 
@@ -28,8 +28,8 @@ n_gen = 2      # number of task scheduling problems
 n_tasks = 6
 n_channels = 2
 
-task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-                             t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)       # task set generator
+task_gen = ReluDropTaskGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+                                 t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)       # task set generator
 
 
 def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time generator
