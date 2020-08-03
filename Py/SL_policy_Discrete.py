@@ -250,7 +250,7 @@ def main():
                   'seq_encoding': 'indicator'
                   }
 
-    n_total = 100
+    n_total = 1000
     n_gen_train = np.round(n_total*.8).astype(int)
     n_gen_val = n_total - n_gen_train
 

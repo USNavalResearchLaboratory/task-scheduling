@@ -11,6 +11,10 @@ import matplotlib.pyplot as plt
 import time     # TODO: use builtin module timeit instead? or cProfile?
 import random
 import math
+from SL_policy_Discrete import load_policy, wrap_policy
+
+
+
 
 random.seed(30)
 
@@ -30,8 +34,14 @@ from more_itertools import locate
 
 from math import factorial, floor
 
+
+# policy_file = 'temp/2020-08-03_11-08-06'
+policy_file = 'temp/2020-08-03_11-08-06'
+network_policy = load_policy(policy_file)
+
 alg_funcs = [partial(earliest_release, do_swap=True),
              partial(random_sequencer),
+             partial(network_policy),
              partial(branch_bound, verbose=False)]
 
              #partial(branch_bound, verbose=False),
