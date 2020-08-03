@@ -87,8 +87,8 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
         model = keras.Sequential([keras.layers.Flatten(input_shape=env.observation_space.shape),
                                   keras.layers.Dense(60, activation='relu'),
                                   keras.layers.Dense(60, activation='relu'),
-                                  # keras.layers.Dense(30, activation='relu'),
-                                  # keras.layers.Dropout(0.2),
+                                  keras.layers.Dense(30, activation='relu'),
+                                  keras.layers.Dropout(0.2),
                                   # keras.layers.Dense(100, activation='relu'),
                                   keras.layers.Dense(n_tasks, activation='softmax')])
     elif model.upper() is 'CNN':
@@ -204,7 +204,7 @@ def wrap_policy(env, model):
 
 
 def main():
-    n_tasks = 4
+    n_tasks = 6
     n_channels = 1
 
     # distro = []
