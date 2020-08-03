@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from tensorflow import keras
 from tensorboard import program
 import webbrowser
+import os
 
 from util.generic import check_rng, Distribution
 from util.results import check_valid, eval_loss
@@ -90,6 +91,26 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
                                   # keras.layers.Dropout(0.2),
                                   # keras.layers.Dense(100, activation='relu'),
                                   keras.layers.Dense(n_tasks, activation='softmax')])
+    elif model.upper() is 'CNN':
+        # current_shape = np.append(x_train[0].shape, 1)
+        input_shape = d_train[0].shape
+        model = keras.Sequential([keras.layers.BatchNormalization(input_shape=input_shape),
+                                  keras.layers.Conv2D(32, kernel_size=(2, 2), strides=(1, 1), activation='relu'),
+                                  keras.layers.BatchNormalization(),
+                                  # keras.layers.MaxPool2D(pool_size=(2, 2), strides=(2, 2)),
+                                  keras.layers.Dropout(0.2),
+                                  keras.layers.Conv2D(64, (2, 2), activation='relu'),
+                                  keras.layers.BatchNormalization(),
+                                  keras.layers.Conv2D(128, (2, 2), activation='relu'),
+                                  keras.layers.BatchNormalization(),
+                                  # keras.layers.MaxPooling2D(pool_size=(2, 2)),
+                                  keras.layers.Flatten(),
+                                  keras.layers.Dense(128, activation='relu'),
+                                  keras.layers.Dense(60, activation='relu'),
+                                  # keras.layers.Dense(30, activation='relu'),
+                                  # keras.layers.Dropout(0.2),
+                                  # keras.layers.Dense(100, activation='relu'),
+                                  keras.layers.Dense(env.n_tasks, activation='softmax')])
 
     if compile_params is None:
         compile_params = {'optimizer': 'rmsprop',
@@ -139,8 +160,11 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
     if save:
         if save_dir is None:
             save_dir = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
+            save_path = './models/' + save_dir
+        if ~os.path.isdir(save_path):
+            os.mkdir(save_path)
 
-        model.save('./models/' + save_dir)      # save TF model
+        model.save(save_path)      # save TF model
 
         with open('./models/' + save_dir + '/env.pkl', 'wb') as file:
             dill.dump(env, file)    # save environment
@@ -183,23 +207,25 @@ def main():
     n_tasks = 4
     n_channels = 1
 
-    duration_distro = Distribution(feature_name='duration', type='discrete', values=np.array([18e-3, 36e-3]), probs=(.25, .75))
-    a = duration_distro.gen_samps(size=10)
-    t_release_distro = Distribution(feature_name='duration', type='discrete', values=(18e-3, 36e-3), probs=(.25, .75))
-    slope_distro = Distribution(feature_name='duration', type='discrete', values=(18e-3, 36e-3), probs=(.25, .75))
-    duration_distro = Distribution(feature_name='duration', type='discrete', values=(18e-3, 36e-3), probs=(.25, .75))
+    # distro = []
+    # distro[0] = Distribution(feature_name='duration', type='discrete', values=np.array([18e-3, 36e-3]), probs=(.25, .75))
+    # a = distro[0].gen_samps(size=10)
+    # distro[1] = Distribution(feature_name='t_release', type='uniform', lims=(0, 6))
+    # distro[2] = Distribution(feature_name='slope', type='uniform', lims=(0.1, 2))
+    # distro[3] = Distribution(feature_name='t_drop', type='uniform', lims=(2, 6))
+    # distro[4] = Distribution(feature_name='l_drop', type='uniform', lims=(100, 300))
 
 
 
     discrete_flag = np.array([True, False, False, False, False]) # Indicates whether feature is discrete or not
     task_gen = ReluDropGenerator(duration_lim=(18e-3, 36e-3), t_release_lim=(0, 6), slope_lim=(0.1, 2),
-                                 t_drop_lim=(2, 6), l_drop_lim=(100, 300), rng=None, discrete_flag=discrete_flag)  # task set generator
+                                 t_drop_lim=(0, 15), l_drop_lim=(100, 300), rng=None, discrete_flag=discrete_flag)  # task set generator
 
     # task_gen = PermuteTaskGenerator(task_gen(n_tasks))
     # task_gen = DeterministicTaskGenerator(task_gen(n_tasks))
 
     def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
-        return rng.uniform(0, 0, n_ch)
+        return rng.uniform(6, 6, n_ch)
 
     features = np.array([('duration', lambda self: self.duration, task_gen.duration_lim),
                          ('release time', lambda self: self.t_release, (0., task_gen.t_release_lim[1])),
@@ -224,9 +250,14 @@ def main():
                   'seq_encoding': 'indicator'
                   }
 
+    n_total = 100
+    n_gen_train = np.round(n_total*.8).astype(int)
+    n_gen_val = n_total - n_gen_train
+
     scheduler = train_policy(n_tasks, task_gen, n_channels, ch_avail_gen,
+                             n_gen_train=n_gen_train, n_gen_val=n_gen_val,
                              env_cls=env_cls, env_params=env_params,
-                             do_tensorboard=False)
+                             do_tensorboard=False, save=True)
 
     tasks = task_gen(n_tasks)
     ch_avail = ch_avail_gen(n_channels)

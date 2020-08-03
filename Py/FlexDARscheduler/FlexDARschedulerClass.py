@@ -349,6 +349,8 @@ for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
             # TODO Put jobs in job_scheduler at the end of the master list "job", Finish plotting - Done
 ## Performance Assessment
 A = np.subtract( record['t_release'] , np.max(record['ch_avail'],axis=2)[:,:,None] )
+B = np.subtract( record['t_release'] , record['drop_time'] )
+
 for ii in range(len(alg_reprs)):
     plt.figure(97+ii)
     ax1 = plt.subplot(321)
@@ -367,7 +369,9 @@ for ii in range(len(alg_reprs)):
     ax5 = plt.subplot(325)
     plt.hist(np.ravel(A[:, ii, :]), density=True, bins=100)
     plt.xlabel('t_release - max(ch_avail)')
-
+    ax6 = plt.subplot(326)
+    plt.hist(np.ravel(B[:, ii, :]), density=True, bins=100)
+    plt.xlabel('t_release - drop_time')
 
 
 
