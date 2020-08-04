@@ -40,8 +40,8 @@ max_runtimes = np.logspace(-2, 0, 11)
 
 # Algorithms
 
-env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen)
-random_agent = wrap_agent_run_lim(env, RandomAgent(env.action_space))
+# env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen)
+# random_agent = wrap_agent_run_lim(env, RandomAgent(env.action_space))
 
 # TODO: import learner changes from main.py
 # TODO: return NaN for algorithm timeout?
@@ -51,9 +51,10 @@ alg_funcs = [partial(branch_bound, verbose=False),
              partial(mcts, verbose=False),
              partial(earliest_release, do_swap=True),
              partial(random_sequencer),
-             partial(random_agent)]
+             # partial(random_agent)
+             ]
 
-alg_n_iter = [5, 5, 1, 1, 20, 20]       # number of runs per problem
+alg_n_iter = [5, 5, 1, 1, 20]       # number of runs per problem
 
 alg_reprs = list(map(algorithm_repr, alg_funcs))    # string representations
 
@@ -63,10 +64,14 @@ n_runtimes = len(max_runtimes)
 
 l_ex_iter = np.array(list(zip(*[np.empty((n_gen*n_runtimes, n_iter)) for n_iter in alg_n_iter])),
                      dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float],
-                                    [(n_iter,) for n_iter in alg_n_iter]))).reshape(n_gen, n_runtimes)
+                                    list(zip(alg_n_iter))))).reshape(n_gen, n_runtimes)
 
-l_ex_mean = np.array(list(zip(*np.empty((len(alg_reprs), n_gen*n_runtimes)))),
-                     dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float]))).reshape(n_gen, n_runtimes)
+# l_ex_mean = np.array(list(zip(*np.empty((len(alg_reprs), n_gen*n_runtimes)))),
+#                      dtype=[(alg_repr, np.float) for alg_repr in alg_reprs]).reshape(n_gen, n_runtimes)
+
+l_ex_mean = np.array([[(np.nan,) * len(alg_reprs)] * n_runtimes] * n_gen,
+                     dtype=[(alg_repr, np.float) for alg_repr in alg_reprs])
+
 
 for i_gen in range(n_gen):      # Generate new scheduling problem
     print(f'Task Set: {i_gen + 1}/{n_gen}')

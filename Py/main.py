@@ -35,8 +35,10 @@ plt.style.use('seaborn')
 # %% Inputs
 n_gen = 2      # number of task scheduling problems
 
-# problem_gen = RandomProblem.relu_drop_default(n_tasks=4, n_ch=2)
-problem_gen = ProblemDataset.load('temp/2020-08-03_12-54-39', iter_mode='repeat', shuffle=True, rng=None)
+solve = False
+
+problem_gen = RandomProblem.relu_drop_default(n_tasks=4, n_ch=2)
+# problem_gen = ProblemDataset.load('temp/2020-08-03_12-54-39', iter_mode='repeat', shuffle=True, rng=None)
 
 # FIXME: ensure train/test separation for loaded problem data
 
@@ -111,20 +113,37 @@ alg_reprs = list(map(algorithm_repr, alg_funcs))    # string representations
 
 
 # %% Evaluate
-t_run_iter = np.array(list(zip(*[np.empty((n_gen, n_iter)) for n_iter in alg_n_iter])),
-                      dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float], [(n_run,) for n_run in alg_n_iter])))
+# t_run_iter = np.array(list(zip(*[np.empty((n_gen, n_iter)) for n_iter in alg_n_iter])),
+#                       dtype=list(zip(alg_reprs, [np.float] * len(alg_reprs), list(zip(alg_n_iter)))))
 
-l_ex_iter = np.array(list(zip(*[np.empty((n_gen, n_iter)) for n_iter in alg_n_iter])),
-                     dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float], [(n_run,) for n_run in alg_n_iter])))
+# l_ex_iter = np.array(list(zip(*[np.empty((n_gen, n_iter)) for n_iter in alg_n_iter])),
+#                      dtype=list(zip(alg_reprs, [np.float] * len(alg_reprs), list(zip(alg_n_iter)))))
 
-t_run_mean = np.array(list(zip(*np.empty((len(alg_reprs), n_gen)))),
-                      dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float])))
+t_run_iter = np.array([tuple([np.nan] * n_iter for n_iter in alg_n_iter)] * n_gen,
+                      dtype=[(alg_repr, np.float, (n_iter,)) for alg_repr, n_iter in zip(alg_reprs, alg_n_iter)])
 
-l_ex_mean = np.array(list(zip(*np.empty((len(alg_reprs), n_gen)))),
-                     dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float])))
+l_ex_iter = np.array([tuple([np.nan] * n_iter for n_iter in alg_n_iter)] * n_gen,
+                     dtype=[(alg_repr, np.float, (n_iter,)) for alg_repr, n_iter in zip(alg_reprs, alg_n_iter)])
 
-for i_gen, (tasks, ch_avail) in enumerate(problem_gen(n_gen)):      # Generate new scheduling problem
+# t_run_mean = np.array(list(zip(*np.empty((len(alg_reprs), n_gen)))),
+#                       dtype=list(zip(alg_reprs, [np.float] * len(alg_reprs))))
+
+# l_ex_mean = np.array(list(zip(*np.empty((len(alg_reprs), n_gen)))),
+#                      dtype=list(zip(alg_reprs, [np.float] * len(alg_reprs))))
+
+t_run_mean = np.array([(np.nan,) * len(alg_reprs)] * n_gen,
+                      dtype=[(alg_repr, np.float) for alg_repr in alg_reprs])
+
+l_ex_mean = np.array([(np.nan,) * len(alg_reprs)] * n_gen,
+                     dtype=[(alg_repr, np.float) for alg_repr in alg_reprs])
+
+for i_gen, out_gen in enumerate(problem_gen(n_gen, solve=solve)):      # Generate new scheduling problem
     print(f'Task Set: {i_gen + 1}/{n_gen}')
+
+    if solve:
+        (tasks, ch_avail), (t_ex_opt, ch_ex_opt) = out_gen
+    else:
+        tasks, ch_avail = out_gen
 
     _, ax_gen = plt.subplots(2, 1, num=f'Task Set: {i_gen + 1}', clear=True)
     plot_task_losses(tasks, ax=ax_gen[0])
@@ -133,13 +152,16 @@ for i_gen, (tasks, ch_avail) in enumerate(problem_gen(n_gen)):      # Generate n
         for iter_ in range(n_iter):      # Perform new algorithm runs
             print(f'  {alg_repr} - Iteration: {iter_ + 1}/{n_iter}', end='\r')
 
+            # Run algorithm
             t_start = perf_counter()
             t_ex, ch_ex = alg_func(tasks, ch_avail)
             t_run = perf_counter() - t_start
 
+            # Evaluate schedule
             check_valid(tasks, t_ex, ch_ex)
             l_ex = eval_loss(tasks, t_ex)
 
+            # Store loss and runtime
             t_run_iter[alg_repr][i_gen, iter_] = t_run
             l_ex_iter[alg_repr][i_gen, iter_] = l_ex
 

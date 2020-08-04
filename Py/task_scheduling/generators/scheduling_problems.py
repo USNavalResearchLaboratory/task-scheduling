@@ -1,4 +1,4 @@
-"""Generator objects for tasks, channel availabilities, and complete tasking problems with optimal solutions."""
+"""Generator objects for complete tasking problems with optimal solutions."""
 
 import time
 import dill
@@ -63,38 +63,38 @@ class Random(Base):
     #
     #         yield self._SchedulingProblem(tasks, ch_avail)
 
-    def __call__(self, n_gen=1, solve=False, save=False, file=None):
+    def __call__(self, n_gen=1, solve=False, save=False, file=None, verbose=False):
 
-        # FIXME: variable number of yielded arguments!? Modify problem_gen calls in train_'s and env.reset
+        # FIXME: variable number of yielded arguments!? Modify problem_gen calls in main and env.reset
 
-        # FIXME: save optimal solutions
         # TODO: train using complete tree info, not just B&B solution?
 
-        if save:
-            dict_gen = {'problem_gen': self,
-                        'problems': [],
-                        }
-            if solve:
-                dict_gen.update(solutions=[])
+        pkl_dict = {'problem_gen': self, 'problems': []}
+        if solve:
+            pkl_dict.update(solutions=[])
 
         # Generate tasks and find optimal schedules
-        for _ in range(n_gen):
+        for i_gen in range(n_gen):
+            if verbose:
+                print(f'Task Set: {i_gen + 1}/{n_gen}', end='\n')
+
             tasks = list(self.task_gen(self.n_tasks))
             ch_avail = list(self.ch_avail_gen(self.n_ch))
 
             problem = self._SchedulingProblem(tasks, ch_avail)
+            if save:
+                pkl_dict['problems'].append(problem)
+
             if solve:
-                t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=False)  # optimal scheduler
+                t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=verbose)  # optimal scheduler
+
                 solution = self._SchedulingSolution(t_ex, ch_ex)
+                if save:
+                    pkl_dict['solutions'].append(solution)
 
                 yield problem, solution
             else:
                 yield problem
-
-            if save:
-                dict_gen['problems'].append(problem)
-                if solve:
-                    dict_gen['solutions'].append(solution)
 
         if save:
             if file is None:
@@ -102,24 +102,24 @@ class Random(Base):
             else:
                 try:
                     with open('data/schedules/' + file, 'rb') as file:
-                        dict_gen_load = dill.load(file)
+                        pkl_dict_load = dill.load(file)
 
                     # Check equivalence of generators
-                    conditions = [dict_gen_load['problem_gen'] == self,
-                                  ('solutions' in dict_gen_load.keys()) == solve    # both generators do or do not solve
+                    conditions = [pkl_dict_load['problem_gen'] == self,
+                                  ('solutions' in pkl_dict_load.keys()) == solve    # both generators do or do not solve
                                   ]
                     if all(conditions):
                         print('File already exists. Appending existing data.')
 
-                        dict_gen['problems'] += dict_gen_load['problems']
+                        pkl_dict['problems'] += pkl_dict_load['problems']
                         if solve:
-                            dict_gen['solutions'] += dict_gen_load['solutions']
+                            pkl_dict['solutions'] += pkl_dict_load['solutions']
 
                 except FileNotFoundError:
                     pass
 
             with open('data/schedules/' + file, 'wb') as file:
-                dill.dump(dict_gen, file)  # save schedules
+                dill.dump(pkl_dict, file)  # save schedules
 
 
     # def schedule_gen(self, n_gen, save=False, file=None):
@@ -167,13 +167,15 @@ class Random(Base):
 
 
 class Dataset(Base):
-    def __init__(self, problems, problem_gen, iter_mode='repeat', shuffle=True, rng=None):
-        self.problems = problems
+    def __init__(self, problem_gen, problems, solutions=None, iter_mode='repeat', shuffle=True, rng=None):
 
         # TODO: these attributes only needed for Env observation space lims
         super().__init__(problem_gen.n_tasks, problem_gen.n_ch, rng)
         self.task_gen = problem_gen.task_gen
         self.ch_avail_gen = problem_gen.ch_avail_gen
+
+        self.problems = problems
+        self.solutions = solutions
 
         self.iter_mode = iter_mode
         self.shuffle = shuffle
@@ -183,17 +185,26 @@ class Dataset(Base):
 
     @classmethod
     def load(cls, file, iter_mode='repeat', shuffle=True, rng=None):
+        # TODO: loading entire dict of data into attribute defeats purpose of generator yield!?
+
         with open('data/schedules/' + file, 'rb') as file:
             dict_gen = dill.load(file)
 
-        return cls(dict_gen['problems'], dict_gen['problem_gen'], iter_mode, shuffle, rng)
+        if 'solutions' in dict_gen.keys():
+            return cls(dict_gen['problem_gen'], dict_gen['problems'], dict_gen['solutions'], iter_mode, shuffle, rng)
+        else:
+            return cls(dict_gen['problem_gen'], dict_gen['problems'], None, iter_mode, shuffle, rng)
 
     def restart(self):
         self.i = 0
         if self.shuffle:
             self.rng.shuffle(self.problems)
 
-    def __call__(self, n_gen=1):
+    def __call__(self, n_gen=1, solve=False):
+        if solve and self.solutions is None:
+            warnings.warn("No solutions in data set, setting solve=False.")
+            solve = False
+
         for _ in range(n_gen):
             if self.i == len(self.problems):
                 if self.iter_mode == 'once':
@@ -203,8 +214,12 @@ class Dataset(Base):
                     self.i = 0
 
             problem = self.problems[self.i]
+            if solve:
+                solution = self.solutions[self.i]
+                yield problem, solution
+            else:
+                yield problem
 
-            yield problem
             self.i += 1
 
 

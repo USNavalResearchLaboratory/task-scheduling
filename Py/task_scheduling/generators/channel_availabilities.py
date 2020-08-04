@@ -1,3 +1,5 @@
+"""Generator objects for channel availabilities."""
+
 from util.generic import check_rng
 
 

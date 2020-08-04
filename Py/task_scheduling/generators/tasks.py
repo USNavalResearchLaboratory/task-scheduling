@@ -1,4 +1,4 @@
-"""Generator objects for tasks, channel availabilities, and complete tasking problems with optimal solutions."""
+"""Generator objects for tasks."""
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -118,3 +118,5 @@ class ReluDrop(Base):
     def param_repr_lim(self):
         """Low and high tuples bounding parametric task representations."""
         return zip(self.duration_lim, self.t_release_lim, self.slope_lim, self.t_drop_lim, self.l_drop_lim)
+
+

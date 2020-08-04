@@ -1,6 +1,7 @@
 import time
 from types import MethodType
 import dill
+import functools
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -88,10 +89,10 @@ class BaseTaskingEnv(gym.Env):
     """
 
     def __init__(self, problem_gen, node_cls=TreeNode, features=None, sort_func=None):
-        self.n_tasks = problem_gen.n_tasks
-        self.n_ch = problem_gen.n_ch
-
         self.problem_gen = problem_gen
+
+        self.n_tasks = self.problem_gen.n_tasks
+        self.n_ch = self.problem_gen.n_ch
         # self.task_gen = task_gen
         # self.ch_avail_gen = ch_avail_gen
 
@@ -533,6 +534,8 @@ def load_agent(load_dir):
 
 def wrap_agent(env, agent):
     """Generate scheduling function by running an agent on a single environment episode."""
+
+    # TODO: can decorators be used to wrap?? https://realpython.com/primer-on-python-decorators/
 
     def scheduling_agent(tasks, ch_avail):
         observation, reward, done = env.reset(tasks, ch_avail), 0, False
