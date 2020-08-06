@@ -99,7 +99,7 @@ def train_policy(problem_gen,
                           }
 
     if fit_params is None:
-        fit_params = {'epochs': 1000,
+        fit_params = {'epochs': 100,
                       'batch_size': 32,
                       'sample_weight': None,
                       'validation_data': d_val,

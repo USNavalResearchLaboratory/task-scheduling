@@ -1,14 +1,16 @@
 """Generator objects for complete tasking problems with optimal solutions."""
 
-import time
+from time import strftime
 import dill
 import warnings
 from collections import namedtuple
+from functools import partial
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from util.generic import check_rng
+from util.results import timing_wrapper, check_valid
 from generators.tasks import ReluDrop as ReluDropTaskGenerator
 from generators.channel_availabilities import Uniform as UniformChanGenerator
 from tree_search import branch_bound
@@ -24,15 +26,43 @@ class Base:
         self.n_ch = n_ch
         self.rng = check_rng(rng)
 
+        self._SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
+        self._SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
+
+    # TODO: DRY principle - move call code here?
+
+    @staticmethod
+    def save(pkl_dict, file=None):
+        if file is None:
+            file = 'temp/{}'.format(strftime('%Y-%m-%d_%H-%M-%S'))
+        else:
+            try:
+                with open('data/schedules/' + file, 'rb') as file:
+                    pkl_dict_load = dill.load(file)
+
+                # Check equivalence of generators
+                if pkl_dict_load['problem_gen'] == pkl_dict['problem_gen']:
+                    print('File already exists. Appending existing data.')
+
+                    pkl_dict['problems'] += pkl_dict_load['problems']
+                    if 'solutions' in pkl_dict.keys():
+                        try:
+                            pkl_dict['solutions'] += pkl_dict_load['solutions']
+                        except KeyError:
+                            return
+
+            except FileNotFoundError:
+                pass
+
+        with open('data/schedules/' + file, 'wb') as file:
+            dill.dump(pkl_dict, file)  # save schedules
+
 
 class Random(Base):
     def __init__(self, n_tasks, n_ch, task_gen, ch_avail_gen, rng=None):
         super().__init__(n_tasks, n_ch, rng)
         self.task_gen = task_gen
         self.ch_avail_gen = ch_avail_gen
-
-        self._SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
-        self._SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex'])
 
     @classmethod
     def relu_drop_default(cls, n_tasks, n_ch, rng=None):
@@ -56,17 +86,9 @@ class Random(Base):
 
         return True if all(conditions) else False
 
-    # def __call__(self, n_gen=1):
-    #     for _ in range(n_gen):
-    #         tasks = list(self.task_gen(self.n_tasks))
-    #         ch_avail = list(self.ch_avail_gen(self.n_ch))
-    #
-    #         yield self._SchedulingProblem(tasks, ch_avail)
+    def __call__(self, n_gen=1, solve=False, verbose=False, save=False, file=None):
 
-    def __call__(self, n_gen=1, solve=False, save=False, file=None, verbose=False):
-
-        # FIXME: variable number of yielded arguments!? Modify problem_gen calls in main and env.reset
-
+        # TODO: buffer generated data across multiple calls, save and clear buffer using separate method?
         # TODO: train using complete tree info, not just B&B solution?
 
         pkl_dict = {'problem_gen': self, 'problems': []}
@@ -86,9 +108,8 @@ class Random(Base):
                 pkl_dict['problems'].append(problem)
 
             if solve:
-                t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=verbose)  # optimal scheduler
-
-                solution = self._SchedulingSolution(t_ex, ch_ex)
+                t_ex, ch_ex, t_run = timing_wrapper(partial(branch_bound, verbose=verbose))(tasks, ch_avail)
+                solution = self._SchedulingSolution(t_ex, ch_ex, t_run)
                 if save:
                     pkl_dict['solutions'].append(solution)
 
@@ -97,73 +118,30 @@ class Random(Base):
                 yield problem
 
         if save:
-            if file is None:
-                file = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
-            else:
-                try:
-                    with open('data/schedules/' + file, 'rb') as file:
-                        pkl_dict_load = dill.load(file)
-
-                    # Check equivalence of generators
-                    conditions = [pkl_dict_load['problem_gen'] == self,
-                                  ('solutions' in pkl_dict_load.keys()) == solve    # both generators do or do not solve
-                                  ]
-                    if all(conditions):
-                        print('File already exists. Appending existing data.')
-
-                        pkl_dict['problems'] += pkl_dict_load['problems']
-                        if solve:
-                            pkl_dict['solutions'] += pkl_dict_load['solutions']
-
-                except FileNotFoundError:
-                    pass
-
-            with open('data/schedules/' + file, 'wb') as file:
-                dill.dump(pkl_dict, file)  # save schedules
-
-
-    # def schedule_gen(self, n_gen, save=False, file=None):
-    #     dict_gen = {'problem_gen': self,
-    #                 'problems': [],
-    #                 # 't_ex': [], 'ch_ex': [],
-    #                 }
-    #
-    #     # Search for existing file
-    #     if file is not None:
-    #         try:
-    #             with open('data/schedules/' + file, 'rb') as file:
-    #                 dict_gen_load = dill.load(file)
-    #
-    #             # Check equivalence of generators
-    #             if dict_gen_load['problem_gen'] == self:
-    #                 print('File already exists. Appending new data.')
-    #                 dict_gen = dict_gen_load
-    #
-    #         except FileNotFoundError:
-    #             pass
-    #
-    #     # Generate tasks and find optimal schedules
-    #     for i_gen, problem in enumerate(self(n_gen)):
-    #         print(f'Task Set: {i_gen + 1}/{n_gen}', end='\n')
-    #
-    #         dict_gen['problems'].append(problem)
-    #
-    #         # FIXME: save optimal solutions
-    #         # TODO: train using complete tree info, not just B&B solution?
-    #
-    #         # t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True)  # optimal scheduler
-    #         # dict_gen['t_ex'].append(t_ex)
-    #         # dict_gen['ch_ex'].append(ch_ex)/**
-    #
-    #     # Save schedules
-    #     if save:
-    #         if file is None:
-    #             file = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
-    #
-    #         with open('data/schedules/' + file, 'wb') as file:
-    #             dill.dump(dict_gen, file)  # save schedules
-    #
-    #     return dict_gen['problems']
+            self.save(pkl_dict, file)
+            # if file is None:
+            #     file = 'temp/{}'.format(strftime('%Y-%m-%d_%H-%M-%S'))
+            # else:
+            #     try:
+            #         with open('data/schedules/' + file, 'rb') as file:
+            #             pkl_dict_load = dill.load(file)
+            #
+            #         # Check equivalence of generators
+            #         conditions = [pkl_dict_load['problem_gen'] == pkl_dict['problem_gen'],
+            #                       ('solutions' in pkl_dict_load.keys()) == solve    # both generators do or do not solve
+            #                       ]
+            #         if all(conditions):
+            #             print('File already exists. Appending existing data.')
+            #
+            #             pkl_dict['problems'] += pkl_dict_load['problems']
+            #             if solve:
+            #                 pkl_dict['solutions'] += pkl_dict_load['solutions']
+            #
+            #     except FileNotFoundError:
+            #         pass
+            #
+            # with open('data/schedules/' + file, 'wb') as file:
+            #     dill.dump(pkl_dict, file)  # save schedules
 
 
 class Dataset(Base):
@@ -171,6 +149,7 @@ class Dataset(Base):
 
         # TODO: these attributes only needed for Env observation space lims
         super().__init__(problem_gen.n_tasks, problem_gen.n_ch, rng)
+        self.problem_gen = problem_gen
         self.task_gen = problem_gen.task_gen
         self.ch_avail_gen = problem_gen.ch_avail_gen
 
@@ -190,37 +169,78 @@ class Dataset(Base):
         with open('data/schedules/' + file, 'rb') as file:
             dict_gen = dill.load(file)
 
-        if 'solutions' in dict_gen.keys():
-            return cls(dict_gen['problem_gen'], dict_gen['problems'], dict_gen['solutions'], iter_mode, shuffle, rng)
-        else:
-            return cls(dict_gen['problem_gen'], dict_gen['problems'], None, iter_mode, shuffle, rng)
+        solutions = dict_gen['solutions'] if 'solutions' in dict_gen.keys() else None
+        return cls(dict_gen['problem_gen'], dict_gen['problems'], solutions, iter_mode, shuffle, rng)
 
     def restart(self):
         self.i = 0
         if self.shuffle:
-            self.rng.shuffle(self.problems)
+            i_permute = self.rng.permutation(len(self.problems)).tolist()
+            self.problems = [self.problems[i] for i in i_permute]
+            if self.solutions is not None:
+                self.solutions = [self.solutions[i] for i in i_permute]
 
-    def __call__(self, n_gen=1, solve=False):
-        if solve and self.solutions is None:
-            warnings.warn("No solutions in data set, setting solve=False.")
-            solve = False
+    def __call__(self, n_gen=1, solve=False, verbose=False, save=False, file=None):
+        pkl_dict = {'problem_gen': self.problem_gen, 'problems': []}
+        if solve:
+            pkl_dict.update(solutions=[])
 
-        for _ in range(n_gen):
+        for i_gen in range(n_gen):
+            if verbose:
+                print(f'Task Set: {i_gen + 1}/{n_gen}', end='\n')
+
             if self.i == len(self.problems):
                 if self.iter_mode == 'once':
                     warnings.warn("Problem generator data has been exhausted.")
                     return
                 elif self.iter_mode == 'repeat':
-                    self.i = 0
+                    self.restart()
 
             problem = self.problems[self.i]
+            if save:
+                pkl_dict['problems'].append(problem)
+
             if solve:
-                solution = self.solutions[self.i]
+                if self.solutions is None:
+                    t_ex, ch_ex, t_run = timing_wrapper(partial(branch_bound, verbose=verbose))(*problem)
+                    solution = self._SchedulingSolution(t_ex, ch_ex, t_run)
+                else:
+                    solution = self.solutions[self.i]
+
+                if save:
+                    pkl_dict['solutions'].append(solution)
+
                 yield problem, solution
             else:
                 yield problem
 
             self.i += 1
+
+        if save:
+            self.save(pkl_dict, file)
+            # if file is None:
+            #     file = 'temp/{}'.format(strftime('%Y-%m-%d_%H-%M-%S'))
+            # else:
+            #     try:
+            #         with open('data/schedules/' + file, 'rb') as file:
+            #             pkl_dict_load = dill.load(file)
+            #
+            #         # Check equivalence of generators
+            #         conditions = [pkl_dict_load['problem_gen'] == pkl_dict['problem_gen'],
+            #                       ('solutions' in pkl_dict_load.keys()) == solve    # both generators do or do not solve
+            #                       ]
+            #         if all(conditions):
+            #             print('File already exists. Appending existing data.')
+            #
+            #             pkl_dict['problems'] += pkl_dict_load['problems']
+            #             if solve:
+            #                 pkl_dict['solutions'] += pkl_dict_load['solutions']
+            #
+            #     except FileNotFoundError:
+            #         pass
+            #
+            # with open('data/schedules/' + file, 'wb') as file:
+            #     dill.dump(pkl_dict, file)  # save schedules
 
 
 def main():

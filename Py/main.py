@@ -5,14 +5,14 @@ Define a set of task objects and scheduling algorithms. Assess achieved loss and
 
 """
 
-from time import perf_counter
 from functools import partial
 
 import numpy as np
+from numpy.lib.recfunctions import append_fields
 import matplotlib.pyplot as plt
 
 from util.generic import algorithm_repr
-from util.results import check_valid, eval_loss
+from util.results import check_valid, eval_loss, timing_wrapper
 from util.plot import plot_task_losses, scatter_loss_runtime
 
 from generators.scheduling_problems import Random as RandomProblem
@@ -33,15 +33,16 @@ plt.style.use('seaborn')
 
 
 # %% Inputs
-n_gen = 2      # number of task scheduling problems
+n_gen = 10      # number of task scheduling problems
 
-solve = False
+solve = True
+save = True
 
 problem_gen = RandomProblem.relu_drop_default(n_tasks=4, n_ch=2)
-# problem_gen = ProblemDataset.load('temp/2020-08-03_12-54-39', iter_mode='repeat', shuffle=True, rng=None)
+# problem_gen = ProblemDataset.load('temp/2020-08-06_14-15-35', iter_mode='repeat', shuffle=True, rng=None)
 
 # FIXME: ensure train/test separation for loaded problem data
-
+# TODO: save option? buffer data during multiple gen calls?
 
 # Algorithms
 
@@ -70,92 +71,92 @@ env_params = {'node_cls': TreeNodeShift,
               'seq_encoding': 'indicator'
               }
 
-
-# agent_file = None
-agent_file = 'temp/2020-08-03_12-52-02'
+agent_file = None
+# agent_file = 'temp/2020-08-06_14-15-31'
 
 if agent_file is None:
     random_agent = train_agent(problem_gen,
-                               # problem_gen.n_tasks, problem_gen.task_gen, problem_gen.n_ch, problem_gen.ch_avail_gen,
-                               n_gen_train=0, n_gen_val=0, env_cls=env_cls, env_params=env_params,
+                               n_gen_train=3, n_gen_val=2, env_cls=env_cls, env_params=env_params,
                                save=True, save_dir=None)
 elif type(agent_file) == str:
     random_agent = load_agent(agent_file)
 else:
     raise ValueError("Parameter 'agent_file' must be string or None.")
 
-
 # model_file = None
-model_file = 'temp/2020-08-03_12-52-22'
+# # model_file = 'temp/2020-08-03_12-52-22'
+#
+# if model_file is None:
+#     network_policy = train_policy(problem_gen,
+#                                   n_gen_train=10, n_gen_val=10, env_cls=env_cls, env_params=env_params,
+#                                   model=None, compile_params=None, fit_params=None,
+#                                   do_tensorboard=False, plot_history=True, save=True, save_dir=None)
+# elif type(model_file) == str:
+#     network_policy = load_policy(model_file)
+# else:
+#     raise ValueError("Parameter 'agent_file' must be string or None.")
 
-if model_file is None:
-    network_policy = train_policy(problem_gen,
-                                  # problem_gen.n_tasks, problem_gen.task_gen, problem_gen.n_ch, problem_gen.ch_avail_gen,
-                                  n_gen_train=10, n_gen_val=10, env_cls=env_cls, env_params=env_params,
-                                  model=None, compile_params=None, fit_params=None,
-                                  do_tensorboard=False, plot_history=True, save=True, save_dir=None)
-elif type(model_file) == str:
-    network_policy = load_policy(model_file)
-else:
-    raise ValueError("Parameter 'agent_file' must be string or None.")
 
-
-alg_funcs = [
-    partial(branch_bound, verbose=False),
-    partial(mcts, n_mc=200, verbose=False),
-    partial(earliest_release, do_swap=True),
-    partial(random_agent),
-    partial(network_policy),
-             ]
-
-alg_n_iter = [1, 5, 1, 50, 1]       # number of runs per problem
-alg_reprs = list(map(algorithm_repr, alg_funcs))    # string representations
+algorithms = np.array([
+    # ('B&B', partial(branch_bound, verbose=False), 1),
+    ('MCTS', partial(mcts, n_mc=200, verbose=False), 5),
+    ('ERT', partial(earliest_release, do_swap=True), 1),
+    ('Random Agent', partial(random_agent), 20),
+    # ('DNN Policy', partial(network_policy), 1),
+                     ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
 
 
 # %% Evaluate
-# t_run_iter = np.array(list(zip(*[np.empty((n_gen, n_iter)) for n_iter in alg_n_iter])),
-#                       dtype=list(zip(alg_reprs, [np.float] * len(alg_reprs), list(zip(alg_n_iter)))))
 
-# l_ex_iter = np.array(list(zip(*[np.empty((n_gen, n_iter)) for n_iter in alg_n_iter])),
-#                      dtype=list(zip(alg_reprs, [np.float] * len(alg_reprs), list(zip(alg_n_iter)))))
+if solve:
+    _args_iter = {'object': [([np.nan],) + tuple([np.nan] * alg['n_iter'] for alg in algorithms)] * n_gen,
+                  'dtype': [('B&B Optimal', np.float, (1,))] + [(alg['name'], np.float, (alg['n_iter'],))
+                                                                for alg in algorithms]}
+    _args_mean = {'object': [(np.nan,) * (1 + len(algorithms))] * n_gen,
+                  'dtype': [('B&B Optimal', np.float)] + [(alg['name'], np.float) for alg in algorithms]}
+else:
+    _args_iter = {'object': [tuple([np.nan] * alg['n_iter'] for alg in algorithms)] * n_gen,
+                  'dtype': [(alg['name'], np.float, (alg['n_iter'],)) for alg in algorithms]}
+    _args_mean = {'object': [(np.nan,) * len(algorithms)] * n_gen,
+                  'dtype': [(alg['name'], np.float) for alg in algorithms]}
 
-t_run_iter = np.array([tuple([np.nan] * n_iter for n_iter in alg_n_iter)] * n_gen,
-                      dtype=[(alg_repr, np.float, (n_iter,)) for alg_repr, n_iter in zip(alg_reprs, alg_n_iter)])
+t_run_iter = np.array(**_args_iter)
+l_ex_iter = np.array(**_args_iter)
 
-l_ex_iter = np.array([tuple([np.nan] * n_iter for n_iter in alg_n_iter)] * n_gen,
-                     dtype=[(alg_repr, np.float, (n_iter,)) for alg_repr, n_iter in zip(alg_reprs, alg_n_iter)])
+t_run_mean = np.array(**_args_mean)
+l_ex_mean = np.array(**_args_mean)
 
-# t_run_mean = np.array(list(zip(*np.empty((len(alg_reprs), n_gen)))),
-#                       dtype=list(zip(alg_reprs, [np.float] * len(alg_reprs))))
-
-# l_ex_mean = np.array(list(zip(*np.empty((len(alg_reprs), n_gen)))),
-#                      dtype=list(zip(alg_reprs, [np.float] * len(alg_reprs))))
-
-t_run_mean = np.array([(np.nan,) * len(alg_reprs)] * n_gen,
-                      dtype=[(alg_repr, np.float) for alg_repr in alg_reprs])
-
-l_ex_mean = np.array([(np.nan,) * len(alg_reprs)] * n_gen,
-                     dtype=[(alg_repr, np.float) for alg_repr in alg_reprs])
-
-for i_gen, out_gen in enumerate(problem_gen(n_gen, solve=solve)):      # Generate new scheduling problem
+for i_gen, out_gen in enumerate(problem_gen(n_gen, solve=solve, save=save)):      # Generate new scheduling problem
     print(f'Task Set: {i_gen + 1}/{n_gen}')
 
     if solve:
-        (tasks, ch_avail), (t_ex_opt, ch_ex_opt) = out_gen
+        (tasks, ch_avail), (t_ex_opt, ch_ex_opt, t_run_opt) = out_gen
+
+        check_valid(tasks, t_ex_opt, ch_ex_opt)
+        l_ex_opt = eval_loss(tasks, t_ex_opt)
+
+        t_run_iter['B&B Optimal'][i_gen, 0] = t_run_opt
+        l_ex_iter['B&B Optimal'][i_gen, 0] = l_ex_opt
+        t_run_mean['B&B Optimal'][i_gen] = t_run_opt
+        l_ex_mean['B&B Optimal'][i_gen] = l_ex_opt
+
+        print(f'  B&B Optimal', end='\r')
+        print('')
+        print(f"    Avg. Runtime: {t_run_mean['B&B Optimal'][i_gen]:.2f} (s)")
+        print(f"    Avg. Execution Loss: {l_ex_mean['B&B Optimal'][i_gen]:.2f}")
+
     else:
         tasks, ch_avail = out_gen
 
     _, ax_gen = plt.subplots(2, 1, num=f'Task Set: {i_gen + 1}', clear=True)
     plot_task_losses(tasks, ax=ax_gen[0])
 
-    for alg_repr, alg_func, n_iter in zip(alg_reprs, alg_funcs, alg_n_iter):
+    for alg_repr, alg_func, n_iter in algorithms:
         for iter_ in range(n_iter):      # Perform new algorithm runs
             print(f'  {alg_repr} - Iteration: {iter_ + 1}/{n_iter}', end='\r')
 
             # Run algorithm
-            t_start = perf_counter()
-            t_ex, ch_ex = alg_func(tasks, ch_avail)
-            t_run = perf_counter() - t_start
+            t_ex, ch_ex, t_run = timing_wrapper(alg_func)(tasks, ch_avail)
 
             # Evaluate schedule
             check_valid(tasks, t_ex, ch_ex)
@@ -178,29 +179,33 @@ for i_gen, out_gen in enumerate(problem_gen(n_gen, solve=solve)):      # Generat
 
 
 # %% Results
-
 _, ax_results = plt.subplots(num='Results', clear=True)
 scatter_loss_runtime(t_run_mean, l_ex_mean,
                      ax=ax_results, ax_kwargs={'title': f'Performance on random sets of {problem_gen.n_tasks} tasks'})
 
 print('\nAvg. Performance\n' + 16*'-')
 print(f"{'Algorithm:':<35}{'Loss:':<8}{'Runtime (s):':<10}")
-for rep in alg_reprs:
+if solve:
+    print(f"{'B&B Optimal':<35}{l_ex_mean['B&B Optimal'].mean():<8.2f}{t_run_mean['B&B Optimal'].mean():<10.6f}")
+for rep in algorithms['name']:
     print(f"{rep:<35}{l_ex_mean[rep].mean():<8.2f}{t_run_mean[rep].mean():<10.6f}")
 
 
 # Relative to B&B
-if 'branch_bound' in alg_reprs:
-    t_run_mean_bb = t_run_mean['branch_bound'].copy()
-    l_ex_mean_bb = l_ex_mean['branch_bound'].copy()
+if solve:
+    t_run_mean_opt = t_run_mean['B&B Optimal'].copy()
+    l_ex_mean_opt = l_ex_mean['B&B Optimal'].copy()
 
     t_run_mean_norm = t_run_mean.copy()
     l_ex_mean_norm = l_ex_mean.copy()
-    for rep in alg_reprs:
-        # t_run_mean_norm[rep] -= t_run_mean_bb
-        # t_run_mean_norm[rep] /= t_run_mean_bb
-        l_ex_mean_norm[rep] -= l_ex_mean_bb
-        l_ex_mean_norm[rep] /= l_ex_mean_bb
+
+    # t_run_mean_norm['B&B Optimal'] = 0.
+    l_ex_mean_norm['B&B Optimal'] = 0.
+    for rep in algorithms['name']:
+        # t_run_mean_norm[rep] -= t_run_mean_opt
+        # t_run_mean_norm[rep] /= t_run_mean_opt
+        l_ex_mean_norm[rep] -= l_ex_mean_opt
+        l_ex_mean_norm[rep] /= l_ex_mean_opt
 
     _, ax_results_norm = plt.subplots(num='Results (Normalized)', clear=True)
     scatter_loss_runtime(t_run_mean_norm, l_ex_mean_norm,

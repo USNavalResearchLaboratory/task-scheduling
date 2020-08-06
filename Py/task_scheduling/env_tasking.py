@@ -90,6 +90,7 @@ class BaseTaskingEnv(gym.Env):
 
     def __init__(self, problem_gen, node_cls=TreeNode, features=None, sort_func=None):
         self.problem_gen = problem_gen
+        self.solution = None
 
         self.n_tasks = self.problem_gen.n_tasks
         self.n_ch = self.problem_gen.n_ch
@@ -112,7 +113,7 @@ class BaseTaskingEnv(gym.Env):
             self.sort_func = MethodType(sort_func, self)
         elif type(sort_func) == str:
             def _sort_func(env, n):
-                return getattr(env.node.tasks[n], sort_func)
+                return getattr(env.tasks[n], sort_func)
 
             self.sort_func = MethodType(_sort_func, self)
         else:
@@ -124,7 +125,9 @@ class BaseTaskingEnv(gym.Env):
 
         self.node_cls = node_cls
         self.node = None
-        self.reset()    # initialize node and generate random tasks/channels
+
+    tasks = property(lambda self: self.node.tasks)
+    ch_avail = property(lambda self: self.node.ch_avail)
 
     @property
     def sorted_index(self):
@@ -138,7 +141,7 @@ class BaseTaskingEnv(gym.Env):
     def state_tasks(self):
         """State sub-array for task features."""
 
-        state_tasks = np.array([task.gen_features(*self.features['func']) for task in self.node.tasks])
+        state_tasks = np.array([task.gen_features(*self.features['func']) for task in self.tasks])
         if self.masking:
             state_tasks[self.node.seq] = 0.     # zero out state rows for scheduled tasks
 
@@ -147,7 +150,7 @@ class BaseTaskingEnv(gym.Env):
         else:
             return state_tasks
 
-    def reset(self, tasks=None, ch_avail=None, persist=False):
+    def reset(self, tasks=None, ch_avail=None, persist=False, solve=False):
         """
         Reset environment by re-initializing node object with random (or user-specified) tasks/channels.
 
@@ -159,13 +162,20 @@ class BaseTaskingEnv(gym.Env):
             Optional initial channel availabilities for non-random reset.
         persist : bool
             If True, keeps tasks and channels fixed during reset, regardless of other inputs.
+        solve : bool
+            Solves and stores the Branch & Bound optimal schedule.
 
         """
 
         if not persist:     # use new random (or user-specified) tasks/channels
 
             if tasks is None or ch_avail is None:
-                (tasks, ch_avail), = self.problem_gen()
+                if solve:
+                    ((tasks, ch_avail), self.solution), = self.problem_gen(solve=True)
+                else:
+                    (tasks, ch_avail), = self.problem_gen()
+                    self.solution = None
+
             elif len(tasks) != self.n_tasks:
                 raise ValueError(f"Input 'tasks' must be None or a list of {self.n_tasks} tasks")
             elif len(ch_avail) != self.n_ch:
@@ -173,20 +183,6 @@ class BaseTaskingEnv(gym.Env):
 
             self.node_cls._tasks_init = tasks
             self.node_cls._ch_avail_init = ch_avail
-
-            # if tasks is None:
-            #     self.node_cls._tasks_init = list(self.task_gen(self.n_tasks))
-            # elif len(tasks) == self.n_tasks:
-            #     self.node_cls._tasks_init = tasks
-            # else:
-            #     raise ValueError(f"Input 'tasks' must be None or a list of {self.n_tasks} tasks")
-            #
-            # if ch_avail is None:
-            #     self.node_cls._ch_avail_init = self.ch_avail_gen(self.n_ch)
-            # elif len(ch_avail) == self.n_ch:
-            #     self.node_cls._ch_avail_init = ch_avail
-            # else:
-            #     raise ValueError(f"Input 'ch_avail' must be None or an array of {self.n_ch} channel availabilities")
 
         self.node = self.node_cls()
 
@@ -201,7 +197,7 @@ class BaseTaskingEnv(gym.Env):
     def render(self, mode='human'):
         if mode == 'human':
             fig_env, ax_env = plt.subplots(num='Task Scheduling Env', clear=True)
-            plot_task_losses(self.node.tasks, ax=ax_env)
+            plot_task_losses(self.tasks, ax=ax_env)
 
     def close(self):
         plt.close('all')
@@ -221,8 +217,8 @@ class SeqTaskingEnv(BaseTaskingEnv):
         self.observation_space = Box(self._state_tasks_low, self._state_tasks_high, dtype=np.float64)
         self.action_space = Sequence(self.n_tasks)
 
-    def reset(self, tasks=None, ch_avail=None, persist=False):
-        super().reset(tasks, ch_avail, persist)
+    def reset(self, tasks=None, ch_avail=None, persist=False, solve=False):
+        super().reset(tasks, ch_avail, persist, solve)
         return self.state_tasks     # observation is the task set state
 
     def step(self, action):
@@ -314,10 +310,12 @@ class StepTaskingEnv(BaseTaskingEnv):
 
         self.masking = masking
 
-        # State bounds
+    @property
+    def observation_space(self):    # TODO: invoke a setter in the reset method?
+        """Gym space of valid observations."""
         _state_low = np.concatenate((np.zeros(self.state_seq.shape), self._state_tasks_low), axis=1)
         _state_high = np.concatenate((np.ones(self.state_seq.shape), self._state_tasks_high), axis=1)
-        self.observation_space = Box(_state_low, _state_high, dtype=np.float64)
+        return Box(_state_low, _state_high, dtype=np.float64)
 
     @property
     def action_space(self):
@@ -346,8 +344,8 @@ class StepTaskingEnv(BaseTaskingEnv):
         """Complete state."""
         return np.concatenate((self.state_seq, self.state_tasks), axis=1)
 
-    def reset(self, tasks=None, ch_avail=None, persist=False):
-        super().reset(tasks, ch_avail, persist)
+    def reset(self, tasks=None, ch_avail=None, persist=False, solve=False):
+        super().reset(tasks, ch_avail, persist, solve)
         self.loss_agg = self.node.l_ex      # Loss can be non-zero due to time origin shift during node initialization
 
         return self.state
@@ -378,7 +376,7 @@ class StepTaskingEnv(BaseTaskingEnv):
 
         # TODO: different aggregate loss increments for shift node! Test both...
         reward, self.loss_agg = self.loss_agg - self.node.l_ex, self.node.l_ex
-        # reward = self.node.tasks[action](self.node.t_ex[action])
+        # reward = self.tasks[action](self.node.t_ex[action])
 
         done = len(self.node.seq_rem) == 0      # sequence is complete
 
@@ -388,7 +386,7 @@ class StepTaskingEnv(BaseTaskingEnv):
 # Agents
 class RandomAgent(object):
     """The world's simplest agent!"""
-    def __init__(self, action_space):
+    def __init__(self, action_space=None):
         self.action_space = action_space
 
     def act(self, observation, reward, done):
@@ -418,12 +416,8 @@ def data_gen(env, n_gen=1, save=False, file=None):
 
     """
 
-    # FIXME FIXME
-
     # TODO: generate sample weights to prioritize earliest task selections??
     # TODO: train using complete tree info, not just B&B solution?
-
-    # env = env_cls(n_tasks, task_gen, n_ch, ch_avail_gen, **env_params)
 
     if not isinstance(env, StepTaskingEnv):
         raise NotImplementedError("Tasking environment must be step Env.")      # TODO: generalize?
@@ -432,10 +426,10 @@ def data_gen(env, n_gen=1, save=False, file=None):
     for i_gen in range(n_gen):
         print(f'Task Set: {i_gen + 1}/{n_gen}', end='\n')
 
-        env.reset()     # initializes environment state
+        env.reset(solve=True)   # generates new scheduling problem
 
         # Optimal schedule
-        t_ex, ch_ex = branch_bound(env.node.tasks, env.node.ch_avail, verbose=True)
+        t_ex, ch_ex = env.solution.t_ex, env.solution.ch_ex
         seq = np.argsort(t_ex)  # FIXME: Confirm that argsort recovers the correct sequence-to-schedule seq?!?!
 
         # Generate samples for each scheduling step of the optimal sequence
@@ -509,10 +503,11 @@ def train_agent(problem_gen,
     d_train = data_gen(env, n_gen_train)
     d_val = data_gen(env, n_gen_val)
 
-    # TODO: load existing learning data?
+    # FIXME: load existing learning data, then split?
 
     # Train agent
-    agent = RandomAgent(env.action_space)
+    agent = RandomAgent()
+    # agent = RandomAgent(env.action_space)
 
     # Save agent and environment
     if save:
@@ -534,8 +529,6 @@ def load_agent(load_dir):
 
 def wrap_agent(env, agent):
     """Generate scheduling function by running an agent on a single environment episode."""
-
-    # TODO: can decorators be used to wrap?? https://realpython.com/primer-on-python-decorators/
 
     def scheduling_agent(tasks, ch_avail):
         observation, reward, done = env.reset(tasks, ch_avail), 0, False
@@ -614,9 +607,9 @@ def main():
         if n in self.node.seq:
             return float('inf')
         else:
-            return self.node.tasks[n].t_release
-            # return 1 if self.node.tasks[n].l_drop == 0. else 0
-            # return self.node.tasks[n].l_drop / self.node.tasks[n].t_drop
+            return self.tasks[n].t_release
+            # return 1 if self.tasks[n].l_drop == 0. else 0
+            # return self.tasks[n].l_drop / self.tasks[n].t_drop
 
     # sort_func = 't_release'
 
@@ -637,7 +630,7 @@ def main():
         print(observation)
         print(env.sorted_index)
         print(env.node.seq)
-        print(env.node.tasks)
+        print(env.tasks)
         agent.action_space = env.action_space
         act = agent.act(observation, reward, done)
         observation, reward, done, info = env.step(act)

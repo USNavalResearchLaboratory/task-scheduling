@@ -54,7 +54,7 @@ alg_funcs = [partial(branch_bound, verbose=False),
              # partial(random_agent)
              ]
 
-alg_n_iter = [5, 5, 1, 1, 20]       # number of runs per problem
+alg_n_iters = [5, 5, 1, 1, 20]       # number of runs per problem
 
 alg_reprs = list(map(algorithm_repr, alg_funcs))    # string representations
 
@@ -62,12 +62,15 @@ alg_reprs = list(map(algorithm_repr, alg_funcs))    # string representations
 # %% Evaluate
 n_runtimes = len(max_runtimes)
 
-l_ex_iter = np.array(list(zip(*[np.empty((n_gen*n_runtimes, n_iter)) for n_iter in alg_n_iter])),
-                     dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float],
-                                    list(zip(alg_n_iter))))).reshape(n_gen, n_runtimes)
+# l_ex_iter = np.array(list(zip(*[np.empty((n_gen*n_runtimes, n_iter)) for n_iter in alg_n_iters])),
+#                      dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float],
+#                                     list(zip(alg_n_iters))))).reshape(n_gen, n_runtimes)
 
 # l_ex_mean = np.array(list(zip(*np.empty((len(alg_reprs), n_gen*n_runtimes)))),
 #                      dtype=[(alg_repr, np.float) for alg_repr in alg_reprs]).reshape(n_gen, n_runtimes)
+
+l_ex_iter = np.array([[tuple([np.nan] * n_iter for n_iter in alg_n_iters)] * n_runtimes] * n_gen,
+                     dtype=[(alg_repr, np.float, (n_iter,)) for alg_repr, n_iter in zip(alg_reprs, alg_n_iters)])
 
 l_ex_mean = np.array([[(np.nan,) * len(alg_reprs)] * n_runtimes] * n_gen,
                      dtype=[(alg_repr, np.float) for alg_repr in alg_reprs])
@@ -82,16 +85,19 @@ for i_gen in range(n_gen):      # Generate new scheduling problem
     _, ax_gen = plt.subplots(2, 1, num=f'Task Set: {i_gen + 1}', clear=True)
     plot_task_losses(tasks, ax=ax_gen[0])
 
-    for alg_repr, alg_func, n_iter in zip(alg_reprs, alg_funcs, alg_n_iter):
+    for alg_repr, alg_func, n_iter in zip(alg_reprs, alg_funcs, alg_n_iters):
         # Perform new algorithm runs
         for (i_runtime, max_runtime), iter_ in product(enumerate(max_runtimes), range(n_iter)):
             print(f'  {alg_repr} - Runtime: {i_runtime + 1}/{n_runtimes} - Iteration: {iter_ + 1}/{n_iter}', end='\r')
 
+            # Run algorithm
             t_ex, ch_ex = alg_func(tasks, ch_avail, max_runtime)
 
+            # Evaluate schedule
             check_valid(tasks, t_ex, ch_ex)
             l_ex = eval_loss(tasks, t_ex)
 
+            # Store loss
             l_ex_iter[alg_repr][i_gen, i_runtime, iter_] = l_ex
 
             # plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, alg_repr=alg_repr, ax=None)

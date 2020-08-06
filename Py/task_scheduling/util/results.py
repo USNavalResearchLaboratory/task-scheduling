@@ -1,3 +1,6 @@
+from functools import wraps
+from time import perf_counter
+
 import numpy as np
 
 
@@ -61,3 +64,15 @@ def eval_loss(tasks, t_ex):
         l_ex += task(t_ex)
 
     return l_ex
+
+
+def timing_wrapper(func):
+    """Wraps a scheduler, creates a function that outputs runtime in addition to schedule."""
+
+    @wraps(func)
+    def timed_scheduler(tasks, ch_avail):
+        t_start = perf_counter()
+        t_ex, ch_ex = func(tasks, ch_avail)
+        t_run = perf_counter() - t_start
+        return t_ex, ch_ex, t_run
+    return timed_scheduler
