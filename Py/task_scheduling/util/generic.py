@@ -1,6 +1,5 @@
-import copy
-import time
-import dill
+from copy import deepcopy
+
 import numpy as np
 import scipy.stats as stats
 from scipy.stats import rv_discrete, uniform
@@ -45,7 +44,7 @@ def algorithm_repr(alg):
 
     """
     keys_del = ['verbose', 'rng']
-    params = copy.deepcopy(alg.keywords)
+    params = deepcopy(alg.keywords)
     for key in keys_del:
         try:
             del params[key]
@@ -54,7 +53,7 @@ def algorithm_repr(alg):
     if len(params) == 0:
         return alg.func.__name__
     else:
-        p_str = ", ".join([f"{key}={str(val)}" for key, val in params.items()])
+        p_str = ", ".join(f"{key}={str(val)}" for key, val in params.items())
         return f"{alg.func.__name__}({p_str})"
 
 

@@ -10,8 +10,8 @@ from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
 
-from tasks import ReluDropGenerator
-from tree_search import branch_bound, mcts_orig, random_sequencer, est_alg, est_task_swap_alg, ed_alg, ed_swap_task_alg
+from task_scheduling.tasks import ReluDropGenerator
+from task_scheduling.tree_search import branch_bound, est_alg, est_task_swap_alg, ed_alg, ed_swap_task_alg
 from scheduling_algorithms import branch_bound_rules
 
 from util.utils import check_valid, eval_loss
