@@ -288,6 +288,12 @@ for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
                 job[jj].Priority = job[jj](timeSec)
 
             features = np.empty((M, NUM_FEATS))
+            feature_names = []
+            feature_names.append('t_release-timeSec')
+            feature_names.append('duration')
+            feature_names.append('t_drop')
+            feature_names.append('l_drop')
+            feature_names.append('slope')
             for mm in range(len(job)):
                 task = job[mm]
                 features[mm, 0] = np.array([task.t_release]-timeSec)
@@ -460,197 +466,199 @@ for jj in range(5):
 plt.legend()
 plt.show()
 
-file = open('./RL_data/json-dump.json', 'w+')
-data = { "F": F.tolist(), "scaled_features": scaled_features.tolist(), "kl": kl, "kmeans": kmeans, "scaler": scaler}
-json.dump(data, file)
+# file = open('./RL_data/json-dump.json', 'w+')
+# data = { "F": F.tolist(), "scaled_features": scaled_features.tolist(), "kl": kl, "kmeans": kmeans, "scaler": scaler}
+# json.dump(data, file)
 
-filename = './RL_data/test'
+# filename = './RL_data/test'
+filename = './RL_data/RLP_data_{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
 outfile = open(filename,'wb')
-data = { "F": F, "scaled_features": scaled_features, "kl": kl, "kmeans": kmeans, "scaler": scaler}
+data = { "F": F, "scaled_features": scaled_features, "kl": kl, "kmeans": kmeans, "scaler": scaler, "NumSteps": NumSteps,
+         "M": M, "NUM_FEATS": NUM_FEATS, "feat_record": feat_record, "feature_names": feature_names}
 pickle.dump(data,outfile)
 outfile.close()
 
 
-## Performance Assessment
-
-plt.figure(811)
-plt.hist(np.array(l_ex_remainder), density=False, bins=30)
-
-
-
-A = np.subtract( record['t_release'] , np.max(record['ch_avail'],axis=2)[:,:,None] )
-B = np.subtract( record['t_release'] , record['drop_time'] )
-
-for ii in range(len(alg_reprs)):
-    plt.figure(97+ii)
-    ax1 = plt.subplot(321)
-    plt.hist(np.ravel(record['t_release'][:, ii, :]), density=False, bins=100)
-    plt.xlabel('t_release')
-    plt.title(alg_reprs[ii])
-    ax2 = plt.subplot(322)
-    plt.hist(np.ravel(record['duration'][:, ii, :]), density=False, bins=100)
-    plt.xlabel('duration')
-    ax3 = plt.subplot(323)
-    plt.hist(np.ravel(record['slope'][:, ii, :]), density=False, bins=100)
-    plt.xlabel('slope')
-    ax4 = plt.subplot(324)
-    plt.hist(np.ravel(record['drop_time'][:, ii, :]), density=False, bins=100)
-    plt.xlabel('drop_time')
-    ax5 = plt.subplot(325)
-    plt.hist(np.ravel(A[:, ii, :]), density=True, bins=100)
-    plt.xlabel('t_release - max(ch_avail)')
-    ax6 = plt.subplot(326)
-    plt.hist(np.ravel(B[:, ii, :]), density=True, bins=100)
-    plt.xlabel('t_release - drop_time')
-
-
-
-
-Alg_time = np.nanmean(RunTime, axis = 0)
-Alg_cost = np.nanmean(Cost, axis = 0)
-plt.figure(99)
-for ii in range(len(alg_reprs)):
-    plt.plot(Alg_time[ii], Alg_cost[ii], marker = "o", label = alg_reprs[ii])
-plt.xlabel('Run Time')
-plt.ylabel('Cost')
-plt.legend()
-plt.show()
-
-
-# scatter_loss_runtime(t_run_iter[0], l_ex_iter[0], ax=ax_gen[1])
-
-# TODO: Create Utility Function --> how often algorithms go beyond bounds, verify everything is working correctly
-
-
-
-# IMPORTANT: Job_Revisit_Time  records when the jobs are visited. We want the "Revisit Rate" which requires the np.diff below
-# TODO: Redesign for multiple algorithms
-mean_revisit_time = np.zeros((len(job), len(alg_reprs)))
-for ii in range(len(job)):
-    for jj in range(len(alg_reprs)):
-        # mean_revisit_time[ii,jj] = np.mean(np.diff(np.append(0,Job_Revisit_Time[ii][jj]))) # Add 0 for cases where there is only 1 visit
-        if len(Job_Revisit_Time[ii][jj]) > 1:
-            mean_revisit_time[ii,jj] = np.mean(np.diff(Job_Revisit_Time[ii][jj])) # Add 0 for cases where there is only 1 visit
-        else:
-            mean_revisit_time[ii,jj] = np.nan
-# mean_revisit_time = np.array([np.mean(np.diff(RT)) for RT in Job_Revisit_Time])
-
-# Display Revisit Rate by Job Type
-# job_type = np.array([task.Type for task in job])
-job_unique = np.unique(job_type)
-N_job_types = len(job_unique)
-index_pos_list = []
-for type in job_unique:
-    job_type == type
-    A = np.where(job_type == type)
-    index_pos_list.append(A[:])
-
-# mean_revisit_time_job_type = np.zeros(len(job_unique))
+# ## Performance Assessment
+#
+# plt.figure(811)
+# plt.hist(np.array(l_ex_remainder), density=False, bins=30)
+#
+#
+#
+# A = np.subtract( record['t_release'] , np.max(record['ch_avail'],axis=2)[:,:,None] )
+# B = np.subtract( record['t_release'] , record['drop_time'] )
+#
+# for ii in range(len(alg_reprs)):
+#     plt.figure(97+ii)
+#     ax1 = plt.subplot(321)
+#     plt.hist(np.ravel(record['t_release'][:, ii, :]), density=False, bins=100)
+#     plt.xlabel('t_release')
+#     plt.title(alg_reprs[ii])
+#     ax2 = plt.subplot(322)
+#     plt.hist(np.ravel(record['duration'][:, ii, :]), density=False, bins=100)
+#     plt.xlabel('duration')
+#     ax3 = plt.subplot(323)
+#     plt.hist(np.ravel(record['slope'][:, ii, :]), density=False, bins=100)
+#     plt.xlabel('slope')
+#     ax4 = plt.subplot(324)
+#     plt.hist(np.ravel(record['drop_time'][:, ii, :]), density=False, bins=100)
+#     plt.xlabel('drop_time')
+#     ax5 = plt.subplot(325)
+#     plt.hist(np.ravel(A[:, ii, :]), density=True, bins=100)
+#     plt.xlabel('t_release - max(ch_avail)')
+#     ax6 = plt.subplot(326)
+#     plt.hist(np.ravel(B[:, ii, :]), density=True, bins=100)
+#     plt.xlabel('t_release - drop_time')
+#
+#
+#
+#
+# Alg_time = np.nanmean(RunTime, axis = 0)
+# Alg_cost = np.nanmean(Cost, axis = 0)
+# plt.figure(99)
+# for ii in range(len(alg_reprs)):
+#     plt.plot(Alg_time[ii], Alg_cost[ii], marker = "o", label = alg_reprs[ii])
+# plt.xlabel('Run Time')
+# plt.ylabel('Cost')
+# plt.legend()
+# plt.show()
+#
+#
+# # scatter_loss_runtime(t_run_iter[0], l_ex_iter[0], ax=ax_gen[1])
+#
+# # TODO: Create Utility Function --> how often algorithms go beyond bounds, verify everything is working correctly
+#
+#
+#
+# # IMPORTANT: Job_Revisit_Time  records when the jobs are visited. We want the "Revisit Rate" which requires the np.diff below
+# # TODO: Redesign for multiple algorithms
+# mean_revisit_time = np.zeros((len(job), len(alg_reprs)))
+# for ii in range(len(job)):
+#     for jj in range(len(alg_reprs)):
+#         # mean_revisit_time[ii,jj] = np.mean(np.diff(np.append(0,Job_Revisit_Time[ii][jj]))) # Add 0 for cases where there is only 1 visit
+#         if len(Job_Revisit_Time[ii][jj]) > 1:
+#             mean_revisit_time[ii,jj] = np.mean(np.diff(Job_Revisit_Time[ii][jj])) # Add 0 for cases where there is only 1 visit
+#         else:
+#             mean_revisit_time[ii,jj] = np.nan
+# # mean_revisit_time = np.array([np.mean(np.diff(RT)) for RT in Job_Revisit_Time])
+#
+# # Display Revisit Rate by Job Type
+# # job_type = np.array([task.Type for task in job])
+# job_unique = np.unique(job_type)
+# N_job_types = len(job_unique)
+# index_pos_list = []
+# for type in job_unique:
+#     job_type == type
+#     A = np.where(job_type == type)
+#     index_pos_list.append(A[:])
+#
+# # mean_revisit_time_job_type = np.zeros(len(job_unique))
+# # for ii in range(len(job_unique)):
+# #     mean_revisit_time_job_type[ii] = np.mean(   mean_revisit_time[index_pos_list[ii]]   )
+#
+#
+# idx_sort = np.argsort(job_type)
+# last_index = np.zeros(len(job_unique))
+# for jj in range(len(job_unique)):
+#     # last_index[jj] = np.where(job_type == job_unique[jj])[0][-1]
+#     last_index[jj] = np.where(job_type[idx_sort] == job_unique[jj])[0][-1]
+#
+# last_index = last_index.astype(int)
+# first_index = np.append(0, last_index[0:N_job_types-1]+1 ).astype(int)
+# UB_revisit_rate = np.array(np.zeros(len(first_index)))
+# for jj in range(len(first_index)):
+#     UB_revisit_rate[jj] = UB_job_type[idx_sort[first_index[jj]]]
+# # UB_revisit_rate = np.array([job[idx_sort[first_index[idx]]].t_drop for idx in range(N_job_types)])
+# # desired_revisit_rate = job[idx_sort[first_index]].t_drop
+#
+# mean_revisit_time_job_type = np.zeros((len(job_unique),len(alg_reprs)))
+# Utility = np.zeros((len(job_unique),len(alg_reprs)))
+# Penalty = np.zeros((len(job_unique),len(alg_reprs)))
 # for ii in range(len(job_unique)):
-#     mean_revisit_time_job_type[ii] = np.mean(   mean_revisit_time[index_pos_list[ii]]   )
-
-
-idx_sort = np.argsort(job_type)
-last_index = np.zeros(len(job_unique))
-for jj in range(len(job_unique)):
-    # last_index[jj] = np.where(job_type == job_unique[jj])[0][-1]
-    last_index[jj] = np.where(job_type[idx_sort] == job_unique[jj])[0][-1]
-
-last_index = last_index.astype(int)
-first_index = np.append(0, last_index[0:N_job_types-1]+1 ).astype(int)
-UB_revisit_rate = np.array(np.zeros(len(first_index)))
-for jj in range(len(first_index)):
-    UB_revisit_rate[jj] = UB_job_type[idx_sort[first_index[jj]]]
-# UB_revisit_rate = np.array([job[idx_sort[first_index[idx]]].t_drop for idx in range(N_job_types)])
-# desired_revisit_rate = job[idx_sort[first_index]].t_drop
-
-mean_revisit_time_job_type = np.zeros((len(job_unique),len(alg_reprs)))
-Utility = np.zeros((len(job_unique),len(alg_reprs)))
-Penalty = np.zeros((len(job_unique),len(alg_reprs)))
-for ii in range(len(job_unique)):
-    for jj in range(len(alg_reprs)):
-        idx_support = idx_sort[first_index[ii]:last_index[ii]]
-        mean_revisit_time_job_type[ii,jj] = np.mean(mean_revisit_time[idx_support,jj])
-        temp = UB_revisit_rate[ii] - mean_revisit_time[idx_support,jj]
-        Utility[ii,jj] = np.sum(temp)
-        Penalty[ii,jj] = -np.sum(temp[temp<0])
-
-
-
-
-color_scheme_bound = ['b', 'g', 'r', 'm', 'k']
-color_scheme = [['crimson', 'green', 'navy', 'magenta', 'darkred'], ['cyan', 'teal','navy','aquamarine'], ['lime', 'yellowgreen', 'chartreuse', 'lightgreen'],
-                ['magenta', 'maroon', 'voilet', 'fushia'], ['grey', 'chocolate', 'brown', 'beige'] ]
-
-for jj in range(len(alg_reprs)):
-    plt.figure(100+jj)
-    plt.grid
-    for ii in range(N_job_types):
-        y = np.arange(first_index[ii],last_index[ii]+1)
-        x = UB_revisit_rate[ii] * np.ones(np.shape(y))
-        if ii == 0:
-            plt.plot(x, y, color_scheme_bound[0], label='UB')
-        else:
-            plt.plot(x, y, color_scheme_bound[0])
-        plt.text(x[0], y[0], 'Upper-Bound: '+job_unique[ii])
-        if ii == 0:
-            plt.plot(mean_revisit_time[idx_sort[y], jj], y, color_scheme[0][ii], marker="o", linestyle='None', label=job_unique[ii])
-        else:
-            plt.plot(mean_revisit_time[idx_sort[y], jj], y, color_scheme[0][ii], marker="o", linestyle='None', label=job_unique[ii])
-
-        # y2 = mean_revisit_time_job_type[ii,jj] * np.ones(np.shape(x))
-        # plt.plot(x, y2, color_scheme[ii])
-        # plt.text(x[0], y2[0], 'Mean: '+job_unique[ii])
-    plt.ylabel('Sorted Job ID')
-    plt.xlabel('Revisit Rate')
-    plt.grid(True)
-    plt.show()
-    plt.legend()
-    plt.title(alg_reprs[jj] + '\n Penalty = ' + str(np.sum(Penalty[:,jj])) )
-
-
-plt.figure(200)
-plt.plot(job_unique, mean_revisit_time_job_type, label=alg_reprs[jj])
-plt.xlabel('Job Type')
-plt.ylabel('Mean Revisit Time')
-plt.grid(True)
-plt.legend()
-plt.show()
-
-plt.figure(201)
-for jj in range(len(alg_reprs)):
-    plt.plot(job_unique, Penalty[:,jj], label=alg_reprs[jj])
-plt.ylabel('Penalty')
-plt.xlabel('Job Type')
-plt.grid(True)
-plt.legend()
-plt.show()
-
-Alg_Penalty = np.sum(Penalty,axis=0)
-plt.figure(202)
-for jj in range(len(alg_reprs)):
-    plt.plot(Alg_time[jj], Alg_Penalty[jj], marker='o', label=alg_reprs[jj])
-plt.xlabel('Run Time (s)')
-plt.ylabel('Penalty')
-plt.legend()
-
-
-
-
-
-class Scheduler:
-
-    def __init__(self):
-        self.Id = 0
-        self.slope = []
-        self.StartTime = 0
-        self.DropTime = []
-        self.DropRelativeTime = []
-        self.DropCost = 0
-        self.Duration = 0
-        self.Type = []
-        self.Priority =0
-
-        # job = struct('Id', 0, 'slope', [], 'StartTime', 0, 'DropTime', [], 'DropRelativeTime', [], 'DropCost', 0,
-        #              'Duration', 0, 'Type', [], 'Priority', 0); % Place
+#     for jj in range(len(alg_reprs)):
+#         idx_support = idx_sort[first_index[ii]:last_index[ii]]
+#         mean_revisit_time_job_type[ii,jj] = np.mean(mean_revisit_time[idx_support,jj])
+#         temp = UB_revisit_rate[ii] - mean_revisit_time[idx_support,jj]
+#         Utility[ii,jj] = np.sum(temp)
+#         Penalty[ii,jj] = -np.sum(temp[temp<0])
+#
+#
+#
+#
+# color_scheme_bound = ['b', 'g', 'r', 'm', 'k']
+# color_scheme = [['crimson', 'green', 'navy', 'magenta', 'darkred'], ['cyan', 'teal','navy','aquamarine'], ['lime', 'yellowgreen', 'chartreuse', 'lightgreen'],
+#                 ['magenta', 'maroon', 'voilet', 'fushia'], ['grey', 'chocolate', 'brown', 'beige'] ]
+#
+# for jj in range(len(alg_reprs)):
+#     plt.figure(100+jj)
+#     plt.grid
+#     for ii in range(N_job_types):
+#         y = np.arange(first_index[ii],last_index[ii]+1)
+#         x = UB_revisit_rate[ii] * np.ones(np.shape(y))
+#         if ii == 0:
+#             plt.plot(x, y, color_scheme_bound[0], label='UB')
+#         else:
+#             plt.plot(x, y, color_scheme_bound[0])
+#         plt.text(x[0], y[0], 'Upper-Bound: '+job_unique[ii])
+#         if ii == 0:
+#             plt.plot(mean_revisit_time[idx_sort[y], jj], y, color_scheme[0][ii], marker="o", linestyle='None', label=job_unique[ii])
+#         else:
+#             plt.plot(mean_revisit_time[idx_sort[y], jj], y, color_scheme[0][ii], marker="o", linestyle='None', label=job_unique[ii])
+#
+#         # y2 = mean_revisit_time_job_type[ii,jj] * np.ones(np.shape(x))
+#         # plt.plot(x, y2, color_scheme[ii])
+#         # plt.text(x[0], y2[0], 'Mean: '+job_unique[ii])
+#     plt.ylabel('Sorted Job ID')
+#     plt.xlabel('Revisit Rate')
+#     plt.grid(True)
+#     plt.show()
+#     plt.legend()
+#     plt.title(alg_reprs[jj] + '\n Penalty = ' + str(np.sum(Penalty[:,jj])) )
+#
+#
+# plt.figure(200)
+# plt.plot(job_unique, mean_revisit_time_job_type, label=alg_reprs[jj])
+# plt.xlabel('Job Type')
+# plt.ylabel('Mean Revisit Time')
+# plt.grid(True)
+# plt.legend()
+# plt.show()
+#
+# plt.figure(201)
+# for jj in range(len(alg_reprs)):
+#     plt.plot(job_unique, Penalty[:,jj], label=alg_reprs[jj])
+# plt.ylabel('Penalty')
+# plt.xlabel('Job Type')
+# plt.grid(True)
+# plt.legend()
+# plt.show()
+#
+# Alg_Penalty = np.sum(Penalty,axis=0)
+# plt.figure(202)
+# for jj in range(len(alg_reprs)):
+#     plt.plot(Alg_time[jj], Alg_Penalty[jj], marker='o', label=alg_reprs[jj])
+# plt.xlabel('Run Time (s)')
+# plt.ylabel('Penalty')
+# plt.legend()
+#
+#
+#
+#
+#
+# class Scheduler:
+#
+#     def __init__(self):
+#         self.Id = 0
+#         self.slope = []
+#         self.StartTime = 0
+#         self.DropTime = []
+#         self.DropRelativeTime = []
+#         self.DropCost = 0
+#         self.Duration = 0
+#         self.Type = []
+#         self.Priority =0
+#
+#         # job = struct('Id', 0, 'slope', [], 'StartTime', 0, 'DropTime', [], 'DropRelativeTime', [], 'DropCost', 0,
+#         #              'Duration', 0, 'Type', [], 'Priority', 0); % Place
 
