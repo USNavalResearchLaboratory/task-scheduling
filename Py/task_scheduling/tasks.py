@@ -11,7 +11,7 @@ np.set_printoptions(precision=2)
 plt.style.use('seaborn')
 
 
-class GenericTask:
+class Generic:
     """
     Generic task objects.
 
@@ -34,11 +34,21 @@ class GenericTask:
             self._loss_func = loss_func
 
     def __repr__(self):
-        return f"GenericTask(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
+        return f"Generic(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
 
     def __call__(self, t):
         """Loss function versus time."""
         return self._loss_func(t)
+
+    def __eq__(self, other):
+        if not isinstance(other, Generic):
+            return False
+
+        conditions = [self.duration == other.duration,
+                      self.t_release == other.t_release,
+                      self._loss_func == other._loss_func]
+
+        return True if all(conditions) else False
 
     @property
     def plot_lim(self):
@@ -55,6 +65,12 @@ class GenericTask:
             Series of times for loss evaluation.
         ax : matplotlib.axes.Axes, optional
             Plotting axes object.
+
+        Returns
+        -------
+        matplotlib.lines.Line2D
+            Loss function line
+
         """
 
         if t_plot is None:
@@ -73,8 +89,8 @@ class GenericTask:
             plt.title(self.__repr__())
         else:
             x_lim_gca, y_lim_gca = ax.get_xlim(), ax.get_ylim()
-            x_lim = min([x_lim[0], x_lim_gca[0]]), max([x_lim[1], x_lim_gca[1]])
-            y_lim = min([y_lim[0], y_lim_gca[0]]), max([y_lim[1], y_lim_gca[1]])
+            x_lim = min(x_lim[0], x_lim_gca[0]), max(x_lim[1], x_lim_gca[1])
+            y_lim = min(y_lim[0], y_lim_gca[0]), max(y_lim[1], y_lim_gca[1])
 
         ax.set_xlim(*x_lim)
         ax.set_ylim(*y_lim)
@@ -84,7 +100,7 @@ class GenericTask:
         return plot_data
 
 
-class ReluDropTask(GenericTask):
+class ReluDrop(Generic):
     """
     Tasks with a rectified linear loss function task and a constant drop penalty.
 
@@ -110,19 +126,31 @@ class ReluDropTask(GenericTask):
         self._l_drop = l_drop
 
     def __repr__(self):
-        return f"ReluDropTask(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
+        return f"ReluDrop(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
 
     def __call__(self, t):
         """Loss function versus time."""
         t = np.asarray(t)[np.newaxis] - self.t_release      # relative time
 
         loss = self.slope * t
-        loss[t < 0] = np.inf
+        loss[t < 0] = 0.
         loss[t >= self.t_drop] = self.l_drop
         if loss.size == 1:
             return np.asscalar(loss)
         else:
             return loss.squeeze(axis=0)
+
+    def __eq__(self, other):
+        if not isinstance(other, ReluDrop):
+            return False
+
+        conditions = [self.duration == other.duration,
+                      self.t_release == other.t_release,
+                      self.slope == other.slope,
+                      self.t_drop == other.t_drop,
+                      self.l_drop == other.l_drop]
+
+        return True if all(conditions) else False
 
     @property
     def slope(self):
@@ -157,7 +185,20 @@ class ReluDropTask(GenericTask):
             raise ValueError("Loss function must be monotonically non-decreasing.")
 
     def shift_origin(self, t):
-        """Shift the time origin, return any incurred loss, and re-parameterize the task."""
+        """
+        Shift the time origin, return any incurred loss, and re-parameterize the task.
+
+        Parameters
+        ----------
+        t : float
+            Positive value to shift the time origin by.
+
+        Returns
+        -------
+        float
+            Loss value of the task at the new time origin, before it is re-parameterized.
+
+        """
 
         if t <= 0:
             raise ValueError("Shift time must be positive.")
@@ -175,12 +216,6 @@ class ReluDropTask(GenericTask):
 
     def gen_features(self, *funcs):
         """Generate features from input functions. Defaults to the parametric representation."""
-
-        # _params = [(task.duration, task.t_release, task.slope, task.t_drop, task.l_drop) for task in tasks]
-        # params = np.array(_params, dtype=[('duration', np.float), ('t_release', np.float),
-        #                                   ('slope', np.float), ('t_drop', np.float), ('l_drop', np.float)])
-        # params.view(np.float).reshape(*params.shape, -1)
-
         if len(funcs) > 0:
             return [func(self) for func in funcs]
         else:   # default, return task parameters
@@ -188,7 +223,7 @@ class ReluDropTask(GenericTask):
 
     def summary(self):
         """Print a string listing task parameters."""
-        print(f'ReluDropTask\n------------\nduration: {self.duration:.2f}'
+        print(f'ReluDrop\n------------\nduration: {self.duration:.2f}'
               f'\nrelease time: {self.t_release:.2f}\nslope: {self.slope:.2f}'
               f'\ndrop time: {self.t_drop:.2f}\ndrop loss: {self.l_drop:.2f}')
 
@@ -229,6 +264,8 @@ class ReluDropTask(GenericTask):
 #
 #     return loss_func
 
+
+# FIXME FIXME: move KW generator additions to new home.
 
 # %% Task generation objects        # TODO: generalize, add docstrings
 class GenericTaskGenerator:

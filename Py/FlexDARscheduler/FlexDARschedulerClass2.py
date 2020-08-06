@@ -18,14 +18,11 @@ RP = 0.04
 # Tmax = 3
 
 ## Specify Algorithms
-from tree_search import branch_bound, random_sequencer, earliest_release, est_alg_kw
+from task_scheduling.tree_search import earliest_release
 from functools import partial
-from util.generic import algorithm_repr, check_rng
-from util.plot import plot_task_losses, plot_schedule, plot_loss_runtime, scatter_loss_runtime
-from util.results import check_valid, eval_loss
-from more_itertools import locate
-
-from math import factorial, floor
+from task_scheduling.util.generic import algorithm_repr
+from task_scheduling.util.plot import plot_task_losses, scatter_loss_runtime
+from task_scheduling.util.results import check_valid, eval_loss
 
 alg_funcs = [partial(earliest_release, do_swap=True)]
              #partial(branch_bound, verbose=False),
@@ -115,11 +112,10 @@ for jj in range(Ntrack):
 
 
 # import numpy as np
-from tasks import ReluDropGenerator
-from tasks import ReluDropTask
+from task_scheduling.tasks import ReluDrop
 
 # rng = np.random.default_rng(100)
-# task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+# task_gen = ReluDrop(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
 #                              t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=rng)       # task set generator
 # tasks = task_gen.rand_tasks(N)
 
@@ -127,7 +123,7 @@ from tasks import ReluDropTask
 job = []
 cnt = 0 # Make 0-based, saves a lot of trouble later when indexing into python zero-based vectors
 for ii in range(Nsearch):
-    job.append(ReluDropTask(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropTimeFixed[ii], SearchParams.DropCost[ii]))
+    job.append(ReluDrop(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropTimeFixed[ii], SearchParams.DropCost[ii]))
     job[ii].Id = cnt # Numeric Identifier for each job
     cnt = cnt + 1
     if job[ii].slope == 0.4:
@@ -136,11 +132,11 @@ for ii in range(Nsearch):
         job[ii].Type = 'AHS' # Above horizon search
     job[ii].Priority = job[ii](0) # Priority used to select which jobs to give to scheduler
 
-    # tasks = ReluDropTask(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropCost[ii])
+    # tasks = ReluDrop(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropCost[ii])
     # A.append(tasks)
     # del tasks
 for ii in range(Ntrack):
-    job.append(ReluDropTask(TrackParams.JobDuration[ii], 0, TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropTimeFixed[ii], TrackParams.DropCost[ii]))
+    job.append(ReluDrop(TrackParams.JobDuration[ii], 0, TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropTimeFixed[ii], TrackParams.DropCost[ii]))
     job[cnt].Id = cnt # Numeric Identifier for each job
     if job[cnt].slope == 0.25:
         job[cnt].Type = 'Tlow' # Low Priority Track

@@ -1,12 +1,10 @@
 """Multi-channel Tree Search objects and algorithms."""
 
 from copy import deepcopy
-import time
-import math
 import numpy as np
 from util.generic import check_rng
 
-from tasks import ReluDropGenerator
+from generators.tasks import ReluDrop as ReluDropTaskGenerator
 
 from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
@@ -21,12 +19,12 @@ class TreeNode:
 
     Parameters
     ----------
-    seq : list of int
+    seq : Sequence of int
         Partial task index sequence.
 
     Attributes
     ----------
-    seq : list of int
+    seq : Sequence of int
         Partial task index sequence.
     t_ex : ndarray
         Task execution times. NaN for unscheduled.
@@ -41,8 +39,8 @@ class TreeNode:
 
     """
 
-    _tasks_init = []    # TODO: needs to be overwritten by invoking scripts... OK?
-    _ch_avail_init = np.array([], dtype=np.float)
+    _tasks_init = ()    # TODO: needs to be overwritten by invoking scripts... OK?
+    _ch_avail_init = ()
     _rng = None
 
     def __init__(self, seq=None):
@@ -112,7 +110,7 @@ class TreeNode:
 
         Parameters
         ----------
-        seq_ext : int or list of int
+        seq_ext : int or Sequence of int
             Sequence of indices referencing cls._tasks.
         check_valid : bool
             Perform check of index sequence validity.
@@ -140,9 +138,9 @@ class TreeNode:
         self._ch_ex[n] = ch
 
         self._t_ex[n] = max(self._tasks[n].t_release, self._ch_avail[ch])
-        self._l_ex += self._tasks[n](self._t_ex[n])
+        self._l_ex += self._tasks[n](self._t_ex[n])     # add task execution loss
 
-        self._ch_avail[ch] = self._t_ex[n] + self._tasks[n].duration
+        self._ch_avail[ch] = self._t_ex[n] + self._tasks[n].duration    # new channel availability
 
     def branch(self, do_permute=True):
         """
@@ -266,7 +264,7 @@ class TreeNodeBound(TreeNode):
 
         # Add bound attributes
         t_ex_max = (max([self._tasks[n].t_release for n in self._seq_rem] + [min(self._ch_avail)])
-                    + sum([self._tasks[n].duration for n in self._seq_rem]))  # maximum execution time for bounding
+                    + sum(self._tasks[n].duration for n in self._seq_rem))  # maximum execution time for bounding
 
         self._l_lo = self._l_ex
         self._l_up = self._l_ex
@@ -303,14 +301,14 @@ class TreeNodeShift(TreeNode):
         for n, task in enumerate(self._tasks):
             loss_inc = task.shift_origin(ch_avail_min)
             if n in self._seq_rem:
-                self._l_ex += loss_inc      # TODO
+                self._l_ex += loss_inc      # add loss incurred due to origin shift for any unscheduled tasks
 
     def _update_ex(self, n, ch):
         self._ch_ex[n] = ch
 
         t_ex_rel = max(self._tasks[n].t_release, self._ch_avail[ch])  # relative to time origin
-        self._t_ex[n] = self.t_origin + t_ex_rel  # absolute time
-        self._l_ex += self._tasks[n](t_ex_rel)
+        self._t_ex[n] = self.t_origin + t_ex_rel    # absolute time
+        self._l_ex += self._tasks[n](t_ex_rel)      # add task execution loss
 
         self._ch_avail[ch] = t_ex_rel + self._tasks[n].duration  # relative to time origin
         self.shift_origin()
@@ -470,14 +468,14 @@ class SearchNode:
             node.update_stats(loss)
 
 
-def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
+def branch_bound(tasks, ch_avail, verbose=False, rng=None):
     """
     Branch and Bound algorithm.
 
     Parameters
     ----------
-    tasks : list of GenericTask
-    ch_avail : list of float
+    tasks : Sequence of tasks.Generic
+    ch_avail : Sequence of float
         Channel availability times.
     verbose : bool
         Enables printing of algorithm state information.
@@ -516,21 +514,21 @@ def branch_bound(tasks: list, ch_avail: list, verbose=False, rng=None):
                 stack.append(node_new)  # add new node to stack, LIFO
 
         if verbose:
-            # progress = 1 - sum([math.factorial(len(node.seq_rem)) for node in stack]) / math.factorial(len(tasks))
+            # progress = 1 - sum(math.factorial(len(node.seq_rem)) for node in stack) / math.factorial(len(tasks))
             # print(f'Search progress: {100*progress:.1f}% - Loss < {node_best.l_ex:.3f}', end='\r')
             print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.l_ex:.3f}', end='\r')
 
     return node_best.t_ex, node_best.ch_ex  # optimal
 
 
-def branch_bound_with_stats(tasks: list, ch_avail: list, verbose=False, rng=None):
+def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
     """
     Branch and Bound algorithm.
 
     Parameters
     ----------
-    tasks : list of GenericTask
-    ch_avail : list of float
+    tasks : Sequence of tasks.Generic
+    ch_avail : Sequence of float
         Channel availability times.
     verbose : bool
         Enables printing of algorithm state information.
@@ -566,7 +564,8 @@ def branch_bound_with_stats(tasks: list, ch_avail: list, verbose=False, rng=None
         for node_new in node.branch(do_permute=True):
             # Bound
             if len(node_new.seq) == len(tasks):
-                NodeStats.append(node_new) # Append any complete solutions, use for training NN. Can decipher what's good/bad based on final costs
+                # Append any complete solutions, use for training NN. Can decipher what's good/bad based on final costs
+                NodeStats.append(node_new)
 
             if node_new.l_lo < l_best:  # New node is not dominated
                 if node_new.l_up < l_best:
@@ -578,7 +577,7 @@ def branch_bound_with_stats(tasks: list, ch_avail: list, verbose=False, rng=None
                 stack.append(node_new)  # Add New Node to Stack, LIFO
 
         if verbose:
-            # progress = 1 - sum([math.factorial(len(node.seq_rem)) for node in stack]) / math.factorial(len(tasks))
+            # progress = 1 - sum(math.factorial(len(node.seq_rem)) for node in stack) / math.factorial(len(tasks))
             # print(f'Search progress: {100*progress:.1f}% - Loss < {l_best:.3f}', end='\r')
             print(f'# Remaining Nodes = {len(stack)}, Loss < {l_best:.3f}', end='\r')
 
@@ -586,16 +585,16 @@ def branch_bound_with_stats(tasks: list, ch_avail: list, verbose=False, rng=None
     return node_best.t_ex, node_best.ch_ex, NodeStats
 
 
-def mcts_orig(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
+def mcts_orig(tasks, ch_avail, n_mc, verbose=False, rng=None):
     """
     Monte Carlo tree search algorithm.
 
     Parameters
     ----------
-    tasks : list of GenericTask
-    ch_avail : list of float
+    tasks : Sequence of tasks.Generic
+    ch_avail : Sequence of float
         Channel availability times.
-    n_mc : int or list of int
+    n_mc : int or Sequence of int
         Number of Monte Carlo roll-outs per task.
     verbose : bool
         Enables printing of algorithm state information.
@@ -639,14 +638,14 @@ def mcts_orig(tasks: list, ch_avail: list, n_mc, verbose=False, rng=None):
     return node_best.t_ex, node_best.ch_ex
 
 
-def mcts(tasks: list, ch_avail: list, n_mc: int, verbose=False):
+def mcts(tasks, ch_avail, n_mc, verbose=False):
     """
     Monte Carlo tree search algorithm.
 
     Parameters
     ----------
-    tasks : list of GenericTask
-    ch_avail : list of float
+    tasks : Sequence of tasks.Generic
+    ch_avail : Sequence of float
         Channel availability times.
     n_mc : int
         Number of roll-outs performed.
@@ -694,14 +693,14 @@ def mcts(tasks: list, ch_avail: list, n_mc: int, verbose=False):
     return node_best.t_ex, node_best.ch_ex
 
 
-def random_sequencer(tasks: list, ch_avail: list, rng=None):
+def random_sequencer(tasks, ch_avail, rng=None):
     """
     Generates a random task sequence, determines execution times and channels.
 
     Parameters
     ----------
-    tasks : list of GenericTask
-    ch_avail : list of float
+    tasks : Sequence of tasks.Generic
+    ch_avail : Sequence of float
         Channel availability times.
     rng
         NumPy random number generator or seed. Default Generator if None.
@@ -724,14 +723,14 @@ def random_sequencer(tasks: list, ch_avail: list, rng=None):
     return node.t_ex, node.ch_ex
 
 
-def earliest_release(tasks: list, ch_avail: list, do_swap=False):
+def earliest_release(tasks, ch_avail, do_swap=False):
     """
     Earliest Start Times Algorithm.
 
     Parameters
     ----------
-    tasks : list of GenericTask
-    ch_avail : list of float
+    tasks : Sequence of tasks.Generic
+    ch_avail : Sequence of float
         Channel availability times.
     do_swap : bool
         Enables task swapping
@@ -757,14 +756,14 @@ def earliest_release(tasks: list, ch_avail: list, do_swap=False):
     return node.t_ex, node.ch_ex
 
 
-def earliest_drop(tasks: list, ch_avail: list, do_swap=False):
+def earliest_drop(tasks, ch_avail, do_swap=False):
     """
     Earliest Drop Times Algorithm.
 
     Parameters
     ----------
-    tasks : list of ReluDropTask
-    ch_avail : list of float
+    tasks : Sequence of tasks.Generic
+    ch_avail : Sequence of float
         Channel availability times.
     do_swap : bool
         Enables task swapping.
@@ -790,14 +789,14 @@ def earliest_drop(tasks: list, ch_avail: list, do_swap=False):
     return node.t_ex, node.ch_ex
 
 
-def est_alg_kw(tasks: list, ch_avail: list):
+def est_alg_kw(tasks, ch_avail):
     """
     Earliest Start Times Algorithm using FlexDAR scheduler function.
 
     Parameters
     ----------
-    tasks : list of GenericTask
-    ch_avail : list of float
+    tasks : Sequence of tasks.Generic
+    ch_avail : Sequence of float
         Channel availability times.
 
     Returns
@@ -819,7 +818,7 @@ def est_alg_kw(tasks: list, ch_avail: list):
     return t_ex, ch_ex
 
 
-def ert_alg_kw(tasks: list, ch_avail: list, do_swap=False):
+def ert_alg_kw(tasks, ch_avail, do_swap=False):
 
     TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
@@ -839,8 +838,8 @@ def main():
     n_tasks = 5
     n_channels = 2
 
-    task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-                                 t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=None)  # task set generator
+    task_gen = ReluDropTaskGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+                                     t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=None)  # task set generator
 
     def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
         return rng.uniform(0, 2, n_ch)

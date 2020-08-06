@@ -1,6 +1,6 @@
 import copy
 import numpy as np
-from util.generic import check_rng
+from task_scheduling.util.generic import check_rng
 # from tree_search import TreeNode
 # from tree_search import TreeNodeBound
 
@@ -737,7 +737,7 @@ def branch_bound2(tasks: list, ch_avail: list, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : list of GenericTask
+    tasks : list of Generic
     ch_avail : list of float
         Channel availability times.
     verbose : bool

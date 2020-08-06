@@ -14,13 +14,12 @@ from tensorflow import keras
 from tensorboard import program
 import webbrowser
 
-from util.generic import check_rng
-from util.results import check_valid, eval_loss
+from task_scheduling.util.generic import check_rng
 
-from scheduling_algorithms import stats2nnXY, stats2nnXYgen
-from tasks import ReluDropGenerator, PermuteTaskGenerator, DeterministicTaskGenerator
-from tree_search import branch_bound, branch_bound_with_stats,mcts_orig, mcts, random_sequencer, earliest_release, TreeNode, TreeNodeShift, TreeNodeBound
-from env_tasking import StepTaskingEnv
+from scheduling_algorithms import stats2nnXYgen
+from task_scheduling.generators.scheduling_problems import ReluDrop
+from task_scheduling.tree_search import branch_bound, branch_bound_with_stats, TreeNodeShift
+from task_scheduling.env_tasking import StepTaskingEnv
 
 plt.style.use('seaborn')
 
@@ -115,7 +114,7 @@ def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=Fals
     callbacks = [keras.callbacks.EarlyStopping(patience=20, monitor='val_loss', min_delta=0.)]
 
     if do_tensorboard:
-        log_dir = './logs/TF_train'
+        log_dir = 'logs/TF_train'
         try:
             shutil.rmtree(log_dir)
         except FileNotFoundError:
@@ -154,7 +153,7 @@ def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=Fals
         plt.show()
 
     if save_model:      # TODO: pickle model and env together in dict? or just wrapped model func??
-        save_str = './models/temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
+        save_str = 'models/temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
         if os.path.isdir(save_str) == False:
             os.mkdir(save_str)
         model.save(save_str)
@@ -191,11 +190,11 @@ def main():
     n_tasks = 4
     n_channels = 1
 
-    task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-                                 t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)  # task set generator
+    task_gen = ReluDrop(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+                        t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)  # task set generator
 
-    # task_gen = PermuteTaskGenerator(task_gen(n_tasks))
-    # task_gen = DeterministicTaskGenerator(task_gen(n_tasks))
+    # task_gen = PermuteOrder(task_gen(n_tasks))
+    # task_gen = Deterministic(task_gen(n_tasks))
 
     def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
         return rng.uniform(0, 0, n_ch)
@@ -212,7 +211,7 @@ def main():
     model = train_sl(env, n_gen_train=n_gen_train, n_gen_val=n_gen_val, plot_history=True, do_tensorboard=False, save_model=True, gen_method=False)
     # model = train_sl(env, n_gen_train=n_gen_train, n_gen_val=n_gen_val, plot_history=True, do_tensorboard=False, save_model=True, gen_method=True)
 
-    # model = './models/2020-07-09_08-39-48'
+    # model = 'models/2020-07-09_08-39-48'
 
     scheduler = wrap_model(env, model)
 

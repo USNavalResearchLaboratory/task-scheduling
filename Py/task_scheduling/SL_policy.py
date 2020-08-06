@@ -1,6 +1,5 @@
 import shutil
 import time
-from functools import partial
 import dill
 
 import numpy as np
@@ -11,20 +10,20 @@ from tensorboard import program
 import webbrowser
 
 from util.generic import check_rng
-from util.results import check_valid, eval_loss
 
-from tasks import ReluDropGenerator, PermuteTaskGenerator, DeterministicTaskGenerator
-from tree_search import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release, TreeNode, TreeNodeShift
+from generators.scheduling_problems import Random as RandomProblem
+from tree_search import TreeNodeShift
 from env_tasking import StepTaskingEnv, data_gen
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
 
 
-def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
+def train_policy(problem_gen,
+                 # n_tasks, task_gen, n_ch, ch_avail_gen,
                  n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv, env_params=None,
                  model=None, compile_params=None, fit_params=None,
-                 do_tensorboard=False, plot_history=True, save=False, save_dir=None):
+                 do_tensorboard=False, plot_history=False, save=False, save_dir=None):
     """
     Train a policy network via supervised learning.
 
@@ -32,7 +31,7 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
     ----------
     n_tasks : int
         Number of tasks.
-    task_gen : GenericTaskGenerator
+    task_gen : Base
         Task generation object.
     n_ch: int
         Number of channels.
@@ -63,7 +62,7 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
 
     Returns
     -------
-    scheduler : function
+    function
         Wrapped policy. Takes tasks and channel availabilities and produces task execution times/channels.
 
     """
@@ -75,7 +74,9 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
         env_params = {}
 
     # Create environment
-    env = env_cls(n_tasks, task_gen, n_ch, ch_avail_gen, **env_params)
+    env = env_cls(problem_gen,
+                  # n_tasks, task_gen, n_ch, ch_avail_gen,
+                  **env_params)
 
     # Generate state-action data pairs
     d_train = data_gen(env, n_gen_train)
@@ -89,7 +90,7 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
                                   # keras.layers.Dense(30, activation='relu'),
                                   # keras.layers.Dropout(0.2),
                                   # keras.layers.Dense(100, activation='relu'),
-                                  keras.layers.Dense(n_tasks, activation='softmax')])
+                                  keras.layers.Dense(env.n_tasks, activation='softmax')])
 
     if compile_params is None:
         compile_params = {'optimizer': 'rmsprop',
@@ -98,7 +99,7 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
                           }
 
     if fit_params is None:
-        fit_params = {'epochs': 1000,
+        fit_params = {'epochs': 100,
                       'batch_size': 32,
                       'sample_weight': None,
                       'validation_data': d_val,
@@ -108,13 +109,14 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
     model.compile(**compile_params)
 
     if do_tensorboard:
-        log_dir = './logs/TF_train'
+        log_dir = 'logs/TF_train'
         try:
             shutil.rmtree(log_dir)
         except FileNotFoundError:
             pass
 
-        fit_params['callbacks'].append(keras.callbacks.TensorBoard(log_dir=log_dir))
+        # fit_params['callbacks'].append(keras.callbacks.TensorBoard(log_dir=log_dir))
+        fit_params['callbacks'] += [keras.callbacks.TensorBoard(log_dir=log_dir)]
 
         tb = program.TensorBoard()
         tb.configure(argv=[None, '--logdir', log_dir])
@@ -140,9 +142,8 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
         if save_dir is None:
             save_dir = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
 
-        model.save('./models/' + save_dir)      # save TF model
-
-        with open('./models/' + save_dir + '/env.pkl', 'wb') as file:
+        model.save('models/' + save_dir)      # save TF model
+        with open('models/' + save_dir + '/env.pkl', 'wb') as file:
             dill.dump(env, file)    # save environment
 
     return wrap_policy(env, model)
@@ -150,9 +151,9 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
 
 def load_policy(load_dir):
     """Loads network model and environment, returns wrapped scheduling function."""
-    with open('./models/' + load_dir + '/env.pkl', 'rb') as file:
+    with open('models/' + load_dir + '/env.pkl', 'rb') as file:
         env = dill.load(file)
-    model = keras.models.load_model('./models/' + load_dir)
+    model = keras.models.load_model('models/' + load_dir)
 
     return wrap_policy(env, model)
 
@@ -180,25 +181,27 @@ def wrap_policy(env, model):
 
 
 def main():
-    n_tasks = 5
-    n_channels = 2
+    n_tasks = 4
+    n_ch = 1
 
-    task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-                                 t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)  # task set generator
+    # task_gen = ReluDropTaskGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+    #                              t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)  # task set generator
 
-    # task_gen = PermuteTaskGenerator(task_gen(n_tasks))
-    # task_gen = DeterministicTaskGenerator(task_gen(n_tasks))
+    # task_gen = PermuteOrder(task_gen(n_tasks))
+    # task_gen = Deterministic(task_gen(n_tasks))
 
-    def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
-        return rng.uniform(0, 0, n_ch)
+    # def ch_avail_gen(n_chan, rng=check_rng(None)):  # channel availability time generator
+    #     return rng.uniform(0, 0, n_chan)
 
-    features = np.array([('duration', lambda self: self.duration, task_gen.duration_lim),
-                         ('release time', lambda self: self.t_release, (0., task_gen.t_release_lim[1])),
-                         ('slope', lambda self: self.slope, task_gen.slope_lim),
-                         ('drop time', lambda self: self.t_drop, (0., task_gen.t_drop_lim[1])),
-                         ('drop loss', lambda self: self.l_drop, (0., task_gen.l_drop_lim[1])),
-                         ('is available', lambda self: 1 if self.t_release == 0. else 0, (0, 1)),
-                         ('is dropped', lambda self: 1 if self.l_drop == 0. else 0, (0, 1)),
+    problem_gen = RandomProblem.relu_drop_default(n_tasks, n_ch)
+
+    features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.duration_lim),
+                         ('release time', lambda task: task.t_release, (0., problem_gen.task_gen.t_release_lim[1])),
+                         ('slope', lambda task: task.slope, problem_gen.task_gen.slope_lim),
+                         ('drop time', lambda task: task.t_drop, (0., problem_gen.task_gen.t_drop_lim[1])),
+                         ('drop loss', lambda task: task.l_drop, (0., problem_gen.task_gen.l_drop_lim[1])),
+                         ('is available', lambda task: 1 if task.t_release == 0. else 0, (0, 1)),
+                         ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
                          ],
                         dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
@@ -212,15 +215,19 @@ def main():
     env_params = {'node_cls': TreeNodeShift,
                   'features': features,
                   'sort_func': sort_func,
-                  'seq_encoding': 'indicator'
+                  'seq_encoding': 'indicator',
+                  'masking': True
                   }
 
-    scheduler = train_policy(n_tasks, task_gen, n_channels, ch_avail_gen,
-                             env_cls=env_cls, env_params=env_params,
-                             do_tensorboard=False)
+    scheduler = train_policy(problem_gen,
+                             # n_tasks, task_gen, n_ch, ch_avail_gen,
+                             n_gen_train=100, n_gen_val=20, env_cls=env_cls, env_params=env_params,
+                             model=None, compile_params=None, fit_params=None,
+                             do_tensorboard=True, plot_history=True, save=False, save_dir=None)
 
-    tasks = task_gen(n_tasks)
-    ch_avail = ch_avail_gen(n_channels)
+    # tasks = task_gen(n_tasks)
+    # ch_avail = ch_avail_gen(n_ch)
+    (tasks, ch_avail), = problem_gen()
 
     t_ex, ch_ex = scheduler(tasks, ch_avail)
 

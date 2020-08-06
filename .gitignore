@@ -1,15 +1,5 @@
-# Logs
-Py/logs/
-
-# Temporary agents and models
-Py/agents/temp/
-Py/models/temp/
-
-# test
+# Matlab
 *.m~
-Py/.idea/
-
-
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

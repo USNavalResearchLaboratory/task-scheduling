@@ -1,17 +1,22 @@
+from functools import wraps
+from time import perf_counter
+
 import numpy as np
 
 
-def check_valid(tasks, t_ex, ch_ex):
+def check_valid(tasks, t_ex, ch_ex, tol=1e-12):
     """
     Check schedule validity.
 
     Parameters
     ----------
-    tasks : list of GenericTask
+    tasks : list of Generic
     t_ex : ndarray
         Task execution times.
     ch_ex : ndarray
         Task execution channels.
+    tol : float
+        Time tolerance for validity conditions.
 
     Raises
     -------
@@ -24,15 +29,16 @@ def check_valid(tasks, t_ex, ch_ex):
     #     raise ValueError("All tasks must be scheduled.")
 
     for ch in np.unique(ch_ex):
-        tasks_ch = np.asarray(tasks)[ch_ex == ch].tolist()
+        tasks_ch = np.array(tasks)[ch_ex == ch].tolist()
         t_ex_ch = t_ex[ch_ex == ch]
         for n_1 in range(len(tasks_ch)):
-            if t_ex_ch[n_1] < tasks_ch[n_1].t_release:
+            if t_ex_ch[n_1] + tol < tasks_ch[n_1].t_release:
                 raise ValueError("Tasks cannot be executed before their release time.")
 
             for n_2 in range(n_1 + 1, len(tasks_ch)):
-                if t_ex_ch[n_1] - tasks_ch[n_2].duration + 1e-12 < t_ex_ch[n_2] < t_ex_ch[n_1] \
-                        + tasks_ch[n_1].duration - 1e-12:
+                conditions = [t_ex_ch[n_1] + tol < t_ex_ch[n_2] + tasks_ch[n_2].duration,
+                              t_ex_ch[n_2] + tol < t_ex_ch[n_1] + tasks_ch[n_1].duration]
+                if all(conditions):
                     raise ValueError('Invalid Solution: Scheduling Conflict')
 
 
@@ -42,7 +48,7 @@ def eval_loss(tasks, t_ex):
 
     Parameters
     ----------
-    tasks : list of GenericTask
+    tasks : list of Generic
     t_ex : ndarray
         Task execution times.
 
@@ -58,3 +64,15 @@ def eval_loss(tasks, t_ex):
         l_ex += task(t_ex)
 
     return l_ex
+
+
+def timing_wrapper(func):
+    """Wraps a scheduler, creates a function that outputs runtime in addition to schedule."""
+
+    @wraps(func)
+    def timed_scheduler(tasks, ch_avail):
+        t_start = perf_counter()
+        t_ex, ch_ex = func(tasks, ch_avail)
+        t_run = perf_counter() - t_start
+        return t_ex, ch_ex, t_run
+    return timed_scheduler
