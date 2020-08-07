@@ -265,7 +265,7 @@ class ReluDrop(Generic):
 #     return loss_func
 
 
-# FIXME FIXME: move KW generator additions to new home.
+# FIXME FIXME: move KW additions to new generators submodule.
 
 # %% Task generation objects        # TODO: generalize, add docstrings
 class GenericTaskGenerator:
@@ -345,14 +345,6 @@ class ReluDropGenerator(GenericTaskGenerator):
             l_drop = self.rng.uniform(*self.l_drop_lim, n_tasks)
 
         return [ReluDropTask(*args) for args in zip(duration, t_release, slope, t_drop, l_drop)]
-
-        # for _ in range(n_tasks):      # FIXME: use yield?
-        #     yield ReluDropTask(self.rng.uniform(*self.duration_lim),
-        #                        self.rng.uniform(*self.t_release_lim),
-        #                        self.rng.uniform(*self.slope_lim),
-        #                        self.rng.uniform(*self.t_drop_lim),
-        #                        self.rng.uniform(*self.l_drop_lim),
-        #                        )
 
     @property
     def param_rep_lim(self):
