@@ -135,7 +135,8 @@ class BaseTaskingEnv(gym.Env):
         if callable(self.sort_func):
             return np.argsort([self.sort_func(n) for n in range(self.n_tasks)])
         else:
-            return None     # TODO: return a np.arange, simplify rest of sorting functionality?
+            return np.arange(self.n_tasks)
+            # return None
 
     @property
     def state_tasks(self):
@@ -145,10 +146,11 @@ class BaseTaskingEnv(gym.Env):
         if self.masking:
             state_tasks[self.node.seq] = 0.     # zero out state rows for scheduled tasks
 
-        if callable(self.sort_func):  # sort individual task states
-            return state_tasks[self.sorted_index]
-        else:
-            return state_tasks
+        return state_tasks[self.sorted_index]       # sort individual task states
+        # if callable(self.sort_func):  # sort individual task states
+        #     return state_tasks[self.sorted_index]
+        # else:
+        #     return state_tasks
 
     def reset(self, tasks=None, ch_avail=None, persist=False, solve=False):
         """
@@ -189,8 +191,9 @@ class BaseTaskingEnv(gym.Env):
     def step(self, action):
         """Updates environment state based on task index input."""
 
-        if callable(self.sort_func):  # decode task index to original order
-            action = self.sorted_index[action]
+        action = self.sorted_index[action]  # decode task index to original order
+        # if callable(self.sort_func):  # decode task index to original order
+        #     action = self.sorted_index[action]
 
         self.node.seq_extend(action)  # updates sequence, loss, task parameters, etc.
 
@@ -320,11 +323,13 @@ class StepTaskingEnv(BaseTaskingEnv):
     @property
     def action_space(self):
         """Gym space of valid actions."""
-        if callable(self.sort_func):
-            seq_rem_sort = np.flatnonzero(np.isin(self.sorted_index, list(self.node.seq_rem)))
-            return DiscreteSet(seq_rem_sort)
-        else:
-            return DiscreteSet(self.node.seq_rem)
+        seq_rem_sort = np.flatnonzero(np.isin(self.sorted_index, list(self.node.seq_rem)))
+        return DiscreteSet(seq_rem_sort)
+        # if callable(self.sort_func):
+        #     seq_rem_sort = np.flatnonzero(np.isin(self.sorted_index, list(self.node.seq_rem)))
+        #     return DiscreteSet(seq_rem_sort)
+        # else:
+        #     return DiscreteSet(self.node.seq_rem)
 
     @property
     def state_seq(self):
@@ -332,10 +337,12 @@ class StepTaskingEnv(BaseTaskingEnv):
 
         if callable(self.seq_encoding):
             state_seq = np.array([self.seq_encoding(n) for n in range(self.n_tasks)])
-            if callable(self.sort_func):  # sort individual sequence states
-                return state_seq[self.sorted_index]
-            else:
-                return state_seq
+
+            return state_seq[self.sorted_index]     # sort individual sequence states
+            # if callable(self.sort_func):  # sort individual sequence states
+            #     return state_seq[self.sorted_index]
+            # else:
+            #     return state_seq
         else:
             return np.zeros((self.n_tasks, 0))  # no array
 
@@ -434,8 +441,9 @@ def data_gen(env, n_gen=1, save=False, file=None):
 
         # Generate samples for each scheduling step of the optimal sequence
         for n in seq:
-            if callable(env.sort_func):
-                n = env.sorted_index.tolist().index(n)     # transform index using sorting function
+            n = env.sorted_index.tolist().index(n)  # transform index using sorting function
+            # if callable(env.sort_func):
+            #     n = env.sorted_index.tolist().index(n)     # transform index using sorting function
 
             x_list.append(env.state.copy())
             y_list.append(n)

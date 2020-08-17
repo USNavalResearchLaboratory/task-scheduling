@@ -16,53 +16,59 @@ plt.style.use('seaborn')
 
 # Task generators
 class Base:
-    def __init__(self, rng=None):
+    def __init__(self, cls_task, param_gen, param_lims, rng=None):
+        self.cls_task = cls_task
+        self.param_gen = MethodType(param_gen, self)
+        self.param_lims = param_lims
         self.rng = check_rng(rng)
 
     def __call__(self, n_tasks):
-        raise NotImplementedError
+        """Randomly generate tasks."""
+        for _ in range(n_tasks):
+            yield self.cls_task(**self.param_gen())
 
     @property
     def param_repr_lim(self):
-        raise NotImplementedError
+        """Low and high tuples bounding parametric task representations."""
+        return zip(*self.param_lims.values())
 
 
-class Deterministic(Base):
-    def __init__(self, tasks, rng=None):
-        super().__init__(rng)
-        self.tasks = tasks      # list of tasks
-
-    def __call__(self, n_tasks):
-        return self.tasks
-
-    def __eq__(self, other):
-        if not isinstance(other, Deterministic):
-            return False
-
-        return True if self.tasks == other.tasks else False
-
-    @property
-    def param_repr_lim(self):
-        raise NotImplementedError
-
-
-class PermuteOrder(Base):
-    def __init__(self, tasks, rng=None):
-        super().__init__(rng)
-        self.tasks = tasks      # list of tasks
-
-    def __call__(self, n_tasks):
-        return self.rng.permutation(self.tasks)
-
-    def __eq__(self, other):
-        if not isinstance(other, Deterministic):
-            return False
-
-        return True if self.tasks == other.tasks else False
-
-    @property
-    def param_repr_lim(self):
-        raise NotImplementedError
+# class Deterministic(Base):
+#     def __init__(self, tasks, rng=None):
+#         super().__init__(rng)
+#         self.tasks = tasks      # list of tasks
+#
+#     def __call__(self, n_tasks):
+#         return self.tasks
+#
+#     def __eq__(self, other):
+#         if not isinstance(other, Deterministic):
+#             return False
+#
+#         return True if self.tasks == other.tasks else False
+#
+#     @property
+#     def param_repr_lim(self):
+#         raise NotImplementedError
+#
+#
+# class PermuteOrder(Base):
+#     def __init__(self, tasks, rng=None):
+#         super().__init__(rng)
+#         self.tasks = tasks      # list of tasks
+#
+#     def __call__(self, n_tasks):
+#         return self.rng.permutation(self.tasks)
+#
+#     def __eq__(self, other):
+#         if not isinstance(other, Deterministic):
+#             return False
+#
+#         return True if self.tasks == other.tasks else False
+#
+#     @property
+#     def param_repr_lim(self):
+#         raise NotImplementedError
 
 
 class ReluDrop(Base):
@@ -84,12 +90,21 @@ class ReluDrop(Base):
 
     """
 
-    # FIXME FIXME: generalize rng usage for non-uniform? or subclass to preserve parametric reprs?
+    # FIXME FIXME: generalize rng usage for non-uniform? or SUBCLASS to preserve parametric reprs?
 
     def __init__(self, param_gen, param_lims=None, rng=None):
-        super().__init__(rng)
-        self.param_gen = MethodType(param_gen, self)
-        self.param_lims = param_lims
+        super().__init__(ReluDropTask, param_gen, param_lims, rng)
+
+        # self.param_gen = MethodType(param_gen, self)
+        if param_lims is None:
+            self.param_lims = {'duration': (0., float('inf')),
+                               't_release': (0., float('inf')),
+                               'slope': (0., float('inf')),
+                               't_drop': (0., float('inf')),
+                               'l_drop': (0., float('inf')),
+                               }
+        else:
+            self.param_lims = param_lims
 
     @classmethod
     def iid_uniform(cls, duration_lim, t_release_lim, slope_lim, t_drop_lim, l_drop_lim, rng=None):
@@ -112,36 +127,33 @@ class ReluDrop(Base):
 
     @classmethod
     def iid_discrete(cls):
-        pass
+        raise NotImplementedError   # FIXME
 
     @classmethod
     def search_and_track(cls):
-        pass
+        raise NotImplementedError   # FIXME
 
-    def __call__(self, n_tasks):
-        """Randomly generate a list of tasks."""
-        for _ in range(n_tasks):
-            yield ReluDropTask(**self.param_gen())
+    # def __call__(self, n_tasks):
+    #     """Randomly generate tasks."""
+    #     for _ in range(n_tasks):
+    #         yield self.cls_task(**self.param_gen())
 
     def __eq__(self, other):
         if not isinstance(other, ReluDrop):
             return False
 
-        conditions = [self.param_gen.__code__ == other.param_gen.__code__, self.param_lims == other.param_lims]
-        # conditions = [self.duration_lim == other.duration_lim,
-        #               self.t_release_lim == other.t_release_lim,
-        #               self.slope_lim == other.slope_lim,
-        #               self.t_drop_lim == other.t_drop_lim,
-        #               self.l_drop_lim == other.l_drop_lim]
-
+        conditions = [self.param_gen.__code__ == other.param_gen.__code__,
+                      self.param_lims == other.param_lims]
         return True if all(conditions) else False
 
-    @property
-    def param_repr_lim(self):
-        """Low and high tuples bounding parametric task representations."""
+    # @property
+    # def param_repr_lim(self):
+    #     """Low and high tuples bounding parametric task representations."""
+    #
+    #     # return zip(self.duration_lim, self.t_release_lim, self.slope_lim, self.t_drop_lim, self.l_drop_lim)
+    #     return zip(*self.param_lims.values())
 
-        # return zip(self.duration_lim, self.t_release_lim, self.slope_lim, self.t_drop_lim, self.l_drop_lim)
-        return zip(*self.param_lims.values())   # TODO: move to Base?
+
 
 # class ReluDrop(Base):
 #     """
@@ -162,10 +174,9 @@ class ReluDrop(Base):
 #
 #     """
 #
-#     # TODO: generalize rng usage for non-uniform? or subclass to preserve parametric reprs?
 #
 #     def __init__(self, duration_lim, t_release_lim, slope_lim, t_drop_lim, l_drop_lim, rng=None):
-#         super().__init__(rng)
+#         super().__init__(cls_task=ReluDropTask, rng=rng)
 #         self.duration_lim = duration_lim
 #         self.t_release_lim = t_release_lim
 #         self.slope_lim = slope_lim
@@ -175,12 +186,12 @@ class ReluDrop(Base):
 #     def __call__(self, n_tasks):
 #         """Randomly generate a list of tasks."""
 #         for _ in range(n_tasks):
-#             yield ReluDropTask(self.rng.uniform(*self.duration_lim),
-#                                self.rng.uniform(*self.t_release_lim),
-#                                self.rng.uniform(*self.slope_lim),
-#                                self.rng.uniform(*self.t_drop_lim),
-#                                self.rng.uniform(*self.l_drop_lim),
-#                                )
+#             yield self.cls_task(self.rng.uniform(*self.duration_lim),
+#                                 self.rng.uniform(*self.t_release_lim),
+#                                 self.rng.uniform(*self.slope_lim),
+#                                 self.rng.uniform(*self.t_drop_lim),
+#                                 self.rng.uniform(*self.l_drop_lim),
+#                                 )
 #
 #     def __eq__(self, other):
 #         if not isinstance(other, ReluDrop):
