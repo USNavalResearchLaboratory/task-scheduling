@@ -10,7 +10,7 @@ from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
 
-from task_scheduling.tasks import ReluDropGenerator
+from task_scheduling.generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
 from task_scheduling.tree_search import branch_bound, est_alg, est_task_swap_alg, ed_alg, ed_swap_task_alg
 from scheduling_algorithms import branch_bound_rules
 
@@ -29,7 +29,8 @@ n_run = 1       # number of runs per problem
 ch_avail = np.zeros(2)     # channel availability times
 
 n_tasks = 8      # number of tasks
-task_gen = partial(ReluDropGenerator(rng), n_tasks)
+task_gen = ContinuousUniformTaskGenerator.relu_drop(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+                                                            t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=_rng)
 
 # Algorithms
 algorithms = [partial(est_task_swap_alg, ch_avail=ch_avail),

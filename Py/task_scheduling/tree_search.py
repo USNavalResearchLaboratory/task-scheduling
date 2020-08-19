@@ -11,8 +11,6 @@ from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
 np.set_printoptions(precision=2)
 
-# TODO: docstrings describe properties as attributes - OK?
-
 
 class TreeNode:
     """

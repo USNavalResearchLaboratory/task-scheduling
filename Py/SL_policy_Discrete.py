@@ -14,7 +14,8 @@ import os
 from util.generic import check_rng, Distribution
 from util.results import check_valid, eval_loss
 
-from tasks import ReluDropGenerator, PermuteTaskGenerator, DeterministicTaskGenerator
+from generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
+from generators.tasks import GenericIID as GenericTaskGenerator
 from tree_search import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release, TreeNode, TreeNodeShift
 from env_tasking import StepTaskingEnv, data_gen
 
@@ -215,11 +216,25 @@ def main():
     # distro[3] = Distribution(feature_name='t_drop', type='uniform', lims=(2, 6))
     # distro[4] = Distribution(feature_name='l_drop', type='uniform', lims=(100, 300))
 
+    # discrete_flag = np.array([True, False, False, False, False]) # Indicates whether feature is discrete or not
+    # task_gen = ReluDropGenerator(duration_lim=(18e-3, 36e-3), t_release_lim=(0, 6), slope_lim=(0.1, 2),
+    #                              t_drop_lim=(0, 15), l_drop_lim=(100, 300), rng=None,
+    #                              discrete_flag=discrete_flag)  # task set generator
 
+    def param_gen(self):
+        return {'duration': self.rng.choice(self.param_lims['duration'], p=[.5, .5]),
+                't_release': self.rng.uniform(self.param_lims['t_release']),
+                'slope': self.rng.uniform(self.param_lims['slope']),
+                't_drop': self.rng.uniform(self.param_lims['t_drop']),
+                'l_drop': self.rng.uniform(self.param_lims['l_drop'])}
 
-    discrete_flag = np.array([True, False, False, False, False]) # Indicates whether feature is discrete or not
-    task_gen = ReluDropGenerator(duration_lim=(18e-3, 36e-3), t_release_lim=(0, 6), slope_lim=(0.1, 2),
-                                 t_drop_lim=(0, 15), l_drop_lim=(100, 300), rng=None, discrete_flag=discrete_flag)  # task set generator
+    param_lims = {'duration': (18e-3, 36e-3),
+                  't_release': (0, 6),
+                  'slope': (0.1, 2),
+                  't_drop': (0, 15),
+                  'l_drop': (100, 300)}
+
+    task_gen = GenericTaskGenerator.relu_drop(param_gen, param_lims, rng=None)
 
     # task_gen = PermuteTaskGenerator(task_gen(n_tasks))
     # task_gen = DeterministicTaskGenerator(task_gen(n_tasks))

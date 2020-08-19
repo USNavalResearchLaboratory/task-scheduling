@@ -13,13 +13,16 @@ import matplotlib.pyplot as plt
 
 from util.generic import algorithm_repr, check_rng
 from util.results import check_valid, eval_loss
-from util.plot import plot_task_losses, plot_loss_runtime_std
+from util.plot import plot_task_losses, plot_loss_runtime
 
-from generators.tasks import ReluDrop as ReluDropTaskGenerator
+from generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
 from tree_search_run_lim import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release
 from env_tasking import StepTaskingEnv, wrap_agent_run_lim, RandomAgent
 
 plt.style.use('seaborn')
+
+
+# TODO: INTEGRATE CHANGES from main.py!!!!
 
 
 # %% Inputs
@@ -28,8 +31,8 @@ n_gen = 2      # number of task scheduling problems
 n_tasks = 6
 n_channels = 2
 
-task_gen = ReluDropTaskGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-                                 t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)       # task set generator
+task_gen = ContinuousUniformTaskGenerator.relu_drop(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+                                                    t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)       # task set generator
 
 
 def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time generator
@@ -43,8 +46,6 @@ max_runtimes = np.logspace(-2, 0, 11)
 # env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen)
 # random_agent = wrap_agent_run_lim(env, RandomAgent(env.action_space))
 
-# TODO: import learner changes from main.py
-# TODO: return NaN for algorithm timeout?
 
 alg_funcs = [partial(branch_bound, verbose=False),
              partial(mcts_orig, n_mc=None, verbose=False),
@@ -93,6 +94,8 @@ for i_gen in range(n_gen):      # Generate new scheduling problem
             # Run algorithm
             t_ex, ch_ex = alg_func(tasks, ch_avail, max_runtime)
 
+            # TODO: try/except, return NaN for algorithm timeout?
+
             # Evaluate schedule
             check_valid(tasks, t_ex, ch_ex)
             l_ex = eval_loss(tasks, t_ex)
@@ -104,17 +107,12 @@ for i_gen in range(n_gen):      # Generate new scheduling problem
 
         l_ex_mean[alg_repr][i_gen] = l_ex_iter[alg_repr][i_gen].mean(-1)
 
-    # plot_loss_runtime(max_runtimes, l_ex_mean[i_gen], ax=ax_gen[1])
-    plot_loss_runtime_std(max_runtimes, l_ex_iter[i_gen], do_std=False, ax=ax_gen[1])
+    plot_loss_runtime(max_runtimes, l_ex_iter[i_gen], do_std=False, ax=ax_gen[1])
 
 print('')
 
 # Average results across random task sets
 _, ax_results = plt.subplots(num='Results', clear=True)
 
-# l_ex_mean_gen = np.array([tuple(l_ex_mean[alg_repr][:, i].mean() for alg_repr in alg_reprs)
-#                           for i in range(n_runtimes)], dtype=list(zip(alg_reprs, len(alg_reprs) * [np.float])))
-# plot_loss_runtime(max_runtimes, l_ex_mean_gen,
-#                   ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
-plot_loss_runtime_std(max_runtimes, l_ex_mean.transpose(), do_std=False,
-                      ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})
+plot_loss_runtime(max_runtimes, l_ex_mean.transpose(), do_std=False,
+                  ax=ax_results, ax_kwargs={'title': 'Average performance on random task sets'})

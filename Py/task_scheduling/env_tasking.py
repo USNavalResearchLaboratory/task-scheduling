@@ -1,24 +1,16 @@
 import time
 from types import MethodType
 import dill
-import functools
 
 import numpy as np
 import matplotlib.pyplot as plt
-
 import gym
 from gym.spaces import Box, Space
-
 # from baselines import deepq
 
-from util.generic import check_rng
 from util.plot import plot_task_losses
-
 from generators.scheduling_problems import Random as RandomProblem
-
-from tree_search import TreeNode, TreeNodeShift, branch_bound
-
-# np.set_printoptions(precision=2)
+from tree_search import TreeNode, TreeNodeShift
 
 
 # Gym Spaces
@@ -71,14 +63,8 @@ class BaseTaskingEnv(gym.Env):
 
     Parameters
     ----------
-    n_tasks : int
-        Number of tasks.
-    task_gen : generators.tasks.RandomIID
-        Task generation object.
-    n_ch: int
-        Number of channels.
-    ch_avail_gen : callable
-        Returns random initial channel availabilities.
+    problem_gen : generators.scheduling_problems.Base
+        Scheduling problem generation object.
     node_cls : TreeNode or callable
         Class for tree search node generation.
     features : ndarray, optional
@@ -94,8 +80,6 @@ class BaseTaskingEnv(gym.Env):
 
         self.n_tasks = self.problem_gen.n_tasks
         self.n_ch = self.problem_gen.n_ch
-        # self.task_gen = task_gen
-        # self.ch_avail_gen = ch_avail_gen
 
         # Set features and state bounds
         if features is not None:
@@ -136,7 +120,6 @@ class BaseTaskingEnv(gym.Env):
             return np.argsort([self.sort_func(n) for n in range(self.n_tasks)])
         else:
             return np.arange(self.n_tasks)
-            # return None
 
     @property
     def state_tasks(self):
@@ -147,10 +130,6 @@ class BaseTaskingEnv(gym.Env):
             state_tasks[self.node.seq] = 0.     # zero out state rows for scheduled tasks
 
         return state_tasks[self.sorted_index]       # sort individual task states
-        # if callable(self.sort_func):  # sort individual task states
-        #     return state_tasks[self.sorted_index]
-        # else:
-        #     return state_tasks
 
     def reset(self, tasks=None, ch_avail=None, persist=False, solve=False):
         """
@@ -190,11 +169,7 @@ class BaseTaskingEnv(gym.Env):
 
     def step(self, action):
         """Updates environment state based on task index input."""
-
         action = self.sorted_index[action]  # decode task index to original order
-        # if callable(self.sort_func):  # decode task index to original order
-        #     action = self.sorted_index[action]
-
         self.node.seq_extend(action)  # updates sequence, loss, task parameters, etc.
 
     def render(self, mode='human'):
@@ -209,12 +184,8 @@ class BaseTaskingEnv(gym.Env):
 class SeqTaskingEnv(BaseTaskingEnv):
     """Tasking environment with single action of a complete task index sequence."""
 
-    def __init__(self, problem_gen,
-                 # n_tasks, task_gen, n_ch, ch_avail_gen,
-                 node_cls=TreeNode, features=None, sort_func=None):
-        super().__init__(problem_gen,
-                         # n_tasks, task_gen, n_ch, ch_avail_gen,
-                         node_cls, features, sort_func)
+    def __init__(self, problem_gen, node_cls=TreeNode, features=None, sort_func=None):
+        super().__init__(problem_gen, node_cls, features, sort_func)
 
         # Gym observation and action spaces
         self.observation_space = Box(self._state_tasks_low, self._state_tasks_high, dtype=np.float64)
@@ -260,14 +231,8 @@ class StepTaskingEnv(BaseTaskingEnv):
 
     Parameters
     ----------
-    n_tasks : int
-        Number of tasks.
-    task_gen : generators.tasks.RandomIID
-        Task generation object.
-    n_ch: int
-        Number of channels.
-    ch_avail_gen : callable
-        Returns random initial channel availabilities.
+    problem_gen : generators.scheduling_problems.Base
+        Scheduling problem generation object.
     node_cls : TreeNode or callable
         Class for tree search node generation.
     features : ndarray, optional
@@ -281,9 +246,7 @@ class StepTaskingEnv(BaseTaskingEnv):
 
     """
 
-    def __init__(self, problem_gen,
-                 # n_tasks, task_gen, n_ch, ch_avail_gen,
-                 node_cls=TreeNode, features=None, sort_func=None, seq_encoding=None, masking=False):
+    def __init__(self, problem_gen, node_cls=TreeNode, features=None, sort_func=None, seq_encoding=None, masking=False):
 
         # Set sequence encoder method
         if callable(seq_encoding):
@@ -325,11 +288,6 @@ class StepTaskingEnv(BaseTaskingEnv):
         """Gym space of valid actions."""
         seq_rem_sort = np.flatnonzero(np.isin(self.sorted_index, list(self.node.seq_rem)))
         return DiscreteSet(seq_rem_sort)
-        # if callable(self.sort_func):
-        #     seq_rem_sort = np.flatnonzero(np.isin(self.sorted_index, list(self.node.seq_rem)))
-        #     return DiscreteSet(seq_rem_sort)
-        # else:
-        #     return DiscreteSet(self.node.seq_rem)
 
     @property
     def state_seq(self):
@@ -337,12 +295,7 @@ class StepTaskingEnv(BaseTaskingEnv):
 
         if callable(self.seq_encoding):
             state_seq = np.array([self.seq_encoding(n) for n in range(self.n_tasks)])
-
             return state_seq[self.sorted_index]     # sort individual sequence states
-            # if callable(self.sort_func):  # sort individual sequence states
-            #     return state_seq[self.sorted_index]
-            # else:
-            #     return state_seq
         else:
             return np.zeros((self.n_tasks, 0))  # no array
 
@@ -442,8 +395,6 @@ def data_gen(env, n_gen=1, save=False, file=None):
         # Generate samples for each scheduling step of the optimal sequence
         for n in seq:
             n = env.sorted_index.tolist().index(n)  # transform index using sorting function
-            # if callable(env.sort_func):
-            #     n = env.sorted_index.tolist().index(n)     # transform index using sorting function
 
             x_list.append(env.state.copy())
             y_list.append(n)
@@ -460,23 +411,15 @@ def data_gen(env, n_gen=1, save=False, file=None):
     return x_set, y_set
 
 
-def train_agent(problem_gen,
-                # n_tasks, task_gen, n_ch, ch_avail_gen,
-                n_gen_train=0, n_gen_val=0, env_cls=StepTaskingEnv, env_params=None,
+def train_agent(problem_gen, n_gen_train=0, n_gen_val=0, env_cls=StepTaskingEnv, env_params=None,
                 save=False, save_dir=None):
     """
     Train a reinforcement learning agent.
 
     Parameters
     ----------
-    n_tasks : int
-        Number of tasks.
-    task_gen : generators.tasks.RandomIID
-        Task generation object.
-    n_ch: int
-        Number of channels.
-    ch_avail_gen : callable
-        Returns random initial channel availabilities.
+    problem_gen : generators.scheduling_problems.Base
+        Scheduling problem generation object.
     n_gen_train : int
         Number of tasking problems to generate for agent training.
     n_gen_val : int

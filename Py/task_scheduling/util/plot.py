@@ -133,7 +133,7 @@ def scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
     ax.set(**ax_kwargs)
 
 
-def plot_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):    # TODO: combine scatter and line plotters?
+def plot_loss_runtime(t_run, l_ex, do_std=True, ax=None, ax_kwargs=None):
     """
     Line plot of total execution loss versus maximum runtime.
 
@@ -143,28 +143,15 @@ def plot_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):    # TODO: combine 
         Runtime of algorithm.
     l_ex : ndarray
         Total loss of scheduled tasks.
+    do_std : bool
+        Activates error bars for sample standard deviation.
     ax : Axes or None
         Matplotlib axes target object.
     ax_kwargs : dict
         Additional Axes keyword parameters.
 
     """
-    if ax is None:
-        _, ax = plt.subplots()
 
-    if ax_kwargs is None:
-        ax_kwargs = {}
-
-    for alg_repr in l_ex.dtype.names:
-        ax.plot(t_run, l_ex[alg_repr], label=alg_repr)
-
-    ax.set(xlabel='Runtime (s)', ylabel='Loss')
-    ax.grid(True)
-    ax.legend()
-    ax.set(**ax_kwargs)
-
-
-def plot_loss_runtime_std(t_run, l_ex, do_std=True, ax=None, ax_kwargs=None):
     if ax is None:
         _, ax = plt.subplots()
 

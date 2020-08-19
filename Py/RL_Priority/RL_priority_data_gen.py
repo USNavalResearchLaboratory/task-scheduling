@@ -156,8 +156,6 @@ for jj in range(Ntrack):
 
 
 # import numpy as np
-from tasks import ReluDropGenerator
-from tasks import ReluDropTask
 
 # rng = np.random.default_rng(100)
 # task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
