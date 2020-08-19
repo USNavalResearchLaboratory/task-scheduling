@@ -1,10 +1,11 @@
 """Multi-channel Tree Search objects and algorithms."""
 
 from copy import deepcopy
-import numpy as np
-from util.generic import check_rng
 
-from generators.tasks import ReluDrop as ReluDropTaskGenerator
+import numpy as np
+
+from util.generic import check_rng
+# from generators.scheduling_problems import Random as RandomProblem
 
 from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
@@ -838,14 +839,8 @@ def main():
     n_tasks = 5
     n_channels = 2
 
-    task_gen = ReluDropTaskGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-                                     t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=None)  # task set generator
-
-    def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
-        return rng.uniform(0, 2, n_ch)
-
-    tasks = task_gen(n_tasks)
-    ch_avail = ch_avail_gen(n_channels)
+    problem_gen = RandomProblem.relu_drop_default(n_tasks, n_channels)
+    (tasks, ch_avail), = problem_gen()
 
     TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail

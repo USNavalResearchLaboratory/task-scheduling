@@ -4,13 +4,14 @@ import numpy as np
 import scipy.stats as stats
 from scipy.stats import rv_discrete, uniform
 
+
 def check_rng(rng):
     """
     Return a random number generator.
 
     Parameters
     ----------
-    rng : None or int or RandomState or Generator
+    rng : int or RandomState or Generator, optional
         Random number generator seed or object.
 
     Returns
