@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 
 from util.generic import check_rng
 from util.results import timing_wrapper, check_valid
-from generators.tasks import ReluDrop as ReluDropTaskGenerator
-from generators.channel_availabilities import Uniform as UniformChanGenerator
+from generators.tasks import UniformIID as UniformTaskGenerator
+from generators.channel_availabilities import UniformIID as UniformChanGenerator
 from tree_search import branch_bound
 
 np.set_printoptions(precision=2)
@@ -68,10 +68,8 @@ class Random(Base):
     def relu_drop_default(cls, n_tasks, n_ch, rng=None):
         _rng = check_rng(rng)
 
-        # task_gen = ReluDropTaskGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-        #                                  t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=_rng)  # task set generator
-        task_gen = ReluDropTaskGenerator.iid_uniform(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-                                                     t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=_rng)
+        task_gen = UniformTaskGenerator.relu_drop(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+                                                  t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=_rng)
 
         ch_avail_gen = UniformChanGenerator(lim=(0, 1), rng=_rng)
 

@@ -15,7 +15,7 @@ class Base:
         raise NotImplementedError
 
 
-class Uniform(Base):
+class UniformIID(Base):
     """
     Generator of uniformly random channel availabilities.
 
@@ -36,7 +36,7 @@ class Uniform(Base):
             yield self.rng.uniform(*self.lim)
 
     def __eq__(self, other):
-        if not isinstance(other, Uniform):
+        if not isinstance(other, UniformIID):
             return False
 
         return True if self.lim == other.lim else False

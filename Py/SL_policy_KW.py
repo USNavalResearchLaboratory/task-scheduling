@@ -193,7 +193,7 @@ def main():
     task_gen = ReluDrop(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
                         t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)  # task set generator
 
-    # task_gen = PermuteOrder(task_gen(n_tasks))
+    # task_gen = Permutation(task_gen(n_tasks))
     # task_gen = Deterministic(task_gen(n_tasks))
 
     def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator

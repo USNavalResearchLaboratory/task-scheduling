@@ -26,6 +26,8 @@ class Generic:
 
     """
 
+    param_names = ('duration', 't_release')
+
     def __init__(self, duration, t_release, loss_func=None):
         self.duration = duration
         self.t_release = t_release
@@ -43,12 +45,15 @@ class Generic:
     def __eq__(self, other):
         if not isinstance(other, Generic):
             return False
+        else:
+            conditions = [self.params == other.params,
+                          self._loss_func == other._loss_func]
+            return True if all(conditions) else False
 
-        conditions = [self.duration == other.duration,
-                      self.t_release == other.t_release,
-                      self._loss_func == other._loss_func]
-
-        return True if all(conditions) else False
+    @property
+    def params(self):
+        # return {'duration': self.duration, 't_release': self.t_release}
+        return {name: getattr(self, name) for name in self.param_names}
 
     @property
     def plot_lim(self):
@@ -119,6 +124,8 @@ class ReluDrop(Generic):
 
     """
 
+    param_names = ('duration', 't_release', 'slope', 't_drop', 'l_drop')
+
     def __init__(self, duration, t_release, slope, t_drop, l_drop):
         super().__init__(duration, t_release)
         self._slope = slope
@@ -143,14 +150,13 @@ class ReluDrop(Generic):
     def __eq__(self, other):
         if not isinstance(other, ReluDrop):
             return False
+        else:
+            return True if self.params == other.params else False
 
-        conditions = [self.duration == other.duration,
-                      self.t_release == other.t_release,
-                      self.slope == other.slope,
-                      self.t_drop == other.t_drop,
-                      self.l_drop == other.l_drop]
-
-        return True if all(conditions) else False
+    # @property
+    # def params(self):
+    #     return {'duration': self.duration, 't_release': self.t_release,
+    #             'slope': self.slope, 't_drop': self.t_drop, 'l_drop': self.l_drop}
 
     @property
     def slope(self):
@@ -219,7 +225,7 @@ class ReluDrop(Generic):
         if len(funcs) > 0:
             return [func(self) for func in funcs]
         else:   # default, return task parameters
-            return [self.duration, self.t_release, self.slope, self.t_drop, self.l_drop]
+            return list(self.params.values())
 
     def summary(self):
         """Print a string listing task parameters."""
@@ -267,7 +273,7 @@ class ReluDrop(Generic):
 
 # FIXME FIXME: move KW additions to new generators submodule.
 
-# %% Task generation objects        # TODO: generalize, add docstrings
+# %% Task generation objects
 class GenericTaskGenerator:
     def __init__(self, rng=None):
         self.rng = check_rng(rng)
@@ -344,37 +350,9 @@ class ReluDropGenerator(GenericTaskGenerator):
         else:
             l_drop = self.rng.uniform(*self.l_drop_lim, n_tasks)
 
-        return [ReluDropTask(*args) for args in zip(duration, t_release, slope, t_drop, l_drop)]
+        return [ReluDrop(*args) for args in zip(duration, t_release, slope, t_drop, l_drop)]
 
     @property
     def param_rep_lim(self):
         """Low and high tuples bounding parametric task representations."""
         return zip(self.duration_lim, self.t_release_lim, self.slope_lim, self.t_drop_lim, self.l_drop_lim)
-
-
-# TODO: update/formalize generators below
-class PermuteTaskGenerator(GenericTaskGenerator):
-    def __init__(self, tasks, rng=None):
-        super().__init__(rng)
-        self.tasks = tasks      # list of tasks
-
-    def __call__(self, n_tasks):
-        return self.rng.permutation(self.tasks)
-
-
-class DeterministicTaskGenerator(GenericTaskGenerator):
-    def __init__(self, tasks, rng=None):
-        super().__init__(rng)
-        self.tasks = tasks      # list of tasks
-
-    def __call__(self, n_tasks):
-        return self.tasks
-
-
-def main():
-    task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-                                 t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=None)  # task set generator
-
-
-if __name__ == '__main__':
-    main()

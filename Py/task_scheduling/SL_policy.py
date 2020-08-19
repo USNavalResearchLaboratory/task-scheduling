@@ -31,7 +31,7 @@ def train_policy(problem_gen,
     ----------
     n_tasks : int
         Number of tasks.
-    task_gen : Base
+    task_gen : generators.tasks.RandomIID
         Task generation object.
     n_ch: int
         Number of channels.
@@ -187,7 +187,7 @@ def main():
     # task_gen = ReluDropTaskGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
     #                              t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)  # task set generator
 
-    # task_gen = PermuteOrder(task_gen(n_tasks))
+    # task_gen = Permutation(task_gen(n_tasks))
     # task_gen = Deterministic(task_gen(n_tasks))
 
     # def ch_avail_gen(n_chan, rng=check_rng(None)):  # channel availability time generator

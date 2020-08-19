@@ -73,7 +73,7 @@ class BaseTaskingEnv(gym.Env):
     ----------
     n_tasks : int
         Number of tasks.
-    task_gen : generators.tasks.Base
+    task_gen : generators.tasks.RandomIID
         Task generation object.
     n_ch: int
         Number of channels.
@@ -262,7 +262,7 @@ class StepTaskingEnv(BaseTaskingEnv):
     ----------
     n_tasks : int
         Number of tasks.
-    task_gen : generators.tasks.Base
+    task_gen : generators.tasks.RandomIID
         Task generation object.
     n_ch: int
         Number of channels.
@@ -471,7 +471,7 @@ def train_agent(problem_gen,
     ----------
     n_tasks : int
         Number of tasks.
-    task_gen : generators.tasks.Base
+    task_gen : generators.tasks.RandomIID
         Task generation object.
     n_ch: int
         Number of channels.
