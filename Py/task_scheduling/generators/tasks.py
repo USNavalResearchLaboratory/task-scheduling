@@ -46,7 +46,7 @@ class BaseIID:
         raise NotImplementedError
 
     @property
-    def param_repr_lim(self):
+    def param_repr_lim(self):   # TODO: delete?
         """Low and high tuples bounding parametric task representations."""
         return zip(*self.param_lims.values())
 

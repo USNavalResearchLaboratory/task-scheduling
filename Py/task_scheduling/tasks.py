@@ -48,7 +48,6 @@ class Generic:
 
     @property
     def params(self):
-        # return {'duration': self.duration, 't_release': self.t_release}
         return {name: getattr(self, name) for name in self.param_names}
 
     @property
@@ -213,10 +212,12 @@ class ReluDrop(Generic):
 
     def gen_features(self, *funcs):
         """Generate features from input functions. Defaults to the parametric representation."""
-        if len(funcs) > 0:
-            return [func(self) for func in funcs]
-        else:   # default, return task parameters
-            return list(self.params.values())
+        return [func(self) for func in funcs]
+
+        # if len(funcs) > 0:      # TODO: restore?
+        #     return [func(self) for func in funcs]
+        # else:   # default, return task parameters
+        #     return list(self.params.values())
 
     def summary(self):
         """Print a string listing task parameters."""

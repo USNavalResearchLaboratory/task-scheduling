@@ -17,7 +17,6 @@ from util.plot import plot_task_losses, plot_loss_runtime
 
 from generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
 from tree_search_run_lim import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release
-from env_tasking import StepTaskingEnv, wrap_agent_run_lim, RandomAgent
 
 plt.style.use('seaborn')
 
