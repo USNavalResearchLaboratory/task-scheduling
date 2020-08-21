@@ -18,7 +18,7 @@ from tree_search import branch_bound
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
 
-# TODO: docstrings
+# TODO: docstrings and comments
 
 
 class Base:
@@ -33,19 +33,11 @@ class Base:
         self._SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
         self._SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
 
-    def __call__(self, *args, **kwargs):
-        raise NotImplementedError       # TODO: DRY principle - move call code here?
+    def __call__(self, n_gen=1, solve=False, verbose=False, save=False, file=None):
+        raise NotImplementedError   # TODO: DRY principle?
 
-    def __eq__(self, other):
-        if not isinstance(other, Base):
-            return False
-        else:
-            conditions = [self.n_tasks == other.n_tasks,
-                          self.n_ch == other.n_ch,
-                          self.task_gen == other.task_gen,
-                          self.ch_avail_gen == other.ch_avail_gen]
-
-            return True if all(conditions) else False
+    # def gen_single(self, solve, verbose, save):   # TODO: delete?
+    #     raise NotImplementedError
 
     @staticmethod
     def save(pkl_dict, file=None):
@@ -75,6 +67,17 @@ class Base:
 
         with open('data/schedules/' + file, 'wb') as file:
             dill.dump(pkl_dict, file)  # save schedules
+
+    def __eq__(self, other):
+        if not isinstance(other, Base):
+            return False
+        else:
+            conditions = [self.n_tasks == other.n_tasks,
+                          self.n_ch == other.n_ch,
+                          self.task_gen == other.task_gen,
+                          self.ch_avail_gen == other.ch_avail_gen]
+
+            return True if all(conditions) else False
 
 
 class Random(Base):
@@ -110,8 +113,6 @@ class Random(Base):
                 pkl_dict['problems'].append(problem)
 
             if solve:
-                # TODO: train using complete tree info, not just B&B solution?
-
                 t_ex, ch_ex, t_run = timing_wrapper(partial(branch_bound, verbose=verbose))(tasks, ch_avail)
                 solution = self._SchedulingSolution(t_ex, ch_ex, t_run)
                 if save:
@@ -156,13 +157,8 @@ class Dataset(Base):
                 self.problems = self.rng.permutation(self.problems).tolist()
             else:
                 _temp = list(zip(self.problems, self.solutions))
-                _p, _s = zip(self.rng.permutation(_temp).tolist())
+                _p, _s = zip(*self.rng.permutation(_temp).tolist())
                 self.problems, self.solutions = list(_p), list(_s)
-
-            # i_permute = self.rng.permutation(len(self.problems)).tolist()
-            # self.problems = [self.problems[i] for i in i_permute]
-            # if self.solutions is not None:
-            #     self.solutions = [self.solutions[i] for i in i_permute]
 
     def __call__(self, n_gen=1, solve=False, verbose=False, save=False, file=None):
         pkl_dict = {'problem_gen': self.problem_gen, 'problems': []}

@@ -300,7 +300,7 @@ class StepTaskingEnv(BaseTaskingEnv):
     def infer_action_space(self, observation):
         """Determines the action Gym.Space from an observation."""
         _state_seq = observation[:, :-len(self.features)]
-        # TODO: assumes encoded sum is 1 for scheduled. Enforce in init?
+        # TODO: assumes encoded task state array sums to 1 for scheduled. Enforce in init?
         return DiscreteSet(np.flatnonzero(1 - _state_seq.sum(1)))
 
     @property
@@ -458,8 +458,6 @@ def train_agent(problem_gen, n_gen_train=0, n_gen_val=0, env_cls=StepTaskingEnv,
 
     """
 
-    # TODO: expand functionality for user-specified agent!
-
     if env_params is None:
         env_params = {}
 
@@ -468,7 +466,6 @@ def train_agent(problem_gen, n_gen_train=0, n_gen_val=0, env_cls=StepTaskingEnv,
 
     if agent is None:
         agent = RandomAgent(env.infer_action_space)
-        # agent = RandomAgent(env.action_space)
 
     # Generate state-action data pairs
     d_train = data_gen(env, n_gen_train)
@@ -517,7 +514,6 @@ def wrap_agent_run_lim(env, agent):
 
         observation, reward, done = env.reset(tasks, ch_avail), 0, False
         while not done:
-            agent.action_space = env.action_space
             action = agent.act(observation, reward, done)
             observation, reward, done, info = env.step(action)
 
@@ -535,15 +531,7 @@ def main():
     n_tasks = 4
     n_ch = 2
 
-    # task_gen = ReluDropTaskGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-    #                              t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)
-    #
-    # def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
-    #     return rng.uniform(0, 2, n_ch)
-
     problem_gen = RandomProblem.relu_drop_default(n_tasks, n_ch)
-
-    # out = schedule_gen(4, task_gen, 1, ch_avail_gen, n_gen=1, save=True, file='temp/2020-07-27_16-37-13')
 
     #
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
@@ -586,9 +574,7 @@ def main():
                   'masking': False
                   }
 
-    # env = SeqTaskingEnv(**params)
     env = StepTaskingEnv(problem_gen, **env_params)
-
     agent = RandomAgent(env.infer_action_space)
 
     observation, reward, done = env.reset(), 0, False
