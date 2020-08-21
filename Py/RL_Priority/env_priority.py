@@ -12,8 +12,6 @@ from util.results import check_valid, eval_loss
 from more_itertools import locate
 from math import factorial, floor
 # import numpy as np
-from tasks import ReluDropGenerator
-# from tasks import ReluDropTask
 from task_scheduling.tasks import ReluDrop
 import gym
 from gym.spaces import Dict, Discrete, Box, Tuple, MultiDiscrete

@@ -1,24 +1,17 @@
 import time
 from types import MethodType
+from functools import partial
 import dill
-import functools
 
 import numpy as np
 import matplotlib.pyplot as plt
-
 import gym
 from gym.spaces import Box, Space
-
 # from baselines import deepq
 
-from util.generic import check_rng
 from util.plot import plot_task_losses
-
 from generators.scheduling_problems import Random as RandomProblem
-
-from tree_search import TreeNode, TreeNodeShift, branch_bound
-
-# np.set_printoptions(precision=2)
+from tree_search import TreeNode, TreeNodeShift
 
 
 # Gym Spaces
@@ -71,14 +64,8 @@ class BaseTaskingEnv(gym.Env):
 
     Parameters
     ----------
-    n_tasks : int
-        Number of tasks.
-    task_gen : generators.tasks.RandomIID
-        Task generation object.
-    n_ch: int
-        Number of channels.
-    ch_avail_gen : callable
-        Returns random initial channel availabilities.
+    problem_gen : generators.scheduling_problems.Base
+        Scheduling problem generation object.
     node_cls : TreeNode or callable
         Class for tree search node generation.
     features : ndarray, optional
@@ -94,17 +81,22 @@ class BaseTaskingEnv(gym.Env):
 
         self.n_tasks = self.problem_gen.n_tasks
         self.n_ch = self.problem_gen.n_ch
-        # self.task_gen = task_gen
-        # self.ch_avail_gen = ch_avail_gen
 
         # Set features and state bounds
         if features is not None:
             self.features = features
-            _low, _high = self.features['lims'].transpose()
         else:
-            self.features = np.array([], dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
-            _low, _high = self.problem_gen.task_gen.param_repr_lim
+            _task_param_names = self.problem_gen.task_gen.cls_task.param_names
+            self.features = np.array(list(zip(_task_param_names,
+                                              [lambda task, name=_name: getattr(task, name)
+                                               for _name in _task_param_names],     # note: late-binding closure
+                                              self.problem_gen.task_gen.param_lims.values())),
+                                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
+            # self.features = np.array([], dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
+            # _low, _high = self.problem_gen.task_gen.param_repr_lim
+
+        _low, _high = zip(*self.features['lims'])
         self._state_tasks_low = np.broadcast_to(_low, (self.n_tasks, len(_low)))
         self._state_tasks_high = np.broadcast_to(_high, (self.n_tasks, len(_high)))
 
@@ -136,21 +128,15 @@ class BaseTaskingEnv(gym.Env):
             return np.argsort([self.sort_func(n) for n in range(self.n_tasks)])
         else:
             return np.arange(self.n_tasks)
-            # return None
 
     @property
     def state_tasks(self):
         """State sub-array for task features."""
-
         state_tasks = np.array([task.gen_features(*self.features['func']) for task in self.tasks])
         if self.masking:
             state_tasks[self.node.seq] = 0.     # zero out state rows for scheduled tasks
 
         return state_tasks[self.sorted_index]       # sort individual task states
-        # if callable(self.sort_func):  # sort individual task states
-        #     return state_tasks[self.sorted_index]
-        # else:
-        #     return state_tasks
 
     def reset(self, tasks=None, ch_avail=None, persist=False, solve=False):
         """
@@ -190,11 +176,7 @@ class BaseTaskingEnv(gym.Env):
 
     def step(self, action):
         """Updates environment state based on task index input."""
-
         action = self.sorted_index[action]  # decode task index to original order
-        # if callable(self.sort_func):  # decode task index to original order
-        #     action = self.sorted_index[action]
-
         self.node.seq_extend(action)  # updates sequence, loss, task parameters, etc.
 
     def render(self, mode='human'):
@@ -209,19 +191,18 @@ class BaseTaskingEnv(gym.Env):
 class SeqTaskingEnv(BaseTaskingEnv):
     """Tasking environment with single action of a complete task index sequence."""
 
-    def __init__(self, problem_gen,
-                 # n_tasks, task_gen, n_ch, ch_avail_gen,
-                 node_cls=TreeNode, features=None, sort_func=None):
-        super().__init__(problem_gen,
-                         # n_tasks, task_gen, n_ch, ch_avail_gen,
-                         node_cls, features, sort_func)
+    @staticmethod
+    def infer_action_space(observation):
+        """Determines the action Gym.Space from an observation."""
+        return Sequence(len(observation))
+
+    def reset(self, tasks=None, ch_avail=None, persist=False, solve=False):
+        super().reset(tasks, ch_avail, persist, solve)
 
         # Gym observation and action spaces
         self.observation_space = Box(self._state_tasks_low, self._state_tasks_high, dtype=np.float64)
         self.action_space = Sequence(self.n_tasks)
 
-    def reset(self, tasks=None, ch_avail=None, persist=False, solve=False):
-        super().reset(tasks, ch_avail, persist, solve)
         return self.state_tasks     # observation is the task set state
 
     def step(self, action):
@@ -260,14 +241,8 @@ class StepTaskingEnv(BaseTaskingEnv):
 
     Parameters
     ----------
-    n_tasks : int
-        Number of tasks.
-    task_gen : generators.tasks.RandomIID
-        Task generation object.
-    n_ch: int
-        Number of channels.
-    ch_avail_gen : callable
-        Returns random initial channel availabilities.
+    problem_gen : generators.scheduling_problems.Base
+        Scheduling problem generation object.
     node_cls : TreeNode or callable
         Class for tree search node generation.
     features : ndarray, optional
@@ -281,9 +256,7 @@ class StepTaskingEnv(BaseTaskingEnv):
 
     """
 
-    def __init__(self, problem_gen,
-                 # n_tasks, task_gen, n_ch, ch_avail_gen,
-                 node_cls=TreeNode, features=None, sort_func=None, seq_encoding=None, masking=False):
+    def __init__(self, problem_gen, node_cls=TreeNode, features=None, sort_func=None, seq_encoding=None, masking=False):
 
         # Set sequence encoder method
         if callable(seq_encoding):
@@ -291,7 +264,7 @@ class StepTaskingEnv(BaseTaskingEnv):
         elif type(seq_encoding) == str:     # simple string specification for supported encoders
             if seq_encoding == 'indicator':
                 def _seq_encoding(env, n):
-                    return [0] if n in env.node.seq else [1]
+                    return [1] if n in env.node.seq else [0]
             elif seq_encoding == 'one-hot':
                 def _seq_encoding(env, n):
                     out = np.zeros(env.n_tasks)
@@ -303,18 +276,16 @@ class StepTaskingEnv(BaseTaskingEnv):
 
             self.seq_encoding = MethodType(_seq_encoding, self)
         else:
-            self.seq_encoding = None
+            raise TypeError("Sequence encoding input must be callable or str.")
 
         self.loss_agg = None
 
-        super().__init__(problem_gen,
-                         # n_tasks, task_gen, n_ch, ch_avail_gen,
-                         node_cls, features, sort_func)
+        super().__init__(problem_gen, node_cls, features, sort_func)
 
         self.masking = masking
 
     @property
-    def observation_space(self):    # TODO: invoke a setter in the reset method?
+    def observation_space(self):
         """Gym space of valid observations."""
         _state_low = np.concatenate((np.zeros(self.state_seq.shape), self._state_tasks_low), axis=1)
         _state_high = np.concatenate((np.ones(self.state_seq.shape), self._state_tasks_high), axis=1)
@@ -325,26 +296,18 @@ class StepTaskingEnv(BaseTaskingEnv):
         """Gym space of valid actions."""
         seq_rem_sort = np.flatnonzero(np.isin(self.sorted_index, list(self.node.seq_rem)))
         return DiscreteSet(seq_rem_sort)
-        # if callable(self.sort_func):
-        #     seq_rem_sort = np.flatnonzero(np.isin(self.sorted_index, list(self.node.seq_rem)))
-        #     return DiscreteSet(seq_rem_sort)
-        # else:
-        #     return DiscreteSet(self.node.seq_rem)
+
+    def infer_action_space(self, observation):
+        """Determines the action Gym.Space from an observation."""
+        _state_seq = observation[:, :-len(self.features)]
+        # TODO: assumes encoded task state array sums to 1 for scheduled. Enforce in init?
+        return DiscreteSet(np.flatnonzero(1 - _state_seq.sum(1)))
 
     @property
     def state_seq(self):
         """State sub-array for encoded partial sequence."""
-
-        if callable(self.seq_encoding):
-            state_seq = np.array([self.seq_encoding(n) for n in range(self.n_tasks)])
-
-            return state_seq[self.sorted_index]     # sort individual sequence states
-            # if callable(self.sort_func):  # sort individual sequence states
-            #     return state_seq[self.sorted_index]
-            # else:
-            #     return state_seq
-        else:
-            return np.zeros((self.n_tasks, 0))  # no array
+        state_seq = np.array([self.seq_encoding(n) for n in range(self.n_tasks)])
+        return state_seq[self.sorted_index]  # sort individual sequence states
 
     @property
     def state(self):
@@ -381,23 +344,29 @@ class StepTaskingEnv(BaseTaskingEnv):
 
         super().step(action)
 
-        # TODO: different aggregate loss increments for shift node! Test both...
         reward, self.loss_agg = self.loss_agg - self.node.l_ex, self.node.l_ex
-        # reward = self.tasks[action](self.node.t_ex[action])
-
         done = len(self.node.seq_rem) == 0      # sequence is complete
 
         return self.state, reward, done, {}
 
 
 # Agents
-class RandomAgent(object):
+class RandomAgent:
     """The world's simplest agent!"""
-    def __init__(self, action_space=None):
-        self.action_space = action_space
+    def __init__(self, infer_action_space):
+        self.infer_action_space = infer_action_space
 
     def act(self, observation, reward, done):
-        return self.action_space.sample()       # randomly selected action
+        action_space = self.infer_action_space(observation)
+        return action_space.sample()       # randomly selected action
+
+# class RandomAgent:
+#     """The world's simplest agent!"""
+#     def __init__(self, action_space=None):
+#         self.action_space = action_space
+#
+#     def act(self, observation, reward, done):
+#         return self.action_space.sample()       # randomly selected action
 
 
 # Learning
@@ -423,9 +392,6 @@ def data_gen(env, n_gen=1, save=False, file=None):
 
     """
 
-    # TODO: generate sample weights to prioritize earliest task selections??
-    # TODO: train using complete tree info, not just B&B solution?
-
     if not isinstance(env, StepTaskingEnv):
         raise NotImplementedError("Tasking environment must be step Env.")      # TODO: generalize?
 
@@ -436,14 +402,15 @@ def data_gen(env, n_gen=1, save=False, file=None):
         env.reset(solve=True)   # generates new scheduling problem
 
         # Optimal schedule
+        # TODO: train using complete tree info, not just B&B solution?
+        # TODO: generate sample weights to prioritize earliest task selections??
+
         t_ex, ch_ex = env.solution.t_ex, env.solution.ch_ex
         seq = np.argsort(t_ex)  # FIXME: Confirm that argsort recovers the correct sequence-to-schedule seq?!?!
 
         # Generate samples for each scheduling step of the optimal sequence
         for n in seq:
             n = env.sorted_index.tolist().index(n)  # transform index using sorting function
-            # if callable(env.sort_func):
-            #     n = env.sorted_index.tolist().index(n)     # transform index using sorting function
 
             x_list.append(env.state.copy())
             y_list.append(n)
@@ -460,31 +427,25 @@ def data_gen(env, n_gen=1, save=False, file=None):
     return x_set, y_set
 
 
-def train_agent(problem_gen,
-                # n_tasks, task_gen, n_ch, ch_avail_gen,
-                n_gen_train=0, n_gen_val=0, env_cls=StepTaskingEnv, env_params=None,
-                save=False, save_dir=None):
+def train_agent(problem_gen, n_gen_train=0, n_gen_val=0, env_cls=StepTaskingEnv, env_params=None,
+                agent=None, save=False, save_dir=None):
     """
     Train a reinforcement learning agent.
 
     Parameters
     ----------
-    n_tasks : int
-        Number of tasks.
-    task_gen : generators.tasks.RandomIID
-        Task generation object.
-    n_ch: int
-        Number of channels.
-    ch_avail_gen : callable
-        Returns random initial channel availabilities.
+    problem_gen : generators.scheduling_problems.Base
+        Scheduling problem generation object.
     n_gen_train : int
         Number of tasking problems to generate for agent training.
     n_gen_val : int
         Number of tasking problems to generate for agent validation.
-    env_cls : BaseTaskingEnv or callable
+    env_cls : class
         Gym environment class.
     env_params : dict, optional
         Parameters for environment initialization.
+    agent : object
+        Reinforcement learning agent.
     save : bool
         If True, the agent and environment are serialized.
     save_dir : str, optional
@@ -497,25 +458,20 @@ def train_agent(problem_gen,
 
     """
 
-    # TODO: expand functionality for user-specified agent!
-
     if env_params is None:
         env_params = {}
 
     # Create environment
-    env = env_cls(problem_gen,
-                  # n_tasks, task_gen, n_ch, ch_avail_gen,
-                  **env_params)
+    env = env_cls(problem_gen, **env_params)
+
+    if agent is None:
+        agent = RandomAgent(env.infer_action_space)
 
     # Generate state-action data pairs
     d_train = data_gen(env, n_gen_train)
     d_val = data_gen(env, n_gen_val)
 
     # FIXME: load existing learning data, then split?
-
-    # Train agent
-    agent = RandomAgent()
-    # agent = RandomAgent(env.action_space)
 
     # Save agent and environment
     if save:
@@ -541,9 +497,7 @@ def wrap_agent(env, agent):
     def scheduling_agent(tasks, ch_avail):
         observation, reward, done = env.reset(tasks, ch_avail), 0, False
         while not done:
-            agent.action_space = env.action_space       # FIXME: hacked to disallow previously scheduled tasks
             action = agent.act(observation, reward, done)
-
             observation, reward, done, info = env.step(action)
 
         return env.node.t_ex, env.node.ch_ex
@@ -560,7 +514,6 @@ def wrap_agent_run_lim(env, agent):
 
         observation, reward, done = env.reset(tasks, ch_avail), 0, False
         while not done:
-            agent.action_space = env.action_space
             action = agent.act(observation, reward, done)
             observation, reward, done, info = env.step(action)
 
@@ -578,22 +531,15 @@ def main():
     n_tasks = 4
     n_ch = 2
 
-    # task_gen = ReluDropTaskGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-    #                              t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)
-    #
-    # def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
-    #     return rng.uniform(0, 2, n_ch)
-
     problem_gen = RandomProblem.relu_drop_default(n_tasks, n_ch)
 
-    # out = schedule_gen(4, task_gen, 1, ch_avail_gen, n_gen=1, save=True, file='temp/2020-07-27_16-37-13')
-
     #
-    features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.duration_lim),
-                         ('release time', lambda task: task.t_release, (0., problem_gen.task_gen.t_release_lim[1])),
-                         ('slope', lambda task: task.slope, problem_gen.task_gen.slope_lim),
-                         ('drop time', lambda task: task.t_drop, (0., problem_gen.task_gen.t_drop_lim[1])),
-                         ('drop loss', lambda task: task.l_drop, (0., problem_gen.task_gen.l_drop_lim[1])),
+    features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
+                         ('release time', lambda task: task.t_release,
+                          (0., problem_gen.task_gen.param_lims['t_release'][1])),
+                         ('slope', lambda task: task.slope, problem_gen.task_gen.param_lims['slope']),
+                         ('drop time', lambda task: task.t_drop, (0., problem_gen.task_gen.param_lims['t_drop'][1])),
+                         ('drop loss', lambda task: task.l_drop, (0., problem_gen.task_gen.param_lims['l_drop'][1])),
                          ('is available', lambda task: 1 if task.t_release == 0. else 0, (0, 1)),
                          ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
                          ],
@@ -608,8 +554,8 @@ def main():
     #         out[self.node.seq.index(n)] = 1
     #     return out
 
-    # seq_encoding = 'one-hot'
-    seq_encoding = None
+    seq_encoding = 'one-hot'
+    # seq_encoding = None
 
     def sort_func(self, n):
         if n in self.node.seq:
@@ -622,16 +568,14 @@ def main():
     # sort_func = 't_release'
 
     env_params = {'node_cls': TreeNodeShift,
-                  'features': features,
+                  'features': None,
                   'sort_func': sort_func,
                   'seq_encoding': seq_encoding,
                   'masking': False
                   }
 
-    # env = SeqTaskingEnv(**params)
     env = StepTaskingEnv(problem_gen, **env_params)
-
-    agent = RandomAgent(env.action_space)
+    agent = RandomAgent(env.infer_action_space)
 
     observation, reward, done = env.reset(), 0, False
     while not done:

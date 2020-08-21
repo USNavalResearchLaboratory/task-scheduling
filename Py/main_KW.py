@@ -54,7 +54,7 @@ def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time gen
 # Algorithms
 
 env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen)
-random_agent = wrap_agent(env, RandomAgent(env.action_space))
+random_agent = wrap_agent(env, RandomAgent(env.infer_action_space))
 
 alg_funcs = [partial(branch_bound_with_stats, verbose=False, rng = rng),
              # partial(branch_bound2, verbose=False, rng = rng),

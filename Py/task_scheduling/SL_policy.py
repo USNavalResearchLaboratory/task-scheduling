@@ -4,12 +4,9 @@ import dill
 
 import numpy as np
 import matplotlib.pyplot as plt
-
 from tensorflow import keras
 from tensorboard import program
 import webbrowser
-
-from util.generic import check_rng
 
 from generators.scheduling_problems import Random as RandomProblem
 from tree_search import TreeNodeShift
@@ -19,9 +16,7 @@ np.set_printoptions(precision=2)
 plt.style.use('seaborn')
 
 
-def train_policy(problem_gen,
-                 # n_tasks, task_gen, n_ch, ch_avail_gen,
-                 n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv, env_params=None,
+def train_policy(problem_gen, n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv, env_params=None,
                  model=None, compile_params=None, fit_params=None,
                  do_tensorboard=False, plot_history=False, save=False, save_dir=None):
     """
@@ -29,14 +24,8 @@ def train_policy(problem_gen,
 
     Parameters
     ----------
-    n_tasks : int
-        Number of tasks.
-    task_gen : generators.tasks.RandomIID
-        Task generation object.
-    n_ch: int
-        Number of channels.
-    ch_avail_gen : callable
-        Returns random initial channel availabilities.
+    problem_gen : generators.scheduling_problems.Base
+        Scheduling problem generation object.
     n_gen_train : int
         Number of tasking problems to generate for agent training.
     n_gen_val : int
@@ -67,8 +56,8 @@ def train_policy(problem_gen,
 
     """
 
-    # TODO: don't pack TF params in func arguments? user has to define all or none...
-    # TODO: customize output layers to avoid illegal actions
+    # TODO: don't pack TF params in func arguments!? user has to define all or none...
+    # TODO: make custom output layers to avoid illegal actions
 
     if env_params is None:
         env_params = {}
