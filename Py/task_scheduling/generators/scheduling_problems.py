@@ -1,6 +1,7 @@
 """Generator objects for complete tasking problems with optimal solutions."""
 
 from time import strftime
+
 import dill
 import warnings
 from collections import namedtuple
@@ -17,8 +18,6 @@ from tree_search import branch_bound
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
-
-# TODO: docstrings and comments
 
 
 class Base:
@@ -52,7 +51,65 @@ class Base:
         self._SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
 
     def __call__(self, n_gen=1, solve=False, verbose=False, save=False, file=None):
-        raise NotImplementedError   # TODO: DRY principle?
+        """
+        Call problem generator.
+
+        Parameters
+        ----------
+        n_gen : int, optional
+            Number of problems to generate.
+        solve : bool, optional
+            Enables generation of Branch & Bound optimal solutions.
+        verbose : bool, optional
+            Enables print-out progress information.
+        save : bool, optional
+            Enables serialization of generated problems/solutions.
+        file: str, optional
+            File location relative to ./data/schedules/
+
+        Yields
+        ------
+        SchedulingProblem or tuple
+            If 'solve' is True, yields 2-tuple of (SchedulingProblem, SchedulingSolution)
+
+        """
+
+        # TODO: buffer generated data across multiple calls, save and clear buffer using separate method?
+
+        save_dict = {'problems': [], 'solutions': [] if solve else None,
+                     'task_gen': self.task_gen, 'ch_avail_gen': self.ch_avail_gen}
+
+        # Generate tasks and find optimal schedules
+        for i_gen in range(n_gen):
+            if verbose:
+                print(f'Task Set: {i_gen + 1}/{n_gen}', end='\n')
+
+            problem, solution = self.gen_single()
+            if problem is None:
+                return
+
+            if save:
+                save_dict['problems'].append(problem)
+
+            if solve:
+                if solution is None:
+                    # Generate B&B optimal solution
+                    t_ex, ch_ex, t_run = timing_wrapper(partial(branch_bound, verbose=verbose))(*problem)
+                    solution = self._SchedulingSolution(t_ex, ch_ex, t_run)
+
+                if save:
+                    save_dict['solutions'].append(solution)
+
+                yield problem, solution
+            else:
+                yield problem
+
+        if save:
+            self.save(save_dict, file)
+
+    def gen_single(self):
+        """Return a single scheduling problem (and optional solution)."""
+        raise NotImplementedError
 
     @staticmethod
     def save(save_dict, file=None):
@@ -113,7 +170,6 @@ class Base:
 
 
 class Random(Base):
-
     @classmethod
     def relu_drop_default(cls, n_tasks, n_ch, rng=None):
         _rng = check_rng(rng)
@@ -125,61 +181,15 @@ class Random(Base):
 
         return cls(n_tasks, n_ch, task_gen, ch_avail_gen, _rng)
 
-    def __call__(self, n_gen=1, solve=False, verbose=False, save=False, file=None):
-        """
-        Call problem generator.
+    def gen_single(self):
+        """Return a single scheduling problem (and optional solution)."""
+        tasks = list(self.task_gen(self.n_tasks))
+        ch_avail = list(self.ch_avail_gen(self.n_ch))
 
-        Parameters
-        ----------
-        n_gen : int, optional
-            Number of problems to generate.
-        solve : bool, optional
-            Enables generation of Branch & Bound optimal solutions.
-        verbose : bool, optional
-            Enables print-out progress information.
-        save : bool, optional
-            Enables serialization of generated problems/solutions.
-        file: str, optional
-            File location relative to ./data/schedules/
+        problem = self._SchedulingProblem(tasks, ch_avail)
+        solution = None
 
-        Yields
-        ------
-        SchedulingProblem or tuple
-            If 'solve' is True, yields 2-tuple of (SchedulingProblem, SchedulingSolution)
-
-        """
-
-        # TODO: buffer generated data across multiple calls, save and clear buffer using separate method?
-
-        save_dict = {'problems': [], 'solutions': [] if solve else None,
-                     'task_gen': self.task_gen, 'ch_avail_gen': self.ch_avail_gen}
-
-        # Generate tasks and find optimal schedules
-        for i_gen in range(n_gen):
-            if verbose:
-                print(f'Task Set: {i_gen + 1}/{n_gen}', end='\n')
-
-            # Randomly generated problem
-            tasks = list(self.task_gen(self.n_tasks))
-            ch_avail = list(self.ch_avail_gen(self.n_ch))
-
-            problem = self._SchedulingProblem(tasks, ch_avail)
-            if save:
-                save_dict['problems'].append(problem)
-
-            if solve:
-                # Generate B&B optimal solution
-                t_ex, ch_ex, t_run = timing_wrapper(partial(branch_bound, verbose=verbose))(tasks, ch_avail)
-                solution = self._SchedulingSolution(t_ex, ch_ex, t_run)
-                if save:
-                    save_dict['solutions'].append(solution)
-
-                yield problem, solution
-            else:
-                yield problem
-
-        if save:
-            self.save(save_dict, file)
+        return problem, solution
 
 
 class Dataset(Base):
@@ -188,9 +198,9 @@ class Dataset(Base):
 
     Parameters
     ----------
-    problems : list of SchedulingProblem
+    problems : Sequence of SchedulingProblem
         Scheduling problems
-    solutions : list of SchedulingSolution, optional
+    solutions : Sequence of SchedulingSolution, optional
         Optimal scheduling solutions
     task_gen : generators.tasks.BaseIID, optional
         Task generation object.
@@ -231,7 +241,6 @@ class Dataset(Base):
 
     def restart(self):
         """Resets data index pointer to beginning, performs optional data shuffle."""
-
         self.i = 0
         if self.shuffle:
             if self.solutions is None:
@@ -241,67 +250,24 @@ class Dataset(Base):
                 _p, _s = zip(*self.rng.permutation(_temp).tolist())
                 self.problems, self.solutions = list(_p), list(_s)
 
-    def __call__(self, n_gen=1, solve=False, verbose=False, save=False, file=None):
-        """
-        Call problem generator.
+    def gen_single(self):
+        """Return a single scheduling problem (and optional solution)."""
+        if self.i == len(self.problems):
+            if self.iter_mode == 'once':
+                warnings.warn("Problem generator data has been exhausted.")
+                return None, None
+            elif self.iter_mode == 'repeat':
+                self.restart()
 
-        Parameters
-        ----------
-        n_gen : int, optional
-            Number of problems to generate.
-        solve : bool, optional
-            Enables generation of Branch & Bound optimal solutions.
-        verbose : bool, optional
-            Enables print-out progress information.
-        save : bool, optional
-            Enables serialization of generated problems/solutions.
-        file: str, optional
-            File location relative to ./data/schedules/
+        problem = self.problems[self.i]
+        if self.solutions is not None:
+            solution = self.solutions[self.i]
+        else:
+            solution = None
 
-        Yields
-        ------
-        SchedulingProblem or tuple
-            If 'solve' is True, yields 2-tuple of (SchedulingProblem, SchedulingSolution)
+        self.i += 1
 
-        """
-
-        save_dict = {'problems': [], 'solutions': [] if solve else None,
-                     'task_gen': self.task_gen, 'ch_avail_gen': self.ch_avail_gen}
-
-        for i_gen in range(n_gen):
-            if verbose:
-                print(f'Task Set: {i_gen + 1}/{n_gen}', end='\n')
-
-            if self.i == len(self.problems):
-                if self.iter_mode == 'once':
-                    warnings.warn("Problem generator data has been exhausted.")
-                    return
-                elif self.iter_mode == 'repeat':
-                    self.restart()
-
-            problem = self.problems[self.i]
-            if save:
-                save_dict['problems'].append(problem)
-
-            if solve:
-                if self.solutions is None:
-                    # Generate B&B optimal solution
-                    t_ex, ch_ex, t_run = timing_wrapper(partial(branch_bound, verbose=verbose))(*problem)
-                    solution = self._SchedulingSolution(t_ex, ch_ex, t_run)
-                else:   # load solution
-                    solution = self.solutions[self.i]
-
-                if save:
-                    save_dict['solutions'].append(solution)
-
-                yield problem, solution
-            else:
-                yield problem
-
-            self.i += 1
-
-        if save:
-            self.save(save_dict, file)
+        return problem, solution
 
 
 def main():
@@ -309,9 +275,6 @@ def main():
 
     print(list(rand_gen(2)))
     print(list(rand_gen(3)))
-
-    # load_gen = Dataset('temp/2020-07-29_10-02-56')
-    # probs2 = list(load_gen(n_gen=2))
 
 
 if __name__ == '__main__':
