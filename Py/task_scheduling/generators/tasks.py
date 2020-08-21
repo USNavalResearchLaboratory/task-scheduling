@@ -102,21 +102,21 @@ class ContinuousUniformIID(BaseIID):
 
 
 class DiscreteIID(BaseIID):
+    """
+    Generator of discrete IID random task objects.
+
+    Parameters
+    ----------
+    cls_task : class
+        Class for instantiating task objects.
+    param_probs: dict
+        Maps parameter name strings to dictionaries mapping values to probabilities.
+    rng : int or RandomState or Generator, optional
+        Random number generator seed or object.
+
+    """
+
     def __init__(self, cls_task, param_probs, rng=None):
-        """
-        Generator of discrete IID random task objects.
-
-        Parameters
-        ----------
-        cls_task : class
-            Class for instantiating task objects.
-        param_probs: dict
-            Maps parameter name strings to dictionaries mapping values to probabilities.
-        rng : int or RandomState or Generator, optional
-            Random number generator seed or object.
-
-        """
-
         param_lims = {name: (min(param_probs[name].keys()), max(param_probs[name].keys()))
                       for name in cls_task.param_names}
         super().__init__(cls_task, param_lims, rng)

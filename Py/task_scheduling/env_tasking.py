@@ -256,7 +256,8 @@ class StepTaskingEnv(BaseTaskingEnv):
 
     """
 
-    def __init__(self, problem_gen, node_cls=TreeNode, features=None, sort_func=None, seq_encoding=None, masking=False):
+    def __init__(self, problem_gen, node_cls=TreeNode, features=None, sort_func=None, seq_encoding='one-hot',
+                 masking=False):
 
         # Set sequence encoder method
         if callable(seq_encoding):
@@ -360,14 +361,6 @@ class RandomAgent:
         action_space = self.infer_action_space(observation)
         return action_space.sample()       # randomly selected action
 
-# class RandomAgent:
-#     """The world's simplest agent!"""
-#     def __init__(self, action_space=None):
-#         self.action_space = action_space
-#
-#     def act(self, observation, reward, done):
-#         return self.action_space.sample()       # randomly selected action
-
 
 # Learning
 def data_gen(env, n_gen=1, save=False, file=None):
@@ -420,7 +413,7 @@ def data_gen(env, n_gen=1, save=False, file=None):
     x_set, y_set = np.array(x_list), np.array(y_list)
 
     # if save:
-    #     d_set = tf.data.Dataset.from_tensor_slices((x_set, y_set))       # TODO
+    #     d_set = tf.data.Dataset.from_tensor_slices((x_set, y_set))
 
     # TODO: yield?
     # TODO: partition data by tasking problem
@@ -568,12 +561,13 @@ def main():
     # sort_func = 't_release'
 
     env_params = {'node_cls': TreeNodeShift,
-                  'features': None,
+                  'features': features,
                   'sort_func': sort_func,
                   'seq_encoding': seq_encoding,
                   'masking': False
                   }
 
+    # env = SeqTaskingEnv(problem_gen, **env_params)
     env = StepTaskingEnv(problem_gen, **env_params)
     agent = RandomAgent(env.infer_action_space)
 

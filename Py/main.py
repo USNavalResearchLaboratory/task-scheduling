@@ -38,11 +38,10 @@ n_gen = 10      # number of task scheduling problems
 solve = True
 save = True
 
-problem_gen = RandomProblem.relu_drop_default(n_tasks=4, n_ch=2)
-# problem_gen = ProblemDataset.load('temp/2020-08-06_14-15-35', iter_mode='repeat', shuffle=True, rng=None)
+# problem_gen = RandomProblem.relu_drop_default(n_tasks=4, n_ch=2)
+problem_gen = ProblemDataset.load('temp/2020-08-21_14-13-16', iter_mode='repeat', shuffle=True, rng=None)
 
 # FIXME: ensure train/test separation for loaded problem data
-# TODO: save option? buffer data during multiple gen calls?
 
 # Algorithms
 
@@ -56,16 +55,6 @@ features = np.array([('duration', lambda task: task.duration, problem_gen.task_g
                      ],
                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
-# features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.duration_lim),
-#                      ('release time', lambda task: task.t_release, (0., problem_gen.task_gen.t_release_lim[1])),
-#                      ('slope', lambda task: task.slope, problem_gen.task_gen.slope_lim),
-#                      ('drop time', lambda task: task.t_drop, (0., problem_gen.task_gen.t_drop_lim[1])),
-#                      ('drop loss', lambda task: task.l_drop, (0., problem_gen.task_gen.l_drop_lim[1])),
-#                      ('is available', lambda task: 1 if task.t_release == 0. else 0, (0, 1)),
-#                      ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
-#                      ],
-#                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
-
 
 def sort_func(self, n):
     if n in self.node.seq:
@@ -78,11 +67,11 @@ env_cls = StepTaskingEnv
 env_params = {'node_cls': TreeNodeShift,
               'features': features,
               'sort_func': sort_func,
-              'seq_encoding': 'indicator'
+              'seq_encoding': 'one-hot'
               }
 
-agent_file = None
-# agent_file = 'temp/2020-08-06_14-15-31'
+# agent_file = None
+agent_file = 'temp/2020-08-21_14-14-54'
 
 if agent_file is None:
     random_agent = train_agent(problem_gen,

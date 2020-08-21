@@ -3,7 +3,7 @@
 from util.generic import check_rng
 
 
-class Base:
+class BaseIID:
     def __init__(self, rng=None):
         self.rng = check_rng(rng)
 
@@ -15,7 +15,7 @@ class Base:
         raise NotImplementedError
 
 
-class UniformIID(Base):
+class UniformIID(BaseIID):
     """
     Generator of uniformly random channel availabilities.
 
