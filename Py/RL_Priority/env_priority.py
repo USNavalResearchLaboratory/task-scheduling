@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import time     # TODO: use builtin module timeit instead? or cProfile?
 import random
 import math
-from SL_policy_Discrete import load_policy, wrap_policy
+# from SL_policy_Discrete import load_policy, wrap_policy
 from tree_search import branch_bound, random_sequencer, earliest_release
 from functools import partial
 from util.generic import algorithm_repr, check_rng
@@ -33,17 +33,26 @@ class PriorityQueue(gym.Env):
         if env_config:
             self.env_config = env_config
         else:
+            alg_func = partial(earliest_release, do_swap=True)
+
             env_config = {"RP": 0.040,  # Resource Period
                           "MaxTime": 10,  # MaxTime to run an episode
                           "Ntrack": 10,  # Number of dedicated tracks
                           "N": 8,  # Number of jobs to process at any time
-                          "K": 1   # Number of Channels
+                          "K": 1,   # Number of Channels
+                          "scheduler": alg_func  # Function used to perform scheduling --> in the future use B&B or NN
                           }
+            NumSteps = np.int(np.round(env_config.get("MaxTime") / env_config.get("RP")))
+            ChannelAvailableTime = np.zeros(env_config.get("K"))
+            env_config['NumSteps'] = NumSteps
+            env_config['ChannelAvailableTime'] = ChannelAvailableTime
+
             self.env_config = env_config
 
 
 
         state = self.reset()
+        self.state = state
 
         N = self.env_config.get("N")
         M = self.M
@@ -58,10 +67,27 @@ class PriorityQueue(gym.Env):
 
         array_duration = 2*np.ones(M)
         array_t_drop = 5*np.ones(M)
-        array_slope = 4*np.ones(M)
+        array_slope = 5*np.ones(M)
 
-        self.observation_space = gym.spaces.Tuple([Box(low=-12, high=0.01, shape=(M,)), MultiDiscrete(array_duration), MultiDiscrete(array_t_drop), MultiDiscrete(array_slope)])
+        self.observation_space = gym.spaces.Tuple([Box(low=-12, high=1.0, shape=(M,)), MultiDiscrete(array_duration), MultiDiscrete(array_t_drop), MultiDiscrete(array_slope)])
         # self.observation_space = gym.spaces.Tuple([Box(-12, 0, (1,)), Discrete(2), Discrete(5), Discrete(4), (-10, 10, (2, 2))])
+
+        ## Metrics
+        Job_Revisit_Count = np.zeros((len(self.job), 1))
+        Job_Revisit_Time = []
+        for ii in range(len(self.job)):  # Create a list of empty lists --> make it multi-dimensional to support different algorithms
+            elem = []
+            for jj in range(1):
+                elem.append([])
+            Job_Revisit_Time.append(elem)
+
+        info = {"Job_Revisit_Count": Job_Revisit_Count,
+                "Job_Revisit_Time": Job_Revisit_Time
+                }
+
+        self.info = info
+
+
 
     def map_features_to_state(self, features):
 
@@ -89,7 +115,7 @@ class PriorityQueue(gym.Env):
 
         state = (np.array(temp[:, 0], dtype='f'), np.array(temp[:, 1], dtype='int64'),
                  np.array(temp[:, 2], dtype='int64'),
-                 np.array(temp[:, 3],dtype='int64'))
+                 np.array(temp[:, 3], dtype='int64'))
 
 
         return state
@@ -231,6 +257,7 @@ class PriorityQueue(gym.Env):
         self.job = job
         self.Capacity = Capacity
         self.timeSec = np.array(0)
+        self.cnt = 0
 
         M = len(job)
         NUM_FEATS = 5  # Number of feautures
@@ -256,8 +283,15 @@ class PriorityQueue(gym.Env):
         # self.paddle.goto(0, -275)
         # self.ball.goto(0, 100)
         # return [self.paddle.xcor()*0.01, self.ball.xcor()*0.01, self.ball.ycor()*0.01, self.ball.dx, self.ball.dy]
+        # Reset ChannelAvailableTime
+        K = self.env_config.get("K")
+        ChannelAvailableTime = np.zeros(K)
+        self.env_config['ChannelAvailableTime'] = ChannelAvailableTime
+
+
         self.M = M
         self.NUM_FEATS = NUM_FEATS
+        self.done = 0
         state = self.map_features_to_state(features)
 
 
@@ -265,11 +299,101 @@ class PriorityQueue(gym.Env):
 
     def step(self, action):
 
-        self.done = 0
-        self.reward = 0
-        state = 0
+        # Pull-out local variables needed from class
+        state = self.state
+        info = self.info
+        Job_Revisit_Count = info.get("Job_Revisit_Count")
+        Job_Revisit_Time = info.get("Job_Revisit_Time")
 
-        return self.reward, state, self.done
+
+        timeSec = self.timeSec
+        RP = self.env_config.get("RP")
+        M = self.M
+        N = self.env_config.get("N")
+        K = self.env_config.get("K")
+        NUM_FEATS = self.NUM_FEATS
+        alg_func = self.env_config.get("scheduler")
+        ChannelAvailableTime = self.env_config.get("ChannelAvailableTime")
+        MaxTime = self.env_config.get("MaxTime")
+        possible_actions = np.arange(0,M)
+        job = self.job
+
+        priority_Idx = np.empty(N,dtype='int64')
+        for jj in range(N):
+            priority_Idx[jj] = possible_actions[action[jj]]
+            possible_actions= np.delete(possible_actions, action[jj])  # Remove previously taken actions
+
+        job_scheduler = [] # Jobs to be scheduled (Length N)
+        for nn in range(N):
+            job_scheduler.append(job[priority_Idx[nn]]) # Copy desired job
+
+        unwanted = priority_Idx[0:N]
+        for ele in sorted(unwanted, reverse=True):
+            del job[ele]
+
+        # Schedule the Tasks
+        t_start = time.time()
+        t_ex, ch_ex = alg_func(job_scheduler, ChannelAvailableTime)  # Added Sequence T
+        t_run = time.time() - t_start
+
+        check_valid(job_scheduler, t_ex, ch_ex)
+        l_ex = eval_loss(job_scheduler, t_ex)
+        max_idx = np.argsort(t_ex)[-1]
+        t_max = t_ex[max_idx] + job_scheduler[max_idx].duration
+        l_ex_remainder = eval_loss(job, t_max * np.ones(len(job)))  # Put all other tasks at max time and evaluate cost
+        # reward = l_ex + l_ex_remainder
+        reward = -l_ex_remainder  # TODO: Is this the right metric? Reward only a function of tasks not scheduled yet
+
+
+        # Logic to put tasks that are scheduled after RP back on job stack
+        # Update ChannelAvailable Time
+        duration = np.array([task.duration for task in job_scheduler])
+        t_complete = t_ex + duration
+        executed_tasks = t_complete <= timeSec + RP  # Task that are executed
+        for kk in range(K):
+            ChannelAvailableTime[kk] = np.max(t_complete[(ch_ex == kk) & executed_tasks])
+        self.env_config["ChannelAvailableTime"] = ChannelAvailableTime
+
+        # plot_results(t_run_iter[ii], l_ex_iter[ii], ax=ax_gen[1])
+        # plot_loss_runtime(max_runtimes, l_ex_mean[i_gen], ax=ax_gen[1])
+        for n in range(len(job_scheduler)):
+            if executed_tasks[n]:  # Only updated executed tasks
+                job_scheduler[n].t_release = t_ex[n] + job_scheduler[
+                    n].duration  # Update Release Times based on execution + duration
+                Job_Revisit_Count[job_scheduler[n].Id, 0] = Job_Revisit_Count[job_scheduler[n].Id, 0] + 1
+                Job_Revisit_Time[job_scheduler[n].Id][0].append(timeSec)
+            job.append(job_scheduler[n])
+
+        # Updates Features
+        features = np.empty((M, NUM_FEATS))
+        feature_names = []
+        feature_names.append('t_release-timeSec')
+        feature_names.append('duration')
+        feature_names.append('t_drop')
+        feature_names.append('l_drop')
+        feature_names.append('slope')
+        for mm in range(len(job)):
+            task = job[mm]
+            features[mm, 0] = np.array([task.t_release] - self.timeSec)
+            features[mm, 1] = np.array([task.duration])
+            features[mm, 2] = np.array([task.t_drop])
+            features[mm, 3] = np.array([task.l_drop])
+            features[mm, 4] = np.array([task.slope])
+
+        state = self.map_features_to_state(features)  # Update State
+        self.state = state
+
+        if timeSec > MaxTime:
+            self.done = 1
+
+        # self.done = 0
+        self.reward = reward
+        info = {"Job_Revisit_Count": Job_Revisit_Count,
+                "Job_Revisit_Time": Job_Revisit_Time
+                }
+        self.info = info
+
+        return state, self.reward, self.done, info
 
 
 
