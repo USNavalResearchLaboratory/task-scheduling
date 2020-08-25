@@ -45,10 +45,10 @@ class BaseIID:
         """Randomly generate task parameters."""
         raise NotImplementedError
 
-    @property
-    def param_repr_lim(self):   # TODO: delete?
-        """Low and high tuples bounding parametric task representations."""
-        return zip(*self.param_lims.values())
+    # @property
+    # def param_repr_lim(self):   # TODO: delete?
+    #     """Low and high tuples bounding parametric task representations."""
+    #     return zip(*self.param_lims.values())
 
 
 class GenericIID(BaseIID):

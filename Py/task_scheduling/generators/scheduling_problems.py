@@ -86,7 +86,7 @@ class Base:
 
             problem, solution = self.gen_single()
             if problem is None:
-                return
+                return      # Stops iterator when Dataset generators run out of data
 
             if save:
                 save_dict['problems'].append(problem)
@@ -227,6 +227,7 @@ class Dataset(Base):
         self.shuffle = shuffle
 
         self.i = None
+        self.n_problems = len(self.problems)
         self.restart()
 
     @classmethod
@@ -252,7 +253,7 @@ class Dataset(Base):
 
     def gen_single(self):
         """Return a single scheduling problem (and optional solution)."""
-        if self.i == len(self.problems):
+        if self.i == self.n_problems:
             if self.iter_mode == 'once':
                 warnings.warn("Problem generator data has been exhausted.")
                 return None, None

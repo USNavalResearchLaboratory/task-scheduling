@@ -39,14 +39,17 @@ solve = True
 save = True
 
 # problem_gen = RandomProblem.relu_drop_default(n_tasks=4, n_ch=2)
-problem_gen = ProblemDataset.load('temp/2020-08-21_14-13-16', iter_mode='repeat', shuffle=True, rng=None)
+problem_gen = ProblemDataset.load('temp/2020-08-21_16-22-56', iter_mode='once', shuffle=True, rng=None)
 
-# FIXME: ensure train/test separation for loaded problem data
+# TODO: ensure train/test separation for loaded data, use iter_mode='once'
+# TODO: to train multiple schedulers on same loaded data, use problem_gen.restart() and problem_gen.shuffle = False?!
+
 
 # Algorithms
 
 features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
-                     ('release time', lambda task: task.t_release, (0., problem_gen.task_gen.param_lims['t_release'][1])),
+                     ('release time', lambda task: task.t_release,
+                      (0., problem_gen.task_gen.param_lims['t_release'][1])),
                      ('slope', lambda task: task.slope, problem_gen.task_gen.param_lims['slope']),
                      ('drop time', lambda task: task.t_drop, (0., problem_gen.task_gen.param_lims['t_drop'][1])),
                      ('drop loss', lambda task: task.l_drop, (0., problem_gen.task_gen.param_lims['l_drop'][1])),
@@ -70,12 +73,12 @@ env_params = {'node_cls': TreeNodeShift,
               'seq_encoding': 'one-hot'
               }
 
-# agent_file = None
-agent_file = 'temp/2020-08-21_14-14-54'
+agent_file = None
+# agent_file = 'temp/2020-08-21_16-23-33'
 
 if agent_file is None:
-    random_agent = train_agent(problem_gen,
-                               n_gen_train=3, n_gen_val=2, env_cls=env_cls, env_params=env_params,
+    random_agent = train_agent(problem_gen, n_gen_train=3, n_gen_val=2,
+                               env_cls=env_cls, env_params=env_params,
                                save=True, save_dir=None)
 elif type(agent_file) == str:
     random_agent = load_agent(agent_file)
@@ -86,8 +89,8 @@ else:
 # # model_file = 'temp/2020-08-03_12-52-22'
 #
 # if model_file is None:
-#     network_policy = train_policy(problem_gen,
-#                                   n_gen_train=10, n_gen_val=10, env_cls=env_cls, env_params=env_params,
+#     network_policy = train_policy(problem_gen, n_gen_train=10, n_gen_val=10,
+#                                   env_cls=env_cls, env_params=env_params,
 #                                   model=None, compile_params=None, fit_params=None,
 #                                   do_tensorboard=False, plot_history=True, save=True, save_dir=None)
 # elif type(model_file) == str:

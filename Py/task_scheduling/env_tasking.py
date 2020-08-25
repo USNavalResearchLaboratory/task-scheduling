@@ -250,7 +250,8 @@ class StepTaskingEnv(BaseTaskingEnv):
     sort_func : function or str, optional
         Method that returns a sorting value for re-indexing given a task index 'n'.
     seq_encoding : function or str, optional
-        Method that produces an encoded sequence representation for a given task index 'n'.
+        Method that returns a 1-D encoded sequence representation for a given task index 'n'. Assumes that the
+        encoded array sums to one for scheduled tasks and to zero for unscheduled tasks.
     masking : bool
         If True, features are zeroed out for scheduled tasks.
 
@@ -301,7 +302,6 @@ class StepTaskingEnv(BaseTaskingEnv):
     def infer_action_space(self, observation):
         """Determines the action Gym.Space from an observation."""
         _state_seq = observation[:, :-len(self.features)]
-        # TODO: assumes encoded task state array sums to 1 for scheduled. Enforce in init?
         return DiscreteSet(np.flatnonzero(1 - _state_seq.sum(1)))
 
     @property
@@ -386,7 +386,7 @@ def data_gen(env, n_gen=1, save=False, file=None):
     """
 
     if not isinstance(env, StepTaskingEnv):
-        raise NotImplementedError("Tasking environment must be step Env.")      # TODO: generalize?
+        raise NotImplementedError("Tasking environment must be step Env.")      # TODO: generalize for full seq
 
     x_list, y_list = [], []
     for i_gen in range(n_gen):
@@ -521,7 +521,7 @@ def wrap_agent_run_lim(env, agent):
 
 def main():
 
-    n_tasks = 4
+    n_tasks = 8
     n_ch = 2
 
     problem_gen = RandomProblem.relu_drop_default(n_tasks, n_ch)
@@ -571,13 +571,14 @@ def main():
     env = StepTaskingEnv(problem_gen, **env_params)
     agent = RandomAgent(env.infer_action_space)
 
+    # data_gen(env, n_gen=10)
+
     observation, reward, done = env.reset(), 0, False
     while not done:
         print(observation)
         print(env.sorted_index)
         print(env.node.seq)
         print(env.tasks)
-        agent.action_space = env.action_space
         act = agent.act(observation, reward, done)
         observation, reward, done, info = env.step(act)
         print(reward)
