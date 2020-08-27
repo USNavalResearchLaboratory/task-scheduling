@@ -208,42 +208,43 @@ class Dataset(Base):
         Returns random initial channel availabilities.
     iter_mode : str, optional
         If 'once', generator call raises a warning when all data has been yielded. If 'repeat', a new pass is started.
-    shuffle : bool, optional
-        Enables uniformly random permutation of problems/solutions before generation.
+    shuffle_mode : str, optional
+        If 'once', data is randomly permuted during initialization. If 'repeat', data is permuted every complete pass.
     rng : int or RandomState or Generator, optional
         Random number generator seed or object.
 
     """
 
     def __init__(self, problems: list, solutions=None, task_gen=None, ch_avail_gen=None,
-                 iter_mode='once', shuffle=True, rng=None):
+                 iter_mode='once', shuffle_mode=None, rng=None):
 
         self.problems = problems
         self.solutions = solutions
 
-        super().__init__(len(problems[0].tasks), len(problems[0].ch_avail), task_gen, ch_avail_gen, rng)
+        n_tasks, n_ch = len(problems[0].tasks), len(problems[0].ch_avail)
+        super().__init__(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
         self.iter_mode = iter_mode
-        self.shuffle = shuffle
+        self.shuffle_mode = shuffle_mode
 
         self.i = None
         self.n_problems = len(self.problems)
-        self.restart()
+        self.restart(self.shuffle_mode in ('once', 'repeat'))
 
     @classmethod
-    def load(cls, file, iter_mode='once', shuffle=True, rng=None):
+    def load(cls, file, iter_mode='once', shuffle_mode='never', rng=None):
         """Load problems/solutions from memory."""
 
         # TODO: loading entire dict into attribute defeats purpose of generator yield!?
         with open('data/schedules/' + file, 'rb') as file:
             dict_gen = dill.load(file)
 
-        return cls(**dict_gen, iter_mode=iter_mode, shuffle=shuffle, rng=rng)
+        return cls(**dict_gen, iter_mode=iter_mode, shuffle_mode=shuffle_mode, rng=rng)
 
-    def restart(self):
+    def restart(self, shuffle=False):
         """Resets data index pointer to beginning, performs optional data shuffle."""
         self.i = 0
-        if self.shuffle:
+        if shuffle:
             if self.solutions is None:
                 self.problems = self.rng.permutation(self.problems).tolist()
             else:
@@ -258,7 +259,7 @@ class Dataset(Base):
                 warnings.warn("Problem generator data has been exhausted.")
                 return None, None
             elif self.iter_mode == 'repeat':
-                self.restart()
+                self.restart(self.shuffle_mode == 'repeat')
 
         problem = self.problems[self.i]
         if self.solutions is not None:

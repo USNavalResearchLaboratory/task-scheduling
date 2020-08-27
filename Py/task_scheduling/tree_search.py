@@ -281,7 +281,7 @@ class TreeNodeShift(TreeNode):
         self.t_origin = 0.
         super().__init__(seq)
 
-        if len(self._seq) == 0:
+        if len(self._seq) == 0:     # otherwise, shift_origin is invoked during initial call to 'seq_extend'
             self.shift_origin()
 
     def __repr__(self):

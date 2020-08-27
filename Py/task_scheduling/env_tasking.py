@@ -1,6 +1,6 @@
 import time
+from copy import deepcopy
 from types import MethodType
-from functools import partial
 import dill
 
 import numpy as np
@@ -39,7 +39,7 @@ class DiscreteSet(Space):
     """Gym Space for discrete, non-integral elements."""
 
     def __init__(self, elements):
-        self.elements = np.sort(np.asarray(list(elements)).flatten())   # ndarray representation of set
+        self.elements = np.sort(np.array(list(elements)).flatten())   # ndarray representation of set
         self.n = self.elements.size
         super().__init__((self.n,), self.elements.dtype)
 
@@ -72,10 +72,12 @@ class BaseTaskingEnv(gym.Env):
         Structured numpy array of features with fields 'name', 'func', and 'lims'.
     sort_func : function or str, optional
         Method that returns a sorting value for re-indexing given a task index 'n'.
+    masking : bool
+        If True, features are zeroed out for scheduled tasks.
 
     """
 
-    def __init__(self, problem_gen, node_cls=TreeNode, features=None, sort_func=None):
+    def __init__(self, problem_gen, node_cls=TreeNode, features=None, sort_func=None, masking=False):
         self.problem_gen = problem_gen
         self.solution = None
 
@@ -111,9 +113,10 @@ class BaseTaskingEnv(gym.Env):
         else:
             self.sort_func = None
 
-        self.masking = False
+        self.masking = masking
 
         self.reward_range = (-float('inf'), 0)
+        self.loss_agg = None
 
         self.node_cls = node_cls
         self.node = None
@@ -138,7 +141,16 @@ class BaseTaskingEnv(gym.Env):
 
         return state_tasks[self.sorted_index]       # sort individual task states
 
-    def reset(self, tasks=None, ch_avail=None, persist=False, solve=False):
+    @property
+    def state(self):
+        """Complete state."""
+        return self.state_tasks
+
+    def _update_spaces(self):
+        """Update observation and action spaces."""
+        pass
+
+    def reset(self, tasks=None, ch_avail=None, persist=False, solve=False, verbose=False):
         """
         Reset environment by re-initializing node object with random (or user-specified) tasks/channels.
 
@@ -152,6 +164,8 @@ class BaseTaskingEnv(gym.Env):
             If True, keeps tasks and channels fixed during reset, regardless of other inputs.
         solve : bool
             Solves and stores the Branch & Bound optimal schedule.
+        verbose : bool, optional
+            Enables print-out progress information.
 
         """
 
@@ -159,9 +173,9 @@ class BaseTaskingEnv(gym.Env):
 
             if tasks is None or ch_avail is None:
                 if solve:
-                    ((tasks, ch_avail), self.solution), = self.problem_gen(solve=True)
+                    ((tasks, ch_avail), self.solution), = self.problem_gen(solve=solve, verbose=verbose)
                 else:
-                    (tasks, ch_avail), = self.problem_gen()
+                    (tasks, ch_avail), = self.problem_gen(solve=solve, verbose=verbose)
                     self.solution = None
 
             elif len(tasks) != self.n_tasks:
@@ -173,11 +187,42 @@ class BaseTaskingEnv(gym.Env):
             self.node_cls._ch_avail_init = ch_avail
 
         self.node = self.node_cls()
+        self.loss_agg = self.node.l_ex  # Loss can be non-zero due to time origin shift during node initialization
+
+        self._update_spaces()
+
+        return self.state
 
     def step(self, action):
-        """Updates environment state based on task index input."""
+        """
+        Updates environment state based on task index input.
+
+        Parameters
+        ----------
+        action : int or Sequence of int
+            Complete index sequence.
+
+        Returns
+        -------
+        observation : ndarray
+        reward : float
+            Negative loss achieved by the complete sequence.
+        done : True
+            Episode completes after one step.
+        info : dict
+            Auxiliary diagnostic information (helpful for debugging, and sometimes learning).
+
+        """
+
         action = self.sorted_index[action]  # decode task index to original order
         self.node.seq_extend(action)  # updates sequence, loss, task parameters, etc.
+
+        reward, self.loss_agg = self.loss_agg - self.node.l_ex, self.node.l_ex
+        done = len(self.node.seq_rem) == 0      # sequence is complete
+
+        self._update_spaces()
+
+        return self.state, reward, done, {}
 
     def render(self, mode='human'):
         if mode == 'human':
@@ -191,48 +236,27 @@ class BaseTaskingEnv(gym.Env):
 class SeqTaskingEnv(BaseTaskingEnv):
     """Tasking environment with single action of a complete task index sequence."""
 
+    def __init__(self, problem_gen, node_cls=TreeNode, features=None, sort_func=None, masking=False):
+        super().__init__(problem_gen, node_cls, features, sort_func, masking)
+
+        # gym.Env observation and action spaces
+        self.observation_space = Box(self._state_tasks_low, self._state_tasks_high, dtype=np.float64)
+        self.action_space = Sequence(self.n_tasks)
+
+    # @property
+    # def observation_space(self):
+    #     """Gym space of valid observations."""
+    #     return Box(self._state_tasks_low, self._state_tasks_high, dtype=np.float64)
+    #
+    # @property
+    # def action_space(self):
+    #     """Gym space of valid actions."""
+    #     return Sequence(self.n_tasks)
+
     @staticmethod
     def infer_action_space(observation):
         """Determines the action Gym.Space from an observation."""
         return Sequence(len(observation))
-
-    def reset(self, tasks=None, ch_avail=None, persist=False, solve=False):
-        super().reset(tasks, ch_avail, persist, solve)
-
-        # Gym observation and action spaces
-        self.observation_space = Box(self._state_tasks_low, self._state_tasks_high, dtype=np.float64)
-        self.action_space = Sequence(self.n_tasks)
-
-        return self.state_tasks     # observation is the task set state
-
-    def step(self, action):
-        """
-        Updates environment state with a complete index sequence.
-
-        Parameters
-        ----------
-        action : Sequence of int
-            Complete index sequence.
-
-        Returns
-        -------
-        observation : None
-        reward : float
-            Negative loss achieved by the complete sequence.
-        done : True
-            Episode completes after one step.
-        info : dict
-            Auxiliary diagnostic information (helpful for debugging, and sometimes learning).
-
-        """
-
-        if len(action) != self.n_tasks:
-            raise ValueError("Action must be a complete sequence.")
-
-        super().step(action)
-        reward = -1 * self.node.l_ex    # negative loss of complete sequence
-
-        return None, reward, True, {}       # Episode is done, no observation
 
 
 class StepTaskingEnv(BaseTaskingEnv):
@@ -260,19 +284,29 @@ class StepTaskingEnv(BaseTaskingEnv):
     def __init__(self, problem_gen, node_cls=TreeNode, features=None, sort_func=None, seq_encoding='one-hot',
                  masking=False):
 
+        super().__init__(problem_gen, node_cls, features, sort_func, masking)
+
         # Set sequence encoder method
         if callable(seq_encoding):
             self.seq_encoding = MethodType(seq_encoding, self)
+
+            env_copy = deepcopy(self)       # FIXME: better way?
+            env_copy.reset()
+            self.len_seq_encode = env_copy.state_seq.shape(-1)
         elif type(seq_encoding) == str:     # simple string specification for supported encoders
             if seq_encoding == 'indicator':
                 def _seq_encoding(env, n):
                     return [1] if n in env.node.seq else [0]
+
+                self.len_seq_encode = 1
             elif seq_encoding == 'one-hot':
                 def _seq_encoding(env, n):
                     out = np.zeros(env.n_tasks)
                     if n in env.node.seq:
                         out[env.node.seq.index(n)] = 1
                     return out
+
+                self.len_seq_encode = self.n_tasks
             else:
                 raise ValueError("Unsupported sequence encoder string.")
 
@@ -280,29 +314,34 @@ class StepTaskingEnv(BaseTaskingEnv):
         else:
             raise TypeError("Sequence encoding input must be callable or str.")
 
-        self.loss_agg = None
+        # gym.Env observation and action spaces
+        _state_low = np.concatenate((np.zeros((self.n_tasks, self.len_seq_encode)), self._state_tasks_low), axis=1)
+        _state_high = np.concatenate((np.ones((self.n_tasks, self.len_seq_encode)), self._state_tasks_high), axis=1)
+        self.observation_space = Box(_state_low, _state_high, dtype=np.float64)
+        self.action_space = DiscreteSet(set(range(self.n_tasks)))
 
-        super().__init__(problem_gen, node_cls, features, sort_func)
+    # @property
+    # def observation_space(self):
+    #     """Gym space of valid observations."""
+    #     _state_low = np.concatenate((np.zeros(self.state_seq.shape), self._state_tasks_low), axis=1)
+    #     _state_high = np.concatenate((np.ones(self.state_seq.shape), self._state_tasks_high), axis=1)
+    #     return Box(_state_low, _state_high, dtype=np.float64)
 
-        self.masking = masking
-
-    @property
-    def observation_space(self):
-        """Gym space of valid observations."""
-        _state_low = np.concatenate((np.zeros(self.state_seq.shape), self._state_tasks_low), axis=1)
-        _state_high = np.concatenate((np.ones(self.state_seq.shape), self._state_tasks_high), axis=1)
-        return Box(_state_low, _state_high, dtype=np.float64)
-
-    @property
-    def action_space(self):
-        """Gym space of valid actions."""
-        seq_rem_sort = np.flatnonzero(np.isin(self.sorted_index, list(self.node.seq_rem)))
-        return DiscreteSet(seq_rem_sort)
+    # @property
+    # def action_space(self):
+    #     """Gym space of valid actions."""
+    #     seq_rem_sort = np.flatnonzero(np.isin(self.sorted_index, list(self.node.seq_rem)))
+    #     return DiscreteSet(seq_rem_sort)
 
     def infer_action_space(self, observation):
         """Determines the action Gym.Space from an observation."""
         _state_seq = observation[:, :-len(self.features)]
         return DiscreteSet(np.flatnonzero(1 - _state_seq.sum(1)))
+
+    def _update_spaces(self):
+        """Update observation and action spaces."""
+        seq_rem_sort = np.flatnonzero(np.isin(self.sorted_index, list(self.node.seq_rem)))
+        self.action_space = DiscreteSet(seq_rem_sort)
 
     @property
     def state_seq(self):
@@ -315,40 +354,62 @@ class StepTaskingEnv(BaseTaskingEnv):
         """Complete state."""
         return np.concatenate((self.state_seq, self.state_tasks), axis=1)
 
-    def reset(self, tasks=None, ch_avail=None, persist=False, solve=False):
-        super().reset(tasks, ch_avail, persist, solve)
-        self.loss_agg = self.node.l_ex      # Loss can be non-zero due to time origin shift during node initialization
-
-        return self.state
-
-    def step(self, action: int):
+    def data_gen(self, n_gen=1, weight_func=None, verbose=False):
         """
-        Updates environment state with a single task index.
+        Generate state-action data for learner training and evaluation.
 
         Parameters
         ----------
-        action : int
-            Single task index.
+        n_gen : int
+            Number of random tasking problems to generate data from.
+        weight_func : callable, optional
+            Function mapping partial sequence length and number of tasks to a training weight.
+        verbose : bool, optional
+            Enables print-out progress information.
 
-        Returns
-        -------
-        observation : ndarray
-            Complete state, including task parameters and sequence encoding.
-        reward : float
-            Negative incremental loss after scheduling a single task.
-        done : bool
-            True if node sequence is complete.
-        info : dict
-            Auxiliary diagnostic information (helpful for debugging, and sometimes learning).
+        Yields
+        ------
+        tuple of ndarray
+            Observable predictor data, unobserved target data, and optional sample weights.
 
         """
 
-        super().step(action)
+        # TODO: save data?
+        # TODO: generalize for other Env classes. TF loss func for full seq targets?
 
-        reward, self.loss_agg = self.loss_agg - self.node.l_ex, self.node.l_ex
-        done = len(self.node.seq_rem) == 0      # sequence is complete
+        for i_gen in range(n_gen):
+            if verbose:
+                print(f'Task Set: {i_gen + 1}/{n_gen}', end='\n')
 
-        return self.state, reward, done, {}
+            self.reset(solve=True, verbose=verbose)  # generates new scheduling problem
+
+            # Optimal schedule
+
+            # TODO: train using complete tree info, not just B&B solution?
+            # TODO: generate sample weights to prioritize earliest task selections??
+
+            t_ex, ch_ex = self.solution.t_ex, self.solution.ch_ex
+            seq = np.argsort(t_ex)  # FIXME: Confirm that argsort recovers the correct sequence-to-schedule seq?!
+
+            # Generate samples for each scheduling step of the optimal sequence
+            x_set = np.empty((self.n_tasks, *self.state.shape))     # predictors
+            y_set = np.empty(self.n_tasks)                          # targets
+            w_set = np.empty(self.n_tasks)                          # weights
+            for i, n in enumerate(seq):
+                n = self.sorted_index.tolist().index(n)  # transform index using sorting function
+
+                x_set[i] = self.state.copy()
+                y_set[i] = n
+                if callable(weight_func):
+                    w_set[i] = weight_func(i, self.n_tasks)
+
+                self.step(n)  # updates environment state
+
+            # TODO: yield? Will generator preserve train/test problem separation? Use batches?
+            if weight_func is None:
+                yield x_set, y_set
+            else:
+                yield x_set, y_set, w_set
 
 
 # Agents
@@ -363,63 +424,6 @@ class RandomAgent:
 
 
 # Learning
-def data_gen(env, n_gen=1, save=False, file=None):
-    """
-    Generate state-action data for learner training and evaluation.
-
-    Parameters
-    ----------
-    env : gym.Env
-        Gym environment
-    n_gen : int
-        Number of random tasking problems to generate data from.
-    save : bool
-        If True, data is saved in a tensorflow.data.Dataset object
-
-    Returns
-    -------
-    x_set : ndarray
-        Observable predictor data.
-    y_set : ndarray
-        Unobserved target data.
-
-    """
-
-    if not isinstance(env, StepTaskingEnv):
-        raise NotImplementedError("Tasking environment must be step Env.")      # TODO: generalize for full seq
-
-    x_list, y_list = [], []
-    for i_gen in range(n_gen):
-        print(f'Task Set: {i_gen + 1}/{n_gen}', end='\n')
-
-        env.reset(solve=True)   # generates new scheduling problem
-
-        # Optimal schedule
-        # TODO: train using complete tree info, not just B&B solution?
-        # TODO: generate sample weights to prioritize earliest task selections??
-
-        t_ex, ch_ex = env.solution.t_ex, env.solution.ch_ex
-        seq = np.argsort(t_ex)  # FIXME: Confirm that argsort recovers the correct sequence-to-schedule seq?!?!
-
-        # Generate samples for each scheduling step of the optimal sequence
-        for n in seq:
-            n = env.sorted_index.tolist().index(n)  # transform index using sorting function
-
-            x_list.append(env.state.copy())
-            y_list.append(n)
-
-            env.step(n)     # updates environment state
-
-    x_set, y_set = np.array(x_list), np.array(y_list)
-
-    # if save:
-    #     d_set = tf.data.Dataset.from_tensor_slices((x_set, y_set))
-
-    # TODO: yield?
-    # TODO: partition data by tasking problem
-    return x_set, y_set
-
-
 def train_agent(problem_gen, n_gen_train=0, n_gen_val=0, env_cls=StepTaskingEnv, env_params=None,
                 agent=None, save=False, save_dir=None):
     """
@@ -461,10 +465,8 @@ def train_agent(problem_gen, n_gen_train=0, n_gen_val=0, env_cls=StepTaskingEnv,
         agent = RandomAgent(env.infer_action_space)
 
     # Generate state-action data pairs
-    d_train = data_gen(env, n_gen_train)
-    d_val = data_gen(env, n_gen_val)
-
-    # FIXME: load existing learning data, then split?
+    d_train = env.data_gen(n_gen_train)
+    d_val = env.data_gen(n_gen_val)
 
     # Save agent and environment
     if save:

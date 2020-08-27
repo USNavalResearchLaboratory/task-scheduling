@@ -38,8 +38,8 @@ n_gen = 10      # number of task scheduling problems
 solve = True
 save = True
 
-# problem_gen = RandomProblem.relu_drop_default(n_tasks=4, n_ch=2)
-problem_gen = ProblemDataset.load('temp/2020-08-21_16-22-56', iter_mode='once', shuffle=True, rng=None)
+problem_gen = RandomProblem.relu_drop_default(n_tasks=4, n_ch=2)
+# problem_gen = ProblemDataset.load('temp/2020-08-26_14-36-22', iter_mode='once', shuffle=True, rng=None)
 
 # TODO: ensure train/test separation for loaded data, use iter_mode='once'
 # TODO: to train multiple schedulers on same loaded data, use problem_gen.restart() and problem_gen.shuffle = False?!
@@ -85,18 +85,18 @@ elif type(agent_file) == str:
 else:
     raise ValueError("Parameter 'agent_file' must be string or None.")
 
-# model_file = None
-# # model_file = 'temp/2020-08-03_12-52-22'
-#
-# if model_file is None:
-#     network_policy = train_policy(problem_gen, n_gen_train=10, n_gen_val=10,
-#                                   env_cls=env_cls, env_params=env_params,
-#                                   model=None, compile_params=None, fit_params=None,
-#                                   do_tensorboard=False, plot_history=True, save=True, save_dir=None)
-# elif type(model_file) == str:
-#     network_policy = load_policy(model_file)
-# else:
-#     raise ValueError("Parameter 'agent_file' must be string or None.")
+model_file = None
+# model_file = 'temp/2020-08-03_12-52-22'
+
+if model_file is None:
+    network_policy = train_policy(problem_gen, n_gen_train=10, n_gen_val=10,
+                                  env_cls=env_cls, env_params=env_params,
+                                  model=None, compile_params=None, fit_params=None,
+                                  do_tensorboard=False, plot_history=True, save=True, save_dir=None)
+elif type(model_file) == str:
+    network_policy = load_policy(model_file)
+else:
+    raise ValueError("Parameter 'agent_file' must be string or None.")
 
 
 algorithms = np.array([
@@ -104,7 +104,7 @@ algorithms = np.array([
     ('MCTS', partial(mcts, n_mc=200, verbose=False), 5),
     ('ERT', partial(earliest_release, do_swap=True), 1),
     ('Random Agent', partial(random_agent), 20),
-    # ('DNN Policy', partial(network_policy), 1),
+    ('DNN Policy', partial(network_policy), 1),
                      ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
 
 

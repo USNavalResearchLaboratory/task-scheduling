@@ -4,13 +4,14 @@ import dill
 
 import numpy as np
 import matplotlib.pyplot as plt
+import tensorflow as tf
 from tensorflow import keras
 from tensorboard import program
 import webbrowser
 
 from generators.scheduling_problems import Random as RandomProblem
 from tree_search import TreeNodeShift
-from env_tasking import StepTaskingEnv, data_gen
+from env_tasking import StepTaskingEnv
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
@@ -63,17 +64,24 @@ def train_policy(problem_gen, n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv
         env_params = {}
 
     # Create environment
-    env = env_cls(problem_gen,
-                  # n_tasks, task_gen, n_ch, ch_avail_gen,
-                  **env_params)
+    env = env_cls(problem_gen, **env_params)
+
+    obs_shape = env.observation_space.shape
 
     # Generate state-action data pairs
-    d_train = data_gen(env, n_gen_train)
-    d_val = data_gen(env, n_gen_val)
+
+    # d_train = env.data_gen(n_gen_train)
+    # d_val = env.data_gen(n_gen_val)     # FIXME: call sig, partial?
+
+    output_types = (tf.int64, tf.int64)
+    output_shapes = (tf.TensorShape([None, *obs_shape]), tf.TensorShape([env.n_tasks]))
+
+    d_train = tf.data.Dataset.from_generator(env.data_gen, output_types, output_shapes, args=(n_gen_train,)).repeat()
+    d_val = tf.data.Dataset.from_generator(env.data_gen, output_types, output_shapes, args=(n_gen_val,))
 
     # Train policy model
     if model is None:
-        model = keras.Sequential([keras.layers.Flatten(input_shape=env.observation_space.shape),
+        model = keras.Sequential([keras.layers.Flatten(input_shape=obs_shape),
                                   keras.layers.Dense(60, activation='relu'),
                                   keras.layers.Dense(60, activation='relu'),
                                   # keras.layers.Dense(30, activation='relu'),
@@ -88,8 +96,9 @@ def train_policy(problem_gen, n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv
                           }
 
     if fit_params is None:
-        fit_params = {'epochs': 100,
-                      'batch_size': 32,
+        fit_params = {'epochs': 20,
+                      'steps_per_epoch': n_gen_train,
+                      'batch_size': None,   # generator
                       'sample_weight': None,
                       'validation_data': d_val,
                       'callbacks': [keras.callbacks.EarlyStopping(patience=60, monitor='val_loss', min_delta=0.)]
@@ -112,7 +121,8 @@ def train_policy(problem_gen, n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv
         url = tb.launch()
         webbrowser.open(url)
 
-    history = model.fit(*d_train, **fit_params)
+    # history = model.fit(*d_train, **fit_params)
+    history = model.fit(d_train, **fit_params)
 
     if plot_history:
         plt.figure(num='training history', clear=True, figsize=(10, 4.8))
@@ -149,6 +159,7 @@ def load_policy(load_dir):
 
 def wrap_policy(env, model):
     """Generate scheduling function by running a policy on a single environment episode."""
+
     if not isinstance(env, StepTaskingEnv):
         raise NotImplementedError("Tasking environment must be step Env.")
 
