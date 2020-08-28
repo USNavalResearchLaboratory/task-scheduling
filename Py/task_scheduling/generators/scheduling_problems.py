@@ -65,12 +65,14 @@ class Base:
         save : bool, optional
             Enables serialization of generated problems/solutions.
         file: str, optional
-            File location relative to ./data/schedules/
+            File location relative to ../data/schedules/
 
         Yields
         ------
         SchedulingProblem or tuple
-            If 'solve' is True, yields 2-tuple of (SchedulingProblem, SchedulingSolution)
+            Scheduling problem namedtuple.
+        SchedulingSolution, optional
+            Scheduling solution namedtuple.
 
         """
 
@@ -92,6 +94,8 @@ class Base:
             if solve:
                 if solution is None:
                     # Generate B&B optimal solution
+                    if verbose:
+                        print("Solving for optimal schedule with Branch & Bound.")
                     t_ex, ch_ex, t_run = timing_wrapper(partial(branch_bound, verbose=verbose))(*problem)
                     solution = self._SchedulingSolution(t_ex, ch_ex, t_run)
 
@@ -119,7 +123,7 @@ class Base:
         save_dict: dict
             Serialized dict with keys 'problems', 'solutions', 'task_gen', and 'ch_avail_gen'.
         file : str, optional
-            File location relative to ./data/schedules/
+            File location relative to ../data/schedules/
 
         """
 
@@ -127,7 +131,7 @@ class Base:
             file = 'temp/{}'.format(strftime('%Y-%m-%d_%H-%M-%S'))
         else:
             try:    # search for existing file
-                with open('data/schedules/' + file, 'rb') as file:
+                with open('../data/schedules/' + file, 'rb') as file:
                     load_dict = dill.load(file)
 
                 # Check equivalence of generators
@@ -152,7 +156,7 @@ class Base:
             except FileNotFoundError:
                 pass
 
-        with open('data/schedules/' + file, 'wb') as file:
+        with open('../data/schedules/' + file, 'wb') as file:
             dill.dump(save_dict, file)  # save schedules
 
     def __eq__(self, other):
@@ -234,7 +238,7 @@ class Dataset(Base):
         """Load problems/solutions from memory."""
 
         # FIXME: loads entire data set into memory, should load and yield problems on call only!!
-        with open('data/schedules/' + file, 'rb') as file:
+        with open('../data/schedules/' + file, 'rb') as file:
             dict_gen = dill.load(file)
 
         return cls(**dict_gen, iter_mode=iter_mode, shuffle_mode=shuffle_mode, rng=rng)

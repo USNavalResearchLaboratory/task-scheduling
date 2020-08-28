@@ -143,8 +143,8 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, env_
         if save_dir is None:
             save_dir = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
 
-        model.save('models/' + save_dir)      # save TF model
-        with open('models/' + save_dir + '/env.pkl', 'wb') as file:
+        model.save('../models/' + save_dir)      # save TF model
+        with open('../models/' + save_dir + '/env.pkl', 'wb') as file:
             dill.dump(env, file)    # save environment
 
     return wrap_policy(env, model)
@@ -152,7 +152,7 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, env_
 
 def load_policy(load_dir):
     """Loads network model and environment, returns wrapped scheduling function."""
-    with open('models/' + load_dir + '/env.pkl', 'rb') as file:
+    with open('../models/' + load_dir + '/env.pkl', 'rb') as file:
         env = dill.load(file)
     model = keras.models.load_model('models/' + load_dir)
 

@@ -367,8 +367,12 @@ class StepTaskingEnv(BaseTaskingEnv):
 
         Yields
         ------
-        tuple of ndarray
-            Observable predictor data, unobserved target data, and optional sample weights.
+        ndarray
+            Predictor data.
+        ndarray
+            Target data.
+        ndarray, optional
+            Sample weights.
 
         """
 
@@ -470,7 +474,7 @@ def train_agent(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, env_c
         if save_dir is None:
             save_dir = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
 
-        with open('agents/' + save_dir, 'wb') as file:
+        with open('../agents/' + save_dir, 'wb') as file:
             dill.dump({'env': env, 'agent': agent}, file)    # save environment
 
     return wrap_agent(env, agent)
@@ -478,7 +482,7 @@ def train_agent(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, env_c
 
 def load_agent(load_dir):
     """Loads agent and environment, returns wrapped scheduling function."""
-    with open('agents/' + load_dir, 'rb') as file:
+    with open('../agents/' + load_dir, 'rb') as file:
         pkl_dict = dill.load(file)
     return wrap_agent(**pkl_dict)
 
