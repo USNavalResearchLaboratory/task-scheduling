@@ -77,7 +77,7 @@ agent_file = None
 # agent_file = 'temp/2020-08-21_16-23-33'
 
 if agent_file is None:
-    random_agent = train_agent(problem_gen, n_gen_train=3, n_gen_val=2,
+    random_agent = train_agent(problem_gen, n_batch_train=3, n_batch_val=2, batch_size=1,
                                env_cls=env_cls, env_params=env_params,
                                save=True, save_dir=None)
 elif type(agent_file) == str:
@@ -89,7 +89,7 @@ model_file = None
 # model_file = 'temp/2020-08-03_12-52-22'
 
 if model_file is None:
-    network_policy = train_policy(problem_gen, n_gen_train=10, n_gen_val=10,
+    network_policy = train_policy(problem_gen, n_batch_train=10, n_batch_val=10, batch_size=1,
                                   env_cls=env_cls, env_params=env_params,
                                   model=None, compile_params=None, fit_params=None,
                                   do_tensorboard=False, plot_history=True, save=True, save_dir=None)

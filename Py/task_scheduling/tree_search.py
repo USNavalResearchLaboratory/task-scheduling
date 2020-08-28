@@ -1,11 +1,15 @@
 """Multi-channel Tree Search objects and algorithms."""
 
 from copy import deepcopy
+from collections import deque
+from math import isclose
 
 import numpy as np
 
 from util.generic import check_rng
-# from generators.scheduling_problems import Random as RandomProblem
+from util.results import eval_loss
+from generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
+from generators.channel_availabilities import UniformIID as UniformChanGenerator
 
 from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
@@ -298,7 +302,7 @@ class TreeNodeShift(TreeNode):
         self.t_origin += ch_avail_min
         self._ch_avail -= ch_avail_min
         for n, task in enumerate(self._tasks):
-            loss_inc = task.shift_origin(ch_avail_min)
+            loss_inc = task.shift_origin(ch_avail_min)  # re-parameterize task, return any incurred loss
             if n in self._seq_rem:
                 self._l_ex += loss_inc      # add loss incurred due to origin shift for any unscheduled tasks
 
@@ -494,7 +498,7 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
     TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = check_rng(rng)
 
-    stack = [TreeNodeBound()]  # initialize stack
+    stack = deque([TreeNodeBound()])        # initialize stack
 
     node_best = stack[0].roll_out(do_copy=True)  # roll-out initial solution
 
@@ -834,21 +838,50 @@ def ert_alg_kw(tasks, ch_avail, do_swap=False):
 
 
 def main():
-    n_tasks = 5
+    n_tasks = 10
     n_channels = 2
 
-    problem_gen = RandomProblem.relu_drop_default(n_tasks, n_channels)
-    (tasks, ch_avail), = problem_gen()
+    task_gen = ContinuousUniformTaskGenerator.relu_drop(duration_lim=(3, 6), t_release_lim=(0, 4),
+                                                        slope_lim=(0.5, 2), t_drop_lim=(6, 12),
+                                                        l_drop_lim=(35, 50))
+    ch_avail_gen = UniformChanGenerator(lim=(0, 1))
+
+    tasks = list(task_gen(n_tasks))
+    ch_avail = list(ch_avail_gen(n_channels))
+    # problem_gen = RandomProblem.relu_drop_default(n_tasks, n_channels)
+    # (tasks, ch_avail), = problem_gen()
 
     TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = check_rng(None)
 
-    seq = [3, 1, 4]
-    seq = np.random.permutation(n_tasks)
-    node, node_s = TreeNode(seq), TreeNodeShift(seq)
-    print(node.t_ex)
-    print(node_s.t_ex)
+    for i in range(100):    # check that seq=np.argsort(t_ex) maps to an optimal schedule
+        print(f"{i}", end='\n')
+
+        # seq = np.random.permutation(n_tasks)
+        # node = TreeNode(seq)
+        # t_ex = node.t_ex
+
+        tasks = list(task_gen(n_tasks))
+        ch_avail = list(ch_avail_gen(n_channels))
+        t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True, rng=None)
+        loss = eval_loss(tasks, t_ex)
+
+        seq_sort = np.argsort(t_ex)
+        node_sort = TreeNode(seq_sort)
+        # t_ex_sort = node_sort.t_ex
+
+        assert isclose(loss, node_sort.l_ex)
+        # assert t_ex.tolist() == t_ex_sort.tolist()
+        # assert seq.tolist() == seq_sort.tolist()
+
+    for _ in range(100):     # check accuracy of TreeNodeShift solution
+        seq = np.random.permutation(n_tasks)
+        node, node_s = TreeNode(seq), TreeNodeShift(seq)
+        print(node.t_ex)
+        print(node_s.t_ex)
+        assert np.allclose(node.t_ex, node_s.t_ex)
+        assert abs(node.l_ex - node_s.l_ex) < 1e-9
 
     t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True, rng=None)
 

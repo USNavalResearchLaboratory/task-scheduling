@@ -7,7 +7,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import gym
 from gym.spaces import Box, Space
-# from baselines import deepq
 
 from util.plot import plot_task_losses
 from generators.scheduling_problems import Random as RandomProblem
@@ -88,15 +87,13 @@ class BaseTaskingEnv(gym.Env):
         if features is not None:
             self.features = features
         else:
-            _task_param_names = self.problem_gen.task_gen.cls_task.param_names
-            self.features = np.array(list(zip(_task_param_names,
-                                              [lambda task, name=_name: getattr(task, name)
-                                               for _name in _task_param_names],     # note: late-binding closure
-                                              self.problem_gen.task_gen.param_lims.values())),
-                                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
-
-            # self.features = np.array([], dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
-            # _low, _high = self.problem_gen.task_gen.param_repr_lim
+            self.features = self.problem_gen.task_gen.default_features
+            # _task_param_names = self.problem_gen.task_gen.cls_task.param_names
+            # self.features = np.array(list(zip(_task_param_names,
+            #                                   [lambda task, name=_name: getattr(task, name)
+            #                                    for _name in _task_param_names],     # note: late-binding closure
+            #                                   self.problem_gen.task_gen.param_lims.values())),
+            #                          dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
         _low, _high = zip(*self.features['lims'])
         self._state_tasks_low = np.broadcast_to(_low, (self.n_tasks, len(_low)))
@@ -135,7 +132,7 @@ class BaseTaskingEnv(gym.Env):
     @property
     def state_tasks(self):
         """State sub-array for task features."""
-        state_tasks = np.array([task.gen_features(*self.features['func']) for task in self.tasks])
+        state_tasks = np.array([task.feature_gen(*self.features['func']) for task in self.tasks])
         if self.masking:
             state_tasks[self.node.seq] = 0.     # zero out state rows for scheduled tasks
 
@@ -169,13 +166,12 @@ class BaseTaskingEnv(gym.Env):
 
         """
 
-        if not persist:     # use new random (or user-specified) tasks/channels
-
-            if tasks is None or ch_avail is None:
+        if not persist:
+            if tasks is None or ch_avail is None:   # generate new scheduling problem
                 if solve:
-                    ((tasks, ch_avail), self.solution), = self.problem_gen(solve=solve, verbose=verbose)
+                    ((tasks, ch_avail), self.solution), = self.problem_gen(1, solve=solve, verbose=verbose)
                 else:
-                    (tasks, ch_avail), = self.problem_gen(solve=solve, verbose=verbose)
+                    (tasks, ch_avail), = self.problem_gen(1, solve=solve, verbose=verbose)
                     self.solution = None
 
             elif len(tasks) != self.n_tasks:
@@ -290,9 +286,9 @@ class StepTaskingEnv(BaseTaskingEnv):
         if callable(seq_encoding):
             self.seq_encoding = MethodType(seq_encoding, self)
 
-            env_copy = deepcopy(self)       # FIXME: better way?
+            env_copy = deepcopy(self)       # FIXME: hacked - find better way!
             env_copy.reset()
-            self.len_seq_encode = env_copy.state_seq.shape(-1)
+            self.len_seq_encode = env_copy.state_seq.shape[-1]
         elif type(seq_encoding) == str:     # simple string specification for supported encoders
             if seq_encoding == 'indicator':
                 def _seq_encoding(env, n):
@@ -354,14 +350,16 @@ class StepTaskingEnv(BaseTaskingEnv):
         """Complete state."""
         return np.concatenate((self.state_seq, self.state_tasks), axis=1)
 
-    def data_gen(self, n_gen=1, weight_func=None, verbose=False):
+    def data_gen(self, n_batch, batch_size=1, weight_func=None, verbose=False):
         """
         Generate state-action data for learner training and evaluation.
 
         Parameters
         ----------
-        n_gen : int
-            Number of random tasking problems to generate data from.
+        n_batch : int
+            Number of batches of state-action pair data to generate.
+        batch_size : int
+            Number of scheduling problems to make data from per yielded batch.
         weight_func : callable, optional
             Function mapping partial sequence length and number of tasks to a training weight.
         verbose : bool, optional
@@ -374,42 +372,40 @@ class StepTaskingEnv(BaseTaskingEnv):
 
         """
 
-        # TODO: save data?
         # TODO: generalize for other Env classes. TF loss func for full seq targets?
 
-        for i_gen in range(n_gen):
+        for i_batch in range(n_batch):
             if verbose:
-                print(f'Task Set: {i_gen + 1}/{n_gen}', end='\n')
+                print(f'Batch: {i_batch + 1}/{n_batch}', end='\n')
 
-            self.reset(solve=True, verbose=verbose)  # generates new scheduling problem
+            x_set = np.empty((self.n_tasks * batch_size, *self.observation_space.shape))  # predictors
+            y_set = np.empty(self.n_tasks * batch_size)  # targets
+            w_set = np.empty(self.n_tasks * batch_size)  # weights
 
-            # Optimal schedule
+            for i_samp in range(batch_size):
+                self.reset(solve=True, verbose=verbose)  # generates new scheduling problem
 
-            # TODO: train using complete tree info, not just B&B solution?
-            # TODO: generate sample weights to prioritize earliest task selections??
+                # Optimal schedule
+                t_ex, ch_ex = self.solution.t_ex, self.solution.ch_ex
+                seq = np.argsort(t_ex)  # maps to optimal schedule (empirically confirmed...)
+                # TODO: train using complete tree info, not just B&B solution?
 
-            t_ex, ch_ex = self.solution.t_ex, self.solution.ch_ex
-            seq = np.argsort(t_ex)  # FIXME: Confirm that argsort recovers the correct sequence-to-schedule seq?!
+                # Generate samples for each scheduling step of the optimal sequence
+                for i, n in enumerate(seq):
+                    i = i_samp * self.n_tasks + i
+                    n = self.sorted_index.tolist().index(n)  # transform index using sorting function
 
-            # Generate samples for each scheduling step of the optimal sequence
-            x_set = np.empty((self.n_tasks, *self.state.shape))     # predictors
-            y_set = np.empty(self.n_tasks)                          # targets
-            w_set = np.empty(self.n_tasks)                          # weights
-            for i, n in enumerate(seq):
-                n = self.sorted_index.tolist().index(n)  # transform index using sorting function
+                    x_set[i] = self.state.copy()
+                    y_set[i] = n
+                    if callable(weight_func):
+                        w_set[i] = weight_func(i, self.n_tasks)
 
-                x_set[i] = self.state.copy()
-                y_set[i] = n
-                if callable(weight_func):
-                    w_set[i] = weight_func(i, self.n_tasks)
+                    self.step(n)  # updates environment state
 
-                self.step(n)  # updates environment state
-
-            # TODO: yield? Will generator preserve train/test problem separation? Use batches?
-            if weight_func is None:
-                yield x_set, y_set
-            else:
+            if callable(weight_func):
                 yield x_set, y_set, w_set
+            else:
+                yield x_set, y_set
 
 
 # Agents
@@ -424,7 +420,7 @@ class RandomAgent:
 
 
 # Learning
-def train_agent(problem_gen, n_gen_train=0, n_gen_val=0, env_cls=StepTaskingEnv, env_params=None,
+def train_agent(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, env_cls=StepTaskingEnv, env_params=None,
                 agent=None, save=False, save_dir=None):
     """
     Train a reinforcement learning agent.
@@ -433,10 +429,12 @@ def train_agent(problem_gen, n_gen_train=0, n_gen_val=0, env_cls=StepTaskingEnv,
     ----------
     problem_gen : generators.scheduling_problems.Base
         Scheduling problem generation object.
-    n_gen_train : int
-        Number of tasking problems to generate for agent training.
-    n_gen_val : int
-        Number of tasking problems to generate for agent validation.
+    n_batch_train : int
+        Number of batches of state-action pair data to generate for agent training.
+    n_batch_val : int
+        Number of batches of state-action pair data to generate for agent validation.
+    batch_size : int
+        Number of scheduling problems to make data from per yielded batch.
     env_cls : class
         Gym environment class.
     env_params : dict, optional
@@ -464,9 +462,8 @@ def train_agent(problem_gen, n_gen_train=0, n_gen_val=0, env_cls=StepTaskingEnv,
     if agent is None:
         agent = RandomAgent(env.infer_action_space)
 
-    # Generate state-action data pairs
-    d_train = env.data_gen(n_gen_train)
-    d_val = env.data_gen(n_gen_val)
+    # Generate state-action data pairs, train
+    # TODO
 
     # Save agent and environment
     if save:
@@ -523,12 +520,8 @@ def wrap_agent_run_lim(env, agent):
 
 def main():
 
-    n_tasks = 8
-    n_ch = 2
+    problem_gen = RandomProblem.relu_drop_default(n_tasks=8, n_ch=2)
 
-    problem_gen = RandomProblem.relu_drop_default(n_tasks, n_ch)
-
-    #
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
                          ('release time', lambda task: task.t_release,
                           (0., problem_gen.task_gen.param_lims['t_release'][1])),
@@ -539,17 +532,18 @@ def main():
                          ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
                          ],
                         dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
+    # features = None
 
     # def seq_encoding(self, n):
     #     return [0] if n in self.node.seq else [1]
 
-    # def seq_encoding(self, n):
-    #     out = np.zeros(self.n_tasks)
-    #     if n in self.node.seq:
-    #         out[self.node.seq.index(n)] = 1
-    #     return out
+    def seq_encoding(self, n):
+        out = np.zeros(self.n_tasks)
+        if n in self.node.seq:
+            out[self.node.seq.index(n)] = 1
+        return out
 
-    seq_encoding = 'one-hot'
+    # seq_encoding = 'indicator'
     # seq_encoding = None
 
     def sort_func(self, n):
@@ -584,16 +578,6 @@ def main():
         act = agent.act(observation, reward, done)
         observation, reward, done, info = env.step(act)
         print(reward)
-
-    # act = deepq.learn(task_env,
-    #                   network='mlp',
-    #                   lr=1e-3,
-    #                   total_timesteps=100000,
-    #                   buffer_size=50000,
-    #                   exploration_fraction=0.1,
-    #                   exploration_final_eps=0.02,
-    #                   print_freq=10,
-    #                   )
 
 
 if __name__ == '__main__':

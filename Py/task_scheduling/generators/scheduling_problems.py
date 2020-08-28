@@ -50,14 +50,14 @@ class Base:
         self._SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
         self._SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
 
-    def __call__(self, n_gen=1, solve=False, verbose=False, save=False, file=None):
+    def __call__(self, n_gen, solve=False, verbose=False, save=False, file=None):
         """
         Call problem generator.
 
         Parameters
         ----------
-        n_gen : int, optional
-            Number of problems to generate.
+        n_gen : int
+            Number of scheduling problems to generate.
         solve : bool, optional
             Enables generation of Branch & Bound optimal solutions.
         verbose : bool, optional
@@ -74,15 +74,13 @@ class Base:
 
         """
 
-        # TODO: buffer generated data across multiple calls, save and clear buffer using separate method?
-
         save_dict = {'problems': [], 'solutions': [] if solve else None,
                      'task_gen': self.task_gen, 'ch_avail_gen': self.ch_avail_gen}
 
         # Generate tasks and find optimal schedules
         for i_gen in range(n_gen):
             if verbose:
-                print(f'Task Set: {i_gen + 1}/{n_gen}', end='\n')
+                print(f'Scheduling Problem: {i_gen + 1}/{n_gen}', end='\n')
 
             problem, solution = self.gen_single()
             if problem is None:
@@ -235,7 +233,7 @@ class Dataset(Base):
     def load(cls, file, iter_mode='once', shuffle_mode='never', rng=None):
         """Load problems/solutions from memory."""
 
-        # TODO: loading entire dict into attribute defeats purpose of generator yield!?
+        # FIXME: loads entire data set into memory, should load and yield problems on call only!!
         with open('data/schedules/' + file, 'rb') as file:
             dict_gen = dill.load(file)
 

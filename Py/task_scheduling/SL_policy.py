@@ -17,7 +17,7 @@ np.set_printoptions(precision=2)
 plt.style.use('seaborn')
 
 
-def train_policy(problem_gen, n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv, env_params=None,
+def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, env_cls=StepTaskingEnv, env_params=None,
                  model=None, compile_params=None, fit_params=None,
                  do_tensorboard=False, plot_history=False, save=False, save_dir=None):
     """
@@ -27,10 +27,12 @@ def train_policy(problem_gen, n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv
     ----------
     problem_gen : generators.scheduling_problems.Base
         Scheduling problem generation object.
-    n_gen_train : int
-        Number of tasking problems to generate for agent training.
-    n_gen_val : int
-        Number of tasking problems to generate for agent validation.
+    n_batch_train : int
+        Number of batches of state-action pair data to generate for agent training.
+    n_batch_val : int
+        Number of batches of state-action pair data to generate for agent validation.
+    batch_size : int
+        Number of scheduling problems to make data from per yielded batch.
     env_cls : BaseTaskingEnv or callable
         Gym environment class.
     env_params : dict, optional
@@ -66,22 +68,24 @@ def train_policy(problem_gen, n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv
     # Create environment
     env = env_cls(problem_gen, **env_params)
 
-    obs_shape = env.observation_space.shape
-
     # Generate state-action data pairs
 
-    # d_train = env.data_gen(n_gen_train)
-    # d_val = env.data_gen(n_gen_val)     # FIXME: call sig, partial?
+    # d_train = env.data_gen(n_batch_train, batch_size)
+    # d_val = env.data_gen(n_batch_val, batch_size)
 
     output_types = (tf.int64, tf.int64)
-    output_shapes = (tf.TensorShape([None, *obs_shape]), tf.TensorShape([env.n_tasks]))
+    output_shapes = (tf.TensorShape([None, *env.observation_space.shape]), tf.TensorShape([env.n_tasks]))
 
-    d_train = tf.data.Dataset.from_generator(env.data_gen, output_types, output_shapes, args=(n_gen_train,)).repeat()
-    d_val = tf.data.Dataset.from_generator(env.data_gen, output_types, output_shapes, args=(n_gen_val,))
+    d_train = tf.data.Dataset.from_generator(env.data_gen, output_types,
+                                             output_shapes, args=(n_batch_train,))
+    d_val = tf.data.Dataset.from_generator(env.data_gen, output_types,
+                                           output_shapes, args=(n_batch_val,))
+
+    # TODO: save dataset?
 
     # Train policy model
     if model is None:
-        model = keras.Sequential([keras.layers.Flatten(input_shape=obs_shape),
+        model = keras.Sequential([keras.layers.Flatten(input_shape=env.observation_space.shape),
                                   keras.layers.Dense(60, activation='relu'),
                                   keras.layers.Dense(60, activation='relu'),
                                   # keras.layers.Dense(30, activation='relu'),
@@ -97,10 +101,9 @@ def train_policy(problem_gen, n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv
 
     if fit_params is None:
         fit_params = {'epochs': 20,
-                      'steps_per_epoch': n_gen_train,
+                      'validation_data': d_val,
                       'batch_size': None,   # generator
                       'sample_weight': None,
-                      'validation_data': d_val,
                       'callbacks': [keras.callbacks.EarlyStopping(patience=60, monitor='val_loss', min_delta=0.)]
                       }
 
@@ -121,7 +124,6 @@ def train_policy(problem_gen, n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv
         url = tb.launch()
         webbrowser.open(url)
 
-    # history = model.fit(*d_train, **fit_params)
     history = model.fit(d_train, **fit_params)
 
     if plot_history:
@@ -234,6 +236,6 @@ def main():
     print(t_ex)
     print(ch_ex)
 
-
 if __name__ == '__main__':
     main()
+

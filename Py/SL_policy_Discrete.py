@@ -80,7 +80,7 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
     env = env_cls(n_tasks, task_gen, n_ch, ch_avail_gen, **env_params)
 
     # Generate state-action data pairs
-    d_train = env.data_gen(n_gen_train)
+    d_train = env.data_gen(n_gen_train)     # TODO: out-of-date?
     d_val = env.data_gen(n_gen_val)
 
     # Train policy model
