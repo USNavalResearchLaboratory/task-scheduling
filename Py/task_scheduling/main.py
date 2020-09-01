@@ -180,7 +180,7 @@ def compare_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0,
 
 
 def main():
-    problem_gen = RandomProblem.relu_drop_default(n_tasks=4, n_ch=2)
+    problem_gen = RandomProblem.relu_drop_default(n_tasks=6, n_ch=2)
     # problem_gen = ProblemDataset.load('temp/2020-08-26_14-36-22', iter_mode='once', shuffle=True, rng=None)
 
     # TODO: ensure train/test separation for loaded data, use iter_mode='once'
@@ -227,7 +227,7 @@ def main():
     # model_file = 'temp/2020-08-03_12-52-22'
 
     if model_file is None:
-        network_policy = train_policy(problem_gen, n_batch_train=10, n_batch_val=10, batch_size=1,
+        network_policy = train_policy(problem_gen, n_batch_train=10, n_batch_val=10, batch_size=2,
                                       env_cls=env_cls, env_params=env_params,
                                       model=None, compile_params=None, fit_params=None,
                                       do_tensorboard=False, plot_history=True, save=True, save_dir=None)
@@ -245,7 +245,7 @@ def main():
     ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
 
     # Compare algorithms
-    compare_algorithms(algorithms, problem_gen, n_gen=2, solve=True, verbose=1, plotting=1, save=True, file=None)
+    compare_algorithms(algorithms, problem_gen, n_gen=10, solve=True, verbose=1, plotting=1, save=True, file=None)
 
 
 if __name__ == '__main__':

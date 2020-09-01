@@ -148,7 +148,7 @@ class DiscreteIID(BaseIID):
         return True if all(conditions) else False
 
 
-# class Deterministic:      # TODO: fix
+# class Deterministic:      # TODO
 #     def __init__(self, tasks):
 #         self.tasks = list(tasks)
 #

@@ -1,6 +1,7 @@
 import shutil
 import time
 import dill
+from functools import partial
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,7 +18,8 @@ np.set_printoptions(precision=2)
 plt.style.use('seaborn')
 
 
-def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, env_cls=StepTaskingEnv, env_params=None,
+def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weight_func=None,
+                 env_cls=StepTaskingEnv, env_params=None,
                  model=None, compile_params=None, fit_params=None,
                  do_tensorboard=False, plot_history=False, save=False, save_dir=None):
     """
@@ -33,6 +35,8 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, env_
         Number of batches of state-action pair data to generate for agent validation.
     batch_size : int
         Number of scheduling problems to make data from per yielded batch.
+    weight_func : callable, optional
+        Function mapping partial sequence length and number of tasks to a training weight.
     env_cls : BaseTaskingEnv or callable
         Gym environment class.
     env_params : dict, optional
@@ -59,7 +63,6 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, env_
 
     """
 
-    # TODO: don't pack TF params in func arguments!? user has to define all or none...
     # TODO: make custom output layers to avoid illegal actions
 
     if env_params is None:
@@ -70,16 +73,24 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, env_
 
     # Generate state-action data pairs
 
-    # d_train = env.data_gen(n_batch_train, batch_size)
-    # d_val = env.data_gen(n_batch_val, batch_size)
+    # gen_callable = env.data_gen
+    gen_callable = partial(env.data_gen, weight_func=weight_func)       # function type not supported for from_generator
 
-    output_types = (tf.int64, tf.int64)
-    output_shapes = (tf.TensorShape([None, *env.observation_space.shape]), tf.TensorShape([env.n_tasks]))
+    output_types = (tf.float32, tf.int32)
+    output_shapes = ((batch_size * env.n_tasks,) + env.observation_space.shape, (batch_size * env.n_tasks,))
+    if callable(weight_func):
+        output_types += (tf.float32,)
+        output_shapes += ((batch_size * env.n_tasks,),)
 
-    d_train = tf.data.Dataset.from_generator(env.data_gen, output_types,
-                                             output_shapes, args=(n_batch_train,))
-    d_val = tf.data.Dataset.from_generator(env.data_gen, output_types,
-                                           output_shapes, args=(n_batch_val,))
+    # output_types = (tf.float32, tf.int32)
+    # output_shapes = ((env.n_tasks,) + env.observation_space.shape, (env.n_tasks,))
+    # output_shapes = (tf.TensorShape(env.observation_space.shape), tf.TensorShape(None))
+    # output_shapes = ((batch_size * env.n_tasks,) + env.observation_space.shape, (batch_size * env.n_tasks,))
+
+    d_train = tf.data.Dataset.from_generator(gen_callable, output_types,
+                                             output_shapes, args=(n_batch_train, batch_size))
+    d_val = tf.data.Dataset.from_generator(gen_callable, output_types,
+                                           output_shapes, args=(n_batch_val, batch_size))
 
     # TODO: save dataset?
 
@@ -102,7 +113,7 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, env_
     if fit_params is None:
         fit_params = {'epochs': 20,
                       'validation_data': d_val,
-                      'batch_size': None,   # generator
+                      'batch_size': None,   # generator Dataset
                       'sample_weight': None,
                       'callbacks': [keras.callbacks.EarlyStopping(patience=60, monitor='val_loss', min_delta=0.)]
                       }
@@ -110,7 +121,7 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, env_
     model.compile(**compile_params)
 
     if do_tensorboard:
-        log_dir = 'logs/TF_train'
+        log_dir = '../logs/TF_train'
         try:
             shutil.rmtree(log_dir)
         except FileNotFoundError:
@@ -183,25 +194,14 @@ def wrap_policy(env, model):
 
 
 def main():
-    n_tasks = 4
-    n_ch = 1
+    problem_gen = RandomProblem.relu_drop_default(n_tasks=4, n_ch=2)
 
-    # task_gen = ReluDropTaskGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-    #                              t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)  # task set generator
-
-    # task_gen = Permutation(task_gen(n_tasks))
-    # task_gen = Deterministic(task_gen(n_tasks))
-
-    # def ch_avail_gen(n_chan, rng=check_rng(None)):  # channel availability time generator
-    #     return rng.uniform(0, 0, n_chan)
-
-    problem_gen = RandomProblem.relu_drop_default(n_tasks, n_ch)
-
-    features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.duration_lim),
-                         ('release time', lambda task: task.t_release, (0., problem_gen.task_gen.t_release_lim[1])),
-                         ('slope', lambda task: task.slope, problem_gen.task_gen.slope_lim),
-                         ('drop time', lambda task: task.t_drop, (0., problem_gen.task_gen.t_drop_lim[1])),
-                         ('drop loss', lambda task: task.l_drop, (0., problem_gen.task_gen.l_drop_lim[1])),
+    features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
+                         ('release time', lambda task: task.t_release,
+                          (0., problem_gen.task_gen.param_lims['t_release'][1])),
+                         ('slope', lambda task: task.slope, problem_gen.task_gen.param_lims['slope']),
+                         ('drop time', lambda task: task.t_drop, (0., problem_gen.task_gen.param_lims['t_drop'][1])),
+                         ('drop loss', lambda task: task.l_drop, (0., problem_gen.task_gen.param_lims['l_drop'][1])),
                          ('is available', lambda task: 1 if task.t_release == 0. else 0, (0, 1)),
                          ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
                          ],
@@ -221,20 +221,21 @@ def main():
                   'masking': True
                   }
 
-    scheduler = train_policy(problem_gen,
-                             # n_tasks, task_gen, n_ch, ch_avail_gen,
-                             n_gen_train=100, n_gen_val=20, env_cls=env_cls, env_params=env_params,
-                             model=None, compile_params=None, fit_params=None,
-                             do_tensorboard=True, plot_history=True, save=False, save_dir=None)
+    def weight_func_(i, n):
+        return (n - i) / n
 
-    # tasks = task_gen(n_tasks)
-    # ch_avail = ch_avail_gen(n_ch)
-    (tasks, ch_avail), = problem_gen()
+    scheduler = train_policy(problem_gen, n_batch_train=5, n_batch_val=2, batch_size=2, weight_func=weight_func_,
+                             env_cls=env_cls, env_params=env_params,
+                             model=None, compile_params=None, fit_params=None,
+                             do_tensorboard=False, plot_history=True, save=False, save_dir=None)
+
+    (tasks, ch_avail), = problem_gen(n_gen=1)
 
     t_ex, ch_ex = scheduler(tasks, ch_avail)
 
     print(t_ex)
     print(ch_ex)
+
 
 if __name__ == '__main__':
     main()

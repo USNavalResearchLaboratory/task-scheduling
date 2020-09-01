@@ -88,12 +88,6 @@ class BaseTaskingEnv(gym.Env):
             self.features = features
         else:
             self.features = self.problem_gen.task_gen.default_features
-            # _task_param_names = self.problem_gen.task_gen.cls_task.param_names
-            # self.features = np.array(list(zip(_task_param_names,
-            #                                   [lambda task, name=_name: getattr(task, name)
-            #                                    for _name in _task_param_names],     # note: late-binding closure
-            #                                   self.problem_gen.task_gen.param_lims.values())),
-            #                          dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
         _low, _high = zip(*self.features['lims'])
         self._state_tasks_low = np.broadcast_to(_low, (self.n_tasks, len(_low)))
@@ -168,7 +162,7 @@ class BaseTaskingEnv(gym.Env):
 
         if not persist:
             if tasks is None or ch_avail is None:   # generate new scheduling problem
-                if solve:
+                if solve:   # TODO: next()? Pass a generator, not a callable??
                     ((tasks, ch_avail), self.solution), = self.problem_gen(1, solve=solve, verbose=verbose)
                 else:
                     (tasks, ch_avail), = self.problem_gen(1, solve=solve, verbose=verbose)
@@ -382,34 +376,30 @@ class StepTaskingEnv(BaseTaskingEnv):
             if verbose:
                 print(f'Batch: {i_batch + 1}/{n_batch}', end='\n')
 
-            x_set = np.empty((self.n_tasks * batch_size, *self.observation_space.shape))  # predictors
-            y_set = np.empty(self.n_tasks * batch_size)  # targets
-            w_set = np.empty(self.n_tasks * batch_size)  # weights
-
-            for i_samp in range(batch_size):
+            x_set, y_set, w_set = [], [], []
+            for i_gen in range(batch_size):
                 self.reset(solve=True, verbose=verbose)  # generates new scheduling problem
 
                 # Optimal schedule
                 t_ex, ch_ex = self.solution.t_ex, self.solution.ch_ex
-                seq = np.argsort(t_ex)  # maps to optimal schedule (empirically confirmed...)
+                seq = np.argsort(t_ex)  # maps to optimal schedule (empirically supported...)
                 # TODO: train using complete tree info, not just B&B solution?
 
                 # Generate samples for each scheduling step of the optimal sequence
                 for i, n in enumerate(seq):
-                    i = i_samp * self.n_tasks + i
                     n = self.sorted_index.tolist().index(n)  # transform index using sorting function
 
-                    x_set[i] = self.state.copy()
-                    y_set[i] = n
+                    x_set.append(self.state.copy())
+                    y_set.append(n)
                     if callable(weight_func):
-                        w_set[i] = weight_func(i, self.n_tasks)
+                        w_set.append(weight_func(i, self.n_tasks))
 
                     self.step(n)  # updates environment state
 
             if callable(weight_func):
-                yield x_set, y_set, w_set
+                yield np.array(x_set), np.array(y_set), np.array(w_set)
             else:
-                yield x_set, y_set
+                yield np.array(x_set), np.array(y_set)
 
 
 # Agents
