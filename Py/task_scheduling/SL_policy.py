@@ -12,10 +12,21 @@ import webbrowser
 
 from generators.scheduling_problems import Random as RandomProblem
 from tree_search import TreeNodeShift
-from env_tasking import StepTaskingEnv
+from env_tasking import SeqTaskingEnv, StepTaskingEnv
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
+
+
+# class FullSeq(keras.losses.Loss):     # TODO
+#     def __init__(self, regularization_factor=0.1, name="full_seq"):
+#         super().__init__(name=name)
+#         self.regularization_factor = regularization_factor
+#
+#     def call(self, y_true, y_pred):
+#         mse = tf.math.reduce_mean(tf.square(y_true - y_pred))
+#         reg = tf.math.reduce_mean(tf.square(0.5 - y_pred))
+#         return mse + reg * self.regularization_factor
 
 
 def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weight_func=None,
@@ -72,18 +83,14 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weig
     env = env_cls(problem_gen, **env_params)
 
     # Generate state-action data pairs
-
-    # gen_callable = env.data_gen
     gen_callable = partial(env.data_gen, weight_func=weight_func)       # function type not supported for from_generator
 
     output_types = (tf.float32, tf.int32)
-    output_shapes = ((batch_size * env.n_tasks,) + env.observation_space.shape, (batch_size * env.n_tasks,))
+    output_shapes = ((None,) + env.observation_space.shape, (None,) + env.action_space.shape)
     if callable(weight_func):
         output_types += (tf.float32,)
-        output_shapes += ((batch_size * env.n_tasks,),)
+        output_shapes += ((None,),)
 
-    # output_types = (tf.float32, tf.int32)
-    # output_shapes = ((env.n_tasks,) + env.observation_space.shape, (env.n_tasks,))
     # output_shapes = (tf.TensorShape(env.observation_space.shape), tf.TensorShape(None))
     # output_shapes = ((batch_size * env.n_tasks,) + env.observation_space.shape, (batch_size * env.n_tasks,))
 
@@ -102,11 +109,11 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weig
                                   # keras.layers.Dense(30, activation='relu'),
                                   # keras.layers.Dropout(0.2),
                                   # keras.layers.Dense(100, activation='relu'),
-                                  keras.layers.Dense(env.n_tasks, activation='softmax')])
+                                  keras.layers.Dense(len(env.action_space), activation='softmax')])
 
     if compile_params is None:
         compile_params = {'optimizer': 'rmsprop',
-                          'loss': 'sparse_categorical_crossentropy',
+                          'loss': 'sparse_categorical_crossentropy',    # TODO: make loss func for full seq targets?
                           'metrics': ['accuracy']
                           }
 
@@ -183,7 +190,7 @@ def wrap_policy(env, model):
         observation, reward, done = env.reset(tasks, ch_avail), 0, False
         while not done:
             prob = model.predict(observation[np.newaxis]).squeeze(0)
-            seq_rem = env.action_space.elements.tolist()
+            seq_rem = env.infer_action_space(observation).elements.tolist()
             action = seq_rem[prob[seq_rem].argmax()]        # FIXME: hacked to disallow previously scheduled tasks
 
             observation, reward, done, info = env.step(action)
@@ -213,16 +220,18 @@ def main():
         else:
             return self.node.tasks[n].t_release
 
-    env_cls = StepTaskingEnv
+    env_cls = SeqTaskingEnv
+    # env_cls = StepTaskingEnv
     env_params = {'node_cls': TreeNodeShift,
                   'features': features,
                   'sort_func': sort_func,
-                  'seq_encoding': 'indicator',
-                  'masking': True
+                  'masking': True,
+                  # 'seq_encoding': 'indicator',
                   }
 
-    def weight_func_(i, n):
-        return (n - i) / n
+    weight_func_ = None
+    # def weight_func_(i, n):
+    #     return (n - i) / n
 
     scheduler = train_policy(problem_gen, n_batch_train=5, n_batch_val=2, batch_size=2, weight_func=weight_func_,
                              env_cls=env_cls, env_params=env_params,

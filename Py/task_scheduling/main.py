@@ -208,7 +208,8 @@ def main():
     env_params = {'node_cls': TreeNodeShift,
                   'features': features,
                   'sort_func': sort_func,
-                  'seq_encoding': 'one-hot'
+                  'masking': True,
+                  'seq_encoding': 'one-hot',
                   }
 
     agent_file = None
