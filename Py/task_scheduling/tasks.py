@@ -210,14 +210,12 @@ class ReluDrop(Generic):
         else:
             return 0.   # No loss incurred
 
-    def gen_features(self, *funcs):
+    def feature_gen(self, *funcs):
         """Generate features from input functions. Defaults to the parametric representation."""
-        return [func(self) for func in funcs]
-
-        # if len(funcs) > 0:      # TODO: restore?
-        #     return [func(self) for func in funcs]
-        # else:   # default, return task parameters
-        #     return list(self.params.values())
+        if len(funcs) > 0:
+            return [func(self) for func in funcs]
+        else:   # default, return task parameters
+            return list(self.params.values())
 
     def summary(self):
         """Print a string listing task parameters."""

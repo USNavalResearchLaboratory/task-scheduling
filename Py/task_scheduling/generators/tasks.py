@@ -36,7 +36,7 @@ class BaseIID:
         else:
             self.param_lims = param_lims
 
-    def __call__(self, n_tasks=1):
+    def __call__(self, n_tasks):
         """Randomly generate tasks."""
         for _ in range(n_tasks):
             yield self.cls_task(**self.param_gen())
@@ -46,9 +46,15 @@ class BaseIID:
         raise NotImplementedError
 
     @property
-    def param_repr_lim(self):   # TODO: delete?
-        """Low and high tuples bounding parametric task representations."""
-        return zip(*self.param_lims.values())
+    def default_features(self):
+        """Returns a NumPy structured array of default features, the task parameters."""
+        features = np.array(list(zip(self.cls_task.param_names,
+                                     [lambda task, name=_name: getattr(task, name)
+                                      for _name in self.cls_task.param_names],  # note: late-binding closure
+                                     self.param_lims.values())),
+                            dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
+
+        return features
 
 
 class GenericIID(BaseIID):
@@ -102,21 +108,21 @@ class ContinuousUniformIID(BaseIID):
 
 
 class DiscreteIID(BaseIID):
+    """
+    Generator of discrete IID random task objects.
+
+    Parameters
+    ----------
+    cls_task : class
+        Class for instantiating task objects.
+    param_probs: dict
+        Maps parameter name strings to dictionaries mapping values to probabilities.
+    rng : int or RandomState or Generator, optional
+        Random number generator seed or object.
+
+    """
+
     def __init__(self, cls_task, param_probs, rng=None):
-        """
-        Generator of discrete IID random task objects.
-
-        Parameters
-        ----------
-        cls_task : class
-            Class for instantiating task objects.
-        param_probs: dict
-            Maps parameter name strings to dictionaries mapping values to probabilities.
-        rng : int or RandomState or Generator, optional
-            Random number generator seed or object.
-
-        """
-
         param_lims = {name: (min(param_probs[name].keys()), max(param_probs[name].keys()))
                       for name in cls_task.param_names}
         super().__init__(cls_task, param_lims, rng)
@@ -142,7 +148,7 @@ class DiscreteIID(BaseIID):
         return True if all(conditions) else False
 
 
-# class Deterministic:
+# class Deterministic:      # TODO
 #     def __init__(self, tasks):
 #         self.tasks = list(tasks)
 #

@@ -17,7 +17,7 @@ from util.results import check_valid, eval_loss
 from generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
 from generators.tasks import GenericIID as GenericTaskGenerator
 from tree_search import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release, TreeNode, TreeNodeShift
-from env_tasking import StepTaskingEnv, data_gen
+from env_tasking import StepTaskingEnv
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
@@ -80,8 +80,8 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
     env = env_cls(n_tasks, task_gen, n_ch, ch_avail_gen, **env_params)
 
     # Generate state-action data pairs
-    d_train = data_gen(env, n_gen_train)
-    d_val = data_gen(env, n_gen_val)
+    d_train = env.data_gen(n_gen_train)     # TODO: out-of-date?
+    d_val = env.data_gen(n_gen_val)
 
     # Train policy model
     if model is None:

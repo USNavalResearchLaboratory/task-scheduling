@@ -1,7 +1,7 @@
 from copy import deepcopy
+from math import factorial
 
 import numpy as np
-import scipy.stats as stats
 from scipy.stats import rv_discrete, uniform
 
 
@@ -56,6 +56,86 @@ def algorithm_repr(alg):
     else:
         p_str = ", ".join(f"{key}={str(val)}" for key, val in params.items())
         return f"{alg.func.__name__}({p_str})"
+
+
+def seq2num(seq, check_input=True):     # TODO: relate to Lehmer code? https://en.wikipedia.org/wiki/Lehmer_code
+    """
+    Map an index sequence permutation to a non-negative integer.
+
+    Parameters
+    ----------
+    seq : Sequence
+        Elements are unique in range(len(seq)).
+    check_input : bool
+        Enables value checking of input sequence.
+
+    Returns
+    -------
+    int
+        Takes values in range(factorial(len(seq))).
+    """
+
+    length = len(seq)
+    seq_rem = list(range(length))     # remaining elements
+    if check_input and set(seq) != set(seq_rem):
+        raise ValueError(f"Input must be a Sequence with unique elements in range({length}).")
+
+    num = 0
+    for i, n in enumerate(seq):
+        k = seq_rem.index(n)    # position of index in remaining elements
+        num += k * factorial(length - 1 - i)
+        seq_rem.remove(n)
+
+    return num
+
+
+def num2seq(num, length, check_input=True):
+    """
+    Map a non-negative integer to an index sequence permutation.
+
+    Parameters
+    ----------
+    num : int
+        In range(factorial(length))
+    length : int
+        Length of the output sequence.
+    check_input : bool
+        Enables value checking of input number.
+
+    Returns
+    -------
+    tuple
+        Elements are unique in factorial(len(seq)).
+    """
+
+    if check_input and num not in range(factorial(length)):
+        raise ValueError(f"Input 'num' must be in range(factorial({length})).")
+
+    seq_rem = list(range(length))     # remaining elements
+    seq = []
+    while len(seq_rem) > 0:
+        radix = factorial(len(seq_rem) - 1)
+        i, num = num // radix, num % radix
+
+        n = seq_rem.pop(i)
+        seq.append(n)
+
+    return tuple(seq)
+
+
+def main():
+    length = 5
+    for _ in range(100):
+        seq = tuple(np.random.permutation(length))
+        assert seq == num2seq(seq2num(seq), length)
+
+        num = np.random.default_rng().integers(factorial(length))
+        assert num == seq2num(num2seq(num, length))
+
+
+if __name__ == '__main__':
+    main()
+
 
 
 

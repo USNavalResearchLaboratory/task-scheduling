@@ -1,22 +1,36 @@
 import shutil
 import time
 import dill
+from functools import partial
 
 import numpy as np
 import matplotlib.pyplot as plt
+import tensorflow as tf
 from tensorflow import keras
 from tensorboard import program
 import webbrowser
 
 from generators.scheduling_problems import Random as RandomProblem
 from tree_search import TreeNodeShift
-from env_tasking import StepTaskingEnv, data_gen
+from env_tasking import SeqTaskingEnv, StepTaskingEnv
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
 
 
-def train_policy(problem_gen, n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv, env_params=None,
+# class FullSeq(keras.losses.Loss):     # TODO
+#     def __init__(self, regularization_factor=0.1, name="full_seq"):
+#         super().__init__(name=name)
+#         self.regularization_factor = regularization_factor
+#
+#     def call(self, y_true, y_pred):
+#         mse = tf.math.reduce_mean(tf.square(y_true - y_pred))
+#         reg = tf.math.reduce_mean(tf.square(0.5 - y_pred))
+#         return mse + reg * self.regularization_factor
+
+
+def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weight_func=None,
+                 env_cls=StepTaskingEnv, env_params=None,
                  model=None, compile_params=None, fit_params=None,
                  do_tensorboard=False, plot_history=False, save=False, save_dir=None):
     """
@@ -26,10 +40,14 @@ def train_policy(problem_gen, n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv
     ----------
     problem_gen : generators.scheduling_problems.Base
         Scheduling problem generation object.
-    n_gen_train : int
-        Number of tasking problems to generate for agent training.
-    n_gen_val : int
-        Number of tasking problems to generate for agent validation.
+    n_batch_train : int
+        Number of batches of state-action pair data to generate for agent training.
+    n_batch_val : int
+        Number of batches of state-action pair data to generate for agent validation.
+    batch_size : int
+        Number of scheduling problems to make data from per yielded batch.
+    weight_func : callable, optional
+        Function mapping partial sequence length and number of tasks to a training weight.
     env_cls : BaseTaskingEnv or callable
         Gym environment class.
     env_params : dict, optional
@@ -56,20 +74,32 @@ def train_policy(problem_gen, n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv
 
     """
 
-    # TODO: don't pack TF params in func arguments!? user has to define all or none...
     # TODO: make custom output layers to avoid illegal actions
 
     if env_params is None:
         env_params = {}
 
     # Create environment
-    env = env_cls(problem_gen,
-                  # n_tasks, task_gen, n_ch, ch_avail_gen,
-                  **env_params)
+    env = env_cls(problem_gen, **env_params)
 
     # Generate state-action data pairs
-    d_train = data_gen(env, n_gen_train)
-    d_val = data_gen(env, n_gen_val)
+    gen_callable = partial(env.data_gen, weight_func=weight_func)       # function type not supported for from_generator
+
+    output_types = (tf.float32, tf.int32)
+    output_shapes = ((None,) + env.observation_space.shape, (None,) + env.action_space.shape)
+    if callable(weight_func):
+        output_types += (tf.float32,)
+        output_shapes += ((None,),)
+
+    # output_shapes = (tf.TensorShape(env.observation_space.shape), tf.TensorShape(None))
+    # output_shapes = ((batch_size * env.n_tasks,) + env.observation_space.shape, (batch_size * env.n_tasks,))
+
+    d_train = tf.data.Dataset.from_generator(gen_callable, output_types,
+                                             output_shapes, args=(n_batch_train, batch_size))
+    d_val = tf.data.Dataset.from_generator(gen_callable, output_types,
+                                           output_shapes, args=(n_batch_val, batch_size))
+
+    # TODO: save dataset?
 
     # Train policy model
     if model is None:
@@ -79,26 +109,26 @@ def train_policy(problem_gen, n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv
                                   # keras.layers.Dense(30, activation='relu'),
                                   # keras.layers.Dropout(0.2),
                                   # keras.layers.Dense(100, activation='relu'),
-                                  keras.layers.Dense(env.n_tasks, activation='softmax')])
+                                  keras.layers.Dense(len(env.action_space), activation='softmax')])
 
     if compile_params is None:
         compile_params = {'optimizer': 'rmsprop',
-                          'loss': 'sparse_categorical_crossentropy',
+                          'loss': 'sparse_categorical_crossentropy',    # TODO: make loss func for full seq targets?
                           'metrics': ['accuracy']
                           }
 
     if fit_params is None:
-        fit_params = {'epochs': 100,
-                      'batch_size': 32,
-                      'sample_weight': None,
+        fit_params = {'epochs': 20,
                       'validation_data': d_val,
+                      'batch_size': None,   # generator Dataset
+                      'sample_weight': None,
                       'callbacks': [keras.callbacks.EarlyStopping(patience=60, monitor='val_loss', min_delta=0.)]
                       }
 
     model.compile(**compile_params)
 
     if do_tensorboard:
-        log_dir = 'logs/TF_train'
+        log_dir = '../logs/TF_train'
         try:
             shutil.rmtree(log_dir)
         except FileNotFoundError:
@@ -112,7 +142,7 @@ def train_policy(problem_gen, n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv
         url = tb.launch()
         webbrowser.open(url)
 
-    history = model.fit(*d_train, **fit_params)
+    history = model.fit(d_train, **fit_params)
 
     if plot_history:
         plt.figure(num='training history', clear=True, figsize=(10, 4.8))
@@ -131,8 +161,8 @@ def train_policy(problem_gen, n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv
         if save_dir is None:
             save_dir = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
 
-        model.save('models/' + save_dir)      # save TF model
-        with open('models/' + save_dir + '/env.pkl', 'wb') as file:
+        model.save('../models/' + save_dir)      # save TF model
+        with open('../models/' + save_dir + '/env.pkl', 'wb') as file:
             dill.dump(env, file)    # save environment
 
     return wrap_policy(env, model)
@@ -140,7 +170,7 @@ def train_policy(problem_gen, n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv
 
 def load_policy(load_dir):
     """Loads network model and environment, returns wrapped scheduling function."""
-    with open('models/' + load_dir + '/env.pkl', 'rb') as file:
+    with open('../models/' + load_dir + '/env.pkl', 'rb') as file:
         env = dill.load(file)
     model = keras.models.load_model('models/' + load_dir)
 
@@ -149,6 +179,7 @@ def load_policy(load_dir):
 
 def wrap_policy(env, model):
     """Generate scheduling function by running a policy on a single environment episode."""
+
     if not isinstance(env, StepTaskingEnv):
         raise NotImplementedError("Tasking environment must be step Env.")
 
@@ -159,7 +190,7 @@ def wrap_policy(env, model):
         observation, reward, done = env.reset(tasks, ch_avail), 0, False
         while not done:
             prob = model.predict(observation[np.newaxis]).squeeze(0)
-            seq_rem = env.action_space.elements.tolist()
+            seq_rem = env.infer_action_space(observation).elements.tolist()
             action = seq_rem[prob[seq_rem].argmax()]        # FIXME: hacked to disallow previously scheduled tasks
 
             observation, reward, done, info = env.step(action)
@@ -170,25 +201,14 @@ def wrap_policy(env, model):
 
 
 def main():
-    n_tasks = 4
-    n_ch = 1
+    problem_gen = RandomProblem.relu_drop_default(n_tasks=4, n_ch=2)
 
-    # task_gen = ReluDropTaskGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-    #                              t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)  # task set generator
-
-    # task_gen = Permutation(task_gen(n_tasks))
-    # task_gen = Deterministic(task_gen(n_tasks))
-
-    # def ch_avail_gen(n_chan, rng=check_rng(None)):  # channel availability time generator
-    #     return rng.uniform(0, 0, n_chan)
-
-    problem_gen = RandomProblem.relu_drop_default(n_tasks, n_ch)
-
-    features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.duration_lim),
-                         ('release time', lambda task: task.t_release, (0., problem_gen.task_gen.t_release_lim[1])),
-                         ('slope', lambda task: task.slope, problem_gen.task_gen.slope_lim),
-                         ('drop time', lambda task: task.t_drop, (0., problem_gen.task_gen.t_drop_lim[1])),
-                         ('drop loss', lambda task: task.l_drop, (0., problem_gen.task_gen.l_drop_lim[1])),
+    features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
+                         ('release time', lambda task: task.t_release,
+                          (0., problem_gen.task_gen.param_lims['t_release'][1])),
+                         ('slope', lambda task: task.slope, problem_gen.task_gen.param_lims['slope']),
+                         ('drop time', lambda task: task.t_drop, (0., problem_gen.task_gen.param_lims['t_drop'][1])),
+                         ('drop loss', lambda task: task.l_drop, (0., problem_gen.task_gen.param_lims['l_drop'][1])),
                          ('is available', lambda task: 1 if task.t_release == 0. else 0, (0, 1)),
                          ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
                          ],
@@ -200,23 +220,25 @@ def main():
         else:
             return self.node.tasks[n].t_release
 
-    env_cls = StepTaskingEnv
+    env_cls = SeqTaskingEnv
+    # env_cls = StepTaskingEnv
     env_params = {'node_cls': TreeNodeShift,
                   'features': features,
                   'sort_func': sort_func,
-                  'seq_encoding': 'indicator',
-                  'masking': True
+                  'masking': True,
+                  # 'seq_encoding': 'indicator',
                   }
 
-    scheduler = train_policy(problem_gen,
-                             # n_tasks, task_gen, n_ch, ch_avail_gen,
-                             n_gen_train=100, n_gen_val=20, env_cls=env_cls, env_params=env_params,
-                             model=None, compile_params=None, fit_params=None,
-                             do_tensorboard=True, plot_history=True, save=False, save_dir=None)
+    weight_func_ = None
+    # def weight_func_(i, n):
+    #     return (n - i) / n
 
-    # tasks = task_gen(n_tasks)
-    # ch_avail = ch_avail_gen(n_ch)
-    (tasks, ch_avail), = problem_gen()
+    scheduler = train_policy(problem_gen, n_batch_train=5, n_batch_val=2, batch_size=2, weight_func=weight_func_,
+                             env_cls=env_cls, env_params=env_params,
+                             model=None, compile_params=None, fit_params=None,
+                             do_tensorboard=False, plot_history=True, save=False, save_dir=None)
+
+    (tasks, ch_avail), = problem_gen(n_gen=1)
 
     t_ex, ch_ex = scheduler(tasks, ch_avail)
 
@@ -226,3 +248,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
