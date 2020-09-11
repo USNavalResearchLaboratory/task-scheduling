@@ -320,6 +320,16 @@ class SeqTaskingEnv(BaseTaskingEnv):
         """Determines the action Gym.Space from an observation."""
         return self.action_space_map(len(observation))
 
+    def step(self, action):
+        if self.action_type == 'seq':
+            pass
+        elif self.action_type == 'int':
+            action = list(num2seq(action, self.n_tasks))
+        else:
+            raise ValueError
+
+        return super().step(action)
+
     def _gen_single(self, seq, weight_func):
         """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
         seq_sort = self.sorted_index_rev[seq]
@@ -594,11 +604,12 @@ def main():
                   'features': features,
                   'sort_func': sort_func,
                   'masking': False,
-                  'seq_encoding': seq_encoding,
+                  'action_type': 'int',
+                  # 'seq_encoding': seq_encoding,
                   }
 
-    # env = SeqTaskingEnv(problem_gen, **env_params)
-    env = StepTaskingEnv(problem_gen, **env_params)
+    env = SeqTaskingEnv(problem_gen, **env_params)
+    # env = StepTaskingEnv(problem_gen, **env_params)
     agent = RandomAgent(env.infer_action_space)
 
     # out = list(env.data_gen(3, batch_size=2, verbose=True))

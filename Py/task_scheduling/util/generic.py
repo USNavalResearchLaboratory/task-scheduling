@@ -1,5 +1,6 @@
 from copy import deepcopy
 from math import factorial
+from numbers import Integral
 
 import numpy as np
 from scipy.stats import rv_discrete, uniform
@@ -21,7 +22,7 @@ def check_rng(rng):
     """
     if rng is None:
         return np.random.default_rng()
-    elif type(rng) == int:
+    elif isinstance(rng, (Integral, np.integer)):
         return np.random.default_rng(rng)
     elif isinstance(rng, np.random.Generator) or isinstance(rng, np.random.RandomState):
         return rng
