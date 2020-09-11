@@ -1,7 +1,9 @@
 #%% Terminal:
 
-import os
+import os, sys
 os.system('cls')
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+
 
 print("\n")
 
@@ -18,10 +20,10 @@ from testing_with_equation import testing_with_equation_function
 from analysis_EST import analysis_EST_function
 from cost import cost_function
 
+import numpy
 import itertools
 import math
 import matplotlib.pyplot
-import numpy
 
 
 #%% User-Specified Inputs:
