@@ -18,15 +18,12 @@ np.set_printoptions(precision=2)
 plt.style.use('seaborn')
 
 
-# class FullSeq(keras.losses.Loss):     # TODO
-#     def __init__(self, regularization_factor=0.1, name="full_seq"):
+# class FullSeq(keras.losses.Loss):
+#     def __init__(self, name="full_seq"):
 #         super().__init__(name=name)
-#         self.regularization_factor = regularization_factor
 #
 #     def call(self, y_true, y_pred):
-#         mse = tf.math.reduce_mean(tf.square(y_true - y_pred))
-#         reg = tf.math.reduce_mean(tf.square(0.5 - y_pred))
-#         return mse + reg * self.regularization_factor
+#         return None
 
 
 def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weight_func=None,
@@ -47,7 +44,7 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weig
     batch_size : int
         Number of scheduling problems to make data from per yielded batch.
     weight_func : callable, optional
-        Function mapping partial sequence length and number of tasks to a training weight.
+        Function mapping environment object to a training weight.
     env_cls : BaseTaskingEnv or callable
         Gym environment class.
     env_params : dict, optional
@@ -74,13 +71,14 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weig
 
     """
 
-    # TODO: make custom output layers to avoid illegal actions
-
     if env_params is None:
         env_params = {}
 
     # Create environment
     env = env_cls(problem_gen, **env_params)
+
+    if isinstance(env, SeqTaskingEnv) and env.action_type == 'seq':
+        raise NotImplementedError       # TODO: make loss func for full seq targets?
 
     # Generate state-action data pairs
     gen_callable = partial(env.data_gen, weight_func=weight_func)       # function type not supported for from_generator
@@ -103,17 +101,22 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weig
 
     # Train policy model
     if model is None:
+        try:        # TODO: move outside
+            n_out = len(env.action_space)
+        except TypeError:
+            n_out = env.action_space.n      # gym.spaces.Discrete
+
         model = keras.Sequential([keras.layers.Flatten(input_shape=env.observation_space.shape),
                                   keras.layers.Dense(60, activation='relu'),
                                   keras.layers.Dense(60, activation='relu'),
                                   # keras.layers.Dense(30, activation='relu'),
                                   # keras.layers.Dropout(0.2),
                                   # keras.layers.Dense(100, activation='relu'),
-                                  keras.layers.Dense(len(env.action_space), activation='softmax')])
+                                  keras.layers.Dense(n_out, activation='softmax')])
 
     if compile_params is None:
         compile_params = {'optimizer': 'rmsprop',
-                          'loss': 'sparse_categorical_crossentropy',    # TODO: make loss func for full seq targets?
+                          'loss': 'sparse_categorical_crossentropy',
                           'metrics': ['accuracy']
                           }
 
@@ -180,9 +183,6 @@ def load_policy(load_dir):
 def wrap_policy(env, model):
     """Generate scheduling function by running a policy on a single environment episode."""
 
-    if not isinstance(env, StepTaskingEnv):
-        raise NotImplementedError("Tasking environment must be step Env.")
-
     if type(model) == str:
         model = keras.models.load_model(model)
 
@@ -190,8 +190,12 @@ def wrap_policy(env, model):
         observation, reward, done = env.reset(tasks, ch_avail), 0, False
         while not done:
             prob = model.predict(observation[np.newaxis]).squeeze(0)
-            seq_rem = env.infer_action_space(observation).elements.tolist()
-            action = seq_rem[prob[seq_rem].argmax()]        # FIXME: hacked to disallow previously scheduled tasks
+
+            if isinstance(env, StepTaskingEnv):
+                seq_rem = env.infer_action_space(observation).elements.tolist()
+                action = seq_rem[prob[seq_rem].argmax()]    # FIXME: make custom output layers to avoid illegal actions?
+            else:
+                action = prob.argmax()
 
             observation, reward, done, info = env.step(action)
 
@@ -222,16 +226,18 @@ def main():
 
     env_cls = SeqTaskingEnv
     # env_cls = StepTaskingEnv
+
     env_params = {'node_cls': TreeNodeShift,
                   'features': features,
                   'sort_func': sort_func,
-                  'masking': True,
-                  # 'seq_encoding': 'indicator',
+                  'masking': False,
+                  'action_type': 'int',
+                  # 'seq_encoding': 'one-hot',
                   }
 
     weight_func_ = None
-    # def weight_func_(i, n):
-    #     return (n - i) / n
+    # def weight_func_(env):
+    #     return (env.n_tasks - len(env.node.seq)) / env.n_tasks
 
     scheduler = train_policy(problem_gen, n_batch_train=5, n_batch_val=2, batch_size=2, weight_func=weight_func_,
                              env_cls=env_cls, env_params=env_params,

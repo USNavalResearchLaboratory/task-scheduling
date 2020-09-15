@@ -17,7 +17,7 @@ from generators.scheduling_problems import Random as RandomProblem
 from generators.scheduling_problems import Dataset as ProblemDataset
 
 from tree_search import TreeNodeShift, branch_bound, mcts, earliest_release
-from env_tasking import StepTaskingEnv, train_agent, load_agent
+from env_tasking import SeqTaskingEnv, StepTaskingEnv, train_agent, load_agent
 from SL_policy import train_policy, load_policy
 
 # TODO: structure imports properly w/o relying on PyCharm's path append of the content root
@@ -147,7 +147,8 @@ def compare_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0,
         print('\nAvg. Performance\n' + 16*'-')
         print(f"{'Algorithm:':<35}{'Loss:':<8}{'Runtime (s):':<10}")
         if solve:
-            print(f"{'B&B Optimal':<35}{l_ex_mean['B&B Optimal'].mean():<8.2f}{t_run_mean['B&B Optimal'].mean():<10.6f}")
+            print(f"{'B&B Optimal':<35}{l_ex_mean['B&B Optimal'].mean():<8.2f}"
+                  f"{t_run_mean['B&B Optimal'].mean():<10.6f}")
         for rep in algorithms['name']:
             print(f"{rep:<35}{l_ex_mean[rep].mean():<8.2f}{t_run_mean[rep].mean():<10.6f}")
 
@@ -170,7 +171,8 @@ def compare_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0,
             _, ax_results_norm = plt.subplots(num='Results (Normalized)', clear=True)
             scatter_loss_runtime(t_run_mean_norm, l_ex_mean_norm,
                                  ax=ax_results_norm,
-                                 ax_kwargs={'title': f'Relative Performance on random sets of {problem_gen.n_tasks} tasks',
+                                 ax_kwargs={'title': f'Relative Performance on random sets '
+                                                     f'of {problem_gen.n_tasks} tasks',
                                             'ylabel': 'Excess Loss (Normalized)',
                                             # 'xlabel': 'Runtime Difference (Normalized)'
                                             }
@@ -204,12 +206,15 @@ def main():
         else:
             return self.node.tasks[n].t_release
 
-    env_cls = StepTaskingEnv
+    env_cls = SeqTaskingEnv
+    # env_cls = StepTaskingEnv
+
     env_params = {'node_cls': TreeNodeShift,
                   'features': features,
                   'sort_func': sort_func,
                   'masking': True,
-                  'seq_encoding': 'one-hot',
+                  'action_type': 'int',
+                  # 'seq_encoding': 'one-hot',
                   }
 
     agent_file = None

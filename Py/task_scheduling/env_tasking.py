@@ -14,6 +14,8 @@ from util.generic import seq2num, num2seq
 from generators.scheduling_problems import Random as RandomProblem
 from tree_search import TreeNode, TreeNodeShift
 
+np.set_printoptions(precision=2)
+
 
 # Gym Spaces
 class Sequence(Space):
@@ -21,7 +23,7 @@ class Sequence(Space):
 
     def __init__(self, n):
         self.n = n      # sequence length
-        super().__init__((self.n,), np.int)
+        super().__init__(shape=(self.n,), dtype=np.int)
 
     def sample(self):
         return self.np_random.permutation(self.n)
@@ -44,7 +46,7 @@ class DiscreteSet(Space):
 
     def __init__(self, elements):
         self.elements = np.sort(np.array(list(elements)).flatten())   # ndarray representation of set
-        super().__init__((), self.elements.dtype)
+        super().__init__(shape=(), dtype=self.elements.dtype)
 
     def sample(self):
         return self.np_random.choice(self.elements)
@@ -252,7 +254,7 @@ class BaseTaskingEnv(gym.Env):
         batch_size : int
             Number of scheduling problems to make data from per yielded batch.
         weight_func : callable, optional
-            Function mapping partial sequence length and number of tasks to a training weight.
+            Function mapping environment object to a training weight.
         verbose : bool, optional
             Enables print-out progress information.
 
@@ -344,11 +346,12 @@ class SeqTaskingEnv(BaseTaskingEnv):
             raise ValueError
 
         if callable(weight_func):
-            w_set = [weight_func()]  # TODO: weighting based on loss value? Use MethodType, or new call signature?
+            w_set = [weight_func(self)]  # TODO: weighting based on loss value!? Use MethodType, or new call signature?
         else:
             w_set = []
 
-        self.step(seq_sort)
+        # self.step(action)
+        super().step(seq)        # invoke super method to avoid unnecessary encode-decode process
 
         return x_set, y_set, w_set
 
@@ -439,13 +442,13 @@ class StepTaskingEnv(BaseTaskingEnv):
         """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
         x_set, y_set, w_set = [], [], []
 
-        for i, n in enumerate(seq):
+        for n in seq:
             n = self.sorted_index_rev[n]
 
             x_set.append(self.state.copy())
             y_set.append(n)
             if callable(weight_func):
-                w_set.append(weight_func(i, self.n_tasks))
+                w_set.append(weight_func(self))
 
             self.step(n)  # updates environment state
 
@@ -564,7 +567,7 @@ def wrap_agent_run_lim(env, agent):
 
 def main():
 
-    problem_gen = RandomProblem.relu_drop_default(n_tasks=8, n_ch=2)
+    problem_gen = RandomProblem.relu_drop_default(n_tasks=4, n_ch=2)
 
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
                          ('release time', lambda task: task.t_release,
@@ -600,6 +603,9 @@ def main():
 
     # sort_func = 't_release'
 
+    env_cls = SeqTaskingEnv
+    # env_cls = StepTaskingEnv
+
     env_params = {'node_cls': TreeNodeShift,
                   'features': features,
                   'sort_func': sort_func,
@@ -608,19 +614,19 @@ def main():
                   # 'seq_encoding': seq_encoding,
                   }
 
-    env = SeqTaskingEnv(problem_gen, **env_params)
-    # env = StepTaskingEnv(problem_gen, **env_params)
+    env = env_cls(problem_gen, **env_params)
     agent = RandomAgent(env.infer_action_space)
 
-    # out = list(env.data_gen(3, batch_size=2, verbose=True))
+    out = list(env.data_gen(3, batch_size=2, verbose=True))
 
     observation, reward, done = env.reset(), 0, False
     while not done:
         print(observation)
-        print(env.sorted_index)
-        print(env.node.seq)
-        print(env.tasks)
+        # print(env.sorted_index)
+        # print(env.node.seq)
+        # print(env.tasks)
         act = agent.act(observation, reward, done)
+        print(act)
         observation, reward, done, info = env.step(act)
         print(reward)
 
