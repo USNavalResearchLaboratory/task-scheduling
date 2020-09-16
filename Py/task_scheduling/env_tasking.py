@@ -162,7 +162,7 @@ class BaseTaskingEnv(gym.Env):
         """Update observation and action spaces."""
         pass
 
-    def reset(self, tasks=None, ch_avail=None, persist=False, solve=False, verbose=False):
+    def reset(self, tasks=None, ch_avail=None, persist=False, solve=False):
         """
         Reset environment by re-initializing node object with random (or user-specified) tasks/channels.
 
@@ -176,17 +176,15 @@ class BaseTaskingEnv(gym.Env):
             If True, keeps tasks and channels fixed during reset, regardless of other inputs.
         solve : bool
             Solves and stores the Branch & Bound optimal schedule.
-        verbose : bool, optional
-            Enables print-out progress information.
 
         """
 
         if not persist:
             if tasks is None or ch_avail is None:   # generate new scheduling problem
                 if solve:   # TODO: next()? Pass a generator, not a callable??
-                    ((tasks, ch_avail), self.solution), = self.problem_gen(1, solve=solve, verbose=verbose)
+                    ((tasks, ch_avail), self.solution), = self.problem_gen(1, solve=solve)
                 else:
-                    (tasks, ch_avail), = self.problem_gen(1, solve=solve, verbose=verbose)
+                    (tasks, ch_avail), = self.problem_gen(1, solve=solve)
                     self.solution = None
 
             elif len(tasks) != self.n_tasks:
@@ -275,7 +273,10 @@ class BaseTaskingEnv(gym.Env):
 
             x_set, y_set, w_set = [], [], []
             for i_gen in range(batch_size):
-                self.reset(solve=True, verbose=verbose)  # generates new scheduling problem
+                if verbose:
+                    print(f'  Problem: {i_gen + 1}/{batch_size}', end='\r')
+
+                self.reset(solve=True)  # generates new scheduling problem
 
                 # Optimal schedule
                 t_ex, ch_ex = self.solution.t_ex, self.solution.ch_ex
@@ -509,8 +510,7 @@ def train_agent(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, env_c
     if agent is None:
         agent = RandomAgent(env.infer_action_space)
 
-    # Generate state-action data pairs, train
-    # TODO
+    # TODO: generate state-action data pairs, train
 
     # Save agent and environment
     if save:
@@ -566,7 +566,6 @@ def wrap_agent_run_lim(env, agent):
 
 
 def main():
-
     problem_gen = RandomProblem.relu_drop_default(n_tasks=4, n_ch=2)
 
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),

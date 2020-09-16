@@ -61,7 +61,7 @@ class Base:
         solve : bool, optional
             Enables generation of Branch & Bound optimal solutions.
         verbose : bool, optional
-            Enables print-out progress information.
+            Enables print-out of optimal scheduler progress.
         save : bool, optional
             Enables serialization of generated problems/solutions.
         file: str, optional
@@ -81,10 +81,8 @@ class Base:
 
         # Generate tasks and find optimal schedules
         for i_gen in range(n_gen):
-            if verbose:
-                print(f'Scheduling Problem: {i_gen + 1}/{n_gen}', end='\n')
-
             problem, solution = self.gen_single()
+
             if problem is None:
                 return      # Stops iterator when Dataset generators run out of data
 
@@ -95,7 +93,8 @@ class Base:
                 if solution is None:
                     # Generate B&B optimal solution
                     if verbose:
-                        print("Solving for optimal schedule with Branch & Bound.")
+                        print(f'Solving Scheduling Problem: {i_gen + 1}/{n_gen}', end='\n')
+
                     t_ex, ch_ex, t_run = timing_wrapper(partial(branch_bound, verbose=verbose))(*problem)
                     solution = self._SchedulingSolution(t_ex, ch_ex, t_run)
 

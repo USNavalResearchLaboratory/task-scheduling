@@ -494,6 +494,8 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
 
     """
 
+    # TODO: different search strategies?
+
     TreeNode._tasks_init = tasks
     TreeNode._ch_avail_init = ch_avail
     TreeNode._rng = check_rng(rng)
