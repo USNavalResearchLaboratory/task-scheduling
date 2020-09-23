@@ -81,6 +81,9 @@ class Base:
 
         # Generate tasks and find optimal schedules
         for i_gen in range(n_gen):
+            if verbose:
+                print(f'Scheduling Problem: {i_gen + 1}/{n_gen}', end='\n')
+
             problem, solution = self.gen_single()
 
             if problem is None:
@@ -92,9 +95,6 @@ class Base:
             if solve:
                 if solution is None:
                     # Generate B&B optimal solution
-                    if verbose:
-                        print(f'Solving Scheduling Problem: {i_gen + 1}/{n_gen}', end='\n')
-
                     t_ex, ch_ex, t_run = timing_wrapper(partial(branch_bound, verbose=verbose))(*problem)
                     solution = self._SchedulingSolution(t_ex, ch_ex, t_run)
 
@@ -216,7 +216,7 @@ class Dataset(Base):
 
     """
 
-    def __init__(self, problems: list, solutions=None, task_gen=None, ch_avail_gen=None,
+    def __init__(self, problems, solutions=None, task_gen=None, ch_avail_gen=None,
                  iter_mode='once', shuffle_mode=None, rng=None):
 
         self.problems = problems
