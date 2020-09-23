@@ -69,7 +69,7 @@ class Base:
 
         Yields
         ------
-        SchedulingProblem or tuple
+        SchedulingProblem
             Scheduling problem namedtuple.
         SchedulingSolution, optional
             Scheduling solution namedtuple.

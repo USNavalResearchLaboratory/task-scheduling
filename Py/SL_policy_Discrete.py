@@ -17,7 +17,7 @@ from util.results import check_valid, eval_loss
 from generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
 from generators.tasks import GenericIID as GenericTaskGenerator
 from tree_search import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release, TreeNode, TreeNodeShift
-from env_tasking import StepTaskingEnv
+from environments import StepTaskingEnv
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')

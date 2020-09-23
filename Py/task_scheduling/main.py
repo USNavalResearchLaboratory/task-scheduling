@@ -17,7 +17,7 @@ from generators.scheduling_problems import Random as RandomProblem
 from generators.scheduling_problems import Dataset as ProblemDataset
 
 from tree_search import TreeNodeShift, branch_bound, mcts, earliest_release
-from env_tasking import SeqTaskingEnv, StepTaskingEnv, train_agent, load_agent
+from environments import SeqTaskingEnv, StepTaskingEnv, train_agent
 from SL_policy import train_policy, load_policy
 
 # TODO: structure imports properly w/o relying on PyCharm's path append of the content root
@@ -183,7 +183,7 @@ def compare_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0,
 
 def main():
 
-    problem_gen = RandomProblem.relu_drop_default(n_tasks=8, n_ch=2)
+    problem_gen = RandomProblem.relu_drop_default(n_tasks=8, n_ch=1)
     # problem_gen = ProblemDataset.load('relu_c2t8_1000', iter_mode='once', shuffle_mode=True, rng=None)
 
     # TODO: ensure train/test separation for loaded data, use iter_mode='once'
@@ -207,59 +207,49 @@ def main():
         else:
             return self.node.tasks[n].t_release
 
-    # env_cls = SeqTaskingEnv
-    env_cls = StepTaskingEnv
+    env_cls = SeqTaskingEnv
+    # env_cls = StepTaskingEnv
 
     env_params = {'node_cls': TreeNodeShift,
                   'features': features,
                   'sort_func': sort_func,
                   'masking': True,
-                  # 'action_type': 'int',
-                  'seq_encoding': 'one-hot',
+                  'action_type': 'int',
+                  # 'seq_encoding': 'one-hot',
                   }
 
-    # agent_file = None
-    # # agent_file = 'temp/2020-08-21_16-23-33'
+    random_agent = train_agent(problem_gen, env_cls=env_cls, env_params=env_params, agent='random')
 
-    # if agent_file is None:
-    #     random_agent = train_agent(problem_gen, n_batch_train=0, n_batch_val=0, batch_size=1,
-    #                                env_cls=env_cls, env_params=env_params,
-    #                                save=False, save_dir=None)
-    # elif type(agent_file) == str:
-    #     random_agent = load_agent(agent_file)
-    # else:
-    #     raise ValueError("Parameter 'agent_file' must be string or None.")
+    dqn_agent = train_agent(problem_gen, n_episodes=10000, env_cls=env_cls, env_params=env_params, agent='DQN',
+                            save=False, save_dir=None)
+    # random_agent = load_agent(agent_file)
 
-    model_file = None
-    # model_file = 'temp/2020-08-03_12-52-22'
 
-    if model_file is None:
-        network_policy = train_policy(problem_gen, n_batch_train=5, n_batch_val=1, batch_size=2,
-                                      env_cls=env_cls, env_params=env_params,
-                                      model=None, compile_params=None, fit_params=None,
-                                      do_tensorboard=False, plot_history=True, save=True, save_dir=None)
-    elif type(model_file) == str:
-        network_policy = load_policy(model_file)
-    else:
-        raise ValueError("Parameter 'agent_file' must be string or None.")
+    # network_policy = train_policy(problem_gen, n_batch_train=5, n_batch_val=1, batch_size=2,
+    #                               env_cls=env_cls, env_params=env_params,
+    #                               model=None, compile_params=None, fit_params=None,
+    #                               do_tensorboard=False, plot_history=True, save=True, save_dir=None)
+    # network_policy = load_policy(model_file)
 
     algorithms = np.array([
         # ('B&B', partial(branch_bound, verbose=False), 1),
-        ('MCTS', partial(mcts, n_mc=200, verbose=False), 5),
+        # ('MCTS', partial(mcts, n_mc=200, verbose=False), 5),
         ('ERT', partial(earliest_release, do_swap=True), 1),
-        # ('Random Agent', partial(random_agent), 20),
-        ('DNN Policy', partial(network_policy), 1),
+        ('Random Agent', random_agent, 20),
+        ('DQN Agent', dqn_agent, 20),
+        # ('DNN Policy', network_policy, 1),
     ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
 
     # Compare algorithms
-    compare_algorithms(algorithms, problem_gen, n_gen=10, solve=True, verbose=1, plotting=1, save=True, file=None)
+    compare_algorithms(algorithms, problem_gen, n_gen=10, solve=True, verbose=1, plotting=1, save=False, file=None)
 
     # for n_tasks, n_ch in ((24, 1), (32, 1),):
     #     problem_gen = RandomProblem.relu_drop_default(n_tasks, n_ch)
     #     list(problem_gen(n_gen=1000, solve=True, verbose=True, save=True, file=f'relu_c{n_ch}t{n_tasks}_1000'))
     #
-    #     # file = f'relu_c{n_ch}t{n_tasks}_1000'
-    #     # compare_algorithms(algorithms, problem_gen, n_gen=1000, solve=True, verbose=1, plotting=1, save=True, file=file)
+    #     file = f'relu_c{n_ch}t{n_tasks}_1000'
+    #     compare_algorithms(algorithms, problem_gen, n_gen=1000,
+    #                        solve=True, verbose=1, plotting=1, save=True, file=file)
 
 
 if __name__ == '__main__':

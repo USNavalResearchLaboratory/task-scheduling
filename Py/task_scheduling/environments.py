@@ -1,8 +1,7 @@
-import time
 from copy import deepcopy
 from types import MethodType
 from math import factorial
-import dill
+from abc import ABC, abstractmethod
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,12 +12,13 @@ from util.plot import plot_task_losses
 from util.generic import seq2num, num2seq
 from generators.scheduling_problems import Random as RandomProblem
 from tree_search import TreeNode, TreeNodeShift
+from RL_policy import RandomAgent
 
 np.set_printoptions(precision=2)
 
 
 # Gym Spaces
-class Sequence(Space):
+class Permutation(Space):
     """Gym Space for index sequences."""
 
     def __init__(self, n):
@@ -32,10 +32,10 @@ class Sequence(Space):
         return True if (np.sort(np.asarray(x, dtype=int)) == np.arange(self.n)).all() else False
 
     def __repr__(self):
-        return f"Sequence({self.n})"
+        return f"Permutation({self.n})"
 
     def __eq__(self, other):
-        return isinstance(other, Sequence) and self.n == other.n
+        return isinstance(other, Permutation) and self.n == other.n
 
     def __len__(self):
         return factorial(self.n)
@@ -65,8 +65,7 @@ class DiscreteSet(Space):
 
 
 # Gym Environments
-
-class BaseTaskingEnv(gym.Env):
+class BaseTaskingEnv(ABC, gym.Env):
     """
     Base environment for task scheduling.
 
@@ -121,6 +120,11 @@ class BaseTaskingEnv(gym.Env):
         self.node_cls = node_cls
         self.node = None
 
+        self.steps_per_episode = None
+
+        self.observation_space = None
+        self.action_space = None
+
     tasks = property(lambda self: self.node.tasks)
     ch_avail = property(lambda self: self.node.ch_avail)
 
@@ -154,13 +158,20 @@ class BaseTaskingEnv(gym.Env):
         return state_tasks[self.sorted_index]       # sort individual task states
 
     @property
+    @abstractmethod
     def state(self):
         """Complete state."""
-        return self.state_tasks
+        raise NotImplementedError
 
+    @abstractmethod
+    def infer_action_space(self, obs):
+        """Determines the action Gym.Space from an observation."""
+        raise NotImplementedError
+
+    @abstractmethod
     def _update_spaces(self):
         """Update observation and action spaces."""
-        pass
+        raise NotImplementedError
 
     def reset(self, tasks=None, ch_avail=None, persist=False, solve=False):
         """
@@ -175,7 +186,12 @@ class BaseTaskingEnv(gym.Env):
         persist : bool
             If True, keeps tasks and channels fixed during reset, regardless of other inputs.
         solve : bool
-            Solves and stores the Branch & Bound optimal schedule.
+            Solves for and stores the Branch & Bound optimal schedule.
+
+        Returns
+        -------
+        ndarray
+            Observation.
 
         """
 
@@ -213,12 +229,13 @@ class BaseTaskingEnv(gym.Env):
 
         Returns
         -------
-        observation : ndarray
-        reward : float
-            Negative loss achieved by the complete sequence.
-        done : True
-            Episode completes after one step.
-        info : dict
+        ndarray
+            Observation.
+        float
+            Reward (negative loss) achieved by the complete sequence.
+        bool
+            Indicates the end of the learning episode.
+        dict
             Auxiliary diagnostic information (helpful for debugging, and sometimes learning).
 
         """
@@ -295,6 +312,7 @@ class BaseTaskingEnv(gym.Env):
             else:
                 yield np.array(x_set), np.array(y_set)
 
+    @abstractmethod
     def _gen_single(self, seq, weight_func):
         """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
         raise NotImplementedError
@@ -309,19 +327,30 @@ class SeqTaskingEnv(BaseTaskingEnv):
 
         self.action_type = action_type      # 'seq' for Sequences, 'int' for Integers
         if self.action_type == 'seq':
-            self.action_space_map = lambda n: Sequence(n)
+            self.action_space_map = lambda n: Permutation(n)
         elif self.action_type == 'int':
             self.action_space_map = lambda n: Discrete(factorial(n))
         else:
             raise ValueError
 
+        self.steps_per_episode = 1
+
         # gym.Env observation and action spaces
         self.observation_space = Box(self._state_tasks_low, self._state_tasks_high, dtype=np.float64)
         self.action_space = self.action_space_map(self.n_tasks)
 
-    def infer_action_space(self, observation):
+    @property
+    def state(self):
+        """Complete state."""
+        return self.state_tasks
+
+    def infer_action_space(self, obs):
         """Determines the action Gym.Space from an observation."""
-        return self.action_space_map(len(observation))
+        return self.action_space_map(len(obs))
+
+    def _update_spaces(self):
+        """Update observation and action spaces."""
+        pass
 
     def step(self, action):
         if self.action_type == 'seq':
@@ -390,7 +419,7 @@ class StepTaskingEnv(BaseTaskingEnv):
 
             env_copy = deepcopy(self)       # FIXME: hacked - find better way!
             env_copy.reset()
-            self.len_seq_encode = env_copy.state_seq.shape[-1]
+            self.len_seq_encode = len(env_copy.seq_encoding(0))
         elif type(seq_encoding) == str:     # simple string specification for supported encoders
             if seq_encoding == 'indicator':
                 def _seq_encoding(env, n):
@@ -410,7 +439,9 @@ class StepTaskingEnv(BaseTaskingEnv):
 
             self.seq_encoding = MethodType(_seq_encoding, self)
         else:
-            raise TypeError("Sequence encoding input must be callable or str.")
+            raise TypeError("Permutation encoding input must be callable or str.")
+
+        self.steps_per_episode = self.n_tasks
 
         # gym.Env observation and action spaces
         _state_low = np.concatenate((np.zeros((self.n_tasks, self.len_seq_encode)), self._state_tasks_low), axis=1)
@@ -418,26 +449,28 @@ class StepTaskingEnv(BaseTaskingEnv):
         self.observation_space = Box(_state_low, _state_high, dtype=np.float64)
         self.action_space = DiscreteSet(set(range(self.n_tasks)))
 
-    def infer_action_space(self, observation):
+    # @property
+    # def state_seq(self):
+    #     """State sub-array for encoded partial sequence."""
+    #     state_seq = np.array([self.seq_encoding(n) for n in range(self.n_tasks)])
+    #     return state_seq[self.sorted_index]  # sort individual sequence states
+
+    @property
+    def state(self):
+        """Complete state."""
+        state_seq = np.array([self.seq_encoding(n) for n in range(self.n_tasks)])[self.sorted_index]
+        return np.concatenate((state_seq, self.state_tasks), axis=1)
+
+    def infer_action_space(self, obs):
         """Determines the action Gym.Space from an observation."""
-        _state_seq = observation[:, :-len(self.features)]
+        # _state_seq = obs[:, :-len(self.features)]
+        _state_seq = obs[:, :self.len_seq_encode]
         return DiscreteSet(np.flatnonzero(1 - _state_seq.sum(1)))
 
     def _update_spaces(self):
         """Update observation and action spaces."""
         seq_rem_sort = self.sorted_index_rev[list(self.node.seq_rem)]
         self.action_space = DiscreteSet(seq_rem_sort)
-
-    @property
-    def state_seq(self):
-        """State sub-array for encoded partial sequence."""
-        state_seq = np.array([self.seq_encoding(n) for n in range(self.n_tasks)])
-        return state_seq[self.sorted_index]  # sort individual sequence states
-
-    @property
-    def state(self):
-        """Complete state."""
-        return np.concatenate((self.state_seq, self.state_tasks), axis=1)
 
     def _gen_single(self, seq, weight_func):
         """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
@@ -456,117 +489,8 @@ class StepTaskingEnv(BaseTaskingEnv):
         return x_set, y_set, w_set
 
 
-# Agents
-class RandomAgent:
-    """The world's simplest agent!"""
-    def __init__(self, infer_action_space):
-        self.infer_action_space = infer_action_space
-
-    def act(self, observation, reward, done):
-        action_space = self.infer_action_space(observation)
-        return action_space.sample()       # randomly selected action
-
-
-# Learning
-def train_agent(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, env_cls=StepTaskingEnv, env_params=None,
-                agent=None, save=False, save_dir=None):
-    """
-    Train a reinforcement learning agent.
-
-    Parameters
-    ----------
-    problem_gen : generators.scheduling_problems.Base
-        Scheduling problem generation object.
-    n_batch_train : int
-        Number of batches of state-action pair data to generate for agent training.
-    n_batch_val : int
-        Number of batches of state-action pair data to generate for agent validation.
-    batch_size : int
-        Number of scheduling problems to make data from per yielded batch.
-    env_cls : class
-        Gym environment class.
-    env_params : dict, optional
-        Parameters for environment initialization.
-    agent : object
-        Reinforcement learning agent.
-    save : bool
-        If True, the agent and environment are serialized.
-    save_dir : str, optional
-        String representation of sub-directory to save to.
-
-    Returns
-    -------
-    function
-        Wrapped agent. Takes tasks and channel availabilities and produces task execution times/channels.
-
-    """
-
-    if env_params is None:
-        env_params = {}
-
-    # Create environment
-    env = env_cls(problem_gen, **env_params)
-
-    if agent is None:
-        agent = RandomAgent(env.infer_action_space)
-
-    # TODO: generate state-action data pairs, train
-
-    # Save agent and environment
-    if save:
-        if save_dir is None:
-            save_dir = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
-
-        with open('../agents/' + save_dir, 'wb') as file:
-            dill.dump({'env': env, 'agent': agent}, file)    # save environment
-
-    return wrap_agent(env, agent)
-
-
-def load_agent(load_dir):
-    """Loads agent and environment, returns wrapped scheduling function."""
-    with open('../agents/' + load_dir, 'rb') as file:
-        pkl_dict = dill.load(file)
-    return wrap_agent(**pkl_dict)
-
-
-def wrap_agent(env, agent):
-    """Generate scheduling function by running an agent on a single environment episode."""
-
-    def scheduling_agent(tasks, ch_avail):
-        observation, reward, done = env.reset(tasks, ch_avail), 0, False
-        while not done:
-            action = agent.act(observation, reward, done)
-            observation, reward, done, info = env.step(action)
-
-        return env.node.t_ex, env.node.ch_ex
-
-    return scheduling_agent
-
-
-def wrap_agent_run_lim(env, agent):
-    """Generate scheduling function by running an agent on a single environment episode, enforcing max runtime."""
-
-    def scheduling_agent(tasks, ch_avail, max_runtime):
-
-        t_run = time.perf_counter()
-
-        observation, reward, done = env.reset(tasks, ch_avail), 0, False
-        while not done:
-            action = agent.act(observation, reward, done)
-            observation, reward, done, info = env.step(action)
-
-        runtime = time.perf_counter() - t_run
-        if runtime >= max_runtime:
-            raise RuntimeError(f"Algorithm timeout: {runtime} > {max_runtime}.")
-
-        return env.node.t_ex, env.node.ch_ex
-
-    return scheduling_agent
-
-
 def main():
-    problem_gen = RandomProblem.relu_drop_default(n_tasks=4, n_ch=2)
+    problem_gen = RandomProblem.relu_drop_default(n_tasks=8, n_ch=2)
 
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
                          ('release time', lambda task: task.t_release,
@@ -602,31 +526,33 @@ def main():
 
     # sort_func = 't_release'
 
-    env_cls = SeqTaskingEnv
-    # env_cls = StepTaskingEnv
+    # env_cls = SeqTaskingEnv
+    env_cls = StepTaskingEnv
 
     env_params = {'node_cls': TreeNodeShift,
                   'features': features,
                   'sort_func': sort_func,
                   'masking': False,
-                  'action_type': 'int',
-                  # 'seq_encoding': seq_encoding,
+                  # 'action_type': 'int',
+                  'seq_encoding': seq_encoding,
                   }
 
     env = env_cls(problem_gen, **env_params)
-    agent = RandomAgent(env.infer_action_space)
 
-    out = list(env.data_gen(3, batch_size=2, verbose=True))
+    # out = list(env.data_gen(5, batch_size=2, verbose=True))
 
-    observation, reward, done = env.reset(), 0, False
+    agent = RandomAgent(env)
+
+    obs = env.reset()
+    done = False
     while not done:
-        print(observation)
+        print(obs)
         # print(env.sorted_index)
         # print(env.node.seq)
         # print(env.tasks)
-        act = agent.act(observation, reward, done)
-        print(act)
-        observation, reward, done, info = env.step(act)
+        action, _states = agent.predict(obs)
+        print(action)
+        obs, reward, done, info = env.step(action)
         print(reward)
 
 
