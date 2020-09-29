@@ -262,7 +262,7 @@ def main():
     env_params = {'node_cls': TreeNodeShift,
                   'features': features,
                   'sort_func': sort_func,
-                  'seq_encoding': 'indicator'
+                  'seq_encoding': 'binary'
                   }
 
     n_total = 1000

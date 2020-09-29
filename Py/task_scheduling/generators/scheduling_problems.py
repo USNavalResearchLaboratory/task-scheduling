@@ -217,7 +217,7 @@ class Dataset(Base):
     """
 
     def __init__(self, problems, solutions=None, task_gen=None, ch_avail_gen=None,
-                 iter_mode='once', shuffle_mode=None, rng=None):
+                 iter_mode='once', shuffle_mode='never', rng=None):
 
         self.problems = problems
         self.solutions = solutions

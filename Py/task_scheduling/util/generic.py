@@ -59,7 +59,7 @@ def algorithm_repr(alg):
         return f"{alg.func.__name__}({p_str})"
 
 
-def seq2num(seq, check_input=True):     # TODO: relate to Lehmer code? https://en.wikipedia.org/wiki/Lehmer_code
+def seq2num(seq, check_input=True):
     """
     Map an index sequence permutation to a non-negative integer.
 

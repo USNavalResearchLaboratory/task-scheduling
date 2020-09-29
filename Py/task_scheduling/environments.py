@@ -7,12 +7,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import gym
 from gym.spaces import Box, Space, Discrete
+from stable_baselines.common.vec_env import DummyVecEnv
 
 from util.plot import plot_task_losses
 from util.generic import seq2num, num2seq
 from generators.scheduling_problems import Random as RandomProblem
 from tree_search import TreeNode, TreeNodeShift
-from RL_policy import RandomAgent
+# from RL_policy import RandomAgent
 
 np.set_printoptions(precision=2)
 
@@ -190,7 +191,7 @@ class BaseTaskingEnv(ABC, gym.Env):
 
         Returns
         -------
-        ndarray
+        numpy.ndarray
             Observation.
 
         """
@@ -317,6 +318,11 @@ class BaseTaskingEnv(ABC, gym.Env):
         """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
         raise NotImplementedError
 
+    def data_gen_numpy(self, n_gen, weight_func=None, verbose=False):
+        """Generate state-action data as NumPy arrays."""
+        data, = self.data_gen(1, n_gen, weight_func, verbose)
+        return data
+
 
 class SeqTaskingEnv(BaseTaskingEnv):
     """Tasking environment with single action of a complete task index sequence."""
@@ -421,7 +427,7 @@ class StepTaskingEnv(BaseTaskingEnv):
             env_copy.reset()
             self.len_seq_encode = len(env_copy.seq_encoding(0))
         elif type(seq_encoding) == str:     # simple string specification for supported encoders
-            if seq_encoding == 'indicator':
+            if seq_encoding == 'binary':
                 def _seq_encoding(env, n):
                     return [1] if n in env.node.seq else [0]
 
@@ -489,6 +495,14 @@ class StepTaskingEnv(BaseTaskingEnv):
         return x_set, y_set, w_set
 
 
+class DummyVecTaskingEnv(DummyVecEnv):
+    def reset(self, *args, **kwargs):
+        for env_idx in range(self.num_envs):
+            obs = self.envs[env_idx].reset(*args, **kwargs)
+            self._save_obs(env_idx, obs)
+        return self._obs_from_buf()
+
+
 def main():
     problem_gen = RandomProblem.relu_drop_default(n_tasks=8, n_ch=2)
 
@@ -513,7 +527,7 @@ def main():
             out[self.node.seq.index(n)] = 1
         return out
 
-    # seq_encoding = 'indicator'
+    # seq_encoding = 'binary'
     # seq_encoding = None
 
     def sort_func(self, n):

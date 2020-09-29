@@ -184,10 +184,10 @@ def compare_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0,
 def main():
 
     problem_gen = RandomProblem.relu_drop_default(n_tasks=8, n_ch=1)
-    # problem_gen = ProblemDataset.load('relu_c2t8_1000', iter_mode='once', shuffle_mode=True, rng=None)
+    # problem_gen = ProblemDataset.load('relu_c2t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
 
     # TODO: ensure train/test separation for loaded data, use iter_mode='once'
-    # TODO: to train multiple schedulers on same loaded data, use problem_gen.restart() and problem_gen.shuffle = False?
+    # TODO: to train multiple schedulers on same loaded data, use problem_gen.restart(shuffle=False)
 
     # Algorithms
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),

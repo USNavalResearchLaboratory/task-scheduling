@@ -13,7 +13,7 @@ import webbrowser
 from generators.scheduling_problems import Random as RandomProblem
 from generators.scheduling_problems import Dataset as ProblemDataset
 from tree_search import TreeNodeShift
-from environments import SeqTaskingEnv, StepTaskingEnv
+from environments import BaseTaskingEnv, SeqTaskingEnv, StepTaskingEnv
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
@@ -39,14 +39,14 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weig
     problem_gen : generators.scheduling_problems.Base
         Scheduling problem generation object.
     n_batch_train : int
-        Number of batches of state-action pair data to generate for agent training.
+        Number of batches of state-action pair data to generate for model training.
     n_batch_val : int
-        Number of batches of state-action pair data to generate for agent validation.
+        Number of batches of state-action pair data to generate for model validation.
     batch_size : int
         Number of scheduling problems to make data from per yielded batch.
     weight_func : callable, optional
         Function mapping environment object to a training weight.
-    env_cls : BaseTaskingEnv, optional
+    env_cls : class, optional
         Gym environment class.
     env_params : dict, optional
         Parameters for environment initialization.
@@ -81,26 +81,7 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weig
     if isinstance(env, SeqTaskingEnv) and env.action_type == 'seq':
         raise NotImplementedError       # TODO: make loss func for full seq targets?
 
-    # Generate state-action data pairs
-    gen_callable = partial(env.data_gen, weight_func=weight_func)       # function type not supported for from_generator
-
-    output_types = (tf.float32, tf.int32)
-    output_shapes = ((None,) + env.observation_space.shape, (None,) + env.action_space.shape)
-    if callable(weight_func):
-        output_types += (tf.float32,)
-        output_shapes += ((None,),)
-
-    # output_shapes = (tf.TensorShape(env.observation_space.shape), tf.TensorShape(None))
-    # output_shapes = ((batch_size * env.n_tasks,) + env.observation_space.shape, (batch_size * env.n_tasks,))
-
-    d_train = tf.data.Dataset.from_generator(gen_callable, output_types,
-                                             output_shapes, args=(n_batch_train, batch_size))
-    d_val = tf.data.Dataset.from_generator(gen_callable, output_types,
-                                           output_shapes, args=(n_batch_val, batch_size))
-
-    # TODO: save dataset?
-
-    # Train policy model
+    # Instantiate and compile policy model
     if model is None:
         try:        # TODO: move outside
             n_out = len(env.action_space)
@@ -121,15 +102,38 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weig
                           'metrics': ['accuracy']
                           }
 
+    model.compile(**compile_params)
+
+    # Generate state-action data, train model
+    d_val = env.data_gen_numpy(n_batch_val * batch_size, weight_func=None, verbose=False)
+    d_train = env.data_gen_numpy(n_batch_train * batch_size, weight_func=None, verbose=False)
+
+    # gen_callable = partial(env.data_gen, weight_func=weight_func)       # function type not supported for from_generator
+    #
+    # output_types = (tf.float32, tf.int32)
+    # output_shapes = ((None,) + env.observation_space.shape, (None,) + env.action_space.shape)
+    # if callable(weight_func):
+    #     output_types += (tf.float32,)
+    #     output_shapes += ((None,),)
+    #
+    # # output_shapes = (tf.TensorShape(env.observation_space.shape), tf.TensorShape(None))
+    # # output_shapes = ((batch_size * env.n_tasks,) + env.observation_space.shape, (batch_size * env.n_tasks,))
+    #
+    # d_train = tf.data.Dataset.from_generator(gen_callable, output_types,
+    #                                          output_shapes, args=(n_batch_train, batch_size))
+    # d_val = tf.data.Dataset.from_generator(gen_callable, output_types,
+    #                                        output_shapes, args=(n_batch_val, batch_size))
+
+    # TODO: save dataset?
+
     if fit_params is None:
         fit_params = {'epochs': 10,
                       'validation_data': d_val,
-                      'batch_size': None,   # generator Dataset
+                      # 'batch_size': None,   # generator Dataset
+                      'batch_size': batch_size * env.steps_per_episode,
                       'sample_weight': None,
                       'callbacks': [keras.callbacks.EarlyStopping(patience=60, monitor='val_loss', min_delta=0.)]
                       }
-
-    model.compile(**compile_params)
 
     if do_tensorboard:
         log_dir = '../logs/TF_train'
@@ -146,7 +150,7 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weig
         url = tb.launch()
         webbrowser.open(url)
 
-    history = model.fit(d_train, **fit_params)
+    history = model.fit(*d_train, **fit_params)
 
     if plot_history:
         plt.figure(num='training history', clear=True, figsize=(10, 4.8))
@@ -208,7 +212,7 @@ def wrap_policy(env, model):
 
 def main():
     # problem_gen = RandomProblem.relu_drop_default(n_tasks=8, n_ch=2)
-    problem_gen = ProblemDataset.load('relu_c2t8_1000', iter_mode='once', shuffle_mode=True, rng=None)  # FIXME
+    problem_gen = ProblemDataset.load('relu_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
 
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
                          ('release time', lambda task: task.t_release,
@@ -227,22 +231,22 @@ def main():
         else:
             return self.node.tasks[n].t_release
 
-    env_cls = SeqTaskingEnv
-    # env_cls = StepTaskingEnv
+    # env_cls = SeqTaskingEnv
+    env_cls = StepTaskingEnv
 
     env_params = {'node_cls': TreeNodeShift,
                   'features': features,
                   'sort_func': sort_func,
                   'masking': True,
-                  'action_type': 'int',
-                  # 'seq_encoding': 'one-hot',
+                  # 'action_type': 'int',
+                  'seq_encoding': 'binary',
                   }
 
     weight_func_ = None
     # def weight_func_(env):
     #     return (env.n_tasks - len(env.node.seq)) / env.n_tasks
 
-    scheduler = train_policy(problem_gen, n_batch_train=5, n_batch_val=1, batch_size=2, weight_func=weight_func_,
+    scheduler = train_policy(problem_gen, n_batch_train=990, n_batch_val=10, batch_size=1, weight_func=weight_func_,
                              env_cls=env_cls, env_params=env_params,
                              model=None, compile_params=None, fit_params=None,
                              do_tensorboard=False, plot_history=True, save=True, save_dir=None)

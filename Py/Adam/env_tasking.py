@@ -204,7 +204,7 @@ def main():
             out[self.node.seq.index(n)] = 1
         return out
 
-    # seq_encoding = 'indicator'
+    # seq_encoding = 'binary'
     # seq_encoding = None
 
     def sort_func(self, n):
