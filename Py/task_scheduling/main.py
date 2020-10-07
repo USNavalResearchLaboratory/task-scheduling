@@ -17,8 +17,9 @@ from generators.scheduling_problems import Random as RandomProblem
 from generators.scheduling_problems import Dataset as ProblemDataset
 
 from tree_search import TreeNodeShift, branch_bound, mcts, earliest_release
-from environments import SeqTaskingEnv, StepTaskingEnv, train_agent
+from environments import SeqTaskingEnv, StepTaskingEnv
 from SL_policy import train_policy, load_policy
+from RL_policy import LearningScheduler
 
 # TODO: structure imports properly w/o relying on PyCharm's path append of the content root
 
@@ -218,10 +219,13 @@ def main():
                   # 'seq_encoding': 'one-hot',
                   }
 
-    random_agent = train_agent(problem_gen, env_cls=env_cls, env_params=env_params, agent='random')
+    random_agent = LearningScheduler.train_agent('random', problem_gen, env_cls, env_params)
+    dqn_agent = LearningScheduler.train_agent('DQN', problem_gen, env_cls, env_params, n_episodes=1000, save=False)
 
-    dqn_agent = train_agent(problem_gen, n_episodes=10000, env_cls=env_cls, env_params=env_params, agent='DQN',
-                            save=False, save_dir=None)
+    # random_agent = train_agent(problem_gen, env_cls=env_cls, env_params=env_params, agent='random')
+    #
+    # dqn_agent = train_agent(problem_gen, n_episodes=1000, env_cls=env_cls, env_params=env_params, agent='DQN',
+    #                         save=True, save_dir=None)
     # random_agent = load_agent(agent_file)
 
 

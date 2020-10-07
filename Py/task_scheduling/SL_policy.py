@@ -9,6 +9,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorboard import program
 import webbrowser
+import gym
 
 from generators.scheduling_problems import Random as RandomProblem
 from generators.scheduling_problems import Dataset as ProblemDataset
@@ -17,14 +18,6 @@ from environments import BaseTaskingEnv, SeqTaskingEnv, StepTaskingEnv
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
-
-
-# class FullSeq(keras.losses.Loss):
-#     def __init__(self, name="full_seq"):
-#         super().__init__(name=name)
-#
-#     def call(self, y_true, y_pred):
-#         return None
 
 
 def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weight_func=None,
@@ -79,14 +72,20 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weig
     env = env_cls(problem_gen, **env_params)
 
     if isinstance(env, SeqTaskingEnv) and env.action_type == 'seq':
+        # class FullSeq(keras.losses.Loss):
+        #     def __init__(self, name="full_seq"):
+        #         super().__init__(name=name)
+        #
+        #     def call(self, y_true, y_pred):
+        #         return None
         raise NotImplementedError       # TODO: make loss func for full seq targets?
 
     # Instantiate and compile policy model
     if model is None:
-        try:        # TODO: move outside
-            n_out = len(env.action_space)
-        except TypeError:
-            n_out = env.action_space.n      # gym.spaces.Discrete
+        if isinstance(env.action_space, gym.spaces.Discrete):
+            n_actions = env.action_space.n
+        else:
+            n_actions = len(env.action_space)
 
         model = keras.Sequential([keras.layers.Flatten(input_shape=env.observation_space.shape),
                                   keras.layers.Dense(60, activation='relu'),
@@ -94,7 +93,7 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weig
                                   # keras.layers.Dense(30, activation='relu'),
                                   # keras.layers.Dropout(0.2),
                                   # keras.layers.Dense(100, activation='relu'),
-                                  keras.layers.Dense(n_out, activation='softmax')])
+                                  keras.layers.Dense(n_actions, activation='softmax')])
 
     if compile_params is None:
         compile_params = {'optimizer': 'rmsprop',
@@ -105,10 +104,11 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weig
     model.compile(**compile_params)
 
     # Generate state-action data, train model
-    d_val = env.data_gen_numpy(n_batch_val * batch_size, weight_func=None, verbose=False)
-    d_train = env.data_gen_numpy(n_batch_train * batch_size, weight_func=None, verbose=False)
 
-    # gen_callable = partial(env.data_gen, weight_func=weight_func)       # function type not supported for from_generator
+    d_val = env.data_gen_numpy(n_batch_val * batch_size, weight_func=None, verbose=True)
+    d_train = env.data_gen_numpy(n_batch_train * batch_size, weight_func=None, verbose=True)
+
+    # gen_callable = partial(env.data_gen, weight_func=weight_func)   # function type not supported for from_generator
     #
     # output_types = (tf.float32, tf.int32)
     # output_shapes = ((None,) + env.observation_space.shape, (None,) + env.action_space.shape)
@@ -116,15 +116,12 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weig
     #     output_types += (tf.float32,)
     #     output_shapes += ((None,),)
     #
-    # # output_shapes = (tf.TensorShape(env.observation_space.shape), tf.TensorShape(None))
-    # # output_shapes = ((batch_size * env.n_tasks,) + env.observation_space.shape, (batch_size * env.n_tasks,))
-    #
     # d_train = tf.data.Dataset.from_generator(gen_callable, output_types,
     #                                          output_shapes, args=(n_batch_train, batch_size))
     # d_val = tf.data.Dataset.from_generator(gen_callable, output_types,
     #                                        output_shapes, args=(n_batch_val, batch_size))
 
-    # TODO: save dataset?
+    # TODO: save dataset to save on Env computation time?
 
     if fit_params is None:
         fit_params = {'epochs': 10,
@@ -150,7 +147,8 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weig
         url = tb.launch()
         webbrowser.open(url)
 
-    history = model.fit(*d_train, **fit_params)
+    # history = model.fit(d_train, **fit_params)      # generator Dataset
+    history = model.fit(*d_train, **fit_params)   # NumPy data
 
     if plot_history:
         plt.figure(num='training history', clear=True, figsize=(10, 4.8))
@@ -167,7 +165,7 @@ def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weig
 
     if save:
         if save_dir is None:
-            save_dir = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
+            save_dir = f"temp/{time.strftime('%Y-%m-%d_%H-%M-%S')}"
 
         model.save('../models/' + save_dir)      # save TF model
         with open('../models/' + save_dir + '/env', 'wb') as file:
@@ -188,7 +186,7 @@ def load_policy(load_dir):
 def wrap_policy(env, model):
     """Generate scheduling function by running a policy on a single environment episode."""
 
-    if type(model) == str:
+    if isinstance(model, str):
         model = keras.models.load_model(model)
 
     def scheduling_model(tasks, ch_avail):

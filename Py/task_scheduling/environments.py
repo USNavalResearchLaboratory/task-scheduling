@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import gym
 from gym.spaces import Box, Space, Discrete
-from stable_baselines.common.vec_env import DummyVecEnv
+# from stable_baselines.common.vec_env import DummyVecEnv
 
 from util.plot import plot_task_losses
 from util.generic import seq2num, num2seq
@@ -84,6 +84,8 @@ class BaseTaskingEnv(ABC, gym.Env):
         If True, features are zeroed out for scheduled tasks.
 
     """
+
+    # FIXME: add normalization option for RL learners!
 
     def __init__(self, problem_gen, node_cls=TreeNode, features=None, sort_func=None, masking=False):
         self.problem_gen = problem_gen
@@ -323,6 +325,20 @@ class BaseTaskingEnv(ABC, gym.Env):
         data, = self.data_gen(1, n_gen, weight_func, verbose)
         return data
 
+    # def wrap_model(self, model):      # TODO: delete?
+    #     """Generate scheduling function by running an agent on a single environment episode."""
+    #
+    #     def scheduling_agent(tasks, ch_avail):
+    #         obs = self.reset(tasks, ch_avail)
+    #         done = False
+    #         while not done:
+    #             action, _states = model.predict(obs)
+    #             obs, reward, done, info = self.step(action)
+    #
+    #         return self.node.t_ex, self.node.ch_ex
+    #
+    #     return scheduling_agent
+
 
 class SeqTaskingEnv(BaseTaskingEnv):
     """Tasking environment with single action of a complete task index sequence."""
@@ -495,12 +511,12 @@ class StepTaskingEnv(BaseTaskingEnv):
         return x_set, y_set, w_set
 
 
-class DummyVecTaskingEnv(DummyVecEnv):
-    def reset(self, *args, **kwargs):
-        for env_idx in range(self.num_envs):
-            obs = self.envs[env_idx].reset(*args, **kwargs)
-            self._save_obs(env_idx, obs)
-        return self._obs_from_buf()
+# class DummyVecTaskingEnv(DummyVecEnv):
+#     def reset(self, *args, **kwargs):
+#         for env_idx in range(self.num_envs):
+#             obs = self.envs[env_idx].reset(*args, **kwargs)
+#             self._save_obs(env_idx, obs)
+#         return self._obs_from_buf()
 
 
 def main():

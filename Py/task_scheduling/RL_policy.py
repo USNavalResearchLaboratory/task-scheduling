@@ -1,11 +1,12 @@
+import os
 import time
+import dill
 
 import numpy as np
 
 from stable_baselines.common.base_class import BaseRLModel
 from stable_baselines.common.vec_env import DummyVecEnv
-from stable_baselines.deepq.policies import MlpPolicy
-from stable_baselines import DQN
+from stable_baselines import DQN, PPO2, A2C
 
 from generators.scheduling_problems import Random as RandomProblem
 from tree_search import TreeNode, TreeNodeShift
@@ -15,118 +16,216 @@ np.set_printoptions(precision=2)
 
 
 # Agents
-class RandomAgent:      # TODO: implement as BaseRLModel subclass for common API?
+class RandomAgent:      # TODO: subclass or keep duck-typing?
     """Uniformly random action selector."""
     def __init__(self, env):
         self.env = env
 
+    def predict(self, obs):
+        action_space = self.env.action_space
+        # action_space = self.env.infer_action_space(obs)
+        return action_space.sample(), None       # randomly selected action
+
     def learn(self, *args, **kwargs):
         pass
 
-    def predict(self, obs):
-        # action_space = self.env.action_space
-        action_space = self.env.infer_action_space(obs)
-        return action_space.sample(), None       # randomly selected action
+    def set_env(self, env):
+        self.env = env
+
+    def get_env(self):
+        return self.env
 
 
-# Learning
-def train_agent(problem_gen, n_episodes=0, env_cls=SeqTaskingEnv, env_params=None,
-                agent=None, save=False, save_dir=None):     # FIXME
-    """
-    Train a reinforcement learning agent.
+class LearningScheduler:
+    model_cls_dict = {'DQN': DQN, 'PPO2': PPO2, 'A2C': A2C}
 
-    Parameters
-    ----------
-    problem_gen : generators.scheduling_problems.Base
-        Scheduling problem generation object.
-    n_episodes : int
-        Number of complete environment episodes used for training.
-    env_cls : class, optional
-        Gym environment class.
-    env_params : dict, optional
-        Parameters for environment initialization.
-    agent : BaseRLModel or str, optional
-        Reinforcement learning agent.
-    save : bool
-        If True, the agent and environment are serialized.
-    save_dir : str, optional
-        String representation of sub-directory to save to.
+    def __init__(self, model, env=None):
+        self.model = model
+        if env is not None:
+            self.env = env
 
-    Returns
-    -------
-    function
-        Wrapped agent. Takes tasks and channel availabilities and produces task execution times/channels.
+    @property
+    def env(self):
+        return self.model.get_env()
 
-    """
+    @env.setter
+    def env(self, env):
+        self.model.set_env(env)
 
-    # Create environment
-    if env_params is None:
-        env_params = {}
+    def __call__(self, tasks, ch_avail):
+        obs = self.env.reset(tasks, ch_avail)
+        done = False
+        while not done:
+            action, _states = self.model.predict(obs)
+            obs, reward, done, info = self.env.step(action)
 
-    env = env_cls(problem_gen, **env_params)
+        return self.env.node.t_ex, self.env.node.ch_ex
 
-    # Train agent
-    if agent is None or agent == 'random':
-        agent = RandomAgent(env)
-        # agent = RandomAgent(env.infer_action_space)
-    elif agent == 'DQN':
-        agent = DQN(MlpPolicy, env, verbose=1)
+    def learn(self, n_episodes=0):
+        self.model.learn(total_timesteps=n_episodes * self.env.steps_per_episode)
 
-    agent.learn(total_timesteps=n_episodes*env.steps_per_episode)
+    def save(self, save_path=None):
+        if save_path is None:
+            cls_str = self.model.__class__.__name__
+            save_path = f"temp/{cls_str}_{time.strftime('%Y-%m-%d_%H-%M-%S')}"
 
-    # # Save agent and environment  # FIXME
-    # if save:
-    #     if save_dir is None:
-    #         save_dir = 'temp/{}'.format(time.strftime('%Y-%m-%d_%H-%M-%S'))
-    #
-    #     with open('../agents/' + save_dir, 'wb') as file:
-    #         dill.dump({'env': env, 'agent': agent}, file)    # save environment
+        save_path = '../agents/' + save_path
+        # os.makedirs(save_path, exist_ok=True)
 
-    return wrap_agent(env, agent)
+        self.model.save(save_path)
+
+        # with open(save_path + '/env', 'wb') as file:    # TODO: save Env?
+        #     dill.dump(self.env, file)    # save environment
+
+    @classmethod
+    def load(cls, load_path, env=None, model_cls=None):
+        if model_cls is None:
+            cls_str = load_path.split('/')[-1].split('_')[0]
+            model_cls = cls.model_cls_dict[cls_str]
+
+        model = model_cls.load('../agents/' + load_path)
+        return cls(model, env)
+
+    @classmethod
+    def load_from_gen(cls, load_path, problem_gen, env_cls=StepTaskingEnv, env_params=None, model_cls=None):
+        env = cls.gen_to_env(problem_gen, env_cls, env_params)
+        return cls.load(load_path, env, model_cls)
+
+    @classmethod
+    def from_gen(cls, model, problem_gen, env_cls=StepTaskingEnv, env_params=None):
+        env = cls.gen_to_env(problem_gen, env_cls, env_params)
+        return cls(model, env)
+
+    @classmethod
+    def train_agent(cls, model, problem_gen, env_cls=SeqTaskingEnv, env_params=None, n_episodes=0,
+                    save=False, save_path=None):
+
+        env = cls.gen_to_env(problem_gen, env_cls, env_params)
+
+        if model is None or model == 'random':      # TODO: improve
+            model = RandomAgent(env)
+        elif model == 'DQN':
+            model = DQN('MlpPolicy', env, verbose=1)
+
+        scheduler = cls(model, env)
+        scheduler.learn(n_episodes)
+        if save:
+            scheduler.save(save_path)
+
+        return scheduler
+
+    @staticmethod
+    def gen_to_env(problem_gen, env_cls, env_params):
+        if env_params is None:
+            env_params = {}
+        return env_cls(problem_gen, **env_params)
 
 
-# def load_agent(load_dir):     # FIXME
+# def train_agent(problem_gen, n_episodes=0, env_cls=SeqTaskingEnv, env_params=None,
+#                 model=None, save=False, save_path=None):
+#     """
+#     Train a reinforcement learning agent.
+#
+#     Parameters
+#     ----------
+#     problem_gen : generators.scheduling_problems.Base
+#         Scheduling problem generation object.
+#     n_episodes : int
+#         Number of complete environment episodes used for training.
+#     env_cls : class, optional
+#         Gym environment class.
+#     env_params : dict, optional
+#         Parameters for environment initialization.
+#     model : BaseRLModel or str, optional
+#         Reinforcement learning agent.
+#     save : bool
+#         If True, the agent and environment are serialized.
+#     save_path : str, optional
+#         String representation of sub-directory to save to.
+#
+#     Returns
+#     -------
+#     function
+#         Wrapped agent. Takes tasks and channel availabilities and produces task execution times/channels.
+#
+#     """
+#
+#     # Create environment
+#     if env_params is None:
+#         env_params = {}
+#
+#     env = env_cls(problem_gen, **env_params)
+#
+#     # Train agent
+#     if model is None or model == 'random':
+#         model = RandomAgent(env)
+#     elif model == 'DQN':
+#         model = DQN('MlpPolicy', env, verbose=1)
+#
+#     model.learn(total_timesteps=n_episodes * env.steps_per_episode)
+#
+#     # Save agent and environment
+#     if save:
+#         if save_path is None:
+#             cls_str = model.__class__.__name__
+#             save_path = f"../agents/temp/{cls_str}_{time.strftime('%Y-%m-%d_%H-%M-%S')}"
+#         else:
+#             save_path = '../agents/' + save_path
+#
+#         model.save(save_path)
+#
+#     return model
+#     # return env.wrap_model(model)
+
+
+# def load_agent(load_path, model_cls=None):
 #     """Loads agent and environment, returns wrapped scheduling function."""
-#     with open('../agents/' + load_dir, 'rb') as file:
-#         pkl_dict = dill.load(file)
-#     return wrap_agent(**pkl_dict)
+#
+#     if model_cls is None:
+#         cls_str = load_path.split('/')[-1].split('_')[0]
+#         cls_dict = {'DQN': DQN, 'PPO2': PPO2, 'A2C': A2C}
+#         model_cls = cls_dict[cls_str]
+#
+#     model = model_cls.load('../agents/' + load_path)
+#     return model
+#     # return env.wrap_model(model)
 
 
-def wrap_agent(env, agent):     # TODO: refactor as Env methods? Consider stable_baselines save/load...
-    """Generate scheduling function by running an agent on a single environment episode."""
+# def wrap_agent(env, model):
+#     """Generate scheduling function by running an agent on a single environment episode."""
+#
+#     def scheduling_agent(tasks, ch_avail):
+#         obs = env.reset(tasks, ch_avail)
+#         done = False
+#         while not done:
+#             action, _states = model.predict(obs)
+#             obs, reward, done, info = env.step(action)
+#
+#         return env.node.t_ex, env.node.ch_ex
+#
+#     return scheduling_agent
 
-    def scheduling_agent(tasks, ch_avail):
-        obs = env.reset(tasks, ch_avail)
-        done = False
-        while not done:
-            action, _states = agent.predict(obs)        # TODO: use SB action probs?
-            obs, reward, done, info = env.step(action)
 
-        return env.node.t_ex, env.node.ch_ex
-
-    return scheduling_agent
-
-
-def wrap_agent_run_lim(env, agent):
-    """Generate scheduling function by running an agent on a single environment episode, enforcing max runtime."""
-
-    def scheduling_agent(tasks, ch_avail, max_runtime):
-
-        t_run = time.perf_counter()
-
-        obs = env.reset(tasks, ch_avail)
-        done = False
-        while not done:
-            action, _states = agent.predict(obs)
-            obs, reward, done, info = env.step(action)
-
-        runtime = time.perf_counter() - t_run
-        if runtime >= max_runtime:
-            raise RuntimeError(f"Algorithm timeout: {runtime} > {max_runtime}.")
-
-        return env.node.t_ex, env.node.ch_ex
-
-    return scheduling_agent
+# def wrap_agent_run_lim(env, agent):     # FIXME
+#     """Generate scheduling function by running an agent on a single environment episode, enforcing max runtime."""
+#
+#     def scheduling_agent(tasks, ch_avail, max_runtime):
+#
+#         t_run = time.perf_counter()
+#
+#         obs = env.reset(tasks, ch_avail)
+#         done = False
+#         while not done:
+#             action, _states = agent.predict(obs)
+#             obs, reward, done, info = env.step(action)
+#
+#         runtime = time.perf_counter() - t_run
+#         if runtime >= max_runtime:
+#             raise RuntimeError(f"Algorithm timeout: {runtime} > {max_runtime}.")
+#
+#         return env.node.t_ex, env.node.ch_ex
+#
+#     return scheduling_agent
 
 
 def main():
@@ -166,25 +265,25 @@ def main():
 
     # sort_func = 't_release'
 
-    # env_cls = SeqTaskingEnv
-    env_cls = StepTaskingEnv
+    env_cls = SeqTaskingEnv
+    # env_cls = StepTaskingEnv
 
     env_params = {'node_cls': TreeNodeShift,
                   'features': features,
                   'sort_func': sort_func,
                   'masking': False,
-                  # 'action_type': 'int',
-                  'seq_encoding': seq_encoding,
+                  'action_type': 'int',
+                  # 'seq_encoding': seq_encoding,
                   }
 
     env = env_cls(problem_gen, **env_params)
 
     # out = list(env.data_gen(5, batch_size=2, verbose=True))
 
-    agent = RandomAgent(env)
-    # agent = DQN(MlpPolicy, env, verbose=1)
+    # model = RandomAgent(env)
+    model = DQN('MlpPolicy', env, verbose=1)
 
-    agent.learn(10)
+    model.learn(10)
 
     # scheduler = train_agent(problem_gen, n_episodes=10, env_cls=env_cls, env_params=env_params, agent=agent)
 
@@ -195,7 +294,7 @@ def main():
         # print(env.sorted_index)
         # print(env.node.seq)
         # print(env.tasks)
-        action, _states = agent.predict(obs)
+        action, _states = model.predict(obs)
         print(action)
         obs, reward, done, info = env.step(action)
         print(reward)

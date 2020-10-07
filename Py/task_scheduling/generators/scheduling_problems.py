@@ -86,8 +86,8 @@ class Base:
 
             problem, solution = self.gen_single()
 
-            if problem is None:
-                return      # Stops iterator when Dataset generators run out of data
+            # if problem is None:
+            #     return      # Stops iterator when Dataset generators run out of data
 
             if save:
                 save_dict['problems'].append(problem)
@@ -127,7 +127,7 @@ class Base:
         """
 
         if file is None:
-            file = 'temp/{}'.format(strftime('%Y-%m-%d_%H-%M-%S'))
+            file = f"temp/{strftime('%Y-%m-%d_%H-%M-%S')}"
         else:
             try:    # search for existing file
                 with open('../data/schedules/' + file, 'rb') as file:
@@ -257,8 +257,9 @@ class Dataset(Base):
         """Return a single scheduling problem (and optional solution)."""
         if self.i == self.n_problems:
             if self.iter_mode == 'once':
-                warnings.warn("Problem generator data has been exhausted.")
-                return None, None
+                raise ValueError("Problem generator data has been exhausted.")
+                # warnings.warn("Problem generator data has been exhausted.")
+                # return None, None
             elif self.iter_mode == 'repeat':
                 self.restart(self.shuffle_mode == 'repeat')
 

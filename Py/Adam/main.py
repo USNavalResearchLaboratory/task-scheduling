@@ -267,7 +267,7 @@ def main():
 #        network_policy = train_policy(problem_gen, n_batch_train=10, n_batch_val=10, batch_size=2,
 #                                      env_cls=env_cls, env_params=env_params,
 #                                      model=None, compile_params=None, fit_params=None,
-#                                      do_tensorboard=False, plot_history=True, save=True, save_dir=None)
+#                                      do_tensorboard=False, plot_history=True, save=True, save_path=None)
 #    elif type(model_file) == str:
 #        network_policy = load_policy(model_file)
 #    else:
