@@ -189,7 +189,7 @@ def compare_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0,
 
 
 def main():
-    problem_gen = RandomProblem.relu_drop_default(n_tasks=6, n_ch=1)
+    problem_gen = RandomProblem.relu_drop(n_tasks=6, n_ch=1)
     # problem_gen = ProblemDataset.load('temp/2020-08-26_14-36-22', iter_mode='once', shuffle=True, rng=None)
 
     # TODO: ensure train/test separation for loaded data, use iter_mode='once'

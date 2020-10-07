@@ -1,12 +1,15 @@
 """Generator objects for channel availabilities."""
 
+from abc import ABC, abstractmethod
+
 from util.generic import check_rng
 
 
-class BaseIID:
+class BaseIID(ABC):
     def __init__(self, rng=None):
         self.rng = check_rng(rng)
 
+    @abstractmethod
     def __call__(self, n_ch):
         raise NotImplementedError
 
@@ -22,7 +25,7 @@ class UniformIID(BaseIID):
 
     """
 
-    def __init__(self, lim, rng=None):
+    def __init__(self, lim=(0, 0), rng=None):
         super().__init__(rng)
         self.lim = lim
 
@@ -32,8 +35,7 @@ class UniformIID(BaseIID):
             yield self.rng.uniform(*self.lim)
 
     def __eq__(self, other):
-        if not isinstance(other, UniformIID):
-            return False
-
-        return True if self.lim == other.lim else False
-
+        if isinstance(other, UniformIID):
+            return self.lim == other.lim
+        else:
+            return NotImplemented

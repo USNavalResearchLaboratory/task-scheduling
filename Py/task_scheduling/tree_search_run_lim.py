@@ -330,7 +330,7 @@ def main():
     # def ch_avail_gen(n_ch, rng=check_rng(300)):  # channel availability time generator
     #     return rng.uniform(0, 2, n_ch)
 
-    problem_gen = RandomProblem.relu_drop_default(n_tasks, n_channels)
+    problem_gen = RandomProblem.relu_drop(n_tasks, n_channels)
     (tasks, ch_avail), = problem_gen()
 
     # tasks = task_gen(n_tasks)

@@ -850,7 +850,7 @@ def main():
 
     tasks = list(task_gen(n_tasks))
     ch_avail = list(ch_avail_gen(n_channels))
-    # problem_gen = RandomProblem.relu_drop_default(n_tasks, n_channels)
+    # problem_gen = RandomProblem.relu_drop(n_tasks, n_channels)
     # (tasks, ch_avail), = problem_gen()
 
     TreeNode._tasks_init = tasks

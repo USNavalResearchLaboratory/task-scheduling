@@ -36,7 +36,10 @@ class Permutation(Space):
         return f"Permutation({self.n})"
 
     def __eq__(self, other):
-        return isinstance(other, Permutation) and self.n == other.n
+        if isinstance(other, Permutation):
+            return self.n == other.n
+        else:
+            return NotImplemented
 
     def __len__(self):
         return factorial(self.n)
@@ -59,7 +62,10 @@ class DiscreteSet(Space):
         return f"DiscreteSet({self.elements})"
 
     def __eq__(self, other):
-        return isinstance(other, DiscreteSet) and self.elements == other.elements
+        if isinstance(other, DiscreteSet):
+            return self.elements == other.elements
+        else:
+            return NotImplemented
 
     def __len__(self):
         return self.elements.size
@@ -520,7 +526,7 @@ class StepTaskingEnv(BaseTaskingEnv):
 
 
 def main():
-    problem_gen = RandomProblem.relu_drop_default(n_tasks=8, n_ch=2)
+    problem_gen = RandomProblem.relu_drop(n_tasks=8, n_ch=2)
 
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
                          ('release time', lambda task: task.t_release,

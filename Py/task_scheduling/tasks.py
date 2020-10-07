@@ -39,12 +39,10 @@ class Generic:
         return self._loss_func(t)
 
     def __eq__(self, other):
-        if not isinstance(other, Generic):
-            return False
+        if isinstance(other, Generic):
+            return self.params == other.params and self._loss_func == other._loss_func
         else:
-            conditions = [self.params == other.params,
-                          self._loss_func == other._loss_func]
-            return True if all(conditions) else False
+            return NotImplemented
 
     @property
     def params(self):
@@ -143,10 +141,10 @@ class ReluDrop(Generic):
             return loss.squeeze(axis=0)
 
     def __eq__(self, other):
-        if not isinstance(other, ReluDrop):
-            return False
+        if isinstance(other, ReluDrop):
+            return self.params == other.params
         else:
-            return True if self.params == other.params else False
+            return NotImplemented
 
     @property
     def slope(self):

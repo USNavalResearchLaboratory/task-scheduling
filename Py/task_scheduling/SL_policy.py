@@ -209,7 +209,7 @@ def wrap_policy(env, model):
 
 
 def main():
-    # problem_gen = RandomProblem.relu_drop_default(n_tasks=8, n_ch=2)
+    # problem_gen = RandomProblem.relu_drop(n_tasks=8, n_ch=2)
     problem_gen = ProblemDataset.load('relu_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
 
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),

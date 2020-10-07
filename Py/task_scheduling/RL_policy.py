@@ -6,11 +6,13 @@ import numpy as np
 
 from stable_baselines.common.base_class import BaseRLModel
 from stable_baselines.common.vec_env import DummyVecEnv
+from stable_baselines.bench import Monitor
+from stable_baselines.results_plotter import plot_results
 from stable_baselines import DQN, PPO2, A2C
 
 from generators.scheduling_problems import Random as RandomProblem
 from tree_search import TreeNode, TreeNodeShift
-from environments import SeqTaskingEnv, StepTaskingEnv
+from environments import BaseTaskingEnv, SeqTaskingEnv, StepTaskingEnv
 
 np.set_printoptions(precision=2)
 
@@ -38,9 +40,12 @@ class RandomAgent:      # TODO: subclass or keep duck-typing?
 
 class LearningScheduler:
     model_cls_dict = {'DQN': DQN, 'PPO2': PPO2, 'A2C': A2C}
+    log_dir = '../logs/SB_train'
 
     def __init__(self, model, env=None):
         self.model = model
+
+        self.do_monitor = True  # TODO: make init parameter?
         if env is not None:
             self.env = env
 
@@ -50,10 +55,15 @@ class LearningScheduler:
 
     @env.setter
     def env(self, env):
-        self.model.set_env(env)
+        if isinstance(env, BaseTaskingEnv):
+            if self.do_monitor:
+                env = Monitor(env, self.log_dir)
+            self.model.set_env(env)
+        else:
+            raise TypeError("Environment must be an instance of BaseTaskingEnv.")
 
     def __call__(self, tasks, ch_avail):
-        obs = self.env.reset(tasks, ch_avail)
+        obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)
         done = False
         while not done:
             action, _states = self.model.predict(obs)
@@ -63,6 +73,8 @@ class LearningScheduler:
 
     def learn(self, n_episodes=0):
         self.model.learn(total_timesteps=n_episodes * self.env.steps_per_episode)
+        if self.do_monitor:
+            plot_results([self.log_dir], num_timesteps=None, xaxis='timesteps', task_name='Training history')
 
     def save(self, save_path=None):
         if save_path is None:
@@ -229,7 +241,7 @@ class LearningScheduler:
 
 
 def main():
-    problem_gen = RandomProblem.relu_drop_default(n_tasks=8, n_ch=2)
+    problem_gen = RandomProblem.relu_drop(n_tasks=4, n_ch=2)
 
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
                          ('release time', lambda task: task.t_release,
@@ -278,26 +290,27 @@ def main():
 
     env = env_cls(problem_gen, **env_params)
 
-    # out = list(env.data_gen(5, batch_size=2, verbose=True))
+    s = LearningScheduler.train_agent('DQN', problem_gen, env_cls, env_params, n_episodes=10000,
+                                      save=False, save_path=None)
+
 
     # model = RandomAgent(env)
-    model = DQN('MlpPolicy', env, verbose=1)
-
-    model.learn(10)
+    # model = DQN('MlpPolicy', env, verbose=1)
+    # model.learn(10)
 
     # scheduler = train_agent(problem_gen, n_episodes=10, env_cls=env_cls, env_params=env_params, agent=agent)
 
-    obs = env.reset()
-    done = False
-    while not done:
-        print(obs)
-        # print(env.sorted_index)
-        # print(env.node.seq)
-        # print(env.tasks)
-        action, _states = model.predict(obs)
-        print(action)
-        obs, reward, done, info = env.step(action)
-        print(reward)
+    # obs = env.reset()
+    # done = False
+    # while not done:
+    #     print(obs)
+    #     # print(env.sorted_index)
+    #     # print(env.node.seq)
+    #     # print(env.tasks)
+    #     action, _states = model.predict(obs)
+    #     print(action)
+    #     obs, reward, done, info = env.step(action)
+    #     print(reward)
 
 
 if __name__ == '__main__':

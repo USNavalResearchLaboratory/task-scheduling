@@ -181,7 +181,7 @@ def load_agent_sb(load_dir, env):
 
 def main():
 
-    problem_gen = RandomProblem.relu_drop_default(n_tasks=6, n_ch=2)
+    problem_gen = RandomProblem.relu_drop(n_tasks=6, n_ch=2)
 
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
                          ('release time', lambda task: task.t_release,

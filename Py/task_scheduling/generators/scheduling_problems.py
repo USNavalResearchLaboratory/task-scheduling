@@ -1,14 +1,13 @@
 """Generator objects for complete tasking problems with optimal solutions."""
 
+from abc import ABC, abstractmethod
 from time import strftime
 
 import dill
-import warnings
 from collections import namedtuple
 from functools import partial
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 from util.generic import check_rng
 from util.results import timing_wrapper
@@ -17,10 +16,9 @@ from generators.channel_availabilities import UniformIID as UniformChanGenerator
 from tree_search import branch_bound
 
 np.set_printoptions(precision=2)
-plt.style.use('seaborn')
 
 
-class Base:
+class Base(ABC):
     """
     Base class for scheduling problem generators.
 
@@ -39,6 +37,9 @@ class Base:
 
     """
 
+    _SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
+    _SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
+
     def __init__(self, n_tasks, n_ch, task_gen, ch_avail_gen, rng=None):
         self.n_tasks = n_tasks
         self.n_ch = n_ch
@@ -47,10 +48,7 @@ class Base:
 
         self.rng = check_rng(rng)
 
-        self._SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
-        self._SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
-
-    def __call__(self, n_gen, solve=False, verbose=False, save=False, file=None):
+    def __call__(self, n_gen, solve=False, verbose=False, save=False, file=None):       # FIXME: add RNG reproducibility
         """
         Call problem generator.
 
@@ -108,6 +106,7 @@ class Base:
         if save:
             self.save(save_dict, file)
 
+    @abstractmethod
     def gen_single(self):
         """Return a single scheduling problem (and optional solution)."""
         raise NotImplementedError
@@ -159,28 +158,27 @@ class Base:
             dill.dump(save_dict, file)  # save schedules
 
     def __eq__(self, other):
-        if not isinstance(other, Base):
-            return False
-        else:
+        if isinstance(other, Base):
             conditions = [self.n_tasks == other.n_tasks,
                           self.n_ch == other.n_ch,
                           self.task_gen == other.task_gen,
                           self.ch_avail_gen == other.ch_avail_gen]
-
-            return True if all(conditions) else False
+            return all(conditions)
+        else:
+            return NotImplemented
 
 
 class Random(Base):
     @classmethod
-    def relu_drop_default(cls, n_tasks, n_ch, rng=None):
-        _rng = check_rng(rng)
+    def relu_drop(cls, n_tasks, n_ch, duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+                  t_drop_lim=(6, 12), l_drop_lim=(35, 50), ch_avail_lim=(0, 0), rng=None):
+        rng = check_rng(rng)
 
-        task_gen = ContinuousUniformTaskGenerator.relu_drop(duration_lim=(3, 6), t_release_lim=(0, 4),
-                                                            slope_lim=(0.5, 2), t_drop_lim=(6, 12),
-                                                            l_drop_lim=(35, 50), rng=_rng)
-        ch_avail_gen = UniformChanGenerator(lim=(0, 1), rng=_rng)
+        task_gen = ContinuousUniformTaskGenerator.relu_drop(duration_lim, t_release_lim, slope_lim, t_drop_lim,
+                                                            l_drop_lim, rng=rng)
+        ch_avail_gen = UniformChanGenerator(lim=ch_avail_lim, rng=rng)
 
-        return cls(n_tasks, n_ch, task_gen, ch_avail_gen, _rng)
+        return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
     def gen_single(self):
         """Return a single scheduling problem (and optional solution)."""
@@ -275,7 +273,7 @@ class Dataset(Base):
 
 
 def main():
-    rand_gen = Random.relu_drop_default(n_tasks=3, n_ch=2, rng=None)
+    rand_gen = Random.relu_drop(n_tasks=3, n_ch=2, rng=None)
 
     print(list(rand_gen(2)))
     print(list(rand_gen(3)))

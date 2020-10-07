@@ -16,7 +16,7 @@ from util.plot import plot_task_losses, scatter_loss_runtime, plot_schedule
 from generators.scheduling_problems import Random as RandomProblem
 from generators.scheduling_problems import Dataset as ProblemDataset
 
-from tree_search import TreeNodeShift, branch_bound, mcts, earliest_release
+from tree_search import TreeNodeShift, branch_bound, mcts, earliest_release, random_sequencer
 from environments import SeqTaskingEnv, StepTaskingEnv
 from SL_policy import train_policy, load_policy
 from RL_policy import LearningScheduler
@@ -184,7 +184,7 @@ def compare_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0,
 
 def main():
 
-    problem_gen = RandomProblem.relu_drop_default(n_tasks=8, n_ch=1)
+    problem_gen = RandomProblem.relu_drop(n_tasks=8, n_ch=1)
     # problem_gen = ProblemDataset.load('relu_c2t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
 
     # TODO: ensure train/test separation for loaded data, use iter_mode='once'
@@ -219,8 +219,8 @@ def main():
                   # 'seq_encoding': 'one-hot',
                   }
 
-    random_agent = LearningScheduler.train_agent('random', problem_gen, env_cls, env_params)
-    dqn_agent = LearningScheduler.train_agent('DQN', problem_gen, env_cls, env_params, n_episodes=1000, save=False)
+    # random_agent = LearningScheduler.train_agent('random', problem_gen, env_cls, env_params, n_episodes=1)
+    dqn_agent = LearningScheduler.train_agent('DQN', problem_gen, env_cls, env_params, n_episodes=1000, save=True)
 
     # random_agent = train_agent(problem_gen, env_cls=env_cls, env_params=env_params, agent='random')
     #
@@ -239,7 +239,7 @@ def main():
         # ('B&B', partial(branch_bound, verbose=False), 1),
         # ('MCTS', partial(mcts, n_mc=200, verbose=False), 5),
         ('ERT', partial(earliest_release, do_swap=True), 1),
-        ('Random Agent', random_agent, 20),
+        ('Random', random_sequencer, 20),
         ('DQN Agent', dqn_agent, 20),
         # ('DNN Policy', network_policy, 1),
     ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
@@ -248,7 +248,7 @@ def main():
     compare_algorithms(algorithms, problem_gen, n_gen=10, solve=True, verbose=1, plotting=1, save=False, file=None)
 
     # for n_tasks, n_ch in ((24, 1), (32, 1),):
-    #     problem_gen = RandomProblem.relu_drop_default(n_tasks, n_ch)
+    #     problem_gen = RandomProblem.relu_drop(n_tasks, n_ch)
     #     list(problem_gen(n_gen=1000, solve=True, verbose=True, save=True, file=f'relu_c{n_ch}t{n_tasks}_1000'))
     #
     #     file = f'relu_c{n_ch}t{n_tasks}_1000'
