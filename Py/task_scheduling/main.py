@@ -14,12 +14,11 @@ from util.results import check_valid, eval_loss, timing_wrapper
 from util.plot import plot_task_losses, scatter_loss_runtime, plot_schedule
 
 from generators.scheduling_problems import Random as RandomProblem
-from generators.scheduling_problems import Dataset as ProblemDataset
 
-from tree_search import TreeNodeShift, branch_bound, mcts, earliest_release, random_sequencer
-from environments import SeqTaskingEnv, StepTaskingEnv
-from SL_policy import train_policy, load_policy
-from RL_policy import LearningScheduler
+from tree_search import TreeNodeShift, earliest_release, random_sequencer
+from learning.environments import SeqTaskingEnv, StepTaskingEnv
+from learning.SL_policy import SupervisedLearningScheduler as SL_Scheduler
+# from learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler
 
 # TODO: structure imports properly w/o relying on PyCharm's path append of the content root
 
@@ -184,7 +183,9 @@ def compare_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0,
 
 def main():
 
-    problem_gen = RandomProblem.relu_drop(n_tasks=8, n_ch=1)
+    # problem_gen = RandomProblem.relu_drop(n_tasks=8, n_ch=1)
+    # problem_gen = RandomProblem.deterministic_relu_drop(n_tasks=8, n_ch=1)
+    problem_gen = RandomProblem.permutation_relu_drop(n_tasks=8, n_ch=1)
     # problem_gen = ProblemDataset.load('relu_c2t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
 
     # TODO: ensure train/test separation for loaded data, use iter_mode='once'
@@ -208,19 +209,19 @@ def main():
         else:
             return self.node.tasks[n].t_release
 
-    env_cls = SeqTaskingEnv
-    # env_cls = StepTaskingEnv
+    # env_cls = SeqTaskingEnv
+    env_cls = StepTaskingEnv
 
     env_params = {'node_cls': TreeNodeShift,
                   'features': features,
                   'sort_func': sort_func,
                   'masking': True,
-                  'action_type': 'int',
-                  # 'seq_encoding': 'one-hot',
+                  # 'action_type': 'int',
+                  'seq_encoding': 'one-hot',
                   }
 
-    # random_agent = LearningScheduler.train_agent('random', problem_gen, env_cls, env_params, n_episodes=1)
-    dqn_agent = LearningScheduler.train_agent('DQN', problem_gen, env_cls, env_params, n_episodes=1000, save=True)
+    # random_agent = RL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, model_cls='random', n_episodes=1)
+    # dqn_agent = RL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, model_cls='DQN', n_episodes=1000)
 
     # random_agent = train_agent(problem_gen, env_cls=env_cls, env_params=env_params, agent='random')
     #
@@ -228,6 +229,10 @@ def main():
     #                         save=True, save_dir=None)
     # random_agent = load_agent(agent_file)
 
+    network_policy = SL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, layers=None,
+                                                 n_batch_train=90, n_batch_val=10, batch_size=1, weight_func=None,
+                                                 fit_params={'epochs': 100}, do_tensorboard=False, plot_history=True,
+                                                 save=False, save_path=None)
 
     # network_policy = train_policy(problem_gen, n_batch_train=5, n_batch_val=1, batch_size=2,
     #                               env_cls=env_cls, env_params=env_params,
@@ -240,8 +245,8 @@ def main():
         # ('MCTS', partial(mcts, n_mc=200, verbose=False), 5),
         ('ERT', partial(earliest_release, do_swap=True), 1),
         ('Random', random_sequencer, 20),
-        ('DQN Agent', dqn_agent, 20),
-        # ('DNN Policy', network_policy, 1),
+        # ('DQN Agent', dqn_agent, 5),
+        ('DNN Policy', network_policy, 5),
     ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
 
     # Compare algorithms

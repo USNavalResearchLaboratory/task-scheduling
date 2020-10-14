@@ -65,7 +65,7 @@ def seq2num(seq, check_input=True):
 
     Parameters
     ----------
-    seq : Sequence
+    seq : Iterable
         Elements are unique in range(len(seq)).
     check_input : bool
         Enables value checking of input sequence.
@@ -79,7 +79,7 @@ def seq2num(seq, check_input=True):
     length = len(seq)
     seq_rem = list(range(length))     # remaining elements
     if check_input and set(seq) != set(seq_rem):
-        raise ValueError(f"Input must be a Sequence with unique elements in range({length}).")
+        raise ValueError(f"Input must have unique elements in range({length}).")
 
     num = 0
     for i, n in enumerate(seq):

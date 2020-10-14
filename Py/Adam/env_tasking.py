@@ -1,29 +1,18 @@
-import time
 import os
-from copy import deepcopy
-from types import MethodType
-from math import factorial
-import dill
 
 import numpy as np
 import matplotlib.pyplot as plt
-import gym
-from gym.spaces import Box, Space, Discrete
 
-from util.plot import plot_task_losses
-from util.generic import seq2num, num2seq
 from generators.scheduling_problems import Random as RandomProblem
-from tree_search import TreeNode, TreeNodeShift
-from ..task_scheduling.environments import SeqTaskingEnv, wrap_agent
+from tree_search import TreeNodeShift
+from learning.environments import SeqTaskingEnv
 
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.deepq.policies import MlpPolicy as MlpPolicyQ
 from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines import PPO2, DQN, A2C
-from stable_baselines.common.callbacks import CheckpointCallback
 from stable_baselines.bench import Monitor
 from stable_baselines.results_plotter import load_results, ts2xy
-from stable_baselines import results_plotter
 from stable_baselines.common.callbacks import BaseCallback
 
 
@@ -177,6 +166,21 @@ def load_agent_sb(load_dir, env):
         raise NotImplementedError
 
     return wrap_agent(env, agent)
+
+
+def wrap_agent(env, model):
+    """Generate scheduling function by running an agent on a single environment episode."""
+
+    def scheduling_agent(tasks, ch_avail):
+        obs = env.reset(tasks, ch_avail)
+        done = False
+        while not done:
+            action, _states = model.predict(obs)
+            obs, reward, done, info = env.step(action)
+
+        return env.node.t_ex, env.node.ch_ex
+
+    return scheduling_agent
 
 
 def main():

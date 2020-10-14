@@ -12,6 +12,8 @@ import numpy as np
 from util.generic import check_rng
 from util.results import timing_wrapper
 from generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
+from generators.tasks import Deterministic as DeterministicTaskGenerator
+from generators.tasks import Permutation as PermutationTaskGenerator
 from generators.channel_availabilities import UniformIID as UniformChanGenerator
 from tree_search import branch_bound
 
@@ -48,7 +50,7 @@ class Base(ABC):
 
         self.rng = check_rng(rng)
 
-    def __call__(self, n_gen, solve=False, verbose=False, save=False, file=None):       # FIXME: add RNG reproducibility
+    def __call__(self, n_gen, solve=False, verbose=False, save=False, file=None):
         """
         Call problem generator.
 
@@ -180,6 +182,24 @@ class Random(Base):
 
         return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
+    @classmethod
+    def deterministic_relu_drop(cls, n_tasks, n_ch, ch_avail_lim=(0, 0), rng=None):
+        rng = check_rng(rng)
+
+        task_gen = DeterministicTaskGenerator.relu_drop(n_tasks, rng=rng)
+        ch_avail_gen = UniformChanGenerator(lim=ch_avail_lim, rng=rng)
+
+        return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
+
+    @classmethod
+    def permutation_relu_drop(cls, n_tasks, n_ch, ch_avail_lim=(0, 0), rng=None):
+        rng = check_rng(rng)
+
+        task_gen = PermutationTaskGenerator.relu_drop(n_tasks, rng=rng)
+        ch_avail_gen = UniformChanGenerator(lim=ch_avail_lim, rng=rng)
+
+        return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
+
     def gen_single(self):
         """Return a single scheduling problem (and optional solution)."""
         tasks = list(self.task_gen(self.n_tasks))
@@ -197,9 +217,9 @@ class Dataset(Base):
 
     Parameters
     ----------
-    problems : Sequence of SchedulingProblem
+    problems : Iterable of SchedulingProblem
         Scheduling problems
-    solutions : Sequence of SchedulingSolution, optional
+    solutions : Iterable of SchedulingSolution, optional
         Optimal scheduling solutions
     task_gen : generators.tasks.BaseIID, optional
         Task generation object.
@@ -274,6 +294,11 @@ class Dataset(Base):
 
 def main():
     rand_gen = Random.relu_drop(n_tasks=3, n_ch=2, rng=None)
+
+    print(list(rand_gen(2)))
+    print(list(rand_gen(3)))
+
+    rand_gen = Random.deterministic_relu_drop(n_tasks=3, n_ch=2, rng=None)
 
     print(list(rand_gen(2)))
     print(list(rand_gen(3)))

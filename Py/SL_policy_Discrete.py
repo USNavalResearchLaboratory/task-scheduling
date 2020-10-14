@@ -1,6 +1,5 @@
 import shutil
 import time
-from functools import partial
 import dill
 
 import numpy as np
@@ -11,13 +10,11 @@ from tensorboard import program
 import webbrowser
 import os
 
-from util.generic import check_rng, Distribution
-from util.results import check_valid, eval_loss
+from util.generic import check_rng
 
-from generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
 from generators.tasks import GenericIID as GenericTaskGenerator
-from tree_search import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release, TreeNode, TreeNodeShift
-from environments import StepTaskingEnv
+from tree_search import TreeNodeShift
+from learning.environments import StepTaskingEnv
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')

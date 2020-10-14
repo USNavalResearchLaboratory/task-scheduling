@@ -91,7 +91,7 @@ class BaseTaskingEnv(ABC, gym.Env):
 
     """
 
-    # FIXME: add normalization option for RL learners!
+    # FIXME: add normalization option for RL learners!? Or just use gym.Wrappers?
 
     def __init__(self, problem_gen, node_cls=TreeNode, features=None, sort_func=None, masking=False):
         self.problem_gen = problem_gen
@@ -188,9 +188,9 @@ class BaseTaskingEnv(ABC, gym.Env):
 
         Parameters
         ----------
-        tasks : Sequence of tasks.Generic, optional
+        tasks : Iterable of tasks.Generic, optional
             Optional task set for non-random reset.
-        ch_avail : Sequence of float, optional
+        ch_avail : Iterable of float, optional
             Optional initial channel availabilities for non-random reset.
         persist : bool
             If True, keeps tasks and channels fixed during reset, regardless of other inputs.
@@ -233,7 +233,7 @@ class BaseTaskingEnv(ABC, gym.Env):
 
         Parameters
         ----------
-        action : int or Sequence of int
+        action : int or Iterable of int
             Complete index sequence.
 
         Returns
@@ -266,6 +266,15 @@ class BaseTaskingEnv(ABC, gym.Env):
 
     def close(self):
         plt.close('all')
+
+    @classmethod
+    def from_problem_gen(cls, problem_gen, env_params):
+        """Environment constructor from problem generators."""
+
+        if env_params is None:
+            return cls(problem_gen)
+        else:
+            return cls(problem_gen, **env_params)
 
     def data_gen(self, n_batch, batch_size=1, weight_func=None, verbose=False):
         """
@@ -312,6 +321,7 @@ class BaseTaskingEnv(ABC, gym.Env):
 
                 # Generate samples for each scheduling step of the optimal sequence
                 x_set_single, y_set_single, w_set_single = self._gen_single(seq, weight_func)
+
                 x_set.extend(x_set_single)
                 y_set.extend(y_set_single)
                 w_set.extend(w_set_single)
@@ -328,22 +338,8 @@ class BaseTaskingEnv(ABC, gym.Env):
 
     def data_gen_numpy(self, n_gen, weight_func=None, verbose=False):
         """Generate state-action data as NumPy arrays."""
-        data, = self.data_gen(1, n_gen, weight_func, verbose)
+        data, = self.data_gen(n_batch=1, batch_size=n_gen, weight_func=weight_func, verbose=verbose)
         return data
-
-    # def wrap_model(self, model):      # TODO: delete?
-    #     """Generate scheduling function by running an agent on a single environment episode."""
-    #
-    #     def scheduling_agent(tasks, ch_avail):
-    #         obs = self.reset(tasks, ch_avail)
-    #         done = False
-    #         while not done:
-    #             action, _states = model.predict(obs)
-    #             obs, reward, done, info = self.step(action)
-    #
-    #         return self.node.t_ex, self.node.ch_ex
-    #
-    #     return scheduling_agent
 
 
 class SeqTaskingEnv(BaseTaskingEnv):
@@ -353,7 +349,7 @@ class SeqTaskingEnv(BaseTaskingEnv):
                  action_type='seq'):
         super().__init__(problem_gen, node_cls, features, sort_func, masking)
 
-        self.action_type = action_type      # 'seq' for Sequences, 'int' for Integers
+        self.action_type = action_type      # 'seq' for sequences, 'int' for integers
         if self.action_type == 'seq':
             self.action_space_map = lambda n: Permutation(n)
         elif self.action_type == 'int':

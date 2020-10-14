@@ -1,24 +1,21 @@
-import os
 import time
-import dill
+from collections import namedtuple
 
 import numpy as np
 
-from stable_baselines.common.base_class import BaseRLModel
-from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines.bench import Monitor
 from stable_baselines.results_plotter import plot_results
 from stable_baselines import DQN, PPO2, A2C
 
 from generators.scheduling_problems import Random as RandomProblem
-from tree_search import TreeNode, TreeNodeShift
-from environments import BaseTaskingEnv, SeqTaskingEnv, StepTaskingEnv
+from tree_search import TreeNodeShift
+from learning.environments import BaseTaskingEnv, SeqTaskingEnv, StepTaskingEnv
 
 np.set_printoptions(precision=2)
 
 
 # Agents
-class RandomAgent:      # TODO: subclass or keep duck-typing?
+class RandomAgent:      # TODO: subclass or keep duck-typing? move?
     """Uniformly random action selector."""
     def __init__(self, env):
         self.env = env
@@ -38,17 +35,27 @@ class RandomAgent:      # TODO: subclass or keep duck-typing?
         return self.env
 
 
-class LearningScheduler:
-    model_cls_dict = {'DQN': DQN, 'PPO2': PPO2, 'A2C': A2C}
-    log_dir = '../logs/SB_train'
+# Schedulers
+class ReinforcementLearningScheduler:
+    log_dir = '../../logs/SB_train'
+
+    # model_cls_dict = {'Random': RandomAgent, 'DQN': DQN, 'PPO2': PPO2, 'A2C': A2C}
+
+    _default_tuple = namedtuple('Model Default', ['cls', 'kwargs'])
+    model_defaults = {'Random': _default_tuple(RandomAgent, {}),
+                      'DQN': _default_tuple(DQN, {'policy': 'MlpPolicy', 'verbose': 1}),
+                      'PPO2': _default_tuple(PPO2, {}),
+                      'A2C': _default_tuple(A2C, {}),
+                      }
 
     def __init__(self, model, env=None):
         self.model = model
 
         self.do_monitor = True  # TODO: make init parameter?
         if env is not None:
-            self.env = env
+            self.env = env  # invokes setter
 
+    # Environment access
     @property
     def env(self):
         return self.model.get_env()
@@ -63,6 +70,23 @@ class LearningScheduler:
             raise TypeError("Environment must be an instance of BaseTaskingEnv.")
 
     def __call__(self, tasks, ch_avail):
+        """
+        Call scheduler, produce execution times and channels.
+
+        Parameters
+        ----------
+        tasks : Iterable of tasks.Generic
+        ch_avail : Iterable of float
+            Channel availability times.
+
+        Returns
+        -------
+        ndarray
+            Task execution times.
+        ndarray
+            Task execution channels.
+        """
+
         obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)
         done = False
         while not done:
@@ -72,7 +96,18 @@ class LearningScheduler:
         return self.env.node.t_ex, self.env.node.ch_ex
 
     def learn(self, n_episodes=0):
+        """
+        Train learning model.
+
+        Parameters
+        ----------
+        n_episodes : int
+            Number of complete tasking episode to train on.
+
+        """
+
         self.model.learn(total_timesteps=n_episodes * self.env.steps_per_episode)
+
         if self.do_monitor:
             plot_results([self.log_dir], num_timesteps=None, xaxis='timesteps', task_name='Training history')
 
@@ -90,34 +125,38 @@ class LearningScheduler:
         #     dill.dump(self.env, file)    # save environment
 
     @classmethod
-    def load(cls, load_path, env=None, model_cls=None):
+    def load(cls, load_path, env=None, model_cls=None):     # TODO: load Env? Unneeded for predictions.
         if model_cls is None:
             cls_str = load_path.split('/')[-1].split('_')[0]
-            model_cls = cls.model_cls_dict[cls_str]
+            # model_cls = cls.model_cls_dict[cls_str]
+            model_cls = cls.model_defaults[cls_str].cls
 
         model = model_cls.load('../agents/' + load_path)
         return cls(model, env)
 
-    @classmethod
-    def load_from_gen(cls, load_path, problem_gen, env_cls=StepTaskingEnv, env_params=None, model_cls=None):
-        env = cls.gen_to_env(problem_gen, env_cls, env_params)
-        return cls.load(load_path, env, model_cls)
+    # @classmethod
+    # def load_from_gen(cls, load_path, problem_gen, env_cls=StepTaskingEnv, env_params=None, model_cls=None):
+    #     env = env_cls.from_problem_gen(problem_gen, env_params)
+    #     return cls.load(load_path, env, model_cls)
+
+    # @classmethod
+    # def from_gen(cls, model, problem_gen, env_cls=StepTaskingEnv, env_params=None):
+    #     env = env_cls.from_problem_gen(problem_gen, env_params)
+    #     return cls(model, env)
 
     @classmethod
-    def from_gen(cls, model, problem_gen, env_cls=StepTaskingEnv, env_params=None):
-        env = cls.gen_to_env(problem_gen, env_cls, env_params)
-        return cls(model, env)
+    def train_from_gen(cls, problem_gen, env_cls=SeqTaskingEnv, env_params=None, model_cls=None, model_kwargs=None,
+                       n_episodes=0, save=False, save_path=None):
 
-    @classmethod
-    def train_agent(cls, model, problem_gen, env_cls=SeqTaskingEnv, env_params=None, n_episodes=0,
-                    save=False, save_path=None):
+        env = env_cls.from_problem_gen(problem_gen, env_params)
 
-        env = cls.gen_to_env(problem_gen, env_cls, env_params)
+        if model_cls is None:
+            model_cls, model_kwargs = cls.model_defaults['Random']
+        elif isinstance(model_cls, str):
+            # model_cls = cls.model_cls_dict[model_cls]
+            model_cls, model_kwargs = cls.model_defaults[model_cls]
 
-        if model is None or model == 'random':      # TODO: improve
-            model = RandomAgent(env)
-        elif model == 'DQN':
-            model = DQN('MlpPolicy', env, verbose=1)
+        model = model_cls(env=env, **model_kwargs)
 
         scheduler = cls(model, env)
         scheduler.learn(n_episodes)
@@ -126,13 +165,8 @@ class LearningScheduler:
 
         return scheduler
 
-    @staticmethod
-    def gen_to_env(problem_gen, env_cls, env_params):
-        if env_params is None:
-            env_params = {}
-        return env_cls(problem_gen, **env_params)
 
-
+# TODO: delete?
 # def train_agent(problem_gen, n_episodes=0, env_cls=SeqTaskingEnv, env_params=None,
 #                 model=None, save=False, save_path=None):
 #     """
@@ -241,7 +275,8 @@ class LearningScheduler:
 
 
 def main():
-    problem_gen = RandomProblem.relu_drop(n_tasks=4, n_ch=2)
+    # problem_gen = RandomProblem.relu_drop(n_tasks=4, n_ch=2)
+    problem_gen = RandomProblem.deterministic_relu_drop(n_tasks=4, n_ch=2)
 
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
                          ('release time', lambda task: task.t_release,
@@ -290,15 +325,14 @@ def main():
 
     env = env_cls(problem_gen, **env_params)
 
-    s = LearningScheduler.train_agent('DQN', problem_gen, env_cls, env_params, n_episodes=10000,
-                                      save=False, save_path=None)
+    s = ReinforcementLearningScheduler.train_from_gen(problem_gen, env_cls, env_params,
+                                                      model_cls=DQN, model_kwargs={'policy': 'MlpPolicy', 'verbose': 1},
+                                                      n_episodes=10000, save=False, save_path=None)
 
 
     # model = RandomAgent(env)
     # model = DQN('MlpPolicy', env, verbose=1)
     # model.learn(10)
-
-    # scheduler = train_agent(problem_gen, n_episodes=10, env_cls=env_cls, env_params=env_params, agent=agent)
 
     # obs = env.reset()
     # done = False

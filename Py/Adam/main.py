@@ -14,18 +14,11 @@ from util.results import check_valid, eval_loss, timing_wrapper
 from util.plot import plot_task_losses, scatter_loss_runtime, plot_schedule
 
 from generators.scheduling_problems import Random as RandomProblem
-from generators.scheduling_problems import Dataset as ProblemDataset
 
-from tree_search import TreeNodeShift, branch_bound, mcts, earliest_release
+from tree_search import TreeNodeShift, mcts, earliest_release
 from Adam.env_tasking import StepTaskingEnv, train_agent, load_agent, SeqTaskingEnv, load_agent_sb, train_agent_sb ###### new includes
-from SL_policy import train_policy, load_policy
 
 #################### new includes ##################################
-from stable_baselines.common.policies import MlpPolicy
-from stable_baselines.deepq.policies import MlpPolicy as MlpPolicyQ
-from stable_baselines.common.vec_env import DummyVecEnv
-from stable_baselines import PPO2, DQN
-from stable_baselines.common.callbacks import CheckpointCallback
 ####################################################################
 
 

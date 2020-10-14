@@ -22,12 +22,12 @@ class TreeNode:
 
     Parameters
     ----------
-    seq : Sequence of int
+    seq : Iterable of int
         Partial task index sequence.
 
     Attributes
     ----------
-    seq : Sequence of int
+    seq : Iterable of int
         Partial task index sequence.
     t_ex : ndarray
         Task execution times. NaN for unscheduled.
@@ -113,8 +113,8 @@ class TreeNode:
 
         Parameters
         ----------
-        seq_ext : int or Sequence of int
-            Sequence of indices referencing cls._tasks.
+        seq_ext : int or Iterable of int
+            Iterable of indices referencing cls._tasks.
         check_valid : bool
             Perform check of index sequence validity.
 
@@ -250,20 +250,20 @@ class TreeNodeBound(TreeNode):
     l_lo = property(lambda self: self._l_lo)
     l_up = property(lambda self: self._l_up)
 
-    def seq_extend(self, seq: list, check_valid=True):
+    def seq_extend(self, seq_ext, check_valid=True):
         """
         Sets node sequence and iteratively updates all dependent attributes.
 
         Parameters
         ----------
-        seq : list of list
-            Sequence of indices referencing cls._tasks.
+        seq_ext : int or Iterable of int
+            Iterable of indices referencing cls._tasks.
         check_valid : bool
             Perform check of index sequence validity.
 
         """
 
-        super().seq_extend(seq, check_valid)
+        super().seq_extend(seq_ext, check_valid)
 
         # Add bound attributes
         t_ex_max = (max([self._tasks[n].t_release for n in self._seq_rem] + [min(self._ch_avail)])
@@ -477,8 +477,8 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : Sequence of tasks.Generic
-    ch_avail : Sequence of float
+    tasks : Iterable of tasks.Generic
+    ch_avail : Iterable of float
         Channel availability times.
     verbose : bool
         Enables printing of algorithm state information.
@@ -532,8 +532,8 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : Sequence of tasks.Generic
-    ch_avail : Sequence of float
+    tasks : Iterable of tasks.Generic
+    ch_avail : Iterable of float
         Channel availability times.
     verbose : bool
         Enables printing of algorithm state information.
@@ -596,10 +596,10 @@ def mcts_orig(tasks, ch_avail, n_mc, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : Sequence of tasks.Generic
-    ch_avail : Sequence of float
+    tasks : Iterable of tasks.Generic
+    ch_avail : Iterable of float
         Channel availability times.
-    n_mc : int or Sequence of int
+    n_mc : int or Iterable of int
         Number of Monte Carlo roll-outs per task.
     verbose : bool
         Enables printing of algorithm state information.
@@ -649,8 +649,8 @@ def mcts(tasks, ch_avail, n_mc, verbose=False):
 
     Parameters
     ----------
-    tasks : Sequence of tasks.Generic
-    ch_avail : Sequence of float
+    tasks : Iterable of tasks.Generic
+    ch_avail : Iterable of float
         Channel availability times.
     n_mc : int
         Number of roll-outs performed.
@@ -704,8 +704,8 @@ def random_sequencer(tasks, ch_avail, rng=None):
 
     Parameters
     ----------
-    tasks : Sequence of tasks.Generic
-    ch_avail : Sequence of float
+    tasks : Iterable of tasks.Generic
+    ch_avail : Iterable of float
         Channel availability times.
     rng
         NumPy random number generator or seed. Default Generator if None.
@@ -734,8 +734,8 @@ def earliest_release(tasks, ch_avail, do_swap=False):
 
     Parameters
     ----------
-    tasks : Sequence of tasks.Generic
-    ch_avail : Sequence of float
+    tasks : Iterable of tasks.Generic
+    ch_avail : Iterable of float
         Channel availability times.
     do_swap : bool
         Enables task swapping
@@ -767,8 +767,8 @@ def earliest_drop(tasks, ch_avail, do_swap=False):
 
     Parameters
     ----------
-    tasks : Sequence of tasks.Generic
-    ch_avail : Sequence of float
+    tasks : Iterable of tasks.Generic
+    ch_avail : Iterable of float
         Channel availability times.
     do_swap : bool
         Enables task swapping.
@@ -800,8 +800,8 @@ def est_alg_kw(tasks, ch_avail):
 
     Parameters
     ----------
-    tasks : Sequence of tasks.Generic
-    ch_avail : Sequence of float
+    tasks : Iterable of tasks.Generic
+    ch_avail : Iterable of float
         Channel availability times.
 
     Returns

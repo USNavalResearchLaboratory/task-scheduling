@@ -10,6 +10,8 @@ from task_scheduling.tasks import ReluDrop as ReluDropTask
 
 np.set_printoptions(precision=2)
 
+# TODO: add TSRS search/track task generators
+
 
 class Base(ABC):
     def __init__(self, cls_task, param_lims=None, rng=None):
@@ -164,6 +166,18 @@ class DiscreteIID(BaseIID):
 
 class Deterministic(Base):
     def __init__(self, tasks, param_lims=None, rng=None):
+        """
+        Deterministic task generator.
+
+        Parameters
+        ----------
+        tasks : Iterable of tasks.Generic
+        param_lims : dict, optional
+            Maps parameter name strings to 2-tuples of parameter lower and upper bounds.
+        rng : int or RandomState or Generator, optional
+            Random number generator seed or object.
+        """
+
         self.tasks = list(tasks)
 
         cls_task = self.tasks[0].__class__
@@ -173,6 +187,8 @@ class Deterministic(Base):
         super().__init__(cls_task, param_lims, rng)
 
     def __call__(self, n_tasks):
+        """Yields the deterministic tasks in order."""
+
         if n_tasks != len(self.tasks):
             raise ValueError(f"Number of tasks must be {len(self.tasks)}.")
 
@@ -196,7 +212,11 @@ class Deterministic(Base):
 
 
 class Permutation(Deterministic):
+    """Generates fixed tasks in a uniformly random order."""
+
     def __call__(self, n_tasks):
+        """Yields the deterministic tasks in a random order."""
+
         if n_tasks != len(self.tasks):
             raise ValueError(f"Number of tasks must be {len(self.tasks)}.")
 
@@ -212,8 +232,6 @@ def main():
                                        t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)
 
     assert a == b
-
-
 
 
 if __name__ == '__main__':
