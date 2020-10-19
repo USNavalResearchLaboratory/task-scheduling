@@ -6,6 +6,25 @@ import numpy as np
 from scipy.stats import rv_discrete, uniform
 
 
+class RandomGeneratorMixin:
+    def __init__(self, rng=None):
+        self.rng = rng
+
+    @property
+    def rng(self):
+        return self._rng
+
+    @rng.setter
+    def rng(self, val):
+        self._rng = check_rng(val)
+
+    def _get_rng(self, rng=None):
+        if rng is None:
+            return self._rng
+        else:
+            return check_rng(rng)
+
+
 def check_rng(rng):
     """
     Return a random number generator.

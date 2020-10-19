@@ -15,7 +15,7 @@ np.set_printoptions(precision=2)
 
 
 # Agents
-class RandomAgent:      # TODO: subclass or keep duck-typing? move?
+class RandomAgent:
     """Uniformly random action selector."""
     def __init__(self, env):
         self.env = env
@@ -125,10 +125,9 @@ class ReinforcementLearningScheduler:
         #     dill.dump(self.env, file)    # save environment
 
     @classmethod
-    def load(cls, load_path, env=None, model_cls=None):     # TODO: load Env? Unneeded for predictions.
+    def load(cls, load_path, env=None, model_cls=None):     # TODO: load Env? Unneeded for predictions...
         if model_cls is None:
             cls_str = load_path.split('/')[-1].split('_')[0]
-            # model_cls = cls.model_cls_dict[cls_str]
             model_cls = cls.model_defaults[cls_str].cls
 
         model = model_cls.load('../agents/' + load_path)
@@ -145,18 +144,19 @@ class ReinforcementLearningScheduler:
     #     return cls(model, env)
 
     @classmethod
-    def train_from_gen(cls, problem_gen, env_cls=SeqTaskingEnv, env_params=None, model_cls=None, model_kwargs=None,
+    def train_from_gen(cls, problem_gen, env_cls=SeqTaskingEnv, env_params=None, model_cls=None, model_params=None,
                        n_episodes=0, save=False, save_path=None):
 
         env = env_cls.from_problem_gen(problem_gen, env_params)
 
         if model_cls is None:
-            model_cls, model_kwargs = cls.model_defaults['Random']
+            model_cls, model_params = cls.model_defaults['Random']
         elif isinstance(model_cls, str):
             # model_cls = cls.model_cls_dict[model_cls]
-            model_cls, model_kwargs = cls.model_defaults[model_cls]
+            model_cls, model_kwargs_ = cls.model_defaults[model_cls]
+            model_params.update(model_kwargs_)
 
-        model = model_cls(env=env, **model_kwargs)
+        model = model_cls(env=env, **model_params)
 
         scheduler = cls(model, env)
         scheduler.learn(n_episodes)
@@ -326,7 +326,7 @@ def main():
     env = env_cls(problem_gen, **env_params)
 
     s = ReinforcementLearningScheduler.train_from_gen(problem_gen, env_cls, env_params,
-                                                      model_cls=DQN, model_kwargs={'policy': 'MlpPolicy', 'verbose': 1},
+                                                      model_cls=DQN, model_params={'policy': 'MlpPolicy', 'verbose': 1},
                                                       n_episodes=10000, save=False, save_path=None)
 
 

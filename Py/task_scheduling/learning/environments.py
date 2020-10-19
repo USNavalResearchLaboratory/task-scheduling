@@ -182,7 +182,7 @@ class BaseTaskingEnv(ABC, gym.Env):
         """Update observation and action spaces."""
         raise NotImplementedError
 
-    def reset(self, tasks=None, ch_avail=None, persist=False, solve=False):
+    def reset(self, tasks=None, ch_avail=None, persist=False, solve=False, rng=None):
         """
         Reset environment by re-initializing node object with random (or user-specified) tasks/channels.
 
@@ -196,6 +196,8 @@ class BaseTaskingEnv(ABC, gym.Env):
             If True, keeps tasks and channels fixed during reset, regardless of other inputs.
         solve : bool
             Solves for and stores the Branch & Bound optimal schedule.
+        rng : int or RandomState or Generator, optional
+            NumPy random number generator or seed. Instance RNG if None.
 
         Returns
         -------
@@ -204,25 +206,22 @@ class BaseTaskingEnv(ABC, gym.Env):
 
         """
 
-        if not persist:
+        if persist:
+            tasks, ch_avail = self.tasks, self.ch_avail
+        else:
             if tasks is None or ch_avail is None:   # generate new scheduling problem
                 if solve:   # TODO: next()? Pass a generator, not a callable??
-                    ((tasks, ch_avail), self.solution), = self.problem_gen(1, solve=solve)
+                    ((tasks, ch_avail), self.solution), = self.problem_gen(1, solve=solve, rng=rng)
                 else:
                     (tasks, ch_avail), = self.problem_gen(1, solve=solve)
                     self.solution = None
-
             elif len(tasks) != self.n_tasks:
                 raise ValueError(f"Input 'tasks' must be None or a list of {self.n_tasks} tasks")
             elif len(ch_avail) != self.n_ch:
                 raise ValueError(f"Input 'ch_avail' must be None or an array of {self.n_ch} channel availabilities")
 
-            self.node_cls._tasks_init = tasks
-            self.node_cls._ch_avail_init = ch_avail
-
-        self.node = self.node_cls()
+        self.node = self.node_cls(tasks, ch_avail)
         self.loss_agg = self.node.l_ex  # Loss can be non-zero due to time origin shift during node initialization
-
         self._update_spaces()
 
         return self.state
@@ -339,7 +338,7 @@ class BaseTaskingEnv(ABC, gym.Env):
     def data_gen_numpy(self, n_gen, weight_func=None, verbose=False):
         """Generate state-action data as NumPy arrays."""
         data, = self.data_gen(n_batch=1, batch_size=n_gen, weight_func=weight_func, verbose=verbose)
-        return data
+        return data     # TODO: save dataset to save on Env computation time?
 
 
 class SeqTaskingEnv(BaseTaskingEnv):

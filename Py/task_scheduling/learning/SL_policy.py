@@ -62,11 +62,11 @@ class SupervisedLearningScheduler:
                 # seq_rem = self.env.infer_action_space(obs).elements.tolist()
                 seq_rem = self.env.action_space.elements.tolist()
 
-                # TODO: masked array?
-                action = seq_rem[prob[seq_rem].argmax()]  # FIXME: make custom output layers to avoid illegal actions?
-            else:
-                action = prob.argmax()
+                mask = np.isin(np.arange(self.env.n_tasks), seq_rem, invert=True)
+                prob = np.ma.masked_array(prob, mask)
+                # FIXME: make custom output layers to avoid illegal actions?
 
+            action = prob.argmax()
             obs, reward, done, info = self.env.step(action)
 
         return self.env.node.t_ex, self.env.node.ch_ex
@@ -255,7 +255,7 @@ class SupervisedLearningScheduler:
 #         #
 #         #     def call(self, y_true, y_pred):
 #         #         return None
-#         raise NotImplementedError       # TODO: make loss func for full seq targets?
+#         raise NotImplementedError
 #
 #     # Instantiate and compile policy model
 #     if model is None:
@@ -298,7 +298,7 @@ class SupervisedLearningScheduler:
 #     # d_val = tf.data.Dataset.from_generator(gen_callable, output_types,
 #     #                                        output_shapes, args=(n_batch_val, batch_size))
 #
-#     # TODO: save dataset to save on Env computation time?
+#
 #
 #     if fit_params is None:
 #         fit_params = {'epochs': 10,
@@ -374,7 +374,7 @@ class SupervisedLearningScheduler:
 #
 #             if isinstance(env, StepTaskingEnv):
 #                 seq_rem = env.infer_action_space(obs).elements.tolist()
-#                 action = seq_rem[prob[seq_rem].argmax()]    # FIXME: make custom output layers to avoid illegal actions?
+#                 action = seq_rem[prob[seq_rem].argmax()]
 #             else:
 #                 action = prob.argmax()
 #
@@ -421,10 +421,16 @@ def main():
     # def weight_func_(env):
     #     return (env.n_tasks - len(env.node.seq)) / env.n_tasks
 
-    scheduler = train_policy(problem_gen, n_batch_train=990, n_batch_val=10, batch_size=1, weight_func=weight_func_,
-                             env_cls=env_cls, env_params=env_params,
-                             model=None, compile_params=None, fit_params=None,
-                             do_tensorboard=False, plot_history=True, save=True, save_dir=None)
+    scheduler = SupervisedLearningScheduler.train_from_gen(problem_gen, env_cls, env_params, layers=None,
+                                                           n_batch_train=1, n_batch_val=1, batch_size=1,
+                                                           weight_func=None, fit_params=None,
+                                                           do_tensorboard=False, plot_history=False,
+                                                           save=False, save_path=None)
+
+    # scheduler = train_policy(problem_gen, n_batch_train=990, n_batch_val=10, batch_size=1, weight_func=weight_func_,
+    #                          env_cls=env_cls, env_params=env_params,
+    #                          model=None, compile_params=None, fit_params=None,
+    #                          do_tensorboard=False, plot_history=True, save=True, save_dir=None)
 
     (tasks, ch_avail), = problem_gen(n_gen=1)
     t_ex, ch_ex = scheduler(tasks, ch_avail)

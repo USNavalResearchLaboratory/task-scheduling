@@ -2,15 +2,12 @@
 
 from abc import ABC, abstractmethod
 
-from util.generic import check_rng
+from util.generic import RandomGeneratorMixin
 
 
-class BaseIID(ABC):
-    def __init__(self, rng=None):
-        self.rng = check_rng(rng)
-
+class BaseIID(RandomGeneratorMixin, ABC):
     @abstractmethod
-    def __call__(self, n_ch):
+    def __call__(self, n_ch, rng=None):
         raise NotImplementedError
 
 
@@ -29,10 +26,11 @@ class UniformIID(BaseIID):
         super().__init__(rng)
         self.lim = lim
 
-    def __call__(self, n_ch):
+    def __call__(self, n_ch, rng=None):
         """Randomly generate a list of channel availabilities."""
+        rng = self._get_rng(rng)
         for _ in range(n_ch):
-            yield self.rng.uniform(*self.lim)
+            yield rng.uniform(*self.lim)
 
     def __eq__(self, other):
         if isinstance(other, UniformIID):

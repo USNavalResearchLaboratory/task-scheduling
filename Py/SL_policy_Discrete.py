@@ -218,12 +218,12 @@ def main():
     #                              t_drop_lim=(0, 15), l_drop_lim=(100, 300), rng=None,
     #                              discrete_flag=discrete_flag)  # task set generator
 
-    def param_gen(self):
-        return {'duration': self.rng.choice(self.param_lims['duration'], p=[.5, .5]),
-                't_release': self.rng.uniform(self.param_lims['t_release']),
-                'slope': self.rng.uniform(self.param_lims['slope']),
-                't_drop': self.rng.uniform(self.param_lims['t_drop']),
-                'l_drop': self.rng.uniform(self.param_lims['l_drop'])}
+    def param_gen(self, rng):
+        return {'duration': rng.choice(self.param_lims['duration'], p=[.5, .5]),
+                't_release': rng.uniform(self.param_lims['t_release']),
+                'slope': rng.uniform(self.param_lims['slope']),
+                't_drop': rng.uniform(self.param_lims['t_drop']),
+                'l_drop': rng.uniform(self.param_lims['l_drop'])}
 
     param_lims = {'duration': (18e-3, 36e-3),
                   't_release': (0, 6),

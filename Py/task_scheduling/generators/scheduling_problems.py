@@ -9,7 +9,7 @@ from functools import partial
 
 import numpy as np
 
-from util.generic import check_rng
+from util.generic import RandomGeneratorMixin
 from util.results import timing_wrapper
 from generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
 from generators.tasks import Deterministic as DeterministicTaskGenerator
@@ -19,8 +19,11 @@ from tree_search import branch_bound
 
 np.set_printoptions(precision=2)
 
+_SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
+_SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
 
-class Base(ABC):
+
+class Base(RandomGeneratorMixin, ABC):
     """
     Base class for scheduling problem generators.
 
@@ -39,18 +42,15 @@ class Base(ABC):
 
     """
 
-    _SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
-    _SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
-
     def __init__(self, n_tasks, n_ch, task_gen, ch_avail_gen, rng=None):
+        super().__init__(rng)
+
         self.n_tasks = n_tasks
         self.n_ch = n_ch
         self.task_gen = task_gen
         self.ch_avail_gen = ch_avail_gen
 
-        self.rng = check_rng(rng)
-
-    def __call__(self, n_gen, solve=False, verbose=False, save=False, file=None):
+    def __call__(self, n_gen, solve=False, verbose=False, save=False, file=None, rng=None):
         """
         Call problem generator.
 
@@ -64,8 +64,10 @@ class Base(ABC):
             Enables print-out of optimal scheduler progress.
         save : bool, optional
             Enables serialization of generated problems/solutions.
-        file: str, optional
+        file : str, optional
             File location relative to ../data/schedules/
+        rng : int or RandomState or Generator, optional
+            NumPy random number generator or seed. Instance RNG if None.
 
         Yields
         ------
@@ -80,11 +82,12 @@ class Base(ABC):
                      'task_gen': self.task_gen, 'ch_avail_gen': self.ch_avail_gen}
 
         # Generate tasks and find optimal schedules
+        rng = self._get_rng(rng)
         for i_gen in range(n_gen):
             if verbose:
                 print(f'Scheduling Problem: {i_gen + 1}/{n_gen}', end='\n')
 
-            problem, solution = self.gen_single()
+            problem, solution = self._gen_single(rng)
 
             # if problem is None:
             #     return      # Stops iterator when Dataset generators run out of data
@@ -96,7 +99,7 @@ class Base(ABC):
                 if solution is None:
                     # Generate B&B optimal solution
                     t_ex, ch_ex, t_run = timing_wrapper(partial(branch_bound, verbose=verbose))(*problem)
-                    solution = self._SchedulingSolution(t_ex, ch_ex, t_run)
+                    solution = _SchedulingSolution(t_ex, ch_ex, t_run)
 
                 if save:
                     save_dict['solutions'].append(solution)
@@ -109,7 +112,7 @@ class Base(ABC):
             self.save(save_dict, file)
 
     @abstractmethod
-    def gen_single(self):
+    def _gen_single(self, rng):
         """Return a single scheduling problem (and optional solution)."""
         raise NotImplementedError
 
@@ -171,44 +174,39 @@ class Base(ABC):
 
 
 class Random(Base):
+    def _gen_single(self, rng):
+        """Return a single scheduling problem (and optional solution)."""
+        tasks = list(self.task_gen(self.n_tasks, rng=rng))
+        ch_avail = list(self.ch_avail_gen(self.n_ch, rng=rng))
+
+        problem = _SchedulingProblem(tasks, ch_avail)
+        solution = None
+
+        return problem, solution
+
     @classmethod
     def relu_drop(cls, n_tasks, n_ch, duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
                   t_drop_lim=(6, 12), l_drop_lim=(35, 50), ch_avail_lim=(0, 0), rng=None):
-        rng = check_rng(rng)
 
         task_gen = ContinuousUniformTaskGenerator.relu_drop(duration_lim, t_release_lim, slope_lim, t_drop_lim,
-                                                            l_drop_lim, rng=rng)
-        ch_avail_gen = UniformChanGenerator(lim=ch_avail_lim, rng=rng)
+                                                            l_drop_lim)
+        ch_avail_gen = UniformChanGenerator(lim=ch_avail_lim)
 
         return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
     @classmethod
     def deterministic_relu_drop(cls, n_tasks, n_ch, ch_avail_lim=(0, 0), rng=None):
-        rng = check_rng(rng)
-
-        task_gen = DeterministicTaskGenerator.relu_drop(n_tasks, rng=rng)
-        ch_avail_gen = UniformChanGenerator(lim=ch_avail_lim, rng=rng)
+        task_gen = DeterministicTaskGenerator.relu_drop(n_tasks)
+        ch_avail_gen = UniformChanGenerator(lim=ch_avail_lim)
 
         return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
     @classmethod
     def permutation_relu_drop(cls, n_tasks, n_ch, ch_avail_lim=(0, 0), rng=None):
-        rng = check_rng(rng)
-
-        task_gen = PermutationTaskGenerator.relu_drop(n_tasks, rng=rng)
-        ch_avail_gen = UniformChanGenerator(lim=ch_avail_lim, rng=rng)
+        task_gen = PermutationTaskGenerator.relu_drop(n_tasks)
+        ch_avail_gen = UniformChanGenerator(lim=ch_avail_lim)
 
         return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
-
-    def gen_single(self):
-        """Return a single scheduling problem (and optional solution)."""
-        tasks = list(self.task_gen(self.n_tasks))
-        ch_avail = list(self.ch_avail_gen(self.n_ch))
-
-        problem = self._SchedulingProblem(tasks, ch_avail)
-        solution = None
-
-        return problem, solution
 
 
 class Dataset(Base):
@@ -271,7 +269,7 @@ class Dataset(Base):
                 _p, _s = zip(*self.rng.permutation(_temp).tolist())
                 self.problems, self.solutions = list(_p), list(_s)
 
-    def gen_single(self):
+    def _gen_single(self, rng):
         """Return a single scheduling problem (and optional solution)."""
         if self.i == self.n_problems:
             if self.iter_mode == 'once':
