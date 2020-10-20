@@ -11,7 +11,7 @@ from gym.spaces import Box, Space, Discrete
 
 from util.plot import plot_task_losses
 from util.generic import seq2num, num2seq
-from generators.scheduling_problems import Random as RandomProblem
+from generators import scheduling_problems as problems
 from tree_search import TreeNode, TreeNodeShift
 # from RL_policy import RandomAgent
 
@@ -521,7 +521,7 @@ class StepTaskingEnv(BaseTaskingEnv):
 
 
 def main():
-    problem_gen = RandomProblem.relu_drop(n_tasks=8, n_ch=2)
+    problem_gen = problems.Random.relu_drop(n_tasks=8, n_ch=2)
 
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
                          ('release time', lambda task: task.t_release,

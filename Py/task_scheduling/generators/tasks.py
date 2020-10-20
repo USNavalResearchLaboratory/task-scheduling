@@ -54,7 +54,7 @@ class Base(RandomGeneratorMixin, ABC):
         return features
 
 
-class BaseIID(Base):
+class BaseIID(Base, ABC):
     """Base class for generation of independently and identically distributed random task objects."""
 
     def __call__(self, n_tasks, rng=None):
@@ -165,7 +165,7 @@ class DiscreteIID(BaseIID):
         return cls(ReluDropTask, param_probs, rng)
 
 
-class Permutation(Base):
+class Fixed(Base, ABC):
     def __init__(self, tasks, param_lims=None, rng=None):
         """
         Permutation task generator.
@@ -185,42 +185,53 @@ class Permutation(Base):
         if not all(isinstance(task, cls_task) for task in self.tasks[1:]):
             raise TypeError("All tasks must be of the same type.")
 
+        if param_lims is None:
+            param_lims = {}
+            for name in cls_task.param_names:
+                values = [getattr(task, name) for task in tasks]
+                param_lims[name] = (min(values), max(values))
+
         super().__init__(cls_task, param_lims, rng)
 
+    @abstractmethod
     def __call__(self, n_tasks, rng=None):
-        """Yields the deterministic tasks in a random order."""
-        if n_tasks != len(self.tasks):
-            raise ValueError(f"Number of tasks must be {len(self.tasks)}.")
-
-        rng = self._get_rng(rng)
-        for task in rng.permutation(self.tasks).tolist():
-            yield task
+        """Yield tasks."""
+        raise NotImplementedError
 
     def __eq__(self, other):
-        if isinstance(other, Permutation):
+        if isinstance(other, Fixed):
             return self.tasks == other.tasks
         else:
             return NotImplemented
 
     @classmethod
-    def relu_drop(cls, n_tasks, rng=None):
-        task_gen = ContinuousUniformIID.relu_drop()
+    def relu_drop(cls, n_tasks, rng=None, **relu_lims):
+        task_gen = ContinuousUniformIID.relu_drop(rng=rng, **relu_lims)
 
         tasks = list(task_gen(n_tasks))
         param_lims = task_gen.param_lims
 
-        return cls(tasks, param_lims, rng)
+        return cls(tasks, param_lims, task_gen.rng)
 
 
-class Deterministic(Permutation):
-    """Generates fixed tasks in a deterministic order."""
-
+class Deterministic(Fixed):
     def __call__(self, n_tasks, rng=None):
-        """Yields the deterministic tasks in order."""
+        """Yields the tasks in deterministic order."""
         if n_tasks != len(self.tasks):
             raise ValueError(f"Number of tasks must be {len(self.tasks)}.")
 
         for task in self.tasks:
+            yield task
+
+
+class Permutation(Fixed):
+    def __call__(self, n_tasks, rng=None):
+        """Yields the tasks in a uniformly random order."""
+        if n_tasks != len(self.tasks):
+            raise ValueError(f"Number of tasks must be {len(self.tasks)}.")
+
+        rng = self._get_rng(rng)
+        for task in rng.permutation(self.tasks).tolist():
             yield task
 
 

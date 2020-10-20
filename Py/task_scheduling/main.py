@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from util.results import check_valid, eval_loss, timing_wrapper
 from util.plot import plot_task_losses, scatter_loss_runtime, plot_schedule
 
-from generators.scheduling_problems import Random as RandomProblem, Dataset as ProblemDataset
+from generators import scheduling_problems as problems
 
 from tree_search import TreeNodeShift, earliest_release, random_sequencer
 from learning.environments import SeqTaskingEnv, StepTaskingEnv
@@ -185,10 +185,10 @@ def main():
     # NOTE: ensure train/test separation for loaded data, use iter_mode='once'
     # NOTE: to train multiple schedulers on same loaded data, use problem_gen.restart(shuffle=False)
 
-    # problem_gen = RandomProblem.relu_drop(n_tasks=8, n_ch=1)
-    problem_gen = RandomProblem.deterministic_relu_drop(n_tasks=8, n_ch=1)
-    # problem_gen = RandomProblem.permutation_relu_drop(n_tasks=8, n_ch=1)
-    # problem_gen = ProblemDataset.load('relu_c2t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
+    # problem_gen = problems.Random.relu_drop(n_tasks=8, n_ch=1)
+    # problem_gen = problems.DeterministicTasks.relu_drop(n_tasks=8, n_ch=1, rng=None)
+    problem_gen = problems.PermutedTasks.relu_drop(n_tasks=12, n_ch=1, rng=None)
+    # problem_gen = problems.Dataset.load('relu_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
 
     # Algorithms
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
@@ -224,7 +224,7 @@ def main():
     #                                         model_cls='DQN', model_params=None, n_episodes=1000)
 
     policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, layers=None,
-                                               n_batch_train=90, n_batch_val=10, batch_size=1, weight_func=None,
+                                               n_batch_train=90, n_batch_val=10, batch_size=4, weight_func=None,
                                                fit_params={'epochs': 100}, do_tensorboard=False, plot_history=True,
                                                save=False, save_path=None)
 
@@ -238,7 +238,7 @@ def main():
     ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
 
     # Compare algorithms
-    compare_algorithms(algorithms, problem_gen, n_gen=10, solve=True, verbose=1, plotting=1, save=False, file=None)
+    compare_algorithms(algorithms, problem_gen, n_gen=10, solve=True, verbose=2, plotting=1, save=False, file=None)
 
     # for n_tasks, n_ch in ((24, 1), (32, 1),):
     #     problem_gen = RandomProblem.relu_drop(n_tasks, n_ch)

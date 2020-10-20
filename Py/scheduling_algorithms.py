@@ -1,6 +1,5 @@
 import copy
 import numpy as np
-from task_scheduling.util.generic import check_rng
 # from tree_search import TreeNode
 # from tree_search import TreeNodeBound
 
@@ -754,11 +753,7 @@ def branch_bound2(tasks: list, ch_avail: list, verbose=False, rng=None):
 
     """
 
-    TreeNode._tasks_init = tasks
-    TreeNode._ch_avail_init = ch_avail
-    TreeNode._rng = check_rng(rng)
-
-    stack = [TreeNodeBound([])]  # Initialize Stack
+    stack = [TreeNodeBound(tasks, ch_avail, rng=rng)]  # Initialize Stack
 
     node_best = stack[0].roll_out(do_copy=True)  # roll-out initial solution
     l_best = node_best.l_ex

@@ -7,7 +7,7 @@ from stable_baselines.bench import Monitor
 from stable_baselines.results_plotter import plot_results
 from stable_baselines import DQN, PPO2, A2C
 
-from generators.scheduling_problems import Random as RandomProblem
+from generators import scheduling_problems as problems
 from tree_search import TreeNodeShift
 from learning.environments import BaseTaskingEnv, SeqTaskingEnv, StepTaskingEnv
 
@@ -275,8 +275,8 @@ class ReinforcementLearningScheduler:
 
 
 def main():
-    # problem_gen = RandomProblem.relu_drop(n_tasks=4, n_ch=2)
-    problem_gen = RandomProblem.deterministic_relu_drop(n_tasks=4, n_ch=2)
+    # problem_gen = problems.Random.relu_drop(n_tasks=4, n_ch=2)
+    problem_gen = problems.DeterministicTasks.relu_drop(n_tasks=4, n_ch=2)
 
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
                          ('release time', lambda task: task.t_release,

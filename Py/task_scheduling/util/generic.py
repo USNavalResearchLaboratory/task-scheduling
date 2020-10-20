@@ -16,37 +16,37 @@ class RandomGeneratorMixin:
 
     @rng.setter
     def rng(self, val):
-        self._rng = check_rng(val)
+        self._rng = self.check_rng(val)
 
     def _get_rng(self, rng=None):
         if rng is None:
             return self._rng
         else:
-            return check_rng(rng)
+            return self.check_rng(rng)
 
+    @staticmethod
+    def check_rng(rng):
+        """
+        Return a random number generator.
 
-def check_rng(rng):
-    """
-    Return a random number generator.
+        Parameters
+        ----------
+        rng : int or RandomState or Generator, optional
+            Random number generator seed or object.
 
-    Parameters
-    ----------
-    rng : int or RandomState or Generator, optional
-        Random number generator seed or object.
+        Returns
+        -------
+        Generator
 
-    Returns
-    -------
-    Generator
-
-    """
-    if rng is None:
-        return np.random.default_rng()
-    elif isinstance(rng, (Integral, np.integer)):
-        return np.random.default_rng(rng)
-    elif isinstance(rng, np.random.Generator) or isinstance(rng, np.random.RandomState):
-        return rng
-    else:
-        raise TypeError("Input must be None, int, or a valid NumPy random number generator.")
+        """
+        if rng is None:
+            return np.random.default_rng()
+        elif isinstance(rng, (Integral, np.integer)):
+            return np.random.default_rng(rng)
+        elif isinstance(rng, np.random.Generator) or isinstance(rng, np.random.RandomState):
+            return rng
+        else:
+            raise TypeError("Input must be None, int, or a valid NumPy random number generator.")
 
 
 def algorithm_repr(alg):

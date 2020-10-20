@@ -10,7 +10,7 @@ from tensorboard import program
 import webbrowser
 import gym
 
-from generators.scheduling_problems import Dataset as ProblemDataset
+from generators import scheduling_problems as problems
 from tree_search import TreeNodeShift
 from learning.environments import SeqTaskingEnv, StepTaskingEnv
 
@@ -386,8 +386,8 @@ class SupervisedLearningScheduler:
 
 
 def main():
-    # problem_gen = RandomProblem.relu_drop(n_tasks=8, n_ch=2)
-    problem_gen = ProblemDataset.load('relu_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
+    # problem_gen = problems.Random.relu_drop(n_tasks=8, n_ch=2)
+    problem_gen = problems.Dataset.load('relu_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
 
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
                          ('release time', lambda task: task.t_release,

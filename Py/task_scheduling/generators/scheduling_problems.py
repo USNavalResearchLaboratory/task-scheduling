@@ -12,9 +12,11 @@ import numpy as np
 from util.generic import RandomGeneratorMixin
 from util.results import timing_wrapper
 from generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
-from generators.tasks import Deterministic as DeterministicTaskGenerator
-from generators.tasks import Permutation as PermutationTaskGenerator
+from generators.tasks import (Fixed as FixedTaskGenerator, Deterministic as DeterministicTaskGenerator,
+                              Permutation as PermutationTaskGenerator)
 from generators.channel_availabilities import UniformIID as UniformChanGenerator
+from generators.channel_availabilities import Deterministic as DeterministicChanGenerator
+
 from tree_search import branch_bound
 
 np.set_printoptions(precision=2)
@@ -24,25 +26,25 @@ _SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'
 
 
 class Base(RandomGeneratorMixin, ABC):
-    """
-    Base class for scheduling problem generators.
-
-    Parameters
-    ----------
-    n_tasks : int
-        Number of tasks.
-    n_ch: int
-        Number of channels.
-    task_gen : generators.tasks.BaseIID, optional
-        Task generation object.
-    ch_avail_gen : generators.channel_availabilities.BaseIID, optional
-        Returns random initial channel availabilities.
-    rng : int or RandomState or Generator, optional
-        Random number generator seed or object.
-
-    """
-
     def __init__(self, n_tasks, n_ch, task_gen, ch_avail_gen, rng=None):
+        """
+        Base class for scheduling problem generators.
+
+        Parameters
+        ----------
+        n_tasks : int
+            Number of tasks.
+        n_ch: int
+            Number of channels.
+        task_gen : generators.tasks.Base
+            Task generation object.
+        ch_avail_gen : generators.channel_availabilities.Base
+            Returns random initial channel availabilities.
+        rng : int or RandomState or Generator, optional
+            Random number generator seed or object.
+
+        """
+
         super().__init__(rng)
 
         self.n_tasks = n_tasks
@@ -174,6 +176,7 @@ class Base(RandomGeneratorMixin, ABC):
 
 
 class Random(Base):
+    """Randomly generated scheduling problems."""
     def _gen_single(self, rng):
         """Return a single scheduling problem (and optional solution)."""
         tasks = list(self.task_gen(self.n_tasks, rng=rng))
@@ -185,26 +188,79 @@ class Random(Base):
         return problem, solution
 
     @classmethod
-    def relu_drop(cls, n_tasks, n_ch, duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-                  t_drop_lim=(6, 12), l_drop_lim=(35, 50), ch_avail_lim=(0, 0), rng=None):
+    def relu_drop(cls, n_tasks, n_ch, rng=None, ch_avail_lim=(0, 0), **relu_lims):
 
-        task_gen = ContinuousUniformTaskGenerator.relu_drop(duration_lim, t_release_lim, slope_lim, t_drop_lim,
-                                                            l_drop_lim)
-        ch_avail_gen = UniformChanGenerator(lim=ch_avail_lim)
+        task_gen = ContinuousUniformTaskGenerator.relu_drop(**relu_lims)
+        ch_avail_gen = UniformChanGenerator(lims=ch_avail_lim)
 
         return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
+
+class FixedTasks(Base, ABC):
+    def __init__(self, n_tasks, n_ch, task_gen, ch_avail_gen, rng=None):
+        """
+        Problem generators with fixed set of tasks.
+
+        Parameters
+        ----------
+        n_tasks : int
+            Number of tasks.
+        n_ch: int
+            Number of channels.
+        task_gen : generators.tasks.Permutation
+            Task generation object.
+        ch_avail_gen : generators.channel_availabilities.Deterministic
+            Returns random initial channel availabilities.
+        rng : int or RandomState or Generator, optional
+            Random number generator seed or object.
+
+        """
+
+        super().__init__(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
+
+        if not (isinstance(task_gen, FixedTaskGenerator)
+                and isinstance(ch_avail_gen, DeterministicChanGenerator)):
+            raise TypeError
+
+        self.problem = _SchedulingProblem(task_gen.tasks, ch_avail_gen.ch_avail)
+
+        # Solve for optimal solution
+        t_ex, ch_ex, t_run = timing_wrapper(partial(branch_bound, verbose=False))(*self.problem)
+        self.solution = _SchedulingSolution(t_ex, ch_ex, t_run)
+
+    @abstractmethod
+    def _gen_single(self, rng):
+        """Return a single scheduling problem (and optional solution)."""
+        raise NotImplementedError
+
+
+class DeterministicTasks(FixedTasks):
+    def _gen_single(self, rng):
+        return self.problem, self.solution
+
     @classmethod
-    def deterministic_relu_drop(cls, n_tasks, n_ch, ch_avail_lim=(0, 0), rng=None):
+    def relu_drop(cls, n_tasks, n_ch, rng=None):
         task_gen = DeterministicTaskGenerator.relu_drop(n_tasks)
-        ch_avail_gen = UniformChanGenerator(lim=ch_avail_lim)
+        ch_avail_gen = DeterministicChanGenerator.from_uniform(n_ch)
 
         return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
+
+class PermutedTasks(FixedTasks):
+    def _gen_single(self, rng):
+        tasks = list(self.task_gen(self.n_tasks, rng=rng))
+
+        problem = _SchedulingProblem(tasks, self.problem.ch_avail)
+
+        idx = [self.problem.tasks.index(task) for task in tasks]  # permutation indices
+        solution = _SchedulingSolution(self.solution.t_ex[idx], self.solution.ch_ex[idx], self.solution.t_run)
+
+        return problem, solution
+
     @classmethod
-    def permutation_relu_drop(cls, n_tasks, n_ch, ch_avail_lim=(0, 0), rng=None):
+    def relu_drop(cls, n_tasks, n_ch, rng=None):
         task_gen = PermutationTaskGenerator.relu_drop(n_tasks)
-        ch_avail_gen = UniformChanGenerator(lim=ch_avail_lim)
+        ch_avail_gen = DeterministicChanGenerator.from_uniform(n_ch)
 
         return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
@@ -258,15 +314,16 @@ class Dataset(Base):
 
         return cls(**dict_gen, iter_mode=iter_mode, shuffle_mode=shuffle_mode, rng=rng)
 
-    def restart(self, shuffle=False):
+    def restart(self, shuffle=False, rng=None):
         """Resets data index pointer to beginning, performs optional data shuffle."""
         self.i = 0
         if shuffle:
+            rng = self._get_rng(rng)
             if self.solutions is None:
-                self.problems = self.rng.permutation(self.problems).tolist()
+                self.problems = rng.permutation(self.problems).tolist()
             else:
                 _temp = list(zip(self.problems, self.solutions))
-                _p, _s = zip(*self.rng.permutation(_temp).tolist())
+                _p, _s = zip(*rng.permutation(_temp).tolist())
                 self.problems, self.solutions = list(_p), list(_s)
 
     def _gen_single(self, rng):
@@ -277,7 +334,7 @@ class Dataset(Base):
                 # warnings.warn("Problem generator data has been exhausted.")
                 # return None, None
             elif self.iter_mode == 'repeat':
-                self.restart(self.shuffle_mode == 'repeat')
+                self.restart(self.shuffle_mode == 'repeat', rng=rng)
 
         problem = self.problems[self.i]
         if self.solutions is not None:
@@ -296,7 +353,7 @@ def main():
     print(list(rand_gen(2)))
     print(list(rand_gen(3)))
 
-    rand_gen = Random.deterministic_relu_drop(n_tasks=3, n_ch=2, rng=None)
+    rand_gen = DeterministicTasks.relu_drop(n_tasks=3, n_ch=2, rng=None)
 
     print(list(rand_gen(2)))
     print(list(rand_gen(3)))

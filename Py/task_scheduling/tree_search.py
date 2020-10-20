@@ -8,8 +8,7 @@ import numpy as np
 
 from util.generic import RandomGeneratorMixin
 from util.results import eval_loss
-from generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
-from generators.channel_availabilities import UniformIID as UniformChanGenerator
+# from generators.scheduling_problems import Random as RandomProblem
 
 from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
@@ -818,15 +817,8 @@ def main():
     n_tasks = 10
     n_channels = 2
 
-    task_gen = ContinuousUniformTaskGenerator.relu_drop(duration_lim=(3, 6), t_release_lim=(0, 4),
-                                                        slope_lim=(0.5, 2), t_drop_lim=(6, 12),
-                                                        l_drop_lim=(35, 50))
-    ch_avail_gen = UniformChanGenerator(lim=(0, 1))
-
-    tasks = list(task_gen(n_tasks))
-    ch_avail = list(ch_avail_gen(n_channels))
-    # problem_gen = RandomProblem.relu_drop(n_tasks, n_channels)
-    # (tasks, ch_avail), = problem_gen()
+    problem_gen = RandomProblem.relu_drop(n_tasks, n_channels)
+    (tasks, ch_avail), = problem_gen()
 
     for i in range(100):    # check that seq=np.argsort(t_ex) maps to an optimal schedule
         print(f"{i}", end='\n')
@@ -835,8 +827,7 @@ def main():
         # node = TreeNode(seq)
         # t_ex = node.t_ex
 
-        tasks = list(task_gen(n_tasks))
-        ch_avail = list(ch_avail_gen(n_channels))
+        (tasks, ch_avail), = problem_gen()
         t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True, rng=None)
         loss = eval_loss(tasks, t_ex)
 

@@ -11,7 +11,7 @@ from itertools import product
 import numpy as np
 import matplotlib.pyplot as plt
 
-from util.generic import algorithm_repr, check_rng
+from util.generic import algorithm_repr
 from util.results import check_valid, eval_loss
 from util.plot import plot_task_losses, plot_loss_runtime
 
@@ -32,10 +32,6 @@ n_channels = 2
 
 task_gen = ContinuousUniformTaskGenerator.relu_drop(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
                                                     t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)       # task set generator
-
-
-def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time generator
-    return rng.uniform(0, 2, n_ch)
 
 
 max_runtimes = np.logspace(-2, 0, 11)
