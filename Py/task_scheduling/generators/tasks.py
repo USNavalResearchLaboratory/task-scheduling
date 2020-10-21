@@ -5,13 +5,10 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from util.generic import RandomGeneratorMixin
-from task_scheduling.tasks import ReluDrop as ReluDropTask
+from ..util.generic import RandomGeneratorMixin
+from ..tasks import ReluDrop as ReluDropTask
 
 np.set_printoptions(precision=2)
-
-
-# TODO: add TSRS search/track task generators
 
 
 class Base(RandomGeneratorMixin, ABC):

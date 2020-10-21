@@ -10,17 +10,15 @@ from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
 
-from util.results import check_valid, eval_loss, timing_wrapper
-from util.plot import plot_task_losses, scatter_loss_runtime, plot_schedule
+from .util.results import check_valid, eval_loss, timing_wrapper
+from .util.plot import plot_task_losses, scatter_loss_runtime, plot_schedule
 
-from generators import scheduling_problems as problems
+from .generators import scheduling_problems as problems
 
-from tree_search import TreeNodeShift, earliest_release, random_sequencer
-from learning.environments import SeqTaskingEnv, StepTaskingEnv
-from learning.SL_policy import SupervisedLearningScheduler as SL_Scheduler
-# from learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler
-
-# TODO: structure imports properly w/o relying on PyCharm's path append of the content root
+from .tree_search import TreeNodeShift, earliest_release, random_sequencer
+from .learning.environments import SeqTaskingEnv, StepTaskingEnv
+from .learning.SL_policy import SupervisedLearningScheduler as SL_Scheduler
+# from .learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')

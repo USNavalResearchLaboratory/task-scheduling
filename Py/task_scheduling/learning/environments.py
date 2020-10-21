@@ -9,11 +9,11 @@ import gym
 from gym.spaces import Box, Space, Discrete
 # from stable_baselines.common.vec_env import DummyVecEnv
 
-from util.plot import plot_task_losses
-from util.generic import seq2num, num2seq
-from generators import scheduling_problems as problems
-from tree_search import TreeNode, TreeNodeShift
-# from RL_policy import RandomAgent
+from ..util.plot import plot_task_losses
+from ..util.generic import seq2num, num2seq
+from ..generators import scheduling_problems as problems
+from ..tree_search import TreeNode, TreeNodeShift
+# from .RL_policy import RandomAgent
 
 np.set_printoptions(precision=2)
 

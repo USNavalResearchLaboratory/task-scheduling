@@ -10,9 +10,9 @@ from tensorboard import program
 import webbrowser
 import gym
 
-from generators import scheduling_problems as problems
-from tree_search import TreeNodeShift
-from learning.environments import SeqTaskingEnv, StepTaskingEnv
+from ..generators import scheduling_problems as problems
+from ..tree_search import TreeNodeShift
+from .environments import SeqTaskingEnv, StepTaskingEnv
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')

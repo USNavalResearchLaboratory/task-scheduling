@@ -6,9 +6,9 @@ from math import isclose
 
 import numpy as np
 
-from util.generic import RandomGeneratorMixin
-from util.results import eval_loss
-# from generators.scheduling_problems import Random as RandomProblem
+from .util.generic import RandomGeneratorMixin
+from .util.results import eval_loss
+# from .generators.scheduling_problems import Random as RandomProblem
 
 from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 

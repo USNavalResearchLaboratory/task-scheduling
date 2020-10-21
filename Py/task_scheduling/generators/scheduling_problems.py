@@ -9,15 +9,15 @@ from functools import partial
 
 import numpy as np
 
-from util.generic import RandomGeneratorMixin
-from util.results import timing_wrapper
-from generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
-from generators.tasks import (Fixed as FixedTaskGenerator, Deterministic as DeterministicTaskGenerator,
+from ..util.generic import RandomGeneratorMixin
+from ..util.results import timing_wrapper
+from .tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
+from .tasks import (Fixed as FixedTaskGenerator, Deterministic as DeterministicTaskGenerator,
                               Permutation as PermutationTaskGenerator, SearchTrackIID as SearchTrackTaskGenerator)
-from generators.channel_availabilities import UniformIID as UniformChanGenerator
-from generators.channel_availabilities import Deterministic as DeterministicChanGenerator
+from .channel_availabilities import UniformIID as UniformChanGenerator
+from .channel_availabilities import Deterministic as DeterministicChanGenerator
 
-from tree_search import branch_bound
+from ..tree_search import branch_bound
 
 np.set_printoptions(precision=2)
 

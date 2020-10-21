@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from util.generic import RandomGeneratorMixin
+from ..util.generic import RandomGeneratorMixin
 
 
 class Base(RandomGeneratorMixin, ABC):

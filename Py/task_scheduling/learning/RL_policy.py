@@ -7,9 +7,9 @@ from stable_baselines.bench import Monitor
 from stable_baselines.results_plotter import plot_results
 from stable_baselines import DQN, PPO2, A2C
 
-from generators import scheduling_problems as problems
-from tree_search import TreeNodeShift
-from learning.environments import BaseTaskingEnv, SeqTaskingEnv, StepTaskingEnv
+from ..generators import scheduling_problems as problems
+from ..tree_search import TreeNodeShift
+from .environments import BaseTaskingEnv, SeqTaskingEnv, StepTaskingEnv
 
 np.set_printoptions(precision=2)
 
