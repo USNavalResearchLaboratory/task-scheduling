@@ -87,6 +87,12 @@ class ReinforcementLearningScheduler:
             Task execution channels.
         """
 
+        # t_run = time.perf_counter()     # FIXME: integrate runtime control
+        # max_runtime = float('inf')
+        # runtime = time.perf_counter() - t_run
+        # if runtime >= max_runtime:
+        #     raise RuntimeError(f"Algorithm timeout: {runtime} > {max_runtime}.")
+
         obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)
         done = False
         while not done:
@@ -250,9 +256,9 @@ class ReinforcementLearningScheduler:
 #         return env.node.t_ex, env.node.ch_ex
 #
 #     return scheduling_agent
-
-
-# def wrap_agent_run_lim(env, agent):     # FIXME
+#
+#
+# def wrap_agent_run_lim(env, agent):
 #     """Generate scheduling function by running an agent on a single environment episode, enforcing max runtime."""
 #
 #     def scheduling_agent(tasks, ch_avail, max_runtime):

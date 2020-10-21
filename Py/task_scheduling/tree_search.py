@@ -14,6 +14,8 @@ from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
 np.set_printoptions(precision=2)
 
+# TODO: modify classes and algorithms to efficiently handle repeated tasks!!
+
 
 class TreeNode(RandomGeneratorMixin):
     """

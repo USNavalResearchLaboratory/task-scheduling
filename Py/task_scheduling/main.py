@@ -10,14 +10,14 @@ from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .util.results import check_valid, eval_loss, timing_wrapper
-from .util.plot import plot_task_losses, scatter_loss_runtime, plot_schedule
+from task_scheduling.util.results import check_valid, eval_loss, timing_wrapper
+from task_scheduling.util.plot import plot_task_losses, scatter_loss_runtime, plot_schedule
 
-from .generators import scheduling_problems as problems
+from task_scheduling.generators import scheduling_problems as problems
 
-from .tree_search import TreeNodeShift, earliest_release, random_sequencer
-from .learning.environments import SeqTaskingEnv, StepTaskingEnv
-from .learning.SL_policy import SupervisedLearningScheduler as SL_Scheduler
+from task_scheduling.tree_search import TreeNodeShift, earliest_release, random_sequencer
+from task_scheduling.learning.environments import SeqTaskingEnv, StepTaskingEnv
+from task_scheduling.learning.SL_policy import SupervisedLearningScheduler as SL_Scheduler
 # from .learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler
 
 np.set_printoptions(precision=2)
@@ -184,10 +184,11 @@ def main():
     # NOTE: to train multiple schedulers on same loaded data, use problem_gen.restart(shuffle=False)
 
     # problem_gen = problems.Random.relu_drop(n_tasks=8, n_ch=1)
-    problem_gen = problems.Random.search_track(n_tasks=8, n_ch=1)
     # problem_gen = problems.DeterministicTasks.relu_drop(n_tasks=8, n_ch=1, rng=None)
     # problem_gen = problems.PermutedTasks.relu_drop(n_tasks=12, n_ch=1, rng=None)
     # problem_gen = problems.Dataset.load('relu_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
+    # problem_gen = problems.Random.search_track(n_tasks=8, n_ch=1)
+    problem_gen = problems.PermutedTasks.search_track(n_tasks=8, n_ch=1)
 
     # Algorithms
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),

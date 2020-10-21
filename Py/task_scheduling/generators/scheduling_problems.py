@@ -267,7 +267,13 @@ class PermutedTasks(FixedTasks):
 
         problem = _SchedulingProblem(tasks, self.problem.ch_avail)
 
-        idx = [self.problem.tasks.index(task) for task in tasks]  # permutation indices
+        idx = []    # permutation indices
+        tasks_ = self.problem.tasks.copy()
+        for task in tasks:
+            i = tasks_.index(task)
+            idx.append(i)
+            tasks_[i] = None    # ensures unique indices
+
         solution = _SchedulingSolution(self.solution.t_ex[idx], self.solution.ch_ex[idx], self.solution.t_run)
 
         return problem, solution
