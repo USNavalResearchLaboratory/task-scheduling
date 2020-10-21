@@ -10,6 +10,7 @@ from task_scheduling.tasks import ReluDrop as ReluDropTask
 
 np.set_printoptions(precision=2)
 
+
 # TODO: add TSRS search/track task generators
 
 
@@ -99,7 +100,7 @@ class GenericIID(BaseIID):
 
 
 class ContinuousUniformIID(BaseIID):
-    """Generator of uniformly IID random task objects."""
+    """Generates I.I.D. tasks with independently uniform continuous parameters."""
 
     def _param_gen(self, rng):
         """Randomly generate task parameters."""
@@ -124,13 +125,13 @@ class ContinuousUniformIID(BaseIID):
 
 class DiscreteIID(BaseIID):
     """
-    Generator of discrete IID random task objects.
+    Generates I.I.D. tasks with independently discrete parameters.
 
     Parameters
     ----------
     cls_task : class
         Class for instantiating task objects.
-    param_probs: dict
+    param_probs: dict of str to dict
         Maps parameter name strings to dictionaries mapping values to probabilities.
     rng : int or RandomState or Generator, optional
         Random number generator seed or object.
@@ -138,15 +139,15 @@ class DiscreteIID(BaseIID):
     """
 
     def __init__(self, cls_task, param_probs, rng=None):
-        param_lims = {name: (min(param_probs[name].keys()), max(param_probs[name].keys()))
-                      for name in cls_task.param_names}
-        super().__init__(cls_task, param_lims, rng)
-
         self.param_probs = param_probs
+        param_lims = {name: (min(param_probs[name].keys()), max(param_probs[name].keys()))
+                      for name in self.cls_task.param_names}
+
+        super().__init__(cls_task, param_lims, rng)
 
     def _param_gen(self, rng):
         """Randomly generate task parameters."""
-        return {name: rng.choice(self.param_probs[name].keys(), p=self.param_probs[name].values())
+        return {name: rng.choice(list(self.param_probs[name].keys()), p=list(self.param_probs[name].values()))
                 for name in self.cls_task.param_names}
 
     def __eq__(self, other):
@@ -156,13 +157,55 @@ class DiscreteIID(BaseIID):
             return NotImplemented
 
     @classmethod
-    def relu_drop(cls, duration_prob, t_release_prob, slope_prob, t_drop_prob, l_drop_prob, rng=None):
+    def uniform_relu_drop(cls, duration_vals, t_release_vals, slope_vals, t_drop_vals, l_drop_vals, rng=None):
         """Factory constructor for ReluDrop task objects."""
 
-        param_probs = {'duration': duration_prob, 't_release': t_release_prob,
-                       'slope': slope_prob, 't_drop': t_drop_prob, 'l_drop': l_drop_prob}
-
+        param_probs = {'duration': dict(zip(duration_vals, np.ones(len(duration_vals)) / len(duration_vals))),
+                       't_release': dict(zip(t_release_vals, np.ones(len(t_release_vals)) / len(t_release_vals))),
+                       'slope': dict(zip(slope_vals, np.ones(len(slope_vals)) / len(slope_vals))),
+                       't_drop': dict(zip(t_drop_vals, np.ones(len(t_drop_vals)) / len(t_drop_vals))),
+                       'l_drop': dict(zip(l_drop_vals, np.ones(len(l_drop_vals)) / len(l_drop_vals))),
+                       }
         return cls(ReluDropTask, param_probs, rng)
+
+
+class SearchTrackIID(BaseIID):
+    """Search and Track tasks based on 2020 TSRS paper."""
+
+    def __init__(self, probs=None, rng=None):
+        if probs is None:
+            self.probs = [.1, .2, .4, .1, .1, .1]
+        else:
+            self.probs = probs
+
+        self.targets = [{'duration': .036, 't_revisit': 2.5},
+                        {'duration': .036, 't_revisit': 5.0},
+                        {'duration': .018, 't_revisit': 5.0},
+                        {'duration': .018, 't_revisit': 1.0},
+                        {'duration': .018, 't_revisit': 2.0},
+                        {'duration': .018, 't_revisit': 4.0},
+                        ]
+
+        durations, t_revisits = zip(*[target.values() for target in self.targets])
+        param_lims = {'duration': (min(durations), max(durations)),
+                      't_release': (0, 0),
+                      'slope': (1 / max(t_revisits), 1 / min(t_revisits)),
+                      't_drop': (min(t_revisits) + 0.1, max(t_revisits) + 0.1),
+                      'l_drop': (300., 300.)
+                      }
+
+        super().__init__(ReluDropTask, param_lims, rng)
+
+    def _param_gen(self, rng):
+        """Randomly generate task parameters."""
+        duration, t_revisit = rng.choice(self.targets, p=self.probs).values()
+        params = {'duration': duration,
+                  't_release': rng.uniform(*self.param_lims['t_release']),
+                  'slope': 1 / t_revisit,
+                  't_drop': t_revisit + 0.1,
+                  'l_drop': 300.
+                  }
+        return params
 
 
 class Fixed(Base, ABC):
@@ -205,13 +248,20 @@ class Fixed(Base, ABC):
             return NotImplemented
 
     @classmethod
-    def relu_drop(cls, n_tasks, rng=None, **relu_lims):
-        task_gen = ContinuousUniformIID.relu_drop(rng=rng, **relu_lims)
-
-        tasks = list(task_gen(n_tasks))
+    def _task_gen_to_fixed(cls, n_tasks, task_gen, rng):
+        tasks = list(task_gen(n_tasks, rng))
         param_lims = task_gen.param_lims
+        return cls(tasks, param_lims, rng)
 
-        return cls(tasks, param_lims, task_gen.rng)
+    @classmethod
+    def relu_drop(cls, n_tasks, rng=None, **relu_lims):
+        task_gen = ContinuousUniformIID.relu_drop(**relu_lims)
+        return cls._task_gen_to_fixed(n_tasks, task_gen, rng)
+
+    @classmethod
+    def search_track(cls, n_tasks, probs=None, rng=None):
+        task_gen = SearchTrackIID(probs)
+        return cls._task_gen_to_fixed(n_tasks, task_gen, rng)
 
 
 class Deterministic(Fixed):

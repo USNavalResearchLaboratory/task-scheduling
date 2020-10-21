@@ -186,8 +186,9 @@ def main():
     # NOTE: to train multiple schedulers on same loaded data, use problem_gen.restart(shuffle=False)
 
     # problem_gen = problems.Random.relu_drop(n_tasks=8, n_ch=1)
+    problem_gen = problems.Random.search_track(n_tasks=8, n_ch=1)
     # problem_gen = problems.DeterministicTasks.relu_drop(n_tasks=8, n_ch=1, rng=None)
-    problem_gen = problems.PermutedTasks.relu_drop(n_tasks=12, n_ch=1, rng=None)
+    # problem_gen = problems.PermutedTasks.relu_drop(n_tasks=12, n_ch=1, rng=None)
     # problem_gen = problems.Dataset.load('relu_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
 
     # Algorithms

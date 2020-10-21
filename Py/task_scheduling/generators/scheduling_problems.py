@@ -13,7 +13,7 @@ from util.generic import RandomGeneratorMixin
 from util.results import timing_wrapper
 from generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
 from generators.tasks import (Fixed as FixedTaskGenerator, Deterministic as DeterministicTaskGenerator,
-                              Permutation as PermutationTaskGenerator)
+                              Permutation as PermutationTaskGenerator, SearchTrackIID as SearchTrackTaskGenerator)
 from generators.channel_availabilities import UniformIID as UniformChanGenerator
 from generators.channel_availabilities import Deterministic as DeterministicChanGenerator
 
@@ -188,12 +188,19 @@ class Random(Base):
         return problem, solution
 
     @classmethod
-    def relu_drop(cls, n_tasks, n_ch, rng=None, ch_avail_lim=(0, 0), **relu_lims):
-
-        task_gen = ContinuousUniformTaskGenerator.relu_drop(**relu_lims)
+    def _task_gen_factory(cls, n_tasks, task_gen, n_ch, ch_avail_lim, rng):
         ch_avail_gen = UniformChanGenerator(lims=ch_avail_lim)
-
         return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
+
+    @classmethod
+    def relu_drop(cls, n_tasks, n_ch, rng=None, ch_avail_lim=(0, 0), **relu_lims):
+        task_gen = ContinuousUniformTaskGenerator.relu_drop(**relu_lims)
+        return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
+
+    @classmethod
+    def search_track(cls, n_tasks, n_ch, probs=None, ch_avail_lim=(0, 0), rng=None):
+        task_gen = SearchTrackTaskGenerator(probs)
+        return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
 
 class FixedTasks(Base, ABC):
@@ -233,6 +240,11 @@ class FixedTasks(Base, ABC):
         """Return a single scheduling problem (and optional solution)."""
         raise NotImplementedError
 
+    @classmethod
+    def _task_gen_factory(cls, n_tasks, task_gen, n_ch, rng):
+        ch_avail_gen = DeterministicChanGenerator.from_uniform(n_ch)
+        return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
+
 
 class DeterministicTasks(FixedTasks):
     def _gen_single(self, rng):
@@ -241,9 +253,12 @@ class DeterministicTasks(FixedTasks):
     @classmethod
     def relu_drop(cls, n_tasks, n_ch, rng=None):
         task_gen = DeterministicTaskGenerator.relu_drop(n_tasks)
-        ch_avail_gen = DeterministicChanGenerator.from_uniform(n_ch)
+        return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
 
-        return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
+    @classmethod
+    def search_track(cls, n_tasks, n_ch, probs=None, rng=None):
+        task_gen = DeterministicTaskGenerator.search_track(n_tasks, probs)
+        return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
 
 
 class PermutedTasks(FixedTasks):
@@ -260,9 +275,12 @@ class PermutedTasks(FixedTasks):
     @classmethod
     def relu_drop(cls, n_tasks, n_ch, rng=None):
         task_gen = PermutationTaskGenerator.relu_drop(n_tasks)
-        ch_avail_gen = DeterministicChanGenerator.from_uniform(n_ch)
+        return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
 
-        return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
+    @classmethod
+    def search_track(cls, n_tasks, n_ch, probs=None, rng=None):
+        task_gen = PermutationTaskGenerator.search_track(n_tasks, probs)
+        return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
 
 
 class Dataset(Base):
