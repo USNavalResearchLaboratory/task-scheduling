@@ -36,9 +36,6 @@ def check_valid(tasks, t_ex, ch_ex, tol=1e-12):
                 raise ValueError("Tasks cannot be executed before their release time.")
 
             for n_2 in range(n_1 + 1, len(tasks_ch)):
-                # margins = [t_ex_ch[n_1] - (t_ex_ch[n_2] + tasks_ch[n_2].duration),
-                #            t_ex_ch[n_2] - (t_ex_ch[n_1] + tasks_ch[n_1].duration)]
-
                 conditions = [t_ex_ch[n_1] + tol < t_ex_ch[n_2] + tasks_ch[n_2].duration,
                               t_ex_ch[n_2] + tol < t_ex_ch[n_1] + tasks_ch[n_1].duration]
                 if all(conditions):

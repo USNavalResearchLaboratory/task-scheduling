@@ -162,7 +162,7 @@ def plot_loss_runtime(t_run, l_ex, do_std=True, ax=None, ax_kwargs=None):
         l_mean = l_ex[alg_repr].mean(-1)
         if do_std:
             l_std = l_ex[alg_repr].std(-1)
-            ax.errorbar(t_run, l_mean, yerr=l_std, label=alg_repr)
+            ax.errorbar(t_run, l_mean, yerr=l_std, label=alg_repr)      # TODO: use fill_between!?
         else:
             ax.plot(t_run, l_mean, label=alg_repr)
 

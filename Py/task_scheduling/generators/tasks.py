@@ -136,11 +136,12 @@ class DiscreteIID(BaseIID):
     """
 
     def __init__(self, cls_task, param_probs, rng=None):
-        self.param_probs = param_probs
         param_lims = {name: (min(param_probs[name].keys()), max(param_probs[name].keys()))
                       for name in self.cls_task.param_names}
 
         super().__init__(cls_task, param_lims, rng)
+
+        self.param_probs = param_probs
 
     def _param_gen(self, rng):
         """Randomly generate task parameters."""
@@ -169,12 +170,7 @@ class DiscreteIID(BaseIID):
 class SearchTrackIID(BaseIID):
     """Search and Track tasks based on 2020 TSRS paper."""
 
-    def __init__(self, probs=None, rng=None):
-        if probs is None:
-            self.probs = [.1, .2, .4, .1, .1, .1]
-        else:
-            self.probs = probs
-
+    def __init__(self, probs=None, t_release_lim=(0., 0.), rng=None):
         self.targets = [{'duration': .036, 't_revisit': 2.5},
                         {'duration': .036, 't_revisit': 5.0},
                         {'duration': .018, 't_revisit': 5.0},
@@ -185,13 +181,18 @@ class SearchTrackIID(BaseIID):
 
         durations, t_revisits = zip(*[target.values() for target in self.targets])
         param_lims = {'duration': (min(durations), max(durations)),
-                      't_release': (0, 0),
+                      't_release': t_release_lim,
                       'slope': (1 / max(t_revisits), 1 / min(t_revisits)),
                       't_drop': (min(t_revisits) + 0.1, max(t_revisits) + 0.1),
                       'l_drop': (300., 300.)
                       }
 
         super().__init__(ReluDropTask, param_lims, rng)
+
+        if probs is None:
+            self.probs = [.1, .2, .4, .1, .1, .1]
+        else:
+            self.probs = probs
 
     def _param_gen(self, rng):
         """Randomly generate task parameters."""
@@ -256,8 +257,8 @@ class Fixed(Base, ABC):
         return cls._task_gen_to_fixed(n_tasks, task_gen, rng)
 
     @classmethod
-    def search_track(cls, n_tasks, probs=None, rng=None):
-        task_gen = SearchTrackIID(probs)
+    def search_track(cls, n_tasks, probs=None, t_release_lim=(0., 0.), rng=None):
+        task_gen = SearchTrackIID(probs, t_release_lim)
         return cls._task_gen_to_fixed(n_tasks, task_gen, rng)
 
 

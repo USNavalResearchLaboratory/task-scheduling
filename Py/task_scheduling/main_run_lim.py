@@ -11,12 +11,12 @@ from itertools import product
 import numpy as np
 import matplotlib.pyplot as plt
 
-from util.generic import algorithm_repr
-from util.results import check_valid, eval_loss
-from util.plot import plot_task_losses, plot_loss_runtime
+from task_scheduling.util.generic import algorithm_repr
+from task_scheduling.util.results import check_valid, eval_loss
+from task_scheduling.util.plot import plot_task_losses, plot_loss_runtime
 
-from generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
-from tree_search_run_lim import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release
+from task_scheduling.generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
+from task_scheduling.tree_search_run_lim import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release
 
 plt.style.use('seaborn')
 
@@ -102,7 +102,7 @@ for i_gen in range(n_gen):      # Generate new scheduling problem
 
         l_ex_mean[alg_repr][i_gen] = l_ex_iter[alg_repr][i_gen].mean(-1)
 
-    plot_loss_runtime(max_runtimes, l_ex_iter[i_gen], do_std=False, ax=ax_gen[1])
+    plot_loss_runtime(max_runtimes, l_ex_iter[i_gen], do_std=False, ax=ax_gen[1])   # TODO: just do scatter?
 
 print('')
 
