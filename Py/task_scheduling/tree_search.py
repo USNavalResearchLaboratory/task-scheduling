@@ -707,7 +707,8 @@ def random_sequencer(tasks, ch_avail, rng=None):
 
     """
 
-    node = TreeNode(tasks, ch_avail, rng=rng).roll_out(do_copy=True)
+    node = TreeNode(tasks, ch_avail, rng=rng)
+    node.roll_out()
     return node.t_ex, node.ch_ex
 
 
@@ -732,7 +733,7 @@ def earliest_release(tasks, ch_avail, do_swap=False):
 
     """
 
-    seq = list(np.argsort([task.t_release for task in tasks]))
+    seq = np.argsort([task.t_release for task in tasks])
     node = TreeNode(tasks, ch_avail, seq)
 
     if do_swap:

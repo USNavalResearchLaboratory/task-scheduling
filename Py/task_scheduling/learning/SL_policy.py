@@ -1,6 +1,8 @@
 import shutil
+from pathlib import Path
 import time
 import dill
+import cProfile
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,9 +19,12 @@ from task_scheduling.learning.environments import SeqTaskingEnv, StepTaskingEnv
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
 
+pkg_path = Path(__file__).parents[2] / 'data' / 'schedules'
+
 
 class SupervisedLearningScheduler:
-    log_dir = '../../logs/TF_train'
+    # log_dir = '../../logs/TF_train'
+    log_dir = pkg_path / 'logs' / 'TF_train'
 
     def __init__(self, model, env):
         self.model = model
@@ -53,12 +58,17 @@ class SupervisedLearningScheduler:
             Task execution channels.
         """
 
+        if isinstance(self.env, StepTaskingEnv):        # FIXME: high runtime - profile!
+            do_masking = True
+        else:
+            do_masking = False
+
         obs = self.env.reset(tasks, ch_avail)
         done = False
         while not done:
             prob = self.model.predict(obs[np.newaxis]).squeeze(0)
 
-            if isinstance(self.env, StepTaskingEnv):
+            if do_masking:
                 # seq_rem = self.env.infer_action_space(obs).elements.tolist()
                 seq_rem = self.env.action_space.elements.tolist()
 
@@ -149,7 +159,9 @@ class SupervisedLearningScheduler:
         if save_path is None:
             save_path = f"temp/{time.strftime('%Y-%m-%d_%H-%M-%S')}"
 
-        self.model.save('../models/' + save_path)  # save TF model
+        save_path = pkg_path / 'models' / save_path
+        # save_path = '../models/' + save_path
+        self.model.save(save_path)  # save TF model
 
         with open('../models/' + save_path + '/env', 'wb') as file:
             dill.dump(self.env, file)  # save environment
@@ -158,7 +170,9 @@ class SupervisedLearningScheduler:
     def load(cls, load_path):
         model = keras.models.load_model('../models/' + load_path)
 
-        with open('../models/' + load_path + '/env', 'rb') as file:
+        # load_path = '../models/' + load_path + '/env'
+        load_path = pkg_path / 'models' / load_path / 'env'
+        with open(load_path, 'rb') as file:
             env = dill.load(file)
 
         return cls(model, env)
@@ -192,14 +206,18 @@ class SupervisedLearningScheduler:
             Function mapping environment object to a training weight.
         fit_params : dict, optional
             Parameters for the mode fit method.
-        do_tensorboard : bool
+        do_tensorboard : bool, optional
             If True, Tensorboard is used for training visualization.
-        plot_history : bool
+        plot_history : bool, optional
             If True, training is visualized using plotting modules.
-        save : bool
+        save : bool, optional
             If True, the network and environment are serialized.
         save_path : str, optional
             String representation of sub-directory to save to.
+
+        Returns
+        -------
+        SupervisedLearningScheduler
 
         """
 
@@ -240,8 +258,8 @@ class SupervisedLearningScheduler:
 
 
 def main():
-    # problem_gen = problems.Random.relu_drop(n_tasks=8, n_ch=2)
-    problem_gen = problems.Dataset.load('relu_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
+    problem_gen = problems.Random.relu_drop(n_tasks=8, n_ch=1)
+    # problem_gen = problems.Dataset.load('relu_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
 
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
                          ('release time', lambda task: task.t_release,
@@ -276,20 +294,17 @@ def main():
     #     return (env.n_tasks - len(env.node.seq)) / env.n_tasks
 
     scheduler = SupervisedLearningScheduler.train_from_gen(problem_gen, env_cls, env_params, layers=None,
-                                                           compile_params=None, n_batch_train=90, n_batch_val=10,
+                                                           compile_params=None, n_batch_train=10, n_batch_val=10,
                                                            batch_size=1, weight_func=weight_func_,
                                                            fit_params={'epochs': 100},
                                                            do_tensorboard=False, plot_history=True, save=False,
                                                            save_path=None)
 
-    # scheduler = train_policy(problem_gen, n_batch_train=990, n_batch_val=10, batch_size=1, weight_func=weight_func_,
-    #                          env_cls=env_cls, env_params=env_params,
-    #                          model=None, compile_params=None, fit_params=None,
-    #                          do_tensorboard=False, plot_history=True, save=True, save_dir=None)
+    (tasks, ch_avail), = problem_gen(n_gen=1)
 
-    # (tasks, ch_avail), = problem_gen(n_gen=1)
+    # cProfile.run('scheduler(tasks, ch_avail)')
+
     # t_ex, ch_ex = scheduler(tasks, ch_avail)
-    #
     # print(t_ex)
     # print(ch_ex)
 

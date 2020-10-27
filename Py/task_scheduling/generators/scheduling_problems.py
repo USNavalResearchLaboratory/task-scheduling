@@ -2,10 +2,10 @@
 
 from abc import ABC, abstractmethod
 from time import strftime
-
-import dill
 from collections import namedtuple
 from functools import partial
+import dill
+from pathlib import Path
 
 import numpy as np
 
@@ -15,6 +15,8 @@ from task_scheduling.util.results import timing_wrapper
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
 
 np.set_printoptions(precision=2)
+
+pkg_path = Path(__file__).parents[2] / 'data' / 'schedules'
 
 _SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
 _SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
@@ -62,7 +64,7 @@ class Base(RandomGeneratorMixin, ABC):
         save : bool, optional
             Enables serialization of generated problems/solutions.
         file : str, optional
-            File location relative to ../data/schedules/
+            File location relative to data/schedules/
         rng : int or RandomState or Generator, optional
             NumPy random number generator or seed. Instance RNG if None.
 
@@ -120,7 +122,7 @@ class Base(RandomGeneratorMixin, ABC):
         save_dict: dict
             Serialized dict with keys 'problems', 'solutions', 'task_gen', and 'ch_avail_gen'.
         file : str, optional
-            File location relative to ../data/schedules/
+            File location relative to data/schedules/
 
         """
 
@@ -128,7 +130,7 @@ class Base(RandomGeneratorMixin, ABC):
             file = f"temp/{strftime('%Y-%m-%d_%H-%M-%S')}"
         else:
             try:    # search for existing file
-                with open('../data/schedules/' + file, 'rb') as file:
+                with pkg_path.joinpath(file).open(mode='rb') as file:
                     load_dict = dill.load(file)
 
                 # Check equivalence of generators
@@ -153,7 +155,7 @@ class Base(RandomGeneratorMixin, ABC):
             except FileNotFoundError:
                 pass
 
-        with open('../data/schedules/' + file, 'wb') as file:
+        with pkg_path.joinpath(file).open(mode='wb') as file:
             dill.dump(save_dict, file)  # save schedules
 
     def __eq__(self, other):
@@ -327,7 +329,7 @@ class Dataset(Base):
         """Load problems/solutions from memory."""
 
         # FIXME: loads entire data set into memory, should load and yield problems on call only!!
-        with open('../data/schedules/' + file, 'rb') as file:
+        with pkg_path.joinpath(file).open(mode='rb') as file:
             dict_gen = dill.load(file)
 
         return cls(**dict_gen, iter_mode=iter_mode, shuffle_mode=shuffle_mode, rng=rng)

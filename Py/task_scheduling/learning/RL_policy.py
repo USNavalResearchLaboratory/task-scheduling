@@ -1,5 +1,6 @@
 import time
 from collections import namedtuple
+from pathlib import Path
 
 import numpy as np
 
@@ -12,6 +13,8 @@ from task_scheduling.tree_search import TreeNodeShift
 from task_scheduling.learning import environments as envs
 
 np.set_printoptions(precision=2)
+
+pkg_path = Path(__file__).parents[2] / 'data' / 'schedules'
 
 
 # Agents
@@ -37,11 +40,12 @@ class RandomAgent:
 
 # Schedulers
 class ReinforcementLearningScheduler:
-    log_dir = '../../logs/SB_train'
+    # log_dir = '../../logs/SB_train/'
+    log_dir = pkg_path / 'logs' / 'SB_train'
 
     # model_cls_dict = {'Random': RandomAgent, 'DQN': DQN, 'PPO2': PPO2, 'A2C': A2C}
 
-    _default_tuple = namedtuple('Model Default', ['cls', 'kwargs'])
+    _default_tuple = namedtuple('ModelDefault', ['cls', 'kwargs'])
     model_defaults = {'Random': _default_tuple(RandomAgent, {}),
                       'DQN': _default_tuple(DQN, {'policy': 'MlpPolicy', 'verbose': 1}),
                       'PPO2': _default_tuple(PPO2, {}),
@@ -122,7 +126,8 @@ class ReinforcementLearningScheduler:
             cls_str = self.model.__class__.__name__
             save_path = f"temp/{cls_str}_{time.strftime('%Y-%m-%d_%H-%M-%S')}"
 
-        save_path = '../agents/' + save_path
+        # save_path = '../agents/' + save_path
+        save_path = pkg_path / 'agents' / save_path
         # os.makedirs(save_path, exist_ok=True)
 
         self.model.save(save_path)
@@ -136,7 +141,9 @@ class ReinforcementLearningScheduler:
             cls_str = load_path.split('/')[-1].split('_')[0]
             model_cls = cls.model_defaults[cls_str].cls
 
-        model = model_cls.load('../agents/' + load_path)
+        load_path = pkg_path / 'agents' / load_path
+        # load_path = '../agents/' + load_path
+        model = model_cls.load(load_path)
         return cls(model, env)
 
     # @classmethod
@@ -152,15 +159,46 @@ class ReinforcementLearningScheduler:
     @classmethod
     def train_from_gen(cls, problem_gen, env_cls=envs.SeqTaskingEnv, env_params=None, model_cls=None, model_params=None,
                        n_episodes=0, save=False, save_path=None):
+        """
+        Create and train a reinforcement learning scheduler.
+
+        Parameters
+        ----------
+        problem_gen : generators.scheduling_problems.Base
+            Scheduling problem generation object.
+        env_cls : class, optional
+            Gym environment class.
+        env_params : dict, optional
+            Parameters for environment initialization.
+        model_cls : class, optional
+            RL model class.
+        model_params : dict, optional
+            RL model parameters.
+        n_episodes : int
+            Number of complete environment episodes used for training.
+        save : bool, optional
+            If True, the agent and environment are serialized.
+        save_path : str, optional
+            String representation of sub-directory to save to.
+
+        Returns
+        -------
+        ReinforcementLearningScheduler
+
+        """
 
         env = env_cls.from_problem_gen(problem_gen, env_params)
+
+        if model_params is None:
+            model_params = {}
 
         if model_cls is None:
             model_cls, model_params = cls.model_defaults['Random']
         elif isinstance(model_cls, str):
             # model_cls = cls.model_cls_dict[model_cls]
-            model_cls, model_kwargs_ = cls.model_defaults[model_cls]
-            model_params.update(model_kwargs_)
+            model_cls, model_params_ = cls.model_defaults[model_cls]
+            model_params_.update(model_params)
+            model_params = model_params_
 
         model = model_cls(env=env, **model_params)
 
@@ -170,114 +208,6 @@ class ReinforcementLearningScheduler:
             scheduler.save(save_path)
 
         return scheduler
-
-
-# TODO: delete?
-# def train_agent(problem_gen, n_episodes=0, env_cls=SeqTaskingEnv, env_params=None,
-#                 model=None, save=False, save_path=None):
-#     """
-#     Train a reinforcement learning agent.
-#
-#     Parameters
-#     ----------
-#     problem_gen : generators.scheduling_problems.Base
-#         Scheduling problem generation object.
-#     n_episodes : int
-#         Number of complete environment episodes used for training.
-#     env_cls : class, optional
-#         Gym environment class.
-#     env_params : dict, optional
-#         Parameters for environment initialization.
-#     model : BaseRLModel or str, optional
-#         Reinforcement learning agent.
-#     save : bool
-#         If True, the agent and environment are serialized.
-#     save_path : str, optional
-#         String representation of sub-directory to save to.
-#
-#     Returns
-#     -------
-#     function
-#         Wrapped agent. Takes tasks and channel availabilities and produces task execution times/channels.
-#
-#     """
-#
-#     # Create environment
-#     if env_params is None:
-#         env_params = {}
-#
-#     env = env_cls(problem_gen, **env_params)
-#
-#     # Train agent
-#     if model is None or model == 'random':
-#         model = RandomAgent(env)
-#     elif model == 'DQN':
-#         model = DQN('MlpPolicy', env, verbose=1)
-#
-#     model.learn(total_timesteps=n_episodes * env.steps_per_episode)
-#
-#     # Save agent and environment
-#     if save:
-#         if save_path is None:
-#             cls_str = model.__class__.__name__
-#             save_path = f"../agents/temp/{cls_str}_{time.strftime('%Y-%m-%d_%H-%M-%S')}"
-#         else:
-#             save_path = '../agents/' + save_path
-#
-#         model.save(save_path)
-#
-#     return model
-#     # return env.wrap_model(model)
-
-
-# def load_agent(load_path, model_cls=None):
-#     """Loads agent and environment, returns wrapped scheduling function."""
-#
-#     if model_cls is None:
-#         cls_str = load_path.split('/')[-1].split('_')[0]
-#         cls_dict = {'DQN': DQN, 'PPO2': PPO2, 'A2C': A2C}
-#         model_cls = cls_dict[cls_str]
-#
-#     model = model_cls.load('../agents/' + load_path)
-#     return model
-#     # return env.wrap_model(model)
-
-
-# def wrap_agent(env, model):
-#     """Generate scheduling function by running an agent on a single environment episode."""
-#
-#     def scheduling_agent(tasks, ch_avail):
-#         obs = env.reset(tasks, ch_avail)
-#         done = False
-#         while not done:
-#             action, _states = model.predict(obs)
-#             obs, reward, done, info = env.step(action)
-#
-#         return env.node.t_ex, env.node.ch_ex
-#
-#     return scheduling_agent
-#
-#
-# def wrap_agent_run_lim(env, agent):
-#     """Generate scheduling function by running an agent on a single environment episode, enforcing max runtime."""
-#
-#     def scheduling_agent(tasks, ch_avail, max_runtime):
-#
-#         t_run = time.perf_counter()
-#
-#         obs = env.reset(tasks, ch_avail)
-#         done = False
-#         while not done:
-#             action, _states = agent.predict(obs)
-#             obs, reward, done, info = env.step(action)
-#
-#         runtime = time.perf_counter() - t_run
-#         if runtime >= max_runtime:
-#             raise RuntimeError(f"Algorithm timeout: {runtime} > {max_runtime}.")
-#
-#         return env.node.t_ex, env.node.ch_ex
-#
-#     return scheduling_agent
 
 
 def main():

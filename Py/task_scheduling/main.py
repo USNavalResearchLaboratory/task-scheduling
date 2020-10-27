@@ -48,7 +48,7 @@ def compare_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0,
     save : bool, optional
         Enables serialization of generated problems/solutions.
     file : str, optional
-        File location relative to ../data/schedules/
+        File location relative to data/schedules/
 
     Returns
     -------
@@ -137,7 +137,7 @@ def compare_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0,
         _, ax_results = plt.subplots(num='Results', clear=True)
         scatter_loss_runtime(t_run_mean, l_ex_mean,
                              ax=ax_results,
-                             ax_kwargs={'title': f'Performance on random sets of {problem_gen.n_tasks} tasks'})
+                             ax_kwargs={'title': f'Performance on sets of {problem_gen.n_tasks} tasks'})
 
     if verbose >= 1:
         print('\nAvg. Performance\n' + 16*'-')
@@ -167,7 +167,7 @@ def compare_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0,
             _, ax_results_norm = plt.subplots(num='Results (Normalized)', clear=True)
             scatter_loss_runtime(t_run_mean_norm, l_ex_mean_norm,
                                  ax=ax_results_norm,
-                                 ax_kwargs={'title': f'Relative Performance on random sets '
+                                 ax_kwargs={'title': f'Relative Performance on sets '
                                                      f'of {problem_gen.n_tasks} tasks',
                                             'ylabel': 'Excess Loss (Normalized)',
                                             # 'xlabel': 'Runtime Difference (Normalized)'
@@ -184,7 +184,8 @@ def main():
     # problem_gen = problem_gens.Random.relu_drop(n_tasks=8, n_ch=1)
     # problem_gen = problem_gens.DeterministicTasks.relu_drop(n_tasks=8, n_ch=1, rng=None)
     # problem_gen = problem_gens.PermutedTasks.relu_drop(n_tasks=16, n_ch=1, rng=None)
-    problem_gen = problem_gens.Dataset.load('relu_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
+    # problem_gen = problem_gens.Dataset.load('relu_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
+    problem_gen = problem_gens.Dataset.load('temp/pathlib_test', iter_mode='once', shuffle_mode='once', rng=None)
     # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., 0.2))
     # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2))
 
@@ -210,25 +211,25 @@ def main():
     # def weight_func_(env):
     #     return (env.n_tasks - len(env.node.seq)) / env.n_tasks
 
-    # env_cls = envs.SeqTaskingEnv
-    env_cls = envs.StepTaskingEnv
+    env_cls = envs.SeqTaskingEnv
+    # env_cls = envs.StepTaskingEnv
 
     env_params = {'node_cls': TreeNodeShift,
                   'features': features,
                   'sort_func': sort_func,
                   'masking': True,
-                  # 'action_type': 'int',
-                  'seq_encoding': 'one-hot',
+                  'action_type': 'int',
+                  # 'seq_encoding': 'one-hot',
                   }
 
     # random_agent = RL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, model_cls='Random', n_episodes=1)
     # dqn_agent = RL_Scheduler.train_from_gen(problem_gen, env_cls, env_params,
     #                                         model_cls='DQN', model_params=None, n_episodes=1000)
 
-    policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, layers=None, compile_params=None,
-                                               n_batch_train=90, n_batch_val=10, batch_size=4, weight_func=weight_func_,
-                                               fit_params={'epochs': 100}, do_tensorboard=False, plot_history=True,
-                                               save=False, save_path=None)
+    # policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, layers=None, compile_params=None,
+    #                                            n_batch_train=90, n_batch_val=10, batch_size=4, weight_func=weight_func_,
+    #                                            fit_params={'epochs': 100}, do_tensorboard=False, plot_history=True,
+    #                                            save=False, save_path=None)
 
     algorithms = np.array([
         # ('B&B', partial(branch_bound, verbose=False), 1),
@@ -236,7 +237,7 @@ def main():
         ('ERT', partial(earliest_release, do_swap=True), 1),
         ('Random', random_sequencer, 20),
         # ('DQN Agent', dqn_agent, 5),
-        ('DNN Policy', policy_model, 5),
+        # ('DNN Policy', policy_model, 5),
     ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
 
     # Compare algorithms
