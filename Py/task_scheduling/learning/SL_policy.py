@@ -163,17 +163,23 @@ class SupervisedLearningScheduler:
         # save_path = '../models/' + save_path
         self.model.save(save_path)  # save TF model
 
-        with open('../models/' + save_path + '/env', 'wb') as file:
+        with save_path.open(mode='wb') as file:
             dill.dump(self.env, file)  # save environment
+        # with open('../models/' + save_path + '/env', 'wb') as file:
+        #     dill.dump(self.env, file)  # save environment
 
     @classmethod
     def load(cls, load_path):
-        model = keras.models.load_model('../models/' + load_path)
+        # load_path = '../models/' + load_path
+        load_path = pkg_path / 'models' / load_path
+        model = keras.models.load_model(load_path)
 
         # load_path = '../models/' + load_path + '/env'
         load_path = pkg_path / 'models' / load_path / 'env'
-        with open(load_path, 'rb') as file:
+        with load_path.joinpath('env').open(mode='rb') as file:
             env = dill.load(file)
+        # with open(load_path, 'rb') as file:
+        #     env = dill.load(file)
 
         return cls(model, env)
 
