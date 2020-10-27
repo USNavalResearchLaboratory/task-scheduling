@@ -5,8 +5,8 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from ..util.generic import RandomGeneratorMixin
-from ..tasks import ReluDrop as ReluDropTask
+from task_scheduling.util.generic import RandomGeneratorMixin
+from task_scheduling import tasks as task_types
 
 np.set_printoptions(precision=2)
 
@@ -93,7 +93,7 @@ class GenericIID(BaseIID):
 
     @classmethod
     def relu_drop(cls, param_gen, param_lims=None, rng=None):
-        return cls(ReluDropTask, param_gen, param_lims, rng)
+        return cls(task_types.ReluDrop, param_gen, param_lims, rng)
 
 
 class ContinuousUniformIID(BaseIID):
@@ -117,7 +117,7 @@ class ContinuousUniformIID(BaseIID):
         param_lims = {'duration': duration_lim, 't_release': t_release_lim,
                       'slope': slope_lim, 't_drop': t_drop_lim, 'l_drop': l_drop_lim}
 
-        return cls(ReluDropTask, param_lims, rng)
+        return cls(task_types.ReluDrop, param_lims, rng)
 
 
 class DiscreteIID(BaseIID):
@@ -164,7 +164,7 @@ class DiscreteIID(BaseIID):
                        't_drop': dict(zip(t_drop_vals, np.ones(len(t_drop_vals)) / len(t_drop_vals))),
                        'l_drop': dict(zip(l_drop_vals, np.ones(len(l_drop_vals)) / len(l_drop_vals))),
                        }
-        return cls(ReluDropTask, param_probs, rng)
+        return cls(task_types.ReluDrop, param_probs, rng)
 
 
 class SearchTrackIID(BaseIID):
@@ -187,7 +187,7 @@ class SearchTrackIID(BaseIID):
                       'l_drop': (300., 300.)
                       }
 
-        super().__init__(ReluDropTask, param_lims, rng)
+        super().__init__(task_types.ReluDrop, param_lims, rng)
 
         if probs is None:
             self.probs = [.1, .2, .4, .1, .1, .1]

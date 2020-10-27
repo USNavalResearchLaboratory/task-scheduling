@@ -9,11 +9,11 @@ import gym
 from gym.spaces import Box, Space, Discrete
 # from stable_baselines.common.vec_env import DummyVecEnv
 
-from ..util.plot import plot_task_losses
-from ..util.generic import seq2num, num2seq
-from ..generators import scheduling_problems as problems
-from ..tree_search import TreeNode, TreeNodeShift
-# from .RL_policy import RandomAgent
+from task_scheduling.util.plot import plot_task_losses
+from task_scheduling.util.generic import seq2num, num2seq
+from task_scheduling.generators import scheduling_problems as problem_gens
+from task_scheduling.tree_search import TreeNode, TreeNodeShift
+# from task_scheduling.learning.RL_policy import RandomAgent
 
 np.set_printoptions(precision=2)
 
@@ -521,7 +521,7 @@ class StepTaskingEnv(BaseTaskingEnv):
 
 
 def main():
-    problem_gen = problems.Random.relu_drop(n_tasks=8, n_ch=2)
+    problem_gen = problem_gens.Random.relu_drop(n_tasks=8, n_ch=2)
 
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
                          ('release time', lambda task: task.t_release,
@@ -563,7 +563,7 @@ def main():
     env_params = {'node_cls': TreeNodeShift,
                   'features': features,
                   'sort_func': sort_func,
-                  'masking': False,
+                  'masking': True,
                   # 'action_type': 'int',
                   'seq_encoding': seq_encoding,
                   }

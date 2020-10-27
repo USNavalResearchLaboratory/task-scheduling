@@ -10,9 +10,9 @@ from tensorboard import program
 import webbrowser
 import gym
 
-from ..generators import scheduling_problems as problems
-from ..tree_search import TreeNodeShift
-from .environments import SeqTaskingEnv, StepTaskingEnv
+from task_scheduling.generators import scheduling_problems as problems
+from task_scheduling.tree_search import TreeNodeShift
+from task_scheduling.learning.environments import SeqTaskingEnv, StepTaskingEnv
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
@@ -105,6 +105,46 @@ class SupervisedLearningScheduler:
 
         return history
 
+    def learn(self, n_batch_train=1, n_batch_val=1, batch_size=1, weight_func=None,
+              fit_params=None, do_tensorboard=False, plot_history=False):
+
+        # TODO: combine learn and fit methods?
+
+        d_val = self.env.data_gen_numpy(n_batch_val * batch_size, weight_func=weight_func, verbose=True)
+        d_train = self.env.data_gen_numpy(n_batch_train * batch_size, weight_func=weight_func, verbose=True)
+
+        x_train, y_train = d_train[:2]
+        if callable(weight_func):
+            sample_weight = d_train[2]
+        else:
+            sample_weight = None
+
+        # gen_callable = partial(env.data_gen, weight_func=weight_func)  # function type not supported by from_generator
+        #
+        # output_types = (tf.float32, tf.int32)
+        # output_shapes = ((None,) + env.observation_space.shape, (None,) + env.action_space.shape)
+        # if callable(weight_func):
+        #     output_types += (tf.float32,)
+        #     output_shapes += ((None,),)
+        #
+        # d_train = tf.data.Dataset.from_generator(gen_callable, output_types,
+        #                                          output_shapes, args=(n_batch_train, batch_size))
+        # d_val = tf.data.Dataset.from_generator(gen_callable, output_types,
+        #                                        output_shapes, args=(n_batch_val, batch_size))
+
+        if fit_params is None:
+            fit_params = {}
+        fit_params.update({'validation_data': d_val,
+                           # 'batch_size': None,   # generator Dataset
+                           'batch_size': batch_size * self.env.steps_per_episode,
+                           'shuffle': False,
+                           'sample_weight': sample_weight,
+                           'callbacks': [keras.callbacks.EarlyStopping(patience=60, monitor='val_loss', min_delta=0.)]
+                           })
+
+        self.fit(x_train, y_train, do_tensorboard, plot_history, **fit_params)
+        # self.fit(*d_train, do_tensorboard, plot_history, **fit_params)
+
     def save(self, save_path):
         if save_path is None:
             save_path = f"temp/{time.strftime('%Y-%m-%d_%H-%M-%S')}"
@@ -124,9 +164,44 @@ class SupervisedLearningScheduler:
         return cls(model, env)
 
     @classmethod
-    def train_from_gen(cls, problem_gen, env_cls=StepTaskingEnv, env_params=None, layers=None, n_batch_train=1,
-                       n_batch_val=1, batch_size=1, weight_func=None, fit_params=None, do_tensorboard=False,
-                       plot_history=False, save=False, save_path=None):
+    def train_from_gen(cls, problem_gen, env_cls=StepTaskingEnv, env_params=None, layers=None, compile_params=None,
+                       n_batch_train=1, n_batch_val=1, batch_size=1, weight_func=None, fit_params=None,
+                       do_tensorboard=False, plot_history=False, save=False, save_path=None):
+        """
+        Create and train a supervised learning scheduler.
+
+        Parameters
+        ----------
+        problem_gen : generators.scheduling_problems.Base
+            Scheduling problem generation object.
+        env_cls : class, optional
+            Gym environment class.
+        env_params : dict, optional
+            Parameters for environment initialization.
+        layers : Iterable of tensorflow.keras.layers.Layer
+            Neural network layers.
+        compile_params : dict, optional
+            Parameters for the model compile method.
+        n_batch_train : int
+            Number of batches of state-action pair data to generate for model training.
+        n_batch_val : int
+            Number of batches of state-action pair data to generate for model validation.
+        batch_size : int
+            Number of scheduling problems to make data from per yielded batch.
+        weight_func : callable, optional
+            Function mapping environment object to a training weight.
+        fit_params : dict, optional
+            Parameters for the mode fit method.
+        do_tensorboard : bool
+            If True, Tensorboard is used for training visualization.
+        plot_history : bool
+            If True, training is visualized using plotting modules.
+        save : bool
+            If True, the network and environment are serialized.
+        save_path : str, optional
+            String representation of sub-directory to save to.
+
+        """
 
         # Create environment
         env = env_cls.from_problem_gen(problem_gen, env_params)
@@ -149,240 +224,19 @@ class SupervisedLearningScheduler:
                                   *layers,
                                   keras.layers.Dense(n_actions, activation='softmax')])
 
-        compile_params = {'optimizer': 'rmsprop',
-                          'loss': 'sparse_categorical_crossentropy',
-                          'metrics': ['accuracy']
-                          }
-        model.compile(**compile_params)     # TODO
+        if compile_params is None:
+            compile_params = {'optimizer': 'rmsprop',
+                              'loss': 'sparse_categorical_crossentropy',
+                              'metrics': ['accuracy']
+                              }
+        model.compile(**compile_params)
 
         scheduler = cls(model, env)
-
-        # Generate data and train
-        d_val = env.data_gen_numpy(n_batch_val * batch_size, weight_func=weight_func, verbose=True)
-        d_train = env.data_gen_numpy(n_batch_train * batch_size, weight_func=weight_func, verbose=True)
-
-        x_train, y_train = d_train[0], d_train[1]
-        if len(d_train) == 3:
-            sample_weight = d_train[2]
-        else:
-            sample_weight = None
-
-        # gen_callable = partial(env.data_gen, weight_func=weight_func)  # function type not supported for from_generator
-        #
-        # output_types = (tf.float32, tf.int32)
-        # output_shapes = ((None,) + env.observation_space.shape, (None,) + env.action_space.shape)
-        # if callable(weight_func):
-        #     output_types += (tf.float32,)
-        #     output_shapes += ((None,),)
-        #
-        # d_train = tf.data.Dataset.from_generator(gen_callable, output_types,
-        #                                          output_shapes, args=(n_batch_train, batch_size))
-        # d_val = tf.data.Dataset.from_generator(gen_callable, output_types,
-        #                                        output_shapes, args=(n_batch_val, batch_size))
-
-        if fit_params is None:
-            fit_params = {}
-        fit_params.update({'validation_data': d_val,
-                           # 'batch_size': None,   # generator Dataset
-                           'batch_size': batch_size * env.steps_per_episode,
-                           'sample_weight': sample_weight,
-                           'callbacks': [keras.callbacks.EarlyStopping(patience=60, monitor='val_loss', min_delta=0.)]
-                           })
-
-        scheduler.fit(x_train, y_train, do_tensorboard, plot_history, **fit_params)
-        # scheduler.fit(*d_train, do_tensorboard, plot_history, **fit_params)
-
-        # Save
+        scheduler.learn(n_batch_train, n_batch_val, batch_size, weight_func, fit_params, do_tensorboard, plot_history)
         if save:
             scheduler.save(save_path)
 
-        return cls(model, env)
-
-
-# TODO: delete?
-# def train_policy(problem_gen, n_batch_train=1, n_batch_val=1, batch_size=1, weight_func=None,
-#                  env_cls=StepTaskingEnv, env_params=None,
-#                  model=None, compile_params=None, fit_params=None,
-#                  do_tensorboard=False, plot_history=False, save=False, save_dir=None):
-#     """
-#     Train a policy network via supervised learning.
-#
-#     Parameters
-#     ----------
-#     problem_gen : generators.scheduling_problems.Base
-#         Scheduling problem generation object.
-#     n_batch_train : int
-#         Number of batches of state-action pair data to generate for model training.
-#     n_batch_val : int
-#         Number of batches of state-action pair data to generate for model validation.
-#     batch_size : int
-#         Number of scheduling problems to make data from per yielded batch.
-#     weight_func : callable, optional
-#         Function mapping environment object to a training weight.
-#     env_cls : class, optional
-#         Gym environment class.
-#     env_params : dict, optional
-#         Parameters for environment initialization.
-#     model : tf.keras.Model, optional
-#         Neural network model.
-#     compile_params : dict, optional
-#         Parameters for the model compile method.
-#     fit_params : dict, optional
-#         Parameters for the mode fit method.
-#     do_tensorboard : bool
-#         If True, Tensorboard is used for training visualization.
-#     plot_history : bool
-#         If True, training is visualized using plotting modules.
-#     save : bool
-#         If True, the network and environment are serialized.
-#     save_dir : str, optional
-#         String representation of sub-directory to save to.
-#
-#     Returns
-#     -------
-#     function
-#         Wrapped policy. Takes tasks and channel availabilities and produces task execution times/channels.
-#
-#     """
-#
-#     # Create environment
-#     env = env_cls.from_problem_gen(problem_gen, env_params)
-#
-#     if isinstance(env, SeqTaskingEnv) and env.action_type == 'seq':
-#         # class FullSeq(keras.losses.Loss):
-#         #     def __init__(self, name="full_seq"):
-#         #         super().__init__(name=name)
-#         #
-#         #     def call(self, y_true, y_pred):
-#         #         return None
-#         raise NotImplementedError
-#
-#     # Instantiate and compile policy model
-#     if model is None:
-#         if isinstance(env.action_space, gym.spaces.Discrete):
-#             n_actions = env.action_space.n
-#         else:
-#             n_actions = len(env.action_space)
-#
-#         model = keras.Sequential([keras.layers.Flatten(input_shape=env.observation_space.shape),
-#                                   keras.layers.Dense(60, activation='relu'),
-#                                   keras.layers.Dense(60, activation='relu'),
-#                                   # keras.layers.Dense(30, activation='relu'),
-#                                   # keras.layers.Dropout(0.2),
-#                                   # keras.layers.Dense(100, activation='relu'),
-#                                   keras.layers.Dense(n_actions, activation='softmax')])
-#
-#     if compile_params is None:
-#         compile_params = {'optimizer': 'rmsprop',
-#                           'loss': 'sparse_categorical_crossentropy',
-#                           'metrics': ['accuracy']
-#                           }
-#
-#     model.compile(**compile_params)
-#
-#     # Generate state-action data, train model
-#
-#     d_val = env.data_gen_numpy(n_batch_val * batch_size, weight_func=weight_func, verbose=True)
-#     d_train = env.data_gen_numpy(n_batch_train * batch_size, weight_func=weight_func, verbose=True)
-#
-#     # gen_callable = partial(env.data_gen, weight_func=weight_func)   # function type not supported for from_generator
-#     #
-#     # output_types = (tf.float32, tf.int32)
-#     # output_shapes = ((None,) + env.observation_space.shape, (None,) + env.action_space.shape)
-#     # if callable(weight_func):
-#     #     output_types += (tf.float32,)
-#     #     output_shapes += ((None,),)
-#     #
-#     # d_train = tf.data.Dataset.from_generator(gen_callable, output_types,
-#     #                                          output_shapes, args=(n_batch_train, batch_size))
-#     # d_val = tf.data.Dataset.from_generator(gen_callable, output_types,
-#     #                                        output_shapes, args=(n_batch_val, batch_size))
-#
-#
-#
-#     if fit_params is None:
-#         fit_params = {'epochs': 10,
-#                       'validation_data': d_val,
-#                       # 'batch_size': None,   # generator Dataset
-#                       'batch_size': batch_size * env.steps_per_episode,
-#                       'sample_weight': None,
-#                       'callbacks': [keras.callbacks.EarlyStopping(patience=60, monitor='val_loss', min_delta=0.)]
-#                       }
-#
-#     if do_tensorboard:
-#         log_dir = '../../logs/TF_train'
-#         try:
-#             shutil.rmtree(log_dir)
-#         except FileNotFoundError:
-#             pass
-#
-#         # fit_params['callbacks'].append(keras.callbacks.TensorBoard(log_dir=log_dir))
-#         fit_params['callbacks'] += [keras.callbacks.TensorBoard(log_dir=log_dir)]
-#
-#         tb = program.TensorBoard()
-#         tb.configure(argv=[None, '--logdir', log_dir])
-#         url = tb.launch()
-#         webbrowser.open(url)
-#
-#     # history = model.fit(d_train, **fit_params)      # generator Dataset
-#     history = model.fit(*d_train, **fit_params)   # NumPy data
-#
-#     if plot_history:
-#         plt.figure(num='training history', clear=True, figsize=(10, 4.8))
-#         plt.subplot(1, 2, 1)
-#         plt.plot(history.epoch, history.history['loss'], label='training')
-#         plt.plot(history.epoch, history.history['val_loss'], label='validation')
-#         plt.legend()
-#         plt.gca().set(xlabel='epoch', ylabel='loss')
-#         plt.subplot(1, 2, 2)
-#         plt.plot(history.epoch, history.history['accuracy'], label='training')
-#         plt.plot(history.epoch, history.history['val_accuracy'], label='validation')
-#         plt.legend()
-#         plt.gca().set(xlabel='epoch', ylabel='accuracy')
-#
-#     if save:
-#         if save_dir is None:
-#             save_dir = f"temp/{time.strftime('%Y-%m-%d_%H-%M-%S')}"
-#
-#         model.save('../models/' + save_dir)      # save TF model
-#         with open('../models/' + save_dir + '/env', 'wb') as file:
-#             dill.dump(env, file)    # save environment
-#
-#     return wrap_policy(env, model)
-#
-#
-# def load_policy(load_dir):
-#     """Loads network model and environment, returns wrapped scheduling function."""
-#     with open('../models/' + load_dir + '/env', 'rb') as file:
-#         env = dill.load(file)
-#     model = keras.models.load_model('../models/' + load_dir)
-#
-#     return wrap_policy(env, model)
-#
-#
-# def wrap_policy(env, model):
-#     """Generate scheduling function by running a policy on a single environment episode."""
-#
-#     if isinstance(model, str):
-#         model = keras.models.load_model(model)
-#
-#     def scheduling_model(tasks, ch_avail):
-#         obs = env.reset(tasks, ch_avail)
-#         done = False
-#         while not done:
-#             prob = model.predict(obs[np.newaxis]).squeeze(0)
-#
-#             if isinstance(env, StepTaskingEnv):
-#                 seq_rem = env.infer_action_space(obs).elements.tolist()
-#                 action = seq_rem[prob[seq_rem].argmax()]
-#             else:
-#                 action = prob.argmax()
-#
-#             obs, reward, done, info = env.step(action)
-#
-#         return env.node.t_ex, env.node.ch_ex
-#
-#     return scheduling_model
+        return scheduler
 
 
 def main():
@@ -414,7 +268,7 @@ def main():
                   'sort_func': sort_func,
                   'masking': True,
                   # 'action_type': 'int',
-                  'seq_encoding': 'binary',
+                  'seq_encoding': 'one-hot',
                   }
 
     weight_func_ = None
@@ -422,21 +276,22 @@ def main():
     #     return (env.n_tasks - len(env.node.seq)) / env.n_tasks
 
     scheduler = SupervisedLearningScheduler.train_from_gen(problem_gen, env_cls, env_params, layers=None,
-                                                           n_batch_train=1, n_batch_val=1, batch_size=1,
-                                                           weight_func=None, fit_params=None,
-                                                           do_tensorboard=False, plot_history=False,
-                                                           save=False, save_path=None)
+                                                           compile_params=None, n_batch_train=90, n_batch_val=10,
+                                                           batch_size=1, weight_func=weight_func_,
+                                                           fit_params={'epochs': 100},
+                                                           do_tensorboard=False, plot_history=True, save=False,
+                                                           save_path=None)
 
     # scheduler = train_policy(problem_gen, n_batch_train=990, n_batch_val=10, batch_size=1, weight_func=weight_func_,
     #                          env_cls=env_cls, env_params=env_params,
     #                          model=None, compile_params=None, fit_params=None,
     #                          do_tensorboard=False, plot_history=True, save=True, save_dir=None)
 
-    (tasks, ch_avail), = problem_gen(n_gen=1)
-    t_ex, ch_ex = scheduler(tasks, ch_avail)
-
-    print(t_ex)
-    print(ch_ex)
+    # (tasks, ch_avail), = problem_gen(n_gen=1)
+    # t_ex, ch_ex = scheduler(tasks, ch_avail)
+    #
+    # print(t_ex)
+    # print(ch_ex)
 
 
 if __name__ == '__main__':

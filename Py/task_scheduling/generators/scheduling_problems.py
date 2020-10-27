@@ -9,26 +9,15 @@ from functools import partial
 
 import numpy as np
 
-from ..util.generic import RandomGeneratorMixin
-from ..util.results import timing_wrapper
-from .tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
-from .tasks import (Fixed as FixedTaskGenerator, Deterministic as DeterministicTaskGenerator,
-                    Permutation as PermutationTaskGenerator, SearchTrackIID as SearchTrackTaskGenerator)
-from .channel_availabilities import UniformIID as UniformChanGenerator
-from .channel_availabilities import Deterministic as DeterministicChanGenerator
-
-from ..tree_search import branch_bound
+from task_scheduling.tree_search import branch_bound
+from task_scheduling.util.generic import RandomGeneratorMixin
+from task_scheduling.util.results import timing_wrapper
+from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
 
 np.set_printoptions(precision=2)
 
 _SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
 _SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
-
-# TODO: cleanup
-
-# def solve_problem(problem, verbose=False):
-#     t_ex, ch_ex, t_run = timing_wrapper(partial(branch_bound, verbose=verbose))(*problem)
-#     return _SchedulingSolution(t_ex, ch_ex, t_run)
 
 
 class Base(RandomGeneratorMixin, ABC):
@@ -108,22 +97,6 @@ class Base(RandomGeneratorMixin, ABC):
             else:
                 yield problem
 
-            # problem, solution = self._gen_problem(rng)
-            #
-            # if save:
-            #     save_dict['problems'].append(problem)
-            #
-            # if solve:
-            #     if solution is None:
-            #         solution = solve_problem(problem, verbose=verbose)  # generate B&B optimal solution
-            #
-            #     if save:
-            #         save_dict['solutions'].append(solution)
-            #
-            #     yield problem, solution
-            # else:
-            #     yield problem
-
         if save:
             self.save(save_dict, file)
 
@@ -134,7 +107,6 @@ class Base(RandomGeneratorMixin, ABC):
 
     @staticmethod
     def _gen_solution(problem, verbose=False):
-        # return solve_problem(problem)
         t_ex, ch_ex, t_run = timing_wrapper(partial(branch_bound, verbose=verbose))(*problem)
         return _SchedulingSolution(t_ex, ch_ex, t_run)
 
@@ -204,25 +176,19 @@ class Random(Base):
 
         return _SchedulingProblem(tasks, ch_avail)
 
-        # if solve:
-        #     solution = solve_problem(problem)
-        #     return problem, solution
-        # else:
-        #     return problem
-
     @classmethod
     def _task_gen_factory(cls, n_tasks, task_gen, n_ch, ch_avail_lim, rng):
-        ch_avail_gen = UniformChanGenerator(lims=ch_avail_lim)
+        ch_avail_gen = chan_gens.UniformIID(lims=ch_avail_lim)
         return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
     @classmethod
     def relu_drop(cls, n_tasks, n_ch, rng=None, ch_avail_lim=(0., 0.), **relu_lims):
-        task_gen = ContinuousUniformTaskGenerator.relu_drop(**relu_lims)
+        task_gen = task_gens.ContinuousUniformIID.relu_drop(**relu_lims)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
     @classmethod
     def search_track(cls, n_tasks, n_ch, probs=None, t_release_lim=(0., 0.), ch_avail_lim=(0., 0.), rng=None):
-        task_gen = SearchTrackTaskGenerator(probs, t_release_lim)
+        task_gen = task_gens.SearchTrackIID(probs, t_release_lim)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
 
@@ -248,8 +214,8 @@ class FixedTasks(Base, ABC):
 
         super().__init__(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
-        if not (isinstance(task_gen, FixedTaskGenerator)
-                and isinstance(ch_avail_gen, DeterministicChanGenerator)):
+        if not (isinstance(task_gen, task_gens.Fixed)
+                and isinstance(ch_avail_gen, chan_gens.Deterministic)):
             raise TypeError
 
         self.problem = _SchedulingProblem(task_gen.tasks, ch_avail_gen.ch_avail)
@@ -257,8 +223,8 @@ class FixedTasks(Base, ABC):
 
     @property
     def solution(self):
+        """Solution for the fixed task set. Performs Branch-and-Bound the first time the property is accessed."""
         if self._solution is None:
-            # self._solution = solve_problem(self.problem, verbose=True)
             self._solution = super()._gen_solution(self.problem, verbose=True)
         return self._solution
 
@@ -269,29 +235,25 @@ class FixedTasks(Base, ABC):
 
     @classmethod
     def _task_gen_factory(cls, n_tasks, task_gen, n_ch, rng):
-        ch_avail_gen = DeterministicChanGenerator.from_uniform(n_ch)
+        ch_avail_gen = chan_gens.Deterministic.from_uniform(n_ch)
         return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
 
 class DeterministicTasks(FixedTasks):
     def _gen_problem(self, rng):
         return self.problem
-        # if solve:
-        #     return self.problem, self.solution
-        # else:
-        #     return self.problem
 
     def _gen_solution(self, problem, verbose=False):
         return self.solution
 
     @classmethod
     def relu_drop(cls, n_tasks, n_ch, rng=None):
-        task_gen = DeterministicTaskGenerator.relu_drop(n_tasks)
+        task_gen = task_gens.Deterministic.relu_drop(n_tasks)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
 
     @classmethod
     def search_track(cls, n_tasks, n_ch, probs=None, t_release_lim=(0., 0.), rng=None):
-        task_gen = DeterministicTaskGenerator.search_track(n_tasks, probs, t_release_lim)
+        task_gen = task_gens.Deterministic.search_track(n_tasks, probs, t_release_lim)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
 
 
@@ -299,21 +261,6 @@ class PermutedTasks(FixedTasks):
     def _gen_problem(self, rng):
         tasks = list(self.task_gen(self.n_tasks, rng=rng))
         return _SchedulingProblem(tasks, self.problem.ch_avail)
-
-        # if solve:
-        #     idx = []    # permutation indices
-        #     tasks_init = self.problem.tasks.copy()
-        #     for task in tasks:
-        #         i = tasks_init.index(task)
-        #         idx.append(i)
-        #         tasks_init[i] = None    # ensures unique indices
-        #
-        #     solution = _SchedulingSolution(self.solution.t_ex[idx], self.solution.ch_ex[idx], self.solution.t_run)
-        #
-        #     return problem, solution
-        #
-        # else:
-        #     return problem
 
     def _gen_solution(self, problem, verbose=False):
         idx = []  # permutation indices
@@ -327,12 +274,12 @@ class PermutedTasks(FixedTasks):
 
     @classmethod
     def relu_drop(cls, n_tasks, n_ch, rng=None):
-        task_gen = PermutationTaskGenerator.relu_drop(n_tasks)
+        task_gen = task_gens.Permutation.relu_drop(n_tasks)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
 
     @classmethod
     def search_track(cls, n_tasks, n_ch, probs=None, t_release_lim=(0., 0.), rng=None):
-        task_gen = PermutationTaskGenerator.search_track(n_tasks, probs, t_release_lim)
+        task_gen = task_gens.Permutation.search_track(n_tasks, probs, t_release_lim)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
 
 
@@ -413,18 +360,6 @@ class Dataset(Base):
 
         self.i += 1
         return problem
-
-        # if solve:
-        #     if self.solutions is not None:
-        #         solution = self.solutions[self.i]
-        #     else:
-        #         solution = solve_problem(problem, verbose=False)
-        #
-        #     self.i += 1
-        #     return problem, solution
-        # else:
-        #     self.i += 1
-        #     return problem
 
     def _gen_solution(self, problem, verbose=False):
         if self._solution_i is not None:

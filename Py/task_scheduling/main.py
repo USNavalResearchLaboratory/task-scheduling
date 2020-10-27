@@ -12,13 +12,11 @@ import matplotlib.pyplot as plt
 
 from task_scheduling.util.results import check_valid, eval_loss, timing_wrapper
 from task_scheduling.util.plot import plot_task_losses, scatter_loss_runtime, plot_schedule
-
-from task_scheduling.generators import scheduling_problems as problems
-
+from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.tree_search import TreeNodeShift, earliest_release, random_sequencer
-from task_scheduling.learning.environments import SeqTaskingEnv, StepTaskingEnv
+from task_scheduling.learning import environments as envs
 from task_scheduling.learning.SL_policy import SupervisedLearningScheduler as SL_Scheduler
-# from .learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler
+# from task_scheduling.learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
@@ -183,12 +181,12 @@ def main():
     # NOTE: ensure train/test separation for loaded data, use iter_mode='once'
     # NOTE: to train multiple schedulers on same loaded data, use problem_gen.restart(shuffle=False)
 
-    # problem_gen = problems.Random.relu_drop(n_tasks=8, n_ch=1)
-    # problem_gen = problems.DeterministicTasks.relu_drop(n_tasks=8, n_ch=1, rng=None)
-    # problem_gen = problems.PermutedTasks.relu_drop(n_tasks=8, n_ch=1, rng=None)
-    # problem_gen = problems.Dataset.load('relu_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
-    # problem_gen = problems.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., 0.2))
-    problem_gen = problems.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2))
+    # problem_gen = problem_gens.Random.relu_drop(n_tasks=8, n_ch=1)
+    # problem_gen = problem_gens.DeterministicTasks.relu_drop(n_tasks=8, n_ch=1, rng=None)
+    # problem_gen = problem_gens.PermutedTasks.relu_drop(n_tasks=16, n_ch=1, rng=None)
+    problem_gen = problem_gens.Dataset.load('relu_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
+    # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., 0.2))
+    # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2))
 
     # Algorithms
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
@@ -208,8 +206,12 @@ def main():
         else:
             return self.node.tasks[n].t_release
 
-    # env_cls = SeqTaskingEnv
-    env_cls = StepTaskingEnv
+    weight_func_ = None
+    # def weight_func_(env):
+    #     return (env.n_tasks - len(env.node.seq)) / env.n_tasks
+
+    # env_cls = envs.SeqTaskingEnv
+    env_cls = envs.StepTaskingEnv
 
     env_params = {'node_cls': TreeNodeShift,
                   'features': features,
@@ -223,8 +225,8 @@ def main():
     # dqn_agent = RL_Scheduler.train_from_gen(problem_gen, env_cls, env_params,
     #                                         model_cls='DQN', model_params=None, n_episodes=1000)
 
-    policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, layers=None,
-                                               n_batch_train=90, n_batch_val=10, batch_size=4, weight_func=None,
+    policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, layers=None, compile_params=None,
+                                               n_batch_train=90, n_batch_val=10, batch_size=4, weight_func=weight_func_,
                                                fit_params={'epochs': 100}, do_tensorboard=False, plot_history=True,
                                                save=False, save_path=None)
 

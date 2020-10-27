@@ -16,7 +16,7 @@ from task_scheduling.util.results import check_valid, eval_loss
 from task_scheduling.util.plot import plot_task_losses, plot_loss_runtime
 
 from task_scheduling.generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
-from task_scheduling.tree_search_run_lim import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release
+from _depreciated.tree_search_run_lim import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release
 
 plt.style.use('seaborn')
 

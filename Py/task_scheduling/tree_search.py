@@ -6,15 +6,15 @@ from math import isclose
 
 import numpy as np
 
-from .util.generic import RandomGeneratorMixin
-from .util.results import eval_loss
-# from .generators.scheduling_problems import Random as RandomProblem
+from task_scheduling.util.generic import RandomGeneratorMixin
+from task_scheduling.util.results import eval_loss
+# from task_scheduling.generators import scheduling_problems as problem_gens
 
 from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
 np.set_printoptions(precision=2)
 
-# TODO: modify classes and algorithms to efficiently handle repeated tasks!!
+# TODO: modify classes and algorithms to efficiently handle repeated tasks!?
 
 
 class TreeNode(RandomGeneratorMixin):
@@ -323,7 +323,7 @@ class TreeNodeShift(TreeNode):
         self.shift_origin()
 
 
-class SearchNode:
+class SearchNode(RandomGeneratorMixin):
     """
     Node object for Monte Carlo tree search.
 
@@ -347,13 +347,12 @@ class SearchNode:
 
     """
 
-    n_tasks = None      # TODO: reconsider allowing class attributes...
-    l_up = None
+    def __init__(self, n_tasks, seq=None, l_up=None, rng=None):
+        super().__init__(rng)
 
-    def __init__(self, seq=None):
-        if seq is None:
-            seq = []
-        self._seq = seq
+        self.n_tasks = n_tasks
+        self._seq = seq if seq is not None else []
+        self.l_up = l_up
 
         self._n_visits = 0
         self._l_avg = 0.
@@ -433,7 +432,7 @@ class SearchNode:
         """
 
         node = self
-        while len(node._seq) < SearchNode.n_tasks:
+        while len(node._seq) < self.n_tasks:
             node = node.select_child()
         return node._seq
 
@@ -465,7 +464,7 @@ class SearchNode:
 
         """
 
-        if len(seq) != SearchNode.n_tasks:
+        if len(seq) != self.n_tasks:
             raise ValueError('Sequence must be complete.')
 
         seq_rem = seq[len(self._seq):]
@@ -662,9 +661,8 @@ def mcts(tasks, ch_avail, n_mc, verbose=False):
 
     # TODO: add exploration/exploitation input control.
 
-    SearchNode.n_tasks = len(tasks)
-    SearchNode.l_up = TreeNodeBound(tasks, ch_avail).l_up
-    tree = SearchNode()
+    l_up = TreeNodeBound(tasks, ch_avail).l_up
+    tree = SearchNode(n_tasks=len(tasks), seq=[], l_up=l_up)
 
     node_best = None
 

@@ -7,9 +7,9 @@ from stable_baselines.bench import Monitor
 from stable_baselines.results_plotter import plot_results
 from stable_baselines import DQN, PPO2, A2C
 
-from ..generators import scheduling_problems as problems
-from ..tree_search import TreeNodeShift
-from .environments import BaseTaskingEnv, SeqTaskingEnv, StepTaskingEnv
+from task_scheduling.generators import scheduling_problems as problem_gens
+from task_scheduling.tree_search import TreeNodeShift
+from task_scheduling.learning import environments as envs
 
 np.set_printoptions(precision=2)
 
@@ -62,7 +62,7 @@ class ReinforcementLearningScheduler:
 
     @env.setter
     def env(self, env):
-        if isinstance(env, BaseTaskingEnv):
+        if isinstance(env, envs.BaseTaskingEnv):
             if self.do_monitor:
                 env = Monitor(env, self.log_dir)
             self.model.set_env(env)
@@ -150,7 +150,7 @@ class ReinforcementLearningScheduler:
     #     return cls(model, env)
 
     @classmethod
-    def train_from_gen(cls, problem_gen, env_cls=SeqTaskingEnv, env_params=None, model_cls=None, model_params=None,
+    def train_from_gen(cls, problem_gen, env_cls=envs.SeqTaskingEnv, env_params=None, model_cls=None, model_params=None,
                        n_episodes=0, save=False, save_path=None):
 
         env = env_cls.from_problem_gen(problem_gen, env_params)
@@ -281,8 +281,8 @@ class ReinforcementLearningScheduler:
 
 
 def main():
-    # problem_gen = problems.Random.relu_drop(n_tasks=4, n_ch=2)
-    problem_gen = problems.DeterministicTasks.relu_drop(n_tasks=4, n_ch=2)
+    # problem_gen = problem_gens.Random.relu_drop(n_tasks=4, n_ch=2)
+    problem_gen = problem_gens.DeterministicTasks.relu_drop(n_tasks=4, n_ch=2)
 
     features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
                          ('release time', lambda task: task.t_release,
@@ -318,8 +318,8 @@ def main():
 
     # sort_func = 't_release'
 
-    env_cls = SeqTaskingEnv
-    # env_cls = StepTaskingEnv
+    env_cls = envs.SeqTaskingEnv
+    # env_cls = envs.StepTaskingEnv
 
     env_params = {'node_cls': TreeNodeShift,
                   'features': features,

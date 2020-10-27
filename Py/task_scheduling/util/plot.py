@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .results import eval_loss
+from task_scheduling.util.results import eval_loss
 
 
 def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
