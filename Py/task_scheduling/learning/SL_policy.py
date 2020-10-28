@@ -19,12 +19,13 @@ from task_scheduling.learning.environments import SeqTaskingEnv, StepTaskingEnv
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
 
-pkg_path = Path(__file__).parents[2] / 'data' / 'schedules'
+pkg_path = Path.cwd()
+log_path = pkg_path / 'logs'
+model_path = pkg_path / 'models'
 
 
 class SupervisedLearningScheduler:
-    # log_dir = '../../logs/TF_train'
-    log_dir = pkg_path / 'logs' / 'TF_train'
+    log_dir = log_path / 'TF_train'
 
     def __init__(self, model, env):
         self.model = model
@@ -159,27 +160,19 @@ class SupervisedLearningScheduler:
         if save_path is None:
             save_path = f"temp/{time.strftime('%Y-%m-%d_%H-%M-%S')}"
 
-        save_path = pkg_path / 'models' / save_path
-        # save_path = '../models/' + save_path
+        save_path = model_path / save_path
         self.model.save(save_path)  # save TF model
 
-        with save_path.open(mode='wb') as file:
-            dill.dump(self.env, file)  # save environment
-        # with open('../models/' + save_path + '/env', 'wb') as file:
-        #     dill.dump(self.env, file)  # save environment
+        with save_path.joinpath('env').open(mode='wb') as fid:
+            dill.dump(self.env, fid)  # save environment
 
     @classmethod
     def load(cls, load_path):
-        # load_path = '../models/' + load_path
-        load_path = pkg_path / 'models' / load_path
+        load_path = model_path / load_path
         model = keras.models.load_model(load_path)
 
-        # load_path = '../models/' + load_path + '/env'
-        load_path = pkg_path / 'models' / load_path / 'env'
-        with load_path.joinpath('env').open(mode='rb') as file:
-            env = dill.load(file)
-        # with open(load_path, 'rb') as file:
-        #     env = dill.load(file)
+        with load_path.joinpath('env').open(mode='rb') as fid:
+            env = dill.load(fid)
 
         return cls(model, env)
 

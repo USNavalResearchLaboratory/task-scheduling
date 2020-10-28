@@ -15,8 +15,7 @@ from task_scheduling.util.results import timing_wrapper
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
 
 np.set_printoptions(precision=2)
-
-pkg_path = Path(__file__).parents[2] / 'data' / 'schedules'
+data_path = Path.cwd() / 'data' / 'schedules'
 
 _SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
 _SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
@@ -128,35 +127,36 @@ class Base(RandomGeneratorMixin, ABC):
 
         if file is None:
             file = f"temp/{strftime('%Y-%m-%d_%H-%M-%S')}"
-        else:
-            try:    # search for existing file
-                with pkg_path.joinpath(file).open(mode='rb') as file:
-                    load_dict = dill.load(file)
+        file_path = data_path.joinpath(file)
 
-                # Check equivalence of generators
-                conditions = [load_dict['task_gen'] == save_dict['task_gen'],
-                              load_dict['ch_avail_gen'] == save_dict['ch_avail_gen'],
-                              len(load_dict['problems'][0].tasks) == len(save_dict['problems'][0].tasks),
-                              len(load_dict['problems'][0].ch_avail) == len(save_dict['problems'][0].ch_avail),
-                              ]
+        try:    # search for existing file
+            with file_path.open(mode='rb') as fid:
+                load_dict = dill.load(fid)
 
-                if all(conditions):     # Append loaded problems and solutions
-                    print('File already exists. Appending existing data.')
+            # Check equivalence of generators
+            conditions = [load_dict['task_gen'] == save_dict['task_gen'],
+                          load_dict['ch_avail_gen'] == save_dict['ch_avail_gen'],
+                          len(load_dict['problems'][0].tasks) == len(save_dict['problems'][0].tasks),
+                          len(load_dict['problems'][0].ch_avail) == len(save_dict['problems'][0].ch_avail),
+                          ]
 
-                    if 'solutions' in save_dict.keys():
-                        try:
-                            save_dict['solutions'] += load_dict['solutions']
-                            save_dict['problems'] += load_dict['problems']
-                        except KeyError:
-                            pass    # Skip if new data has solutions and loaded data does not
-                    else:
+            if all(conditions):     # Append loaded problems and solutions
+                print('File already exists. Appending existing data.')
+
+                if 'solutions' in save_dict.keys():
+                    try:
+                        save_dict['solutions'] += load_dict['solutions']
                         save_dict['problems'] += load_dict['problems']
+                    except KeyError:
+                        pass    # Skip if new data has solutions and loaded data does not
+                else:
+                    save_dict['problems'] += load_dict['problems']
 
-            except FileNotFoundError:
-                pass
+        except FileNotFoundError:
+            file_path.parent.mkdir(exist_ok=True)
 
-        with pkg_path.joinpath(file).open(mode='wb') as file:
-            dill.dump(save_dict, file)  # save schedules
+        with data_path.joinpath(file).open(mode='wb') as fid:
+            dill.dump(save_dict, fid)  # save schedules
 
     def __eq__(self, other):
         if isinstance(other, Base):
@@ -329,8 +329,8 @@ class Dataset(Base):
         """Load problems/solutions from memory."""
 
         # FIXME: loads entire data set into memory, should load and yield problems on call only!!
-        with pkg_path.joinpath(file).open(mode='rb') as file:
-            dict_gen = dill.load(file)
+        with data_path.joinpath(file).open(mode='rb') as fid:
+            dict_gen = dill.load(fid)
 
         return cls(**dict_gen, iter_mode=iter_mode, shuffle_mode=shuffle_mode, rng=rng)
 

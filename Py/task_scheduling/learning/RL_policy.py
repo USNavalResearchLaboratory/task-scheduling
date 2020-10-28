@@ -1,6 +1,7 @@
 import time
 from collections import namedtuple
 from pathlib import Path
+import dill
 
 import numpy as np
 
@@ -14,7 +15,9 @@ from task_scheduling.learning import environments as envs
 
 np.set_printoptions(precision=2)
 
-pkg_path = Path(__file__).parents[2] / 'data' / 'schedules'
+pkg_path = Path.cwd()
+log_path = pkg_path / 'logs'
+agent_path = pkg_path / 'agents'
 
 
 # Agents
@@ -40,8 +43,7 @@ class RandomAgent:
 
 # Schedulers
 class ReinforcementLearningScheduler:
-    # log_dir = '../../logs/SB_train/'
-    log_dir = pkg_path / 'logs' / 'SB_train'
+    log_dir = log_path / 'SB_train'
 
     # model_cls_dict = {'Random': RandomAgent, 'DQN': DQN, 'PPO2': PPO2, 'A2C': A2C}
 
@@ -68,7 +70,7 @@ class ReinforcementLearningScheduler:
     def env(self, env):
         if isinstance(env, envs.BaseTaskingEnv):
             if self.do_monitor:
-                env = Monitor(env, self.log_dir)
+                env = Monitor(env, str(self.log_dir))
             self.model.set_env(env)
         else:
             raise TypeError("Environment must be an instance of BaseTaskingEnv.")
@@ -126,24 +128,32 @@ class ReinforcementLearningScheduler:
             cls_str = self.model.__class__.__name__
             save_path = f"temp/{cls_str}_{time.strftime('%Y-%m-%d_%H-%M-%S')}"
 
-        # save_path = '../agents/' + save_path
-        save_path = pkg_path / 'agents' / save_path
-        # os.makedirs(save_path, exist_ok=True)
+        save_path = agent_path / save_path
+        save_path.parent.mkdir(exist_ok=True)
 
-        self.model.save(save_path)
+        self.model.save(str(save_path))
 
-        # with open(save_path + '/env', 'wb') as file:    # TODO: save Env?
-        #     dill.dump(self.env, file)    # save environment
+        with save_path.parent.joinpath(save_path.stem + '_env').open(mode='wb') as fid:
+            env_ = self.env.env     # extract base env from Monitor
+            dill.dump(env_, fid)  # save environment
 
     @classmethod
-    def load(cls, load_path, env=None, model_cls=None):     # TODO: load Env? Unneeded for predictions...
+    def load(cls, load_path, env=None, model_cls=None):
         if model_cls is None:
             cls_str = load_path.split('/')[-1].split('_')[0]
             model_cls = cls.model_defaults[cls_str].cls
+        elif isinstance(model_cls, str):
+            model_cls = cls.model_defaults[model_cls].cls
 
-        load_path = pkg_path / 'agents' / load_path
-        # load_path = '../agents/' + load_path
-        model = model_cls.load(load_path)
+        load_path = agent_path / load_path
+        model = model_cls.load(str(load_path))
+
+        try:
+            with load_path.parent.joinpath(load_path.stem + '_env').open(mode='rb') as fid:
+                env = dill.load(fid)
+        except FileNotFoundError:
+            pass
+
         return cls(model, env)
 
     # @classmethod

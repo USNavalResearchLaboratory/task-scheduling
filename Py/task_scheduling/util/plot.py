@@ -1,8 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from task_scheduling.util.results import eval_loss
-
 
 def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
     """
@@ -10,12 +8,12 @@ def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
 
     Parameters
     ----------
-    tasks : list of Generic
+    tasks : list of task_scheduling.tasks.Generic
     t_plot : ndarray
         Loss evaluation times.
-    ax : Axes or None
+    ax : matplotlib.axes.Axes, optional
         Matplotlib axes target object.
-    ax_kwargs : dict
+    ax_kwargs : dict, optional
         Additional Axes keyword parameters.
 
     Returns
@@ -91,13 +89,14 @@ def plot_schedule(tasks, t_ex, ch_ex, l_ex=None, alg_repr=None, ax=None, ax_kwar
     ax.grid(True)
     # ax.legend()
 
-    if l_ex is None:
-        l_ex = eval_loss(tasks, t_ex)
-
-    if alg_repr is None:
-        ax.set_title(f'Loss = {l_ex:.2f}')
-    else:
-        ax.set_title(f'{alg_repr}: Loss = {l_ex:.2f}')
+    _temp = []
+    if isinstance(alg_repr, str):
+        _temp.append(alg_repr)
+    if l_ex is not None:
+        _temp.append(f'Loss = {l_ex:.2f}')
+    title = ', '.join(_temp)
+    if len(title) > 0:
+        ax.set_title(title)
 
     ax.set(**ax_kwargs)
 
