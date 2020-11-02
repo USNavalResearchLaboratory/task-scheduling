@@ -2,18 +2,15 @@ import shutil
 from pathlib import Path
 import time
 import dill
-import cProfile
 
 import numpy as np
 import matplotlib.pyplot as plt
-import tensorflow as tf
+# import tensorflow as tf
 from tensorflow import keras
 from tensorboard import program
 import webbrowser
 import gym
 
-from task_scheduling.generators import scheduling_problems as problems
-from task_scheduling.tree_search import TreeNodeShift
 from task_scheduling.learning.environments import SeqTaskingEnv, StepTaskingEnv
 
 np.set_printoptions(precision=2)
@@ -59,7 +56,7 @@ class SupervisedLearningScheduler:
             Task execution channels.
         """
 
-        if isinstance(self.env, StepTaskingEnv):        # FIXME: high runtime - profile!
+        if isinstance(self.env, StepTaskingEnv):
             do_masking = True
         else:
             do_masking = False
@@ -254,59 +251,3 @@ class SupervisedLearningScheduler:
             scheduler.save(save_path)
 
         return scheduler
-
-
-def main():
-    problem_gen = problems.Random.relu_drop(n_tasks=8, n_ch=1)
-    # problem_gen = problems.Dataset.load('relu_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
-
-    features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
-                         ('release time', lambda task: task.t_release,
-                          (0., problem_gen.task_gen.param_lims['t_release'][1])),
-                         ('slope', lambda task: task.slope, problem_gen.task_gen.param_lims['slope']),
-                         ('drop time', lambda task: task.t_drop, (0., problem_gen.task_gen.param_lims['t_drop'][1])),
-                         ('drop loss', lambda task: task.l_drop, (0., problem_gen.task_gen.param_lims['l_drop'][1])),
-                         ('is available', lambda task: 1 if task.t_release == 0. else 0, (0, 1)),
-                         ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
-                         ],
-                        dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
-
-    def sort_func(self, n):
-        if n in self.node.seq:
-            return float('inf')
-        else:
-            return self.node.tasks[n].t_release
-
-    # env_cls = SeqTaskingEnv
-    env_cls = StepTaskingEnv
-
-    env_params = {'node_cls': TreeNodeShift,
-                  'features': features,
-                  'sort_func': sort_func,
-                  'masking': True,
-                  # 'action_type': 'int',
-                  'seq_encoding': 'one-hot',
-                  }
-
-    weight_func_ = None
-    # def weight_func_(env):
-    #     return (env.n_tasks - len(env.node.seq)) / env.n_tasks
-
-    scheduler = SupervisedLearningScheduler.train_from_gen(problem_gen, env_cls, env_params, layers=None,
-                                                           compile_params=None, n_batch_train=10, n_batch_val=10,
-                                                           batch_size=1, weight_func=weight_func_,
-                                                           fit_params={'epochs': 100},
-                                                           do_tensorboard=False, plot_history=True, save=False,
-                                                           save_path=None)
-
-    (tasks, ch_avail), = problem_gen(n_gen=1)
-
-    # cProfile.run('scheduler(tasks, ch_avail)')
-
-    # t_ex, ch_ex = scheduler(tasks, ch_avail)
-    # print(t_ex)
-    # print(ch_ex)
-
-
-if __name__ == '__main__':
-    main()

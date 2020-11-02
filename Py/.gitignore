@@ -8,6 +8,7 @@ logs/
 agents/temp/
 models/temp/
 data/schedules/temp/
+data/schedules/_depricated/
 
 /radar_scheduling/
 /myscript.cprof
