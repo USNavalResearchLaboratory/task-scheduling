@@ -10,8 +10,7 @@ from pathlib import Path
 import numpy as np
 
 from task_scheduling.tree_search import branch_bound
-from task_scheduling.util.generic import RandomGeneratorMixin
-from task_scheduling.util.results import timing_wrapper
+from task_scheduling.util.generic import RandomGeneratorMixin, timing_wrapper
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
 
 np.set_printoptions(precision=2)

@@ -11,8 +11,7 @@ from gym.spaces import Box, Space, Discrete
 
 from task_scheduling.util.plot import plot_task_losses
 from task_scheduling.util.generic import seq2num, num2seq
-from task_scheduling.generators import scheduling_problems as problem_gens
-from task_scheduling.tree_search import TreeNode, TreeNodeShift
+from task_scheduling.tree_search import TreeNode
 # from task_scheduling.learning.RL_policy import RandomAgent
 
 np.set_printoptions(precision=2)
@@ -112,12 +111,25 @@ class BaseTaskingEnv(ABC, gym.Env):
 
         # Set sorting method
         if callable(sort_func):
-            self.sort_func = MethodType(sort_func, self)
-        elif type(sort_func) == str:
-            def _sort_func(env, n):
-                return getattr(env.tasks[n], sort_func)
+            # self.sort_func = MethodType(sort_func, self)
+            self.sort_func = sort_func
+        elif isinstance(sort_func, str):
+            # def _sort_func(env, n):
+            #     return getattr(env.tasks[n], sort_func)
 
-            self.sort_func = MethodType(_sort_func, self)
+            # def _sort_func(env, task):
+            #     if env.tasks.index(task) in env.node.seq:
+            #         return float('inf')
+            #     else:
+            #         return getattr(task, sort_func)
+
+            attr_str = sort_func
+
+            def _sort_func(task):
+                return getattr(task, attr_str)
+
+            # self.sort_func = MethodType(_sort_func, self)
+            self.sort_func = _sort_func
         else:
             self.sort_func = None
 
@@ -139,23 +151,28 @@ class BaseTaskingEnv(ABC, gym.Env):
 
     def __repr__(self):
         if self.node is None:
-            _stat = 'Initialized'
+            _status = 'Initialized'
         else:
-            _stat = f'{len(self.node.seq)}/{self.n_tasks} Tasks Scheduled'
-        return f"{self.__class__.__name__}({_stat})"
+            _status = f'{len(self.node.seq)}/{self.n_tasks} Tasks Scheduled'
+        return f"{self.__class__.__name__}({_status})"
 
     @property
     def sorted_index(self):
         """Indices for task re-ordering for environment state."""
         if callable(self.sort_func):
-            return np.argsort([self.sort_func(n) for n in range(self.n_tasks)])
+            # return np.argsort([self.sort_func(n) for n in range(self.n_tasks)])
+            # return np.argsort([self.sort_func(task) for task in self.tasks])
+
+            # TODO: clean up?
+            values = np.array([self.sort_func(task) for task in self.tasks])
+            values[self.node.seq] = np.inf     # unscheduled tasks to the front
+            return np.argsort(values)
         else:
             return np.arange(self.n_tasks)
 
     @property
-    def sorted_index_rev(self):
+    def sorted_index_inv(self):
         return np.array([self.sorted_index.tolist().index(n) for n in range(self.n_tasks)])
-        # return np.flatnonzero(np.isin(self.sorted_index, np.arange(self.n_tasks)))
 
     @property
     def state_tasks(self):
@@ -267,7 +284,7 @@ class BaseTaskingEnv(ABC, gym.Env):
         plt.close('all')
 
     @classmethod
-    def from_problem_gen(cls, problem_gen, env_params):
+    def from_problem_gen(cls, problem_gen, env_params=None):
         """Environment constructor from problem generators."""
 
         if env_params is None:
@@ -387,7 +404,7 @@ class SeqTaskingEnv(BaseTaskingEnv):
 
     def _gen_single(self, seq, weight_func):
         """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
-        seq_sort = self.sorted_index_rev[seq]
+        seq_sort = self.sorted_index_inv[seq]
 
         x_set = [self.state.copy()]
 
@@ -443,7 +460,7 @@ class StepTaskingEnv(BaseTaskingEnv):
             env_copy = deepcopy(self)       # FIXME: hacked - find better way!
             env_copy.reset()
             self.len_seq_encode = len(env_copy.seq_encoding(0))
-        elif type(seq_encoding) == str:     # simple string specification for supported encoders
+        elif isinstance(seq_encoding, str):     # simple string specification for supported encoders
             if seq_encoding == 'binary':
                 def _seq_encoding(env, n):
                     return [1] if n in env.node.seq else [0]
@@ -492,7 +509,7 @@ class StepTaskingEnv(BaseTaskingEnv):
 
     def _update_spaces(self):
         """Update observation and action spaces."""
-        seq_rem_sort = self.sorted_index_rev[list(self.node.seq_rem)]
+        seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
         self.action_space = DiscreteSet(seq_rem_sort)
 
     def _gen_single(self, seq, weight_func):
@@ -500,7 +517,7 @@ class StepTaskingEnv(BaseTaskingEnv):
         x_set, y_set, w_set = [], [], []
 
         for n in seq:
-            n = self.sorted_index_rev[n]
+            n = self.sorted_index_inv[n]
 
             x_set.append(self.state.copy())
             y_set.append(n)
@@ -518,74 +535,3 @@ class StepTaskingEnv(BaseTaskingEnv):
 #             obs = self.envs[env_idx].reset(*args, **kwargs)
 #             self._save_obs(env_idx, obs)
 #         return self._obs_from_buf()
-
-
-def main():
-    problem_gen = problem_gens.Random.relu_drop(n_tasks=8, n_ch=2)
-
-    features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
-                         ('release time', lambda task: task.t_release,
-                          (0., problem_gen.task_gen.param_lims['t_release'][1])),
-                         ('slope', lambda task: task.slope, problem_gen.task_gen.param_lims['slope']),
-                         ('drop time', lambda task: task.t_drop, (0., problem_gen.task_gen.param_lims['t_drop'][1])),
-                         ('drop loss', lambda task: task.l_drop, (0., problem_gen.task_gen.param_lims['l_drop'][1])),
-                         ('is available', lambda task: 1 if task.t_release == 0. else 0, (0, 1)),
-                         ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
-                         ],
-                        dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
-    # features = None
-
-    # def seq_encoding(self, n):
-    #     return [0] if n in self.node.seq else [1]
-
-    def seq_encoding(self, n):
-        out = np.zeros(self.n_tasks)
-        if n in self.node.seq:
-            out[self.node.seq.index(n)] = 1
-        return out
-
-    # seq_encoding = 'binary'
-    # seq_encoding = None
-
-    def sort_func(self, n):
-        if n in self.node.seq:
-            return float('inf')
-        else:
-            return self.tasks[n].t_release
-            # return 1 if self.tasks[n].l_drop == 0. else 0
-            # return self.tasks[n].l_drop / self.tasks[n].t_drop
-
-    # sort_func = 't_release'
-
-    # env_cls = SeqTaskingEnv
-    env_cls = StepTaskingEnv
-
-    env_params = {'node_cls': TreeNodeShift,
-                  'features': features,
-                  'sort_func': sort_func,
-                  'masking': True,
-                  # 'action_type': 'int',
-                  'seq_encoding': seq_encoding,
-                  }
-
-    env = env_cls(problem_gen, **env_params)
-
-    # out = list(env.data_gen(5, batch_size=2, verbose=True))
-
-    agent = RandomAgent(env)
-
-    obs = env.reset()
-    done = False
-    while not done:
-        print(obs)
-        # print(env.sorted_index)
-        # print(env.node.seq)
-        # print(env.tasks)
-        action, _states = agent.predict(obs)
-        print(action)
-        obs, reward, done, info = env.step(action)
-        print(reward)
-
-
-if __name__ == '__main__':
-    main()

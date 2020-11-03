@@ -1,9 +1,7 @@
-from functools import wraps
-from time import perf_counter
-
 import numpy as np
 import matplotlib.pyplot as plt
 
+from task_scheduling.util.generic import timing_wrapper
 from task_scheduling.util.plot import plot_task_losses, scatter_loss_runtime, plot_schedule
 
 # logging.basicConfig(level=logging.INFO,       # TODO: logging?
@@ -71,18 +69,6 @@ def eval_loss(tasks, t_ex):
         l_ex += task(t_ex)
 
     return l_ex
-
-
-def timing_wrapper(func):
-    """Wraps a scheduler, creates a function that outputs runtime in addition to schedule."""
-
-    @wraps(func)
-    def timed_scheduler(tasks, ch_avail):
-        t_start = perf_counter()
-        t_ex, ch_ex = func(tasks, ch_avail)
-        t_run = perf_counter() - t_start
-        return t_ex, ch_ex, t_run
-    return timed_scheduler
 
 
 def compare_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0, save=False, file=None):

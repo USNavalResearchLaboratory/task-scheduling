@@ -3,6 +3,7 @@
 from copy import deepcopy
 from collections import deque
 from math import isclose
+from numbers import Integral
 
 import numpy as np
 
@@ -380,7 +381,7 @@ class SearchNode(RandomGeneratorMixin):
 
         """
 
-        if type(item) == int:
+        if isinstance(item, (Integral, np.integer)):
             return self._children[item]
         else:
             node = self
@@ -482,7 +483,7 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : Iterable of tasks.Generic
+    tasks : Iterable of task_scheduling.tasks.Generic
     ch_avail : Iterable of float
         Channel availability times.
     verbose : bool
@@ -533,7 +534,7 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : Iterable of tasks.Generic
+    tasks : Iterable of task_scheduling.tasks.Generic
     ch_avail : Iterable of float
         Channel availability times.
     verbose : bool
@@ -593,7 +594,7 @@ def mcts_orig(tasks, ch_avail, n_mc, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : Iterable of tasks.Generic
+    tasks : Iterable of task_scheduling.tasks.Generic
     ch_avail : Iterable of float
         Channel availability times.
     n_mc : int or Iterable of int
@@ -616,7 +617,7 @@ def mcts_orig(tasks, ch_avail, n_mc, verbose=False, rng=None):
     node_best = node.roll_out(do_copy=True)
 
     n_tasks = len(tasks)
-    if type(n_mc) == int:
+    if isinstance(n_mc, (Integral, np.integer)):
         n_mc = n_tasks * [n_mc]
 
     for n in range(n_tasks):
@@ -642,7 +643,7 @@ def mcts(tasks, ch_avail, n_mc, verbose=False):
 
     Parameters
     ----------
-    tasks : Iterable of tasks.Generic
+    tasks : Iterable of task_scheduling.tasks.Generic
     ch_avail : Iterable of float
         Channel availability times.
     n_mc : int
@@ -692,7 +693,7 @@ def random_sequencer(tasks, ch_avail, rng=None):
 
     Parameters
     ----------
-    tasks : Iterable of tasks.Generic
+    tasks : Iterable of task_scheduling.tasks.Generic
     ch_avail : Iterable of float
         Channel availability times.
     rng
@@ -718,7 +719,7 @@ def earliest_release(tasks, ch_avail, do_swap=False):
 
     Parameters
     ----------
-    tasks : Iterable of tasks.Generic
+    tasks : Iterable of task_scheduling.tasks.Generic
     ch_avail : Iterable of float
         Channel availability times.
     do_swap : bool
@@ -748,7 +749,7 @@ def earliest_drop(tasks, ch_avail, do_swap=False):
 
     Parameters
     ----------
-    tasks : Iterable of tasks.Generic
+    tasks : Iterable of task_scheduling.tasks.Generic
     ch_avail : Iterable of float
         Channel availability times.
     do_swap : bool
@@ -778,7 +779,7 @@ def est_alg_kw(tasks, ch_avail):
 
     Parameters
     ----------
-    tasks : Iterable of tasks.Generic
+    tasks : Iterable of task_scheduling.tasks.Generic
     ch_avail : Iterable of float
         Channel availability times.
 
@@ -853,7 +854,7 @@ def main():
     SearchNode.n_tasks = n_tasks
     SearchNode.l_up = TreeNodeBound(tasks, ch_avail).l_up
 
-    node = SearchNode()
+    node = SearchNode(n_tasks)
     child = node.select_child()
     leaf = node.simulate()
     pass

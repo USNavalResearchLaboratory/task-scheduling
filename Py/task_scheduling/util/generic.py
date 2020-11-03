@@ -1,6 +1,8 @@
 from copy import deepcopy
+from functools import wraps
 from math import factorial
 from numbers import Integral
+from time import perf_counter
 
 import numpy as np
 
@@ -48,6 +50,37 @@ class RandomGeneratorMixin:
             raise TypeError("Input must be None, int, or a valid NumPy random number generator.")
 
 
+def timing_wrapper(scheduler):
+    """Wraps a scheduler, creates a function that outputs runtime in addition to schedule."""
+
+    @wraps(scheduler)
+    def timed_scheduler(tasks, ch_avail):
+        t_start = perf_counter()
+        t_ex, ch_ex = scheduler(tasks, ch_avail)
+        t_run = perf_counter() - t_start
+        return t_ex, ch_ex, t_run
+
+    return timed_scheduler
+
+
+def sort_wrapper(scheduler, sort_func):
+    if isinstance(sort_func, str):
+        attr_str = sort_func
+
+        def sort_func(task):
+            return getattr(task, attr_str)
+
+    @wraps(scheduler)
+    def sorted_scheduler(tasks, ch_avail):
+        idx = list(np.argsort([sort_func(task) for task in tasks]))
+        t_ex, ch_ex = scheduler([tasks[i] for i in idx], ch_avail)
+
+        idx_inv = [idx.index(n) for n in range(len(tasks))]
+        return t_ex[idx_inv], ch_ex[idx_inv]
+
+    return sorted_scheduler
+
+
 def seq2num(seq, check_input=True):
     """
     Map an index sequence permutation to a non-negative integer.
@@ -66,13 +99,13 @@ def seq2num(seq, check_input=True):
     """
 
     length = len(seq)
-    seq_rem = list(range(length))     # remaining elements
+    seq_rem = list(range(length))  # remaining elements
     if check_input and set(seq) != set(seq_rem):
         raise ValueError(f"Input must have unique elements in range({length}).")
 
     num = 0
     for i, n in enumerate(seq):
-        k = seq_rem.index(n)    # position of index in remaining elements
+        k = seq_rem.index(n)  # position of index in remaining elements
         num += k * factorial(length - 1 - i)
         seq_rem.remove(n)
 
@@ -101,7 +134,7 @@ def num2seq(num, length, check_input=True):
     if check_input and num not in range(factorial(length)):
         raise ValueError(f"Input 'num' must be in range(factorial({length})).")
 
-    seq_rem = list(range(length))     # remaining elements
+    seq_rem = list(range(length))  # remaining elements
     seq = []
     while len(seq_rem) > 0:
         radix = factorial(len(seq_rem) - 1)
