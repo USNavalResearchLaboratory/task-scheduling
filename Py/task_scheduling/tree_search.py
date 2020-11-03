@@ -499,7 +499,7 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
 
     """
 
-    # TODO: different search strategies?
+    # TODO: different search strategies? pre-sort?
 
     stack = deque([TreeNodeBound(tasks, ch_avail, rng=rng)])        # initialize stack
 
