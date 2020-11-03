@@ -9,11 +9,10 @@ import gym
 from gym.spaces import Box, Space, Discrete
 # from stable_baselines.common.vec_env import DummyVecEnv
 
-from util.plot import plot_task_losses
-from util.generic import seq2num, num2seq
-from generators.scheduling_problems import Random as RandomProblem
-from tree_search import TreeNode, TreeNodeShift
-# from RL_policy import RandomAgent
+from task_scheduling.util.plot import plot_task_losses
+from task_scheduling.util.generic import seq2num, num2seq
+from task_scheduling.tree_search import TreeNode
+# from task_scheduling.learning.RL_policy import RandomAgent
 
 np.set_printoptions(precision=2)
 
@@ -91,7 +90,7 @@ class BaseTaskingEnv(ABC, gym.Env):
 
     """
 
-    # FIXME: add normalization option for RL learners!
+    # FIXME: add normalization option for RL learners!? Or just use gym.Wrappers?
 
     def __init__(self, problem_gen, node_cls=TreeNode, features=None, sort_func=None, masking=False):
         self.problem_gen = problem_gen
@@ -112,12 +111,25 @@ class BaseTaskingEnv(ABC, gym.Env):
 
         # Set sorting method
         if callable(sort_func):
-            self.sort_func = MethodType(sort_func, self)
-        elif type(sort_func) == str:
-            def _sort_func(env, n):
-                return getattr(env.tasks[n], sort_func)
+            # self.sort_func = MethodType(sort_func, self)
+            self.sort_func = sort_func
+        elif isinstance(sort_func, str):
+            # def _sort_func(env, n):
+            #     return getattr(env.tasks[n], sort_func)
 
-            self.sort_func = MethodType(_sort_func, self)
+            # def _sort_func(env, task):
+            #     if env.tasks.index(task) in env.node.seq:
+            #         return float('inf')
+            #     else:
+            #         return getattr(task, sort_func)
+
+            attr_str = sort_func
+
+            def _sort_func(task):
+                return getattr(task, attr_str)
+
+            # self.sort_func = MethodType(_sort_func, self)
+            self.sort_func = _sort_func
         else:
             self.sort_func = None
 
@@ -139,23 +151,28 @@ class BaseTaskingEnv(ABC, gym.Env):
 
     def __repr__(self):
         if self.node is None:
-            _stat = 'Initialized'
+            _status = 'Initialized'
         else:
-            _stat = f'{len(self.node.seq)}/{self.n_tasks} Tasks Scheduled'
-        return f"{self.__class__.__name__}({_stat})"
+            _status = f'{len(self.node.seq)}/{self.n_tasks} Tasks Scheduled'
+        return f"{self.__class__.__name__}({_status})"
 
     @property
     def sorted_index(self):
         """Indices for task re-ordering for environment state."""
         if callable(self.sort_func):
-            return np.argsort([self.sort_func(n) for n in range(self.n_tasks)])
+            # return np.argsort([self.sort_func(n) for n in range(self.n_tasks)])
+            # return np.argsort([self.sort_func(task) for task in self.tasks])
+
+            # TODO: clean up?
+            values = np.array([self.sort_func(task) for task in self.tasks])
+            values[self.node.seq] = np.inf     # unscheduled tasks to the front
+            return np.argsort(values)
         else:
             return np.arange(self.n_tasks)
 
     @property
-    def sorted_index_rev(self):
+    def sorted_index_inv(self):
         return np.array([self.sorted_index.tolist().index(n) for n in range(self.n_tasks)])
-        # return np.flatnonzero(np.isin(self.sorted_index, np.arange(self.n_tasks)))
 
     @property
     def state_tasks(self):
@@ -182,20 +199,22 @@ class BaseTaskingEnv(ABC, gym.Env):
         """Update observation and action spaces."""
         raise NotImplementedError
 
-    def reset(self, tasks=None, ch_avail=None, persist=False, solve=False):
+    def reset(self, tasks=None, ch_avail=None, persist=False, solve=False, rng=None):
         """
         Reset environment by re-initializing node object with random (or user-specified) tasks/channels.
 
         Parameters
         ----------
-        tasks : Sequence of tasks.Generic, optional
+        tasks : Iterable of tasks.Generic, optional
             Optional task set for non-random reset.
-        ch_avail : Sequence of float, optional
+        ch_avail : Iterable of float, optional
             Optional initial channel availabilities for non-random reset.
         persist : bool
             If True, keeps tasks and channels fixed during reset, regardless of other inputs.
         solve : bool
             Solves for and stores the Branch & Bound optimal schedule.
+        rng : int or RandomState or Generator, optional
+            NumPy random number generator or seed. Instance RNG if None.
 
         Returns
         -------
@@ -204,25 +223,22 @@ class BaseTaskingEnv(ABC, gym.Env):
 
         """
 
-        if not persist:
+        if persist:
+            tasks, ch_avail = self.tasks, self.ch_avail
+        else:
             if tasks is None or ch_avail is None:   # generate new scheduling problem
                 if solve:   # TODO: next()? Pass a generator, not a callable??
-                    ((tasks, ch_avail), self.solution), = self.problem_gen(1, solve=solve)
+                    ((tasks, ch_avail), self.solution), = self.problem_gen(1, solve=solve, rng=rng)
                 else:
                     (tasks, ch_avail), = self.problem_gen(1, solve=solve)
                     self.solution = None
-
             elif len(tasks) != self.n_tasks:
                 raise ValueError(f"Input 'tasks' must be None or a list of {self.n_tasks} tasks")
             elif len(ch_avail) != self.n_ch:
                 raise ValueError(f"Input 'ch_avail' must be None or an array of {self.n_ch} channel availabilities")
 
-            self.node_cls._tasks_init = tasks
-            self.node_cls._ch_avail_init = ch_avail
-
-        self.node = self.node_cls()
+        self.node = self.node_cls(tasks, ch_avail)
         self.loss_agg = self.node.l_ex  # Loss can be non-zero due to time origin shift during node initialization
-
         self._update_spaces()
 
         return self.state
@@ -233,7 +249,7 @@ class BaseTaskingEnv(ABC, gym.Env):
 
         Parameters
         ----------
-        action : int or Sequence of int
+        action : int or Iterable of int
             Complete index sequence.
 
         Returns
@@ -266,6 +282,15 @@ class BaseTaskingEnv(ABC, gym.Env):
 
     def close(self):
         plt.close('all')
+
+    @classmethod
+    def from_problem_gen(cls, problem_gen, env_params=None):
+        """Environment constructor from problem generators."""
+
+        if env_params is None:
+            return cls(problem_gen)
+        else:
+            return cls(problem_gen, **env_params)
 
     def data_gen(self, n_batch, batch_size=1, weight_func=None, verbose=False):
         """
@@ -312,6 +337,7 @@ class BaseTaskingEnv(ABC, gym.Env):
 
                 # Generate samples for each scheduling step of the optimal sequence
                 x_set_single, y_set_single, w_set_single = self._gen_single(seq, weight_func)
+
                 x_set.extend(x_set_single)
                 y_set.extend(y_set_single)
                 w_set.extend(w_set_single)
@@ -328,22 +354,8 @@ class BaseTaskingEnv(ABC, gym.Env):
 
     def data_gen_numpy(self, n_gen, weight_func=None, verbose=False):
         """Generate state-action data as NumPy arrays."""
-        data, = self.data_gen(1, n_gen, weight_func, verbose)
-        return data
-
-    # def wrap_model(self, model):      # TODO: delete?
-    #     """Generate scheduling function by running an agent on a single environment episode."""
-    #
-    #     def scheduling_agent(tasks, ch_avail):
-    #         obs = self.reset(tasks, ch_avail)
-    #         done = False
-    #         while not done:
-    #             action, _states = model.predict(obs)
-    #             obs, reward, done, info = self.step(action)
-    #
-    #         return self.node.t_ex, self.node.ch_ex
-    #
-    #     return scheduling_agent
+        data, = self.data_gen(n_batch=1, batch_size=n_gen, weight_func=weight_func, verbose=verbose)
+        return data     # TODO: save dataset to save on Env computation time?
 
 
 class SeqTaskingEnv(BaseTaskingEnv):
@@ -353,7 +365,7 @@ class SeqTaskingEnv(BaseTaskingEnv):
                  action_type='seq'):
         super().__init__(problem_gen, node_cls, features, sort_func, masking)
 
-        self.action_type = action_type      # 'seq' for Sequences, 'int' for Integers
+        self.action_type = action_type      # 'seq' for sequences, 'int' for integers
         if self.action_type == 'seq':
             self.action_space_map = lambda n: Permutation(n)
         elif self.action_type == 'int':
@@ -392,7 +404,7 @@ class SeqTaskingEnv(BaseTaskingEnv):
 
     def _gen_single(self, seq, weight_func):
         """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
-        seq_sort = self.sorted_index_rev[seq]
+        seq_sort = self.sorted_index_inv[seq]
 
         x_set = [self.state.copy()]
 
@@ -448,7 +460,7 @@ class StepTaskingEnv(BaseTaskingEnv):
             env_copy = deepcopy(self)       # FIXME: hacked - find better way!
             env_copy.reset()
             self.len_seq_encode = len(env_copy.seq_encoding(0))
-        elif type(seq_encoding) == str:     # simple string specification for supported encoders
+        elif isinstance(seq_encoding, str):     # simple string specification for supported encoders
             if seq_encoding == 'binary':
                 def _seq_encoding(env, n):
                     return [1] if n in env.node.seq else [0]
@@ -497,7 +509,7 @@ class StepTaskingEnv(BaseTaskingEnv):
 
     def _update_spaces(self):
         """Update observation and action spaces."""
-        seq_rem_sort = self.sorted_index_rev[list(self.node.seq_rem)]
+        seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
         self.action_space = DiscreteSet(seq_rem_sort)
 
     def _gen_single(self, seq, weight_func):
@@ -505,7 +517,7 @@ class StepTaskingEnv(BaseTaskingEnv):
         x_set, y_set, w_set = [], [], []
 
         for n in seq:
-            n = self.sorted_index_rev[n]
+            n = self.sorted_index_inv[n]
 
             x_set.append(self.state.copy())
             y_set.append(n)
@@ -523,74 +535,3 @@ class StepTaskingEnv(BaseTaskingEnv):
 #             obs = self.envs[env_idx].reset(*args, **kwargs)
 #             self._save_obs(env_idx, obs)
 #         return self._obs_from_buf()
-
-
-def main():
-    problem_gen = RandomProblem.relu_drop(n_tasks=8, n_ch=2)
-
-    features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
-                         ('release time', lambda task: task.t_release,
-                          (0., problem_gen.task_gen.param_lims['t_release'][1])),
-                         ('slope', lambda task: task.slope, problem_gen.task_gen.param_lims['slope']),
-                         ('drop time', lambda task: task.t_drop, (0., problem_gen.task_gen.param_lims['t_drop'][1])),
-                         ('drop loss', lambda task: task.l_drop, (0., problem_gen.task_gen.param_lims['l_drop'][1])),
-                         ('is available', lambda task: 1 if task.t_release == 0. else 0, (0, 1)),
-                         ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
-                         ],
-                        dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
-    # features = None
-
-    # def seq_encoding(self, n):
-    #     return [0] if n in self.node.seq else [1]
-
-    def seq_encoding(self, n):
-        out = np.zeros(self.n_tasks)
-        if n in self.node.seq:
-            out[self.node.seq.index(n)] = 1
-        return out
-
-    # seq_encoding = 'binary'
-    # seq_encoding = None
-
-    def sort_func(self, n):
-        if n in self.node.seq:
-            return float('inf')
-        else:
-            return self.tasks[n].t_release
-            # return 1 if self.tasks[n].l_drop == 0. else 0
-            # return self.tasks[n].l_drop / self.tasks[n].t_drop
-
-    # sort_func = 't_release'
-
-    # env_cls = SeqTaskingEnv
-    env_cls = StepTaskingEnv
-
-    env_params = {'node_cls': TreeNodeShift,
-                  'features': features,
-                  'sort_func': sort_func,
-                  'masking': False,
-                  # 'action_type': 'int',
-                  'seq_encoding': seq_encoding,
-                  }
-
-    env = env_cls(problem_gen, **env_params)
-
-    # out = list(env.data_gen(5, batch_size=2, verbose=True))
-
-    agent = RandomAgent(env)
-
-    obs = env.reset()
-    done = False
-    while not done:
-        print(obs)
-        # print(env.sorted_index)
-        # print(env.node.seq)
-        # print(env.tasks)
-        action, _states = agent.predict(obs)
-        print(action)
-        obs, reward, done, info = env.step(action)
-        print(reward)
-
-
-if __name__ == '__main__':
-    main()

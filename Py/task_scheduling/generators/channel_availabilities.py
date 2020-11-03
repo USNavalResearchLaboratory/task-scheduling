@@ -2,40 +2,66 @@
 
 from abc import ABC, abstractmethod
 
-from util.generic import check_rng
+from task_scheduling.util.generic import RandomGeneratorMixin
 
 
-class BaseIID(ABC):
-    def __init__(self, rng=None):
-        self.rng = check_rng(rng)
+class Base(RandomGeneratorMixin, ABC):
+    """
+    Generator of random channel availabilities.
+
+    Parameters
+    ----------
+    lims : Iterable of float
+        Lower and upper channel limits.
+
+    """
+
+    def __init__(self, lims=(0., 0.), rng=None):
+        super().__init__(rng)
+        self.lims = tuple(lims)
 
     @abstractmethod
-    def __call__(self, n_ch):
+    def __call__(self, n_ch, rng=None):
+        raise NotImplementedError
+
+
+class BaseIID(Base, ABC):
+    def __call__(self, n_ch, rng=None):
+        """Randomly generate tasks."""
+        rng = self._get_rng(rng)
+        for _ in range(n_ch):
+            yield self._gen_single(rng)
+
+    @abstractmethod
+    def _gen_single(self, rng):
+        """Randomly generate task parameters."""
         raise NotImplementedError
 
 
 class UniformIID(BaseIID):
-    """
-    Generator of uniformly random channel availabilities.
-
-    Parameters
-    ----------
-    lim : tuple of float or list of float
-        Lower and upper limits for uniform RNG
-
-    """
-
-    def __init__(self, lim=(0, 0), rng=None):
-        super().__init__(rng)
-        self.lim = lim
-
-    def __call__(self, n_ch):
-        """Randomly generate a list of channel availabilities."""
-        for _ in range(n_ch):
-            yield self.rng.uniform(*self.lim)
+    def _gen_single(self, rng):
+        return rng.uniform(*self.lims)
 
     def __eq__(self, other):
         if isinstance(other, UniformIID):
-            return self.lim == other.lim
+            return self.lims == other.lims
         else:
             return NotImplemented
+
+
+class Deterministic(Base):
+    def __init__(self, ch_avail):
+        self.ch_avail = tuple(ch_avail)
+        super().__init__(lims=(min(ch_avail), max(ch_avail)))
+
+    def __call__(self, n_ch, rng=None):
+        if n_ch != len(self.ch_avail):
+            raise ValueError(f"Number of channels must be {len(self.ch_avail)}.")
+
+        for ch_avail_ in self.ch_avail:
+            yield ch_avail_
+
+    @classmethod
+    def from_uniform(cls, n_ch, lims=(0., 0.), rng=None):
+        ch_avail_gen = UniformIID(lims, rng=rng)
+        return cls(ch_avail=list(ch_avail_gen(n_ch)))

@@ -11,12 +11,12 @@ from itertools import product
 import numpy as np
 import matplotlib.pyplot as plt
 
-from util.generic import algorithm_repr, check_rng
-from util.results import check_valid, eval_loss
-from util.plot import plot_task_losses, plot_loss_runtime
+from task_scheduling.util.generic import algorithm_repr
+from task_scheduling.util.results import check_valid, eval_loss
+from task_scheduling.util.plot import plot_task_losses, plot_loss_runtime
 
-from generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
-from tree_search_run_lim import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release
+from task_scheduling.generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
+from _deprecated.tree_search_run_lim import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release
 
 plt.style.use('seaborn')
 
@@ -32,10 +32,6 @@ n_channels = 2
 
 task_gen = ContinuousUniformTaskGenerator.relu_drop(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
                                                     t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None)       # task set generator
-
-
-def ch_avail_gen(n_ch, rng=check_rng(None)):     # channel availability time generator
-    return rng.uniform(0, 2, n_ch)
 
 
 max_runtimes = np.logspace(-2, 0, 11)
@@ -106,7 +102,7 @@ for i_gen in range(n_gen):      # Generate new scheduling problem
 
         l_ex_mean[alg_repr][i_gen] = l_ex_iter[alg_repr][i_gen].mean(-1)
 
-    plot_loss_runtime(max_runtimes, l_ex_iter[i_gen], do_std=False, ax=ax_gen[1])
+    plot_loss_runtime(max_runtimes, l_ex_iter[i_gen], do_std=False, ax=ax_gen[1])   # TODO: just do scatter?
 
 print('')
 

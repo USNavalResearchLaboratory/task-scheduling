@@ -3,31 +3,33 @@
 from copy import deepcopy
 from collections import deque
 from math import isclose
+from numbers import Integral
 
 import numpy as np
 
-from util.generic import check_rng
-from util.results import eval_loss
-from generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
-from generators.channel_availabilities import UniformIID as UniformChanGenerator
+from task_scheduling.util.generic import RandomGeneratorMixin
+from task_scheduling.util.results import eval_loss
+# from task_scheduling.generators import scheduling_problems as problem_gens
 
 from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
 np.set_printoptions(precision=2)
 
+# TODO: modify classes and algorithms to efficiently handle repeated tasks!?
 
-class TreeNode:
+
+class TreeNode(RandomGeneratorMixin):
     """
     Node object for mapping sequences into optimal execution times and channels.
 
     Parameters
     ----------
-    seq : Sequence of int
+    seq : Iterable of int
         Partial task index sequence.
 
     Attributes
     ----------
-    seq : Sequence of int
+    seq : Iterable of int
         Partial task index sequence.
     t_ex : ndarray
         Task execution times. NaN for unscheduled.
@@ -42,13 +44,11 @@ class TreeNode:
 
     """
 
-    _tasks_init = ()    # TODO: needs to be overwritten by invoking scripts... OK?
-    _ch_avail_init = ()
-    _rng = None
+    def __init__(self, tasks, ch_avail, seq=None, rng=None):
+        super().__init__(rng)
 
-    def __init__(self, seq=None):
-        self._tasks = deepcopy(self._tasks_init)
-        self._ch_avail = np.array(self._ch_avail_init).copy()  # timeline availability
+        self._tasks = deepcopy(tasks)
+        self._ch_avail = np.array(ch_avail)
 
         if self.n_tasks == 0 or self.n_ch == 0:
             raise AttributeError("Cannot instantiate objects before assigning "
@@ -103,7 +103,8 @@ class TreeNode:
     @seq.setter
     def seq(self, seq):
         if seq[:len(self._seq)] != self._seq:  # new sequence is not an extension of current sequence
-            self.__init__(seq)  # initialize from scratch
+            # self.__init__(seq)  # initialize from scratch
+            raise ValueError(f"Sequence must be an extension of {self._seq}")
         else:
             self.seq_extend(seq[len(self._seq):])
 
@@ -113,8 +114,8 @@ class TreeNode:
 
         Parameters
         ----------
-        seq_ext : int or Sequence of int
-            Sequence of indices referencing cls._tasks.
+        seq_ext : int or Iterable of int
+            Iterable of indices referencing cls._tasks.
         check_valid : bool
             Perform check of index sequence validity.
 
@@ -145,7 +146,7 @@ class TreeNode:
 
         self._ch_avail[ch] = self._t_ex[n] + self._tasks[n].duration    # new channel availability
 
-    def branch(self, do_permute=True):
+    def branch(self, do_permute=True, rng=None):
         """
         Generate descendant nodes.
 
@@ -153,6 +154,8 @@ class TreeNode:
         ----------
         do_permute : bool
             Enables random permutation of returned node list.
+        rng : int or RandomState or Generator, optional
+            NumPy random number generator or seed. Instance RNG if None.
 
         Yields
         -------
@@ -163,14 +166,15 @@ class TreeNode:
 
         seq_iter = list(self._seq_rem)
         if do_permute:
-            self._rng.shuffle(seq_iter)
+            rng = self._get_rng(rng)
+            rng.shuffle(seq_iter)
 
         for n in seq_iter:
             node_new = deepcopy(self)  # new TreeNode object
             node_new.seq_extend(n, check_valid=False)
             yield node_new
 
-    def roll_out(self, do_copy=False):
+    def roll_out(self, do_copy=False, rng=None):
         """
         Generates/updates node with a randomly completed sequence.
 
@@ -178,6 +182,8 @@ class TreeNode:
         ----------
         do_copy : bool
             Enables return of a new TreeNode object. Otherwise, updates in-place.
+        rng : int or RandomState or Generator, optional
+            NumPy random number generator or seed. Instance RNG if None.
 
         Returns
         -------
@@ -186,7 +192,8 @@ class TreeNode:
 
         """
 
-        seq_ext = self._rng.permutation(list(self._seq_rem)).tolist()
+        rng = self._get_rng(rng)
+        seq_ext = rng.permutation(list(self._seq_rem)).tolist()
 
         if do_copy:
             node_new = deepcopy(self)  # new TreeNode object
@@ -204,7 +211,7 @@ class TreeNode:
         for i in range(len(self.seq) - 1):
             seq_swap = self.seq.copy()
             seq_swap[i:i + 2] = seq_swap[i:i + 2][::-1]
-            node_swap = TreeNode(seq_swap)
+            node_swap = TreeNode(self._tasks, self._ch_avail, seq_swap)
             if node_swap.l_ex < self.l_ex:
                 self = node_swap            # TODO: improper?
 
@@ -239,10 +246,10 @@ class TreeNodeBound(TreeNode):
 
     """
 
-    def __init__(self, seq=None):
+    def __init__(self, tasks, ch_avail, seq=None, rng=None):
         self._l_lo = 0.
         self._l_up = float('inf')
-        super().__init__(seq)
+        super().__init__(tasks, ch_avail, seq, rng)
 
     def __repr__(self):
         return f"TreeNodeBound(sequence: {self.seq}, {self.l_lo:.3f} < loss < {self.l_up:.3f})"
@@ -250,20 +257,20 @@ class TreeNodeBound(TreeNode):
     l_lo = property(lambda self: self._l_lo)
     l_up = property(lambda self: self._l_up)
 
-    def seq_extend(self, seq: list, check_valid=True):
+    def seq_extend(self, seq_ext, check_valid=True):
         """
         Sets node sequence and iteratively updates all dependent attributes.
 
         Parameters
         ----------
-        seq : list of list
-            Sequence of indices referencing cls._tasks.
+        seq_ext : int or Iterable of int
+            Iterable of indices referencing cls._tasks.
         check_valid : bool
             Perform check of index sequence validity.
 
         """
 
-        super().seq_extend(seq, check_valid)
+        super().seq_extend(seq_ext, check_valid)
 
         # Add bound attributes
         t_ex_max = (max([self._tasks[n].t_release for n in self._seq_rem] + [min(self._ch_avail)])
@@ -281,9 +288,9 @@ class TreeNodeBound(TreeNode):
 
 
 class TreeNodeShift(TreeNode):
-    def __init__(self, seq=None):
+    def __init__(self, tasks, ch_avail, seq=None, rng=None):
         self.t_origin = 0.
-        super().__init__(seq)
+        super().__init__(tasks, ch_avail, seq, rng)
 
         if len(self._seq) == 0:     # otherwise, shift_origin is invoked during initial call to 'seq_extend'
             self.shift_origin()
@@ -317,7 +324,7 @@ class TreeNodeShift(TreeNode):
         self.shift_origin()
 
 
-class SearchNode:
+class SearchNode(RandomGeneratorMixin):
     """
     Node object for Monte Carlo tree search.
 
@@ -341,13 +348,12 @@ class SearchNode:
 
     """
 
-    n_tasks = None
-    l_up = None
+    def __init__(self, n_tasks, seq=None, l_up=None, rng=None):
+        super().__init__(rng)
 
-    def __init__(self, seq=None):
-        if seq is None:
-            seq = []
-        self._seq = seq
+        self.n_tasks = n_tasks
+        self._seq = seq if seq is not None else []
+        self.l_up = l_up
 
         self._n_visits = 0
         self._l_avg = 0.
@@ -375,7 +381,7 @@ class SearchNode:
 
         """
 
-        if type(item) == int:
+        if isinstance(item, (Integral, np.integer)):
             return self._children[item]
         else:
             node = self
@@ -427,7 +433,7 @@ class SearchNode:
         """
 
         node = self
-        while len(node._seq) < SearchNode.n_tasks:
+        while len(node._seq) < self.n_tasks:
             node = node.select_child()
         return node._seq
 
@@ -459,7 +465,7 @@ class SearchNode:
 
         """
 
-        if len(seq) != SearchNode.n_tasks:
+        if len(seq) != self.n_tasks:
             raise ValueError('Sequence must be complete.')
 
         seq_rem = seq[len(self._seq):]
@@ -477,8 +483,8 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : Sequence of tasks.Generic
-    ch_avail : Sequence of float
+    tasks : Iterable of task_scheduling.tasks.Generic
+    ch_avail : Iterable of float
         Channel availability times.
     verbose : bool
         Enables printing of algorithm state information.
@@ -494,13 +500,9 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
 
     """
 
-    # TODO: different search strategies?
+    # TODO: different search strategies? pre-sort?
 
-    TreeNode._tasks_init = tasks
-    TreeNode._ch_avail_init = ch_avail
-    TreeNode._rng = check_rng(rng)
-
-    stack = deque([TreeNodeBound()])        # initialize stack
+    stack = deque([TreeNodeBound(tasks, ch_avail, rng=rng)])        # initialize stack
 
     node_best = stack[0].roll_out(do_copy=True)  # roll-out initial solution
 
@@ -532,8 +534,8 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : Sequence of tasks.Generic
-    ch_avail : Sequence of float
+    tasks : Iterable of task_scheduling.tasks.Generic
+    ch_avail : Iterable of float
         Channel availability times.
     verbose : bool
         Enables printing of algorithm state information.
@@ -549,12 +551,8 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
 
     """
 
-    TreeNode._tasks_init = tasks
-    TreeNode._ch_avail_init = ch_avail
-    TreeNode._rng = check_rng(rng)
-
-    stack = [TreeNodeBound()]  # Initialize Stack
-    NodeStats = [TreeNodeBound()]
+    stack = [TreeNodeBound(tasks, ch_avail, rng=rng)]  # Initialize Stack
+    NodeStats = [TreeNodeBound(tasks, ch_avail, rng=rng)]
     # NodeStats = []
 
     node_best = stack[0].roll_out(do_copy=True)  # roll-out initial solution
@@ -596,10 +594,10 @@ def mcts_orig(tasks, ch_avail, n_mc, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : Sequence of tasks.Generic
-    ch_avail : Sequence of float
+    tasks : Iterable of task_scheduling.tasks.Generic
+    ch_avail : Iterable of float
         Channel availability times.
-    n_mc : int or Sequence of int
+    n_mc : int or Iterable of int
         Number of Monte Carlo roll-outs per task.
     verbose : bool
         Enables printing of algorithm state information.
@@ -615,15 +613,11 @@ def mcts_orig(tasks, ch_avail, n_mc, verbose=False, rng=None):
 
     """
 
-    TreeNode._tasks_init = tasks
-    TreeNode._ch_avail_init = ch_avail
-    TreeNode._rng = check_rng(rng)
-
-    node = TreeNode()
+    node = TreeNode(tasks, ch_avail, rng=rng)
     node_best = node.roll_out(do_copy=True)
 
     n_tasks = len(tasks)
-    if type(n_mc) == int:
+    if isinstance(n_mc, (Integral, np.integer)):
         n_mc = n_tasks * [n_mc]
 
     for n in range(n_tasks):
@@ -649,8 +643,8 @@ def mcts(tasks, ch_avail, n_mc, verbose=False):
 
     Parameters
     ----------
-    tasks : Sequence of tasks.Generic
-    ch_avail : Sequence of float
+    tasks : Iterable of task_scheduling.tasks.Generic
+    ch_avail : Iterable of float
         Channel availability times.
     n_mc : int
         Number of roll-outs performed.
@@ -668,13 +662,8 @@ def mcts(tasks, ch_avail, n_mc, verbose=False):
 
     # TODO: add exploration/exploitation input control.
 
-    TreeNode._tasks_init = tasks
-    TreeNode._ch_avail_init = ch_avail
-    # TreeNode._rng = check_rng(rng)
-
-    SearchNode.n_tasks = len(tasks)
-    SearchNode.l_up = TreeNodeBound().l_up
-    tree = SearchNode()
+    l_up = TreeNodeBound(tasks, ch_avail).l_up
+    tree = SearchNode(n_tasks=len(tasks), seq=[], l_up=l_up)
 
     node_best = None
 
@@ -685,7 +674,7 @@ def mcts(tasks, ch_avail, n_mc, verbose=False):
             print(f'Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_min}', end='\r')
 
         seq = tree.simulate()   # Roll-out a complete sequence
-        node = TreeNode(seq)    # Evaluate execution times and channels, total loss
+        node = TreeNode(tasks, ch_avail, seq)    # Evaluate execution times and channels, total loss
 
         loss = node.l_ex
         tree.backup(seq, loss)  # Update search tree from leaf sequence to root
@@ -704,8 +693,8 @@ def random_sequencer(tasks, ch_avail, rng=None):
 
     Parameters
     ----------
-    tasks : Sequence of tasks.Generic
-    ch_avail : Sequence of float
+    tasks : Iterable of task_scheduling.tasks.Generic
+    ch_avail : Iterable of float
         Channel availability times.
     rng
         NumPy random number generator or seed. Default Generator if None.
@@ -719,12 +708,8 @@ def random_sequencer(tasks, ch_avail, rng=None):
 
     """
 
-    TreeNode._tasks_init = tasks
-    TreeNode._ch_avail_init = ch_avail
-    TreeNode._rng = check_rng(rng)
-
-    node = TreeNode().roll_out(do_copy=True)
-
+    node = TreeNode(tasks, ch_avail, rng=rng)
+    node.roll_out()
     return node.t_ex, node.ch_ex
 
 
@@ -734,8 +719,8 @@ def earliest_release(tasks, ch_avail, do_swap=False):
 
     Parameters
     ----------
-    tasks : Sequence of tasks.Generic
-    ch_avail : Sequence of float
+    tasks : Iterable of task_scheduling.tasks.Generic
+    ch_avail : Iterable of float
         Channel availability times.
     do_swap : bool
         Enables task swapping
@@ -749,11 +734,8 @@ def earliest_release(tasks, ch_avail, do_swap=False):
 
     """
 
-    TreeNode._tasks_init = tasks
-    TreeNode._ch_avail_init = ch_avail
-
-    seq = list(np.argsort([task.t_release for task in tasks]))
-    node = TreeNode(seq)
+    seq = np.argsort([task.t_release for task in tasks])
+    node = TreeNode(tasks, ch_avail, seq)
 
     if do_swap:
         node.check_swaps()
@@ -767,8 +749,8 @@ def earliest_drop(tasks, ch_avail, do_swap=False):
 
     Parameters
     ----------
-    tasks : Sequence of tasks.Generic
-    ch_avail : Sequence of float
+    tasks : Iterable of task_scheduling.tasks.Generic
+    ch_avail : Iterable of float
         Channel availability times.
     do_swap : bool
         Enables task swapping.
@@ -782,11 +764,8 @@ def earliest_drop(tasks, ch_avail, do_swap=False):
 
     """
 
-    TreeNode._tasks_init = tasks
-    TreeNode._ch_avail_init = ch_avail
-
     seq = list(np.argsort([task.t_drop for task in tasks]))
-    node = TreeNode(seq)
+    node = TreeNode(tasks, ch_avail, seq)
 
     if do_swap:
         node.check_swaps()
@@ -800,8 +779,8 @@ def est_alg_kw(tasks, ch_avail):
 
     Parameters
     ----------
-    tasks : Sequence of tasks.Generic
-    ch_avail : Sequence of float
+    tasks : Iterable of task_scheduling.tasks.Generic
+    ch_avail : Iterable of float
         Channel availability times.
 
     Returns
@@ -825,11 +804,8 @@ def est_alg_kw(tasks, ch_avail):
 
 def ert_alg_kw(tasks, ch_avail, do_swap=False):
 
-    TreeNode._tasks_init = tasks
-    TreeNode._ch_avail_init = ch_avail
-
     seq = list(np.argsort([task.t_release for task in tasks]))
-    node = TreeNode(seq)
+    node = TreeNode(tasks, ch_avail, seq)
 
     if do_swap:
         node.check_swaps()
@@ -843,19 +819,8 @@ def main():
     n_tasks = 10
     n_channels = 2
 
-    task_gen = ContinuousUniformTaskGenerator.relu_drop(duration_lim=(3, 6), t_release_lim=(0, 4),
-                                                        slope_lim=(0.5, 2), t_drop_lim=(6, 12),
-                                                        l_drop_lim=(35, 50))
-    ch_avail_gen = UniformChanGenerator(lim=(0, 1))
-
-    tasks = list(task_gen(n_tasks))
-    ch_avail = list(ch_avail_gen(n_channels))
-    # problem_gen = RandomProblem.relu_drop(n_tasks, n_channels)
-    # (tasks, ch_avail), = problem_gen()
-
-    TreeNode._tasks_init = tasks
-    TreeNode._ch_avail_init = ch_avail
-    TreeNode._rng = check_rng(None)
+    problem_gen = RandomProblem.relu_drop(n_tasks, n_channels)
+    (tasks, ch_avail), = problem_gen()
 
     for i in range(100):    # check that seq=np.argsort(t_ex) maps to an optimal schedule
         print(f"{i}", end='\n')
@@ -864,13 +829,12 @@ def main():
         # node = TreeNode(seq)
         # t_ex = node.t_ex
 
-        tasks = list(task_gen(n_tasks))
-        ch_avail = list(ch_avail_gen(n_channels))
+        (tasks, ch_avail), = problem_gen()
         t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True, rng=None)
         loss = eval_loss(tasks, t_ex)
 
         seq_sort = np.argsort(t_ex)
-        node_sort = TreeNode(seq_sort)
+        node_sort = TreeNode(tasks, ch_avail, seq_sort)
         # t_ex_sort = node_sort.t_ex
 
         assert isclose(loss, node_sort.l_ex)
@@ -879,7 +843,7 @@ def main():
 
     for _ in range(100):     # check accuracy of TreeNodeShift solution
         seq = np.random.permutation(n_tasks)
-        node, node_s = TreeNode(seq), TreeNodeShift(seq)
+        node, node_s = TreeNode(tasks, ch_avail, seq), TreeNodeShift(tasks, ch_avail, seq)
         print(node.t_ex)
         print(node_s.t_ex)
         assert np.allclose(node.t_ex, node_s.t_ex)
@@ -888,16 +852,16 @@ def main():
     t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True, rng=None)
 
     SearchNode.n_tasks = n_tasks
-    SearchNode.l_up = TreeNodeBound().l_up
+    SearchNode.l_up = TreeNodeBound(tasks, ch_avail).l_up
 
-    node = SearchNode()
+    node = SearchNode(n_tasks)
     child = node.select_child()
     leaf = node.simulate()
     pass
 
     t_ex, ch_ex = mcts_orig(tasks, ch_avail, n_mc=[1000 for n in range(n_tasks, 0, -1)], verbose=False)
     print(t_ex)
-    t_ex, ch_ex = mcts(tasks, ch_avail, verbose=False)
+    t_ex, ch_ex = mcts(tasks, ch_avail, n_mc=1000, verbose=False)
     print(t_ex)
 
 

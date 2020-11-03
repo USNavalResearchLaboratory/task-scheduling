@@ -2,53 +2,52 @@
 
 from abc import ABC, abstractmethod
 from time import strftime
-
-import dill
 from collections import namedtuple
 from functools import partial
+import dill
+from pathlib import Path
 
 import numpy as np
 
-from util.generic import check_rng
-from util.results import timing_wrapper
-from generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
-from generators.channel_availabilities import UniformIID as UniformChanGenerator
-from tree_search import branch_bound
+from task_scheduling.tree_search import branch_bound
+from task_scheduling.util.generic import RandomGeneratorMixin, timing_wrapper
+from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
 
 np.set_printoptions(precision=2)
+data_path = Path.cwd() / 'data' / 'schedules'
+
+_SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
+_SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
 
 
-class Base(ABC):
-    """
-    Base class for scheduling problem generators.
-
-    Parameters
-    ----------
-    n_tasks : int
-        Number of tasks.
-    n_ch: int
-        Number of channels.
-    task_gen : generators.tasks.BaseIID, optional
-        Task generation object.
-    ch_avail_gen : generators.channel_availabilities.BaseIID, optional
-        Returns random initial channel availabilities.
-    rng : int or RandomState or Generator, optional
-        Random number generator seed or object.
-
-    """
-
-    _SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
-    _SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
-
+class Base(RandomGeneratorMixin, ABC):
     def __init__(self, n_tasks, n_ch, task_gen, ch_avail_gen, rng=None):
+        """
+        Base class for scheduling problem generators.
+
+        Parameters
+        ----------
+        n_tasks : int
+            Number of tasks.
+        n_ch: int
+            Number of channels.
+        task_gen : generators.tasks.Base
+            Task generation object.
+        ch_avail_gen : generators.channel_availabilities.Base
+            Returns random initial channel availabilities.
+        rng : int or RandomState or Generator, optional
+            Random number generator seed or object.
+
+        """
+
+        super().__init__(rng)
+
         self.n_tasks = n_tasks
         self.n_ch = n_ch
         self.task_gen = task_gen
         self.ch_avail_gen = ch_avail_gen
 
-        self.rng = check_rng(rng)
-
-    def __call__(self, n_gen, solve=False, verbose=False, save=False, file=None):       # FIXME: add RNG reproducibility
+    def __call__(self, n_gen, solve=False, verbose=False, save=False, file=None, rng=None):
         """
         Call problem generator.
 
@@ -62,8 +61,10 @@ class Base(ABC):
             Enables print-out of optimal scheduler progress.
         save : bool, optional
             Enables serialization of generated problems/solutions.
-        file: str, optional
-            File location relative to ../data/schedules/
+        file : str, optional
+            File location relative to data/schedules/
+        rng : int or RandomState or Generator, optional
+            NumPy random number generator or seed. Instance RNG if None.
 
         Yields
         ------
@@ -78,24 +79,17 @@ class Base(ABC):
                      'task_gen': self.task_gen, 'ch_avail_gen': self.ch_avail_gen}
 
         # Generate tasks and find optimal schedules
+        rng = self._get_rng(rng)
         for i_gen in range(n_gen):
             if verbose:
                 print(f'Scheduling Problem: {i_gen + 1}/{n_gen}', end='\n')
 
-            problem, solution = self.gen_single()
-
-            # if problem is None:
-            #     return      # Stops iterator when Dataset generators run out of data
-
+            problem = self._gen_problem(rng)
             if save:
                 save_dict['problems'].append(problem)
 
             if solve:
-                if solution is None:
-                    # Generate B&B optimal solution
-                    t_ex, ch_ex, t_run = timing_wrapper(partial(branch_bound, verbose=verbose))(*problem)
-                    solution = self._SchedulingSolution(t_ex, ch_ex, t_run)
-
+                solution = self._gen_solution(problem, verbose)
                 if save:
                     save_dict['solutions'].append(solution)
 
@@ -107,9 +101,14 @@ class Base(ABC):
             self.save(save_dict, file)
 
     @abstractmethod
-    def gen_single(self):
+    def _gen_problem(self, rng):
         """Return a single scheduling problem (and optional solution)."""
         raise NotImplementedError
+
+    @staticmethod
+    def _gen_solution(problem, verbose=False):
+        t_ex, ch_ex, t_run = timing_wrapper(partial(branch_bound, verbose=verbose))(*problem)
+        return _SchedulingSolution(t_ex, ch_ex, t_run)
 
     @staticmethod
     def save(save_dict, file=None):
@@ -121,41 +120,42 @@ class Base(ABC):
         save_dict: dict
             Serialized dict with keys 'problems', 'solutions', 'task_gen', and 'ch_avail_gen'.
         file : str, optional
-            File location relative to ../data/schedules/
+            File location relative to data/schedules/
 
         """
 
         if file is None:
             file = f"temp/{strftime('%Y-%m-%d_%H-%M-%S')}"
-        else:
-            try:    # search for existing file
-                with open('../data/schedules/' + file, 'rb') as file:
-                    load_dict = dill.load(file)
+        file_path = data_path.joinpath(file)
 
-                # Check equivalence of generators
-                conditions = [load_dict['task_gen'] == save_dict['task_gen'],
-                              load_dict['ch_avail_gen'] == save_dict['ch_avail_gen'],
-                              len(load_dict['problems'][0].tasks) == len(save_dict['problems'][0].tasks),
-                              len(load_dict['problems'][0].ch_avail) == len(save_dict['problems'][0].ch_avail),
-                              ]
+        try:    # search for existing file
+            with file_path.open(mode='rb') as fid:
+                load_dict = dill.load(fid)
 
-                if all(conditions):     # Append loaded problems and solutions
-                    print('File already exists. Appending existing data.')
+            # Check equivalence of generators
+            conditions = [load_dict['task_gen'] == save_dict['task_gen'],
+                          load_dict['ch_avail_gen'] == save_dict['ch_avail_gen'],
+                          len(load_dict['problems'][0].tasks) == len(save_dict['problems'][0].tasks),
+                          len(load_dict['problems'][0].ch_avail) == len(save_dict['problems'][0].ch_avail),
+                          ]
 
-                    if 'solutions' in save_dict.keys():
-                        try:
-                            save_dict['solutions'] += load_dict['solutions']
-                            save_dict['problems'] += load_dict['problems']
-                        except KeyError:
-                            pass    # Skip if new data has solutions and loaded data does not
-                    else:
+            if all(conditions):     # Append loaded problems and solutions
+                print('File already exists. Appending existing data.')
+
+                if 'solutions' in save_dict.keys():
+                    try:
+                        save_dict['solutions'] += load_dict['solutions']
                         save_dict['problems'] += load_dict['problems']
+                    except KeyError:
+                        pass    # Skip if new data has solutions and loaded data does not
+                else:
+                    save_dict['problems'] += load_dict['problems']
 
-            except FileNotFoundError:
-                pass
+        except FileNotFoundError:
+            file_path.parent.mkdir(exist_ok=True)
 
-        with open('../data/schedules/' + file, 'wb') as file:
-            dill.dump(save_dict, file)  # save schedules
+        with data_path.joinpath(file).open(mode='wb') as fid:
+            dill.dump(save_dict, fid)  # save schedules
 
     def __eq__(self, other):
         if isinstance(other, Base):
@@ -169,26 +169,119 @@ class Base(ABC):
 
 
 class Random(Base):
+    """Randomly generated scheduling problems."""
+    def _gen_problem(self, rng):
+        """Return a single scheduling problem (and optional solution)."""
+        tasks = list(self.task_gen(self.n_tasks, rng=rng))
+        ch_avail = list(self.ch_avail_gen(self.n_ch, rng=rng))
+
+        return _SchedulingProblem(tasks, ch_avail)
+
     @classmethod
-    def relu_drop(cls, n_tasks, n_ch, duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-                  t_drop_lim=(6, 12), l_drop_lim=(35, 50), ch_avail_lim=(0, 0), rng=None):
-        rng = check_rng(rng)
-
-        task_gen = ContinuousUniformTaskGenerator.relu_drop(duration_lim, t_release_lim, slope_lim, t_drop_lim,
-                                                            l_drop_lim, rng=rng)
-        ch_avail_gen = UniformChanGenerator(lim=ch_avail_lim, rng=rng)
-
+    def _task_gen_factory(cls, n_tasks, task_gen, n_ch, ch_avail_lim, rng):
+        ch_avail_gen = chan_gens.UniformIID(lims=ch_avail_lim)
         return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
-    def gen_single(self):
+    @classmethod
+    def relu_drop(cls, n_tasks, n_ch, rng=None, ch_avail_lim=(0., 0.), **relu_lims):
+        task_gen = task_gens.ContinuousUniformIID.relu_drop(**relu_lims)
+        return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
+
+    @classmethod
+    def search_track(cls, n_tasks, n_ch, probs=None, t_release_lim=(0., 0.), ch_avail_lim=(0., 0.), rng=None):
+        task_gen = task_gens.SearchTrackIID(probs, t_release_lim)
+        return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
+
+
+class FixedTasks(Base, ABC):
+    def __init__(self, n_tasks, n_ch, task_gen, ch_avail_gen, rng=None):
+        """
+        Problem generators with fixed set of tasks.
+
+        Parameters
+        ----------
+        n_tasks : int
+            Number of tasks.
+        n_ch: int
+            Number of channels.
+        task_gen : generators.tasks.Permutation
+            Task generation object.
+        ch_avail_gen : generators.channel_availabilities.Deterministic
+            Returns random initial channel availabilities.
+        rng : int or RandomState or Generator, optional
+            Random number generator seed or object.
+
+        """
+
+        super().__init__(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
+
+        if not (isinstance(task_gen, task_gens.Fixed)
+                and isinstance(ch_avail_gen, chan_gens.Deterministic)):
+            raise TypeError
+
+        self.problem = _SchedulingProblem(task_gen.tasks, ch_avail_gen.ch_avail)
+        self._solution = None
+
+    @property
+    def solution(self):
+        """Solution for the fixed task set. Performs Branch-and-Bound the first time the property is accessed."""
+        if self._solution is None:
+            self._solution = super()._gen_solution(self.problem, verbose=True)
+        return self._solution
+
+    @abstractmethod
+    def _gen_problem(self, rng):
         """Return a single scheduling problem (and optional solution)."""
-        tasks = list(self.task_gen(self.n_tasks))
-        ch_avail = list(self.ch_avail_gen(self.n_ch))
+        raise NotImplementedError
 
-        problem = self._SchedulingProblem(tasks, ch_avail)
-        solution = None
+    @classmethod
+    def _task_gen_factory(cls, n_tasks, task_gen, n_ch, rng):
+        ch_avail_gen = chan_gens.Deterministic.from_uniform(n_ch)
+        return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
-        return problem, solution
+
+class DeterministicTasks(FixedTasks):
+    def _gen_problem(self, rng):
+        return self.problem
+
+    def _gen_solution(self, problem, verbose=False):
+        return self.solution
+
+    @classmethod
+    def relu_drop(cls, n_tasks, n_ch, rng=None):
+        task_gen = task_gens.Deterministic.relu_drop(n_tasks)
+        return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
+
+    @classmethod
+    def search_track(cls, n_tasks, n_ch, probs=None, t_release_lim=(0., 0.), rng=None):
+        task_gen = task_gens.Deterministic.search_track(n_tasks, probs, t_release_lim)
+        return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
+
+
+class PermutedTasks(FixedTasks):
+    def _gen_problem(self, rng):
+        tasks = list(self.task_gen(self.n_tasks, rng=rng))
+        return _SchedulingProblem(tasks, self.problem.ch_avail)
+
+    def _gen_solution(self, problem, verbose=False):
+        idx = []  # permutation indices
+        tasks_init = self.problem.tasks.copy()
+        for task in problem.tasks:
+            i = tasks_init.index(task)
+            idx.append(i)
+            tasks_init[i] = None  # ensures unique indices
+
+        return _SchedulingSolution(self.solution.t_ex[idx], self.solution.ch_ex[idx], self.solution.t_run)
+
+    @classmethod
+    def relu_drop(cls, n_tasks, n_ch, rng=None):
+        task_gen = task_gens.Permutation.relu_drop(n_tasks)
+        return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
+
+    @classmethod
+    def search_track(cls, n_tasks, n_ch, probs=None, t_release_lim=(0., 0.), rng=None):
+        task_gen = task_gens.Permutation.search_track(n_tasks, probs, t_release_lim)
+        return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
 
 
 class Dataset(Base):
@@ -197,9 +290,9 @@ class Dataset(Base):
 
     Parameters
     ----------
-    problems : Sequence of SchedulingProblem
+    problems : Iterable of SchedulingProblem
         Scheduling problems
-    solutions : Sequence of SchedulingSolution, optional
+    solutions : Iterable of SchedulingSolution, optional
         Optimal scheduling solutions
     task_gen : generators.tasks.BaseIID, optional
         Task generation object.
@@ -235,41 +328,45 @@ class Dataset(Base):
         """Load problems/solutions from memory."""
 
         # FIXME: loads entire data set into memory, should load and yield problems on call only!!
-        with open('../data/schedules/' + file, 'rb') as file:
-            dict_gen = dill.load(file)
+        with data_path.joinpath(file).open(mode='rb') as fid:
+            dict_gen = dill.load(fid)
 
         return cls(**dict_gen, iter_mode=iter_mode, shuffle_mode=shuffle_mode, rng=rng)
 
-    def restart(self, shuffle=False):
+    def restart(self, shuffle=False, rng=None):
         """Resets data index pointer to beginning, performs optional data shuffle."""
         self.i = 0
         if shuffle:
+            rng = self._get_rng(rng)
             if self.solutions is None:
-                self.problems = self.rng.permutation(self.problems).tolist()
+                self.problems = rng.permutation(self.problems).tolist()
             else:
                 _temp = list(zip(self.problems, self.solutions))
-                _p, _s = zip(*self.rng.permutation(_temp).tolist())
+                _p, _s = zip(*rng.permutation(_temp).tolist())
                 self.problems, self.solutions = list(_p), list(_s)
 
-    def gen_single(self):
+    def _gen_problem(self, rng):
         """Return a single scheduling problem (and optional solution)."""
         if self.i == self.n_problems:
             if self.iter_mode == 'once':
                 raise ValueError("Problem generator data has been exhausted.")
-                # warnings.warn("Problem generator data has been exhausted.")
-                # return None, None
             elif self.iter_mode == 'repeat':
-                self.restart(self.shuffle_mode == 'repeat')
+                self.restart(self.shuffle_mode == 'repeat', rng=rng)
 
         problem = self.problems[self.i]
         if self.solutions is not None:
-            solution = self.solutions[self.i]
+            self._solution_i = self.solutions[self.i]
         else:
-            solution = None
+            self._solution_i = None
 
         self.i += 1
+        return problem
 
-        return problem, solution
+    def _gen_solution(self, problem, verbose=False):
+        if self._solution_i is not None:
+            return self._solution_i
+        else:
+            return super()._gen_solution(problem, verbose)
 
 
 def main():
@@ -277,6 +374,11 @@ def main():
 
     print(list(rand_gen(2)))
     print(list(rand_gen(3)))
+
+    # rand_gen = DeterministicTasks.relu_drop(n_tasks=3, n_ch=2, rng=None)
+    #
+    # print(list(rand_gen(2)))
+    # print(list(rand_gen(3)))
 
 
 if __name__ == '__main__':

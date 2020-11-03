@@ -1,6 +1,5 @@
 import shutil
 import time
-from functools import partial
 import dill
 
 import numpy as np
@@ -11,13 +10,14 @@ from tensorboard import program
 import webbrowser
 import os
 
-from util.generic import check_rng, Distribution
-from util.results import check_valid, eval_loss
+from util.generic import check_rng
 
-from generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
 from generators.tasks import GenericIID as GenericTaskGenerator
-from tree_search import branch_bound, mcts_orig, mcts, random_sequencer, earliest_release, TreeNode, TreeNodeShift
-from environments import StepTaskingEnv
+from tree_search import TreeNodeShift
+from learning.environments import StepTaskingEnv
+
+from scipy.stats import rv_discrete, uniform
+
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
@@ -167,16 +167,16 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
 
         model.save(save_path)      # save TF model
 
-        with open('./models/' + save_dir + '/env.pkl', 'wb') as file:
-            dill.dump(env, file)    # save environment
+        with open('./models/' + save_dir + '/env.pkl', 'wb') as fid:
+            dill.dump(env, fid)    # save environment
 
     return wrap_policy(env, model)
 
 
 def load_policy(load_dir):
     """Loads network model and environment, returns wrapped scheduling function."""
-    with open('./models/' + load_dir + '/env.pkl', 'rb') as file:
-        env = dill.load(file)
+    with open('./models/' + load_dir + '/env.pkl', 'rb') as fid:
+        env = dill.load(fid)
     model = keras.models.load_model('./models/' + load_dir)
 
     return wrap_policy(env, model)
@@ -204,6 +204,69 @@ def wrap_policy(env, model):
     return scheduling_model
 
 
+
+class Distribution:
+    """
+    Random Number Generator Object
+
+    Parameters
+    ----------
+    feature_name: str, ex "duration"
+    type_: str - representing distribution type  ex: 'uniform', 'discrete'
+    values: np-array of discrete values taken by distribution
+    probs: tuple of probabilites (same length as values)
+    lims: used to set (lower,upper) limits for uniform distribution
+
+    output
+    --------
+    distro: random variable object.   Usage distro.rvs(size=10) --> produces length 10 vector of rvs
+    distro.mean(), distro.var()  returns mean/vars of distribution
+    """
+
+    def __init__(self, feature_name: str, type_: str, values=False, probs=False, lims=(0,1), distro = None, rng=None):
+        self.feature_name = feature_name  # Feature Name
+        self.type_ = type_  # Distribution type
+        self.values = values
+        self.probs = probs
+        self.lims = lims
+
+        if type_.lower() == 'uniform':
+            lower_lim = lims(0)
+            upper_lim = lims(1)
+            loc = lower_lim
+            scale = upper_lim - lower_lim
+            distro = uniform(name=feature_name, loc=loc, scale=scale)
+        elif type_.lower() == 'discrete':
+            xk = np.arange(len(values))
+            distro = rv_discrete(name=feature_name, values=(xk, probs))
+
+        self.distro = distro
+
+    # def __call__(self):
+    #
+    #     if type_.lower() == 'uniform':
+    #         lower_lim = lims(0)
+    #         upper_lim = lims(1)
+    #         loc = lower_lim
+    #         scale = upper_lim - lower_lim
+    #         distro = uniform(name=feature_name, loc=loc, scale=scale)
+    #     elif type_.lower() == 'discrete':
+    #         # values =
+    #         distro = rv_discrete(name=feature_name, values=(values, probs))
+    #
+    #     return distro
+
+    def gen_samps(self, size=None):
+
+        if self.type_.lower() == 'uniform':
+            samps = self.distro.rvs(size=size)
+        elif self.type_.lower() == 'discrete':
+            samps_idx = self.distro.rvs(size=size)
+            samps = self.values[samps_idx]
+
+        return samps
+
+
 def main():
     n_tasks = 6
     n_channels = 1
@@ -221,12 +284,12 @@ def main():
     #                              t_drop_lim=(0, 15), l_drop_lim=(100, 300), rng=None,
     #                              discrete_flag=discrete_flag)  # task set generator
 
-    def param_gen(self):
-        return {'duration': self.rng.choice(self.param_lims['duration'], p=[.5, .5]),
-                't_release': self.rng.uniform(self.param_lims['t_release']),
-                'slope': self.rng.uniform(self.param_lims['slope']),
-                't_drop': self.rng.uniform(self.param_lims['t_drop']),
-                'l_drop': self.rng.uniform(self.param_lims['l_drop'])}
+    def param_gen(self, rng):
+        return {'duration': rng.choice(self.param_lims['duration'], p=[.5, .5]),
+                't_release': rng.uniform(self.param_lims['t_release']),
+                'slope': rng.uniform(self.param_lims['slope']),
+                't_drop': rng.uniform(self.param_lims['t_drop']),
+                'l_drop': rng.uniform(self.param_lims['l_drop'])}
 
     param_lims = {'duration': (18e-3, 36e-3),
                   't_release': (0, 6),
