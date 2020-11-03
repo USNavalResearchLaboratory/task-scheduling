@@ -4,7 +4,9 @@ Task scheduler comparison.
 Define a set of task objects and scheduling algorithms. Assess achieved loss and runtime.
 
 """
-
+import sys
+# sys.path.append("..\Adam")
+print(sys.path)
 from functools import partial
 
 import numpy as np
@@ -17,7 +19,11 @@ from generators.scheduling_problems import Random as RandomProblem
 from generators.scheduling_problems import Dataset as ProblemDataset
 
 from tree_search import TreeNodeShift, branch_bound, mcts, earliest_release
-from Adam.env_tasking import StepTaskingEnv, train_agent, load_agent, SeqTaskingEnv, load_agent_sb, train_agent_sb ###### new includes
+from environments import StepTaskingEnv
+from Adam.env_tasking import SeqTaskingEnv, load_agent_sb, train_agent_sb ###### new includes
+
+# from Adam.env_tasking import StepTaskingEnv, train_agent, load_agent, SeqTaskingEnv, load_agent_sb, train_agent_sb ###### new includes
+
 from SL_policy import train_policy, load_policy
 
 #################### new includes ##################################
@@ -226,11 +232,15 @@ def main():
     # agent_file = 'temp/2020-08-21_16-23-33'
 
     if agent_file is None:
-        random_agent = train_agent(problem_gen, n_batch_train=3, n_batch_val=2, batch_size=1,
+        # random_agent = train_agent_sb(problem_gen, n_batch_train=3, n_batch_val=2, batch_size=1,
+        #                            env_cls=env_cls, env_params=env_params,
+        #                            save=True, save_dir=None)
+        random_agent = train_agent_sb(problem_gen,
                                    env_cls=env_cls, env_params=env_params,
                                    save=True, save_dir=None)
+
     elif type(agent_file) == str:
-        random_agent = load_agent(agent_file)
+        random_agent = load_agent_sb(agent_file)
     else:
         raise ValueError("Parameter 'agent_file' must be string or None.")
 

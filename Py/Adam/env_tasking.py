@@ -14,7 +14,7 @@ from util.plot import plot_task_losses
 from util.generic import seq2num, num2seq
 from generators.scheduling_problems import Random as RandomProblem
 from tree_search import TreeNode, TreeNodeShift
-from ..task_scheduling.environments import SeqTaskingEnv, wrap_agent
+from task_scheduling.environments import SeqTaskingEnv
 
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.deepq.policies import MlpPolicy as MlpPolicyQ
