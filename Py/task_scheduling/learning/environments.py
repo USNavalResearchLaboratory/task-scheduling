@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import matplotlib.pyplot as plt
 import gym
-from gym.spaces import Box, Space, Discrete
+from gym.spaces import Space, Box, Discrete
 # from stable_baselines.common.vec_env import DummyVecEnv
 
 from task_scheduling.util.plot import plot_task_losses
@@ -71,7 +71,7 @@ class DiscreteSet(Space):
 
 
 # Gym Environments
-class BaseTaskingEnv(ABC, gym.Env):
+class BaseTasking(ABC, gym.Env):
     """
     Base environment for task scheduling.
 
@@ -172,7 +172,8 @@ class BaseTaskingEnv(ABC, gym.Env):
 
     @property
     def sorted_index_inv(self):
-        return np.array([self.sorted_index.tolist().index(n) for n in range(self.n_tasks)])
+        _idx_list = self.sorted_index.tolist()
+        return np.array([_idx_list.index(n) for n in range(self.n_tasks)])
 
     @property
     def state_tasks(self):
@@ -358,7 +359,7 @@ class BaseTaskingEnv(ABC, gym.Env):
         return data     # TODO: save dataset to save on Env computation time?
 
 
-class SeqTaskingEnv(BaseTaskingEnv):
+class SeqTasking(BaseTasking):
     """Tasking environment with single action of a complete task index sequence."""
 
     def __init__(self, problem_gen, node_cls=TreeNode, features=None, sort_func=None, masking=False,
@@ -367,9 +368,9 @@ class SeqTaskingEnv(BaseTaskingEnv):
 
         self.action_type = action_type      # 'seq' for sequences, 'int' for integers
         if self.action_type == 'seq':
-            self.action_space_map = lambda n: Permutation(n)
+            self._action_space_map = lambda n: Permutation(n)
         elif self.action_type == 'int':
-            self.action_space_map = lambda n: Discrete(factorial(n))
+            self._action_space_map = lambda n: Discrete(factorial(n))
         else:
             raise ValueError
 
@@ -377,7 +378,7 @@ class SeqTaskingEnv(BaseTaskingEnv):
 
         # gym.Env observation and action spaces
         self.observation_space = Box(self._state_tasks_low, self._state_tasks_high, dtype=np.float64)
-        self.action_space = self.action_space_map(self.n_tasks)
+        self.action_space = self._action_space_map(self.n_tasks)
 
     @property
     def state(self):
@@ -386,7 +387,7 @@ class SeqTaskingEnv(BaseTaskingEnv):
 
     def infer_action_space(self, obs):
         """Determines the action Gym.Space from an observation."""
-        return self.action_space_map(len(obs))
+        return self._action_space_map(len(obs))
 
     def _update_spaces(self):
         """Update observation and action spaces."""
@@ -426,7 +427,7 @@ class SeqTaskingEnv(BaseTaskingEnv):
         return x_set, y_set, w_set
 
 
-class StepTaskingEnv(BaseTaskingEnv):
+class StepTasking(BaseTasking):
     """
     Tasking environment with actions of single task indices.
 
@@ -449,9 +450,17 @@ class StepTaskingEnv(BaseTaskingEnv):
     """
 
     def __init__(self, problem_gen, node_cls=TreeNode, features=None, sort_func=None, masking=False,
-                 seq_encoding='one-hot'):
+                 action_type='valid', seq_encoding='one-hot'):
 
         super().__init__(problem_gen, node_cls, features, sort_func, masking)
+
+        # Action types
+        if action_type == 'valid':
+            self.do_valid_actions = True
+        elif action_type == 'any':
+            self.do_valid_actions = False
+        else:
+            raise ValueError("Action type must be 'valid' or 'any'.")
 
         # Set sequence encoder method
         if callable(seq_encoding):
@@ -487,7 +496,11 @@ class StepTaskingEnv(BaseTaskingEnv):
         _state_low = np.concatenate((np.zeros((self.n_tasks, self.len_seq_encode)), self._state_tasks_low), axis=1)
         _state_high = np.concatenate((np.ones((self.n_tasks, self.len_seq_encode)), self._state_tasks_high), axis=1)
         self.observation_space = Box(_state_low, _state_high, dtype=np.float64)
-        self.action_space = DiscreteSet(set(range(self.n_tasks)))
+
+        if self.do_valid_actions:
+            self.action_space = DiscreteSet(set(range(self.n_tasks)))
+        else:
+            self.action_space = Discrete(self.n_tasks)
 
     # @property
     # def state_seq(self):
@@ -503,14 +516,20 @@ class StepTaskingEnv(BaseTaskingEnv):
 
     def infer_action_space(self, obs):
         """Determines the action Gym.Space from an observation."""
-        # _state_seq = obs[:, :-len(self.features)]
-        _state_seq = obs[:, :self.len_seq_encode]
-        return DiscreteSet(np.flatnonzero(1 - _state_seq.sum(1)))
+        if self.do_valid_actions:
+            # _state_seq = obs[:, :-len(self.features)]
+            _state_seq = obs[:, :self.len_seq_encode]
+            return DiscreteSet(np.flatnonzero(1 - _state_seq.sum(1)))
+        else:
+            return Discrete(len(obs))
 
     def _update_spaces(self):
         """Update observation and action spaces."""
-        seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
-        self.action_space = DiscreteSet(seq_rem_sort)
+        if self.do_valid_actions:
+            seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
+            self.action_space = DiscreteSet(seq_rem_sort)
+        else:
+            pass
 
     def _gen_single(self, seq, weight_func):
         """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
