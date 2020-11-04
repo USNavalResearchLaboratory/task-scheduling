@@ -200,8 +200,8 @@ def compare_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0,
         l_ex_mean_norm = l_ex_mean.copy()
         t_run_mean_norm = t_run_mean.copy()
 
-        # t_run_mean_norm['B&B Optimal'] = 0.
         l_ex_mean_norm['B&B Optimal'] = 0.
+        # t_run_mean_norm['B&B Optimal'] = 0.
         for rep in algorithms['name']:
             l_ex_mean_norm[rep] -= l_ex_mean_opt
             l_ex_mean_norm[rep] /= l_ex_mean_opt

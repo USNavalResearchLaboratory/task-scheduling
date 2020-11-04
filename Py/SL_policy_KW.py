@@ -200,7 +200,7 @@ def main():
         return rng.uniform(0, 0, n_ch)
 
     env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen, node_cls=TreeNodeShift, seq_encoding='one-hot')
-    # env = StepTaskingEnv(n_tasks, task_gen, n_ch, ch_avail_gen, node_cls=TreeNode, seq_encoding='one-hot')
+    # env = StepTasking(n_tasks, task_gen, n_ch, ch_avail_gen, node_cls=TreeNode, seq_encoding='one-hot')
 
 
     n_total = 1000

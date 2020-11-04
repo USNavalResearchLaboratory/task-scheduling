@@ -68,12 +68,12 @@ class ReinforcementLearningScheduler:
 
     @env.setter
     def env(self, env):
-        if isinstance(env, envs.BaseTaskingEnv):
+        if isinstance(env, envs.BaseTasking):
             if self.do_monitor:
                 env = Monitor(env, str(self.log_dir))
             self.model.set_env(env)
         else:
-            raise TypeError("Environment must be an instance of BaseTaskingEnv.")
+            raise TypeError("Environment must be an instance of BaseTasking.")
 
     def __call__(self, tasks, ch_avail):
         """
@@ -157,17 +157,17 @@ class ReinforcementLearningScheduler:
         return cls(model, env)
 
     # @classmethod
-    # def load_from_gen(cls, load_path, problem_gen, env_cls=StepTaskingEnv, env_params=None, model_cls=None):
+    # def load_from_gen(cls, load_path, problem_gen, env_cls=StepTasking, env_params=None, model_cls=None):
     #     env = env_cls.from_problem_gen(problem_gen, env_params)
     #     return cls.load(load_path, env, model_cls)
 
     # @classmethod
-    # def from_gen(cls, model, problem_gen, env_cls=StepTaskingEnv, env_params=None):
+    # def from_gen(cls, model, problem_gen, env_cls=StepTasking, env_params=None):
     #     env = env_cls.from_problem_gen(problem_gen, env_params)
     #     return cls(model, env)
 
     @classmethod
-    def train_from_gen(cls, problem_gen, env_cls=envs.SeqTaskingEnv, env_params=None, model_cls=None, model_params=None,
+    def train_from_gen(cls, problem_gen, env_cls=envs.SeqTasking, env_params=None, model_cls=None, model_params=None,
                        n_episodes=0, save=False, save_path=None):
         """
         Create and train a reinforcement learning scheduler.
@@ -218,80 +218,3 @@ class ReinforcementLearningScheduler:
             scheduler.save(save_path)
 
         return scheduler
-
-
-def main():
-    # problem_gen = problem_gens.Random.relu_drop(n_tasks=4, n_ch=2)
-    problem_gen = problem_gens.DeterministicTasks.relu_drop(n_tasks=4, n_ch=2)
-
-    features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
-                         ('release time', lambda task: task.t_release,
-                          (0., problem_gen.task_gen.param_lims['t_release'][1])),
-                         ('slope', lambda task: task.slope, problem_gen.task_gen.param_lims['slope']),
-                         ('drop time', lambda task: task.t_drop, (0., problem_gen.task_gen.param_lims['t_drop'][1])),
-                         ('drop loss', lambda task: task.l_drop, (0., problem_gen.task_gen.param_lims['l_drop'][1])),
-                         ('is available', lambda task: 1 if task.t_release == 0. else 0, (0, 1)),
-                         ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
-                         ],
-                        dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
-    # features = None
-
-    # def seq_encoding(self, n):
-    #     return [0] if n in self.node.seq else [1]
-
-    def seq_encoding(self, n):
-        out = np.zeros(self.n_tasks)
-        if n in self.node.seq:
-            out[self.node.seq.index(n)] = 1
-        return out
-
-    # seq_encoding = 'binary'
-    # seq_encoding = None
-
-    def sort_func(self, n):
-        if n in self.node.seq:
-            return float('inf')
-        else:
-            return self.tasks[n].t_release
-            # return 1 if self.tasks[n].l_drop == 0. else 0
-            # return self.tasks[n].l_drop / self.tasks[n].t_drop
-
-    # sort_func = 't_release'
-
-    env_cls = envs.SeqTaskingEnv
-    # env_cls = envs.StepTaskingEnv
-
-    env_params = {'node_cls': TreeNodeShift,
-                  'features': features,
-                  'sort_func': sort_func,
-                  'masking': False,
-                  'action_type': 'int',
-                  # 'seq_encoding': seq_encoding,
-                  }
-
-    env = env_cls(problem_gen, **env_params)
-
-    s = ReinforcementLearningScheduler.train_from_gen(problem_gen, env_cls, env_params,
-                                                      model_cls=DQN, model_params={'policy': 'MlpPolicy', 'verbose': 1},
-                                                      n_episodes=10000, save=False, save_path=None)
-
-
-    # model = RandomAgent(env)
-    # model = DQN('MlpPolicy', env, verbose=1)
-    # model.learn(10)
-
-    # obs = env.reset()
-    # done = False
-    # while not done:
-    #     print(obs)
-    #     # print(env.sorted_index)
-    #     # print(env.node.seq)
-    #     # print(env.tasks)
-    #     action, _states = model.predict(obs)
-    #     print(action)
-    #     obs, reward, done, info = env.step(action)
-    #     print(reward)
-
-
-if __name__ == '__main__':
-    main()

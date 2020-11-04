@@ -44,7 +44,7 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
         Number of tasking problems to generate for agent training.
     n_gen_val : int
         Number of tasking problems to generate for agent validation.
-    env_cls : BaseTaskingEnv or callable
+    env_cls : BaseTasking or callable
         Gym environment class.
     env_params : dict, optional
         Parameters for environment initialization.
