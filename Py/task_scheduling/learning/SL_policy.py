@@ -11,7 +11,7 @@ from tensorboard import program
 import webbrowser
 import gym
 
-from task_scheduling.learning.environments import SeqTaskingEnv, StepTaskingEnv
+from task_scheduling.learning import environments as envs
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
@@ -27,7 +27,7 @@ class SupervisedLearningScheduler:
     def __init__(self, model, env):
         self.model = model
 
-        if isinstance(env, SeqTaskingEnv) and env.action_type == 'seq':
+        if isinstance(env, envs.SeqTasking) and env.action_type == 'seq':
             # class FullSeq(keras.losses.Loss):
             #     def __init__(self, name="full_seq"):
             #         super().__init__(name=name)
@@ -56,7 +56,7 @@ class SupervisedLearningScheduler:
             Task execution channels.
         """
 
-        if isinstance(self.env, StepTaskingEnv):
+        if isinstance(self.env, envs.StepTasking):
             do_masking = True
         else:
             do_masking = False
@@ -174,7 +174,7 @@ class SupervisedLearningScheduler:
         return cls(model, env)
 
     @classmethod
-    def train_from_gen(cls, problem_gen, env_cls=StepTaskingEnv, env_params=None, layers=None, compile_params=None,
+    def train_from_gen(cls, problem_gen, env_cls=envs.StepTasking, env_params=None, layers=None, compile_params=None,
                        n_batch_train=1, n_batch_val=1, batch_size=1, weight_func=None, fit_params=None,
                        do_tensorboard=False, plot_history=False, save=False, save_path=None):
         """
