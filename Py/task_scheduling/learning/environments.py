@@ -85,7 +85,7 @@ class BaseTasking(ABC, gym.Env):
         Structured numpy array of features with fields 'name', 'func', and 'lims'.
     sort_func : function or str, optional
         Method that returns a sorting value for re-indexing given a task index 'n'.
-    masking : bool
+    masking : bool, optional
         If True, features are zeroed out for scheduled tasks.
 
     """
@@ -240,7 +240,8 @@ class BaseTasking(ABC, gym.Env):
 
         self.node = self.node_cls(tasks, ch_avail)
         self.loss_agg = self.node.l_ex  # Loss can be non-zero due to time origin shift during node initialization
-        self._update_spaces()
+
+        self._update_spaces()       # TODO: remove?
 
         return self.state
 
@@ -266,13 +267,29 @@ class BaseTasking(ABC, gym.Env):
 
         """
 
+        # action = self.sorted_index[action]  # decode task index to original order
+        # self.node.seq_extend(action)  # updates sequence, loss, task parameters, etc.
+        #
+        # reward, self.loss_agg = self.loss_agg - self.node.l_ex, self.node.l_ex
+        # done = len(self.node.seq_rem) == 0      # sequence is complete
+        #
+        # self._update_spaces()
+        #
+        # return self.state, reward, done, {}
+
+        ensure_valid = False      # TODO: formalize invalid action functionality?
         action = self.sorted_index[action]  # decode task index to original order
-        self.node.seq_extend(action)  # updates sequence, loss, task parameters, etc.
+        if ensure_valid or action in self.node.seq_rem:
+            self.node.seq_extend(action)  # updates sequence, loss, task parameters, etc.
 
-        reward, self.loss_agg = self.loss_agg - self.node.l_ex, self.node.l_ex
-        done = len(self.node.seq_rem) == 0      # sequence is complete
+            reward, self.loss_agg = self.loss_agg - self.node.l_ex, self.node.l_ex
+            done = len(self.node.seq_rem) == 0  # sequence is complete
 
-        self._update_spaces()
+            self._update_spaces()
+
+        else:
+            reward = -100
+            done = False
 
         return self.state, reward, done, {}
 
@@ -441,8 +458,11 @@ class StepTasking(BaseTasking):
         Structured numpy array of features with fields 'name', 'func', and 'lims'.
     sort_func : function or str, optional
         Method that returns a sorting value for re-indexing given a task index 'n'.
-    masking : bool
+    masking : bool, optional
         If True, features are zeroed out for scheduled tasks.
+    action_type : str, optional
+        If 'valid', action type is `DiscreteSet` of valid indices; if 'any', action space is `Discrete` and
+        repeated actions are allowed (for experimental purposes only).
     seq_encoding : function or str, optional
         Method that returns a 1-D encoded sequence representation for a given task index 'n'. Assumes that the
         encoded array sums to one for scheduled tasks and to zero for unscheduled tasks.
@@ -501,12 +521,6 @@ class StepTasking(BaseTasking):
             self.action_space = DiscreteSet(set(range(self.n_tasks)))
         else:
             self.action_space = Discrete(self.n_tasks)
-
-    # @property
-    # def state_seq(self):
-    #     """State sub-array for encoded partial sequence."""
-    #     state_seq = np.array([self.seq_encoding(n) for n in range(self.n_tasks)])
-    #     return state_seq[self.sorted_index]  # sort individual sequence states
 
     @property
     def state(self):

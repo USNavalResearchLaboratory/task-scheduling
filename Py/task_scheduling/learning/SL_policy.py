@@ -20,23 +20,19 @@ pkg_path = Path.cwd()
 log_path = pkg_path / 'logs'
 model_path = pkg_path / 'models'
 
+# TODO: make loss func for full seq targets?
+# TODO: make custom output layers to avoid illegal actions?
+
 
 class SupervisedLearningScheduler:
     log_dir = log_path / 'TF_train'
 
     def __init__(self, model, env):
         self.model = model
+        self.env = env
 
-        if isinstance(env, envs.SeqTasking) and env.action_type == 'seq':
-            # class FullSeq(keras.losses.Loss):
-            #     def __init__(self, name="full_seq"):
-            #         super().__init__(name=name)
-            #
-            #     def call(self, y_true, y_pred):
-            #         return None
-            raise NotImplementedError  # TODO: make loss func for full seq targets?
-        else:
-            self.env = env
+        if not isinstance(self.env.action_space, gym.spaces.Discrete):
+            raise TypeError("Action space must be Discrete.")
 
     def __call__(self, tasks, ch_avail):
         """
@@ -56,23 +52,21 @@ class SupervisedLearningScheduler:
             Task execution channels.
         """
 
-        if isinstance(self.env, envs.StepTasking):
-            do_masking = True
-        else:
-            do_masking = False
+        # ensure_valid = isinstance(self.env, envs.StepTasking)
+        ensure_valid = False    # TODO: trained models may naturally avoid invalid actions!!
 
         obs = self.env.reset(tasks, ch_avail)
         done = False
         while not done:
             prob = self.model.predict(obs[np.newaxis]).squeeze(0)
 
-            if do_masking:
-                # seq_rem = self.env.infer_action_space(obs).elements.tolist()
-                seq_rem = self.env.action_space.elements.tolist()
+            if ensure_valid:
+                # seq_rem_sort = self.env.infer_action_space(obs).elements.tolist()
+                # seq_rem_sort = self.env.action_space.elements.tolist()
+                seq_rem_sort = self.env.sorted_index_inv[list(self.env.node.seq_rem)]       # TODO
 
-                mask = np.isin(np.arange(self.env.n_tasks), seq_rem, invert=True)
+                mask = np.isin(np.arange(self.env.n_tasks), seq_rem_sort, invert=True)
                 prob = np.ma.masked_array(prob, mask)
-                # FIXME: make custom output layers to avoid illegal actions?
 
             action = prob.argmax()
             obs, reward, done, info = self.env.step(action)
@@ -229,14 +223,9 @@ class SupervisedLearningScheduler:
                       # keras.layers.Dense(100, activation='relu'),
                       ]
 
-        if isinstance(env.action_space, gym.spaces.Discrete):
-            n_actions = env.action_space.n
-        else:
-            n_actions = len(env.action_space)
-
         model = keras.Sequential([keras.layers.Flatten(input_shape=env.observation_space.shape),
                                   *layers,
-                                  keras.layers.Dense(n_actions, activation='softmax')])
+                                  keras.layers.Dense(env.action_space.n, activation='softmax')])
 
         if compile_params is None:
             compile_params = {'optimizer': 'rmsprop',
