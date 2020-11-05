@@ -121,7 +121,7 @@ class TreeNode(RandomGeneratorMixin):
 
         """
 
-        if isinstance(seq_ext, (int, np.integer)):
+        if isinstance(seq_ext, (Integral, np.integer)):
             seq_ext = [seq_ext]
         if len(seq_ext) == 0:
             return

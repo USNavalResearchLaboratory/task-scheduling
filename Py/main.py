@@ -33,12 +33,13 @@ features = np.array([('duration', lambda task: task.duration, problem_gen.task_g
                      ('slope', lambda task: task.slope, problem_gen.task_gen.param_lims['slope']),
                      ('drop time', lambda task: task.t_drop, (0., problem_gen.task_gen.param_lims['t_drop'][1])),
                      ('drop loss', lambda task: task.l_drop, (0., problem_gen.task_gen.param_lims['l_drop'][1])),
-                     ('is available', lambda task: 1 if task.t_release == 0. else 0, (0, 1)),
-                     ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
+                     # ('is available', lambda task: 1 if task.t_release == 0. else 0, (0, 1)),
+                     # ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
                      ],
                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
 
+# sort_func = None
 sort_func = 't_release'
 # def sort_func(env, task):
 #     if env.tasks.index(task) in env.node.seq:
@@ -59,6 +60,7 @@ env_params = {'node_cls': TreeNodeShift,
               'sort_func': sort_func,
               'masking': True,
               # 'action_type': 'int',
+              'action_type': 'any',
               'seq_encoding': 'one-hot',
               }
 
@@ -68,7 +70,6 @@ env_params = {'node_cls': TreeNodeShift,
 # dqn_agent = RL_Scheduler.train_from_gen(problem_gen, env_cls, env_params,
 #                                         model_cls='DQN', model_params={'verbose': 1}, n_episodes=1000,
 #                                         save=False, save_path=None)
-
 # dqn_agent = RL_Scheduler.load('temp/DQN_2020-10-28_15-44-00', env=None, model_cls='DQN')
 
 policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, layers=None, compile_params=None,
