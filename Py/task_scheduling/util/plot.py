@@ -48,7 +48,7 @@ def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
     ax.set(**ax_kwargs)
 
 
-def plot_schedule(tasks, t_ex, ch_ex, l_ex=None, alg_repr=None, ax=None, ax_kwargs=None):
+def plot_schedule(tasks, t_ex, ch_ex, l_ex=None, name=None, ax=None, ax_kwargs=None):
     """
     Plot task schedule.
 
@@ -61,7 +61,7 @@ def plot_schedule(tasks, t_ex, ch_ex, l_ex=None, alg_repr=None, ax=None, ax_kwar
         Task execution channels. NaN for unscheduled.
     l_ex : float or None
         Total loss of scheduled tasks.
-    alg_repr : str or None
+    name : str or None
         Algorithm string representation
     ax : Axes or None
         Matplotlib axes target object.
@@ -90,8 +90,8 @@ def plot_schedule(tasks, t_ex, ch_ex, l_ex=None, alg_repr=None, ax=None, ax_kwar
     # ax.legend()
 
     _temp = []
-    if isinstance(alg_repr, str):
-        _temp.append(alg_repr)
+    if isinstance(name, str):
+        _temp.append(name)
     if l_ex is not None:
         _temp.append(f'Loss = {l_ex:.2f}')
     title = ', '.join(_temp)
@@ -123,8 +123,8 @@ def scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
     if ax_kwargs is None:
         ax_kwargs = {}
 
-    for alg_repr in t_run.dtype.names:
-        ax.scatter(t_run[alg_repr], l_ex[alg_repr], label=alg_repr)
+    for name in t_run.dtype.names:
+        ax.scatter(t_run[name], l_ex[name], label=name)
 
     ax.set(xlabel='Runtime (s)', ylabel='Loss')
     ax.grid(True)
@@ -157,13 +157,13 @@ def plot_loss_runtime(t_run, l_ex, do_std=True, ax=None, ax_kwargs=None):
     if ax_kwargs is None:
         ax_kwargs = {}
 
-    for alg_repr in l_ex.dtype.names:
-        l_mean = l_ex[alg_repr].mean(-1)
+    for name in l_ex.dtype.names:
+        l_mean = l_ex[name].mean(-1)
         if do_std:
-            l_std = l_ex[alg_repr].std(-1)
-            ax.errorbar(t_run, l_mean, yerr=l_std, label=alg_repr)      # TODO: use fill_between!?
+            l_std = l_ex[name].std(-1)
+            ax.errorbar(t_run, l_mean, yerr=l_std, label=name)      # TODO: use fill_between!?
         else:
-            ax.plot(t_run, l_mean, label=alg_repr)
+            ax.plot(t_run, l_mean, label=name)
 
     ax.set(xlabel='Runtime (s)', ylabel='Loss')
     ax.grid(True)

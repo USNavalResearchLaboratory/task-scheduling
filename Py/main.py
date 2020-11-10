@@ -5,10 +5,11 @@ import pstats
 import numpy as np
 from matplotlib import pyplot as plt
 
-from task_scheduling.util.generic import sort_wrapper
-from task_scheduling.util.results import compare_algorithms
+from task_scheduling.util.generic import timeout_wrapper
+from task_scheduling.util.results import compare_algorithms, compare_algorithms_lim
 from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.tree_search import TreeNodeShift, earliest_release, random_sequencer, branch_bound
+from task_scheduling import tree_search_run_lim
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.SL_policy import SupervisedLearningScheduler as SL_Scheduler
 # from task_scheduling.learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler
@@ -40,12 +41,9 @@ features = np.array([('duration', lambda task: task.duration, problem_gen.task_g
 
 
 # sort_func = None
-sort_func = 't_release'
-# def sort_func(env, task):
-#     if env.tasks.index(task) in env.node.seq:
-#         return float('inf')
-#     else:
-#         return task.t_release
+# sort_func = 't_release'
+def sort_func(task):
+    return task.t_release
 
 
 weight_func_ = None
@@ -72,10 +70,10 @@ env_params = {'node_cls': TreeNodeShift,
 #                                         save=False, save_path=None)
 # dqn_agent = RL_Scheduler.load('temp/DQN_2020-10-28_15-44-00', env=None, model_cls='DQN')
 
-policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, layers=None, compile_params=None,
-                                           n_batch_train=90, n_batch_val=10, batch_size=4, weight_func=weight_func_,
-                                           fit_params={'epochs': 100}, do_tensorboard=False, plot_history=True,
-                                           save=False, save_path=None)
+# policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, layers=None, compile_params=None,
+#                                            n_batch_train=90, n_batch_val=10, batch_size=4, weight_func=weight_func_,
+#                                            fit_params={'epochs': 100}, do_tensorboard=False, plot_history=True,
+#                                            save=False, save_path=None)
 # policy_model = SL_Scheduler.load('temp/2020-10-28_14-56-42')
 
 
@@ -91,17 +89,18 @@ policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, lay
 # pr.dump_stats('profile.pstat')
 
 # Compare algorithms
-algorithms = np.array([
-    # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
-    # ('MCTS', partial(mcts, n_mc=200, verbose=False), 5),
-    ('ERT', earliest_release, 1),
-    ('Random', random_sequencer, 20),
-    # ('DQN Agent', dqn_agent, 5),
-    ('DNN Policy', policy_model, 5),
-], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
 
-l_ex_iter, t_run_iter = compare_algorithms(algorithms, problem_gen, n_gen=10, solve=True,
-                                           verbose=2, plotting=1, save=False, file=None)
+# algorithms = np.array([
+#     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
+#     # ('MCTS', partial(mcts, n_mc=200, verbose=False), 5),
+#     ('ERT', earliest_release, 1),
+#     ('Random', random_sequencer, 20),
+#     # ('DQN Agent', dqn_agent, 5),
+#     # ('DNN Policy', policy_model, 5),
+# ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
+#
+# l_ex_iter, t_run_iter = compare_algorithms(algorithms, problem_gen, n_gen=10, solve=True,
+#                                            verbose=2, plotting=1, save=False, file=None)
 
 
 # n_gen = 1000
@@ -113,3 +112,17 @@ l_ex_iter, t_run_iter = compare_algorithms(algorithms, problem_gen, n_gen=10, so
 #         problem_gen = problem_gens.Random.search_track(n_tasks, n_ch, t_release_lim=(0., 4.))
 #         list(problem_gen(n_gen=n_gen, solve=True, verbose=True, save=True,
 #                          file=f'temp/search_track_c{n_ch}t{n_tasks}_{n_gen}'))
+
+
+algorithms = np.array([
+    # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
+    ('MCTS', partial(tree_search_run_lim.mcts, verbose=False), 5),
+    # ('ERT', timeout_wrapper(earliest_release), 1),
+    # ('Random', random_sequencer, 20),
+    # ('DQN Agent', dqn_agent, 5),
+    # ('DNN Policy', policy_model, 5),
+], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
+
+runtimes = np.logspace(-2, 0, 11)
+l_ex_iter = compare_algorithms_lim(algorithms, runtimes, problem_gen, n_gen=10, solve=True,
+                                   verbose=2, plotting=1, save=False, file=None)

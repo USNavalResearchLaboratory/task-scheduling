@@ -61,11 +61,9 @@ class SupervisedLearningScheduler:
             prob = self.model.predict(obs[np.newaxis]).squeeze(0)
 
             if ensure_valid:
-                # seq_rem_sort = self.env.infer_action_space(obs).elements.tolist()
-                # seq_rem_sort = self.env.action_space.elements.tolist()
-                seq_rem_sort = self.env.sorted_index_inv[list(self.env.node.seq_rem)]       # TODO
-
+                seq_rem_sort = self.env.sorted_index_inv[list(self.env.node.seq_rem)]
                 mask = np.isin(np.arange(self.env.n_tasks), seq_rem_sort, invert=True)
+
                 prob = np.ma.masked_array(prob, mask)
 
             action = prob.argmax()

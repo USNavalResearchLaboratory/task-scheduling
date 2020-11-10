@@ -311,7 +311,7 @@ for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
             RunTime[ii,idx_alg] = t_run
             Cost[ii,idx_alg] = l_ex
 
-            # plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, alg_repr=alg_repr, ax=None)
+            # plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, name=name, ax=None)
 
             t_run_mean[alg_repr][ii] = t_run_iter[alg_repr][ii].mean()
             l_ex_mean[alg_repr][ii] = l_ex_iter[alg_repr][ii].mean()

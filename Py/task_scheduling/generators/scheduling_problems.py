@@ -2,7 +2,6 @@
 
 from abc import ABC, abstractmethod
 from time import strftime
-from collections import namedtuple
 from functools import partial
 import dill
 from pathlib import Path
@@ -10,14 +9,11 @@ from pathlib import Path
 import numpy as np
 
 from task_scheduling.tree_search import branch_bound
-from task_scheduling.util.generic import RandomGeneratorMixin, timing_wrapper
+from task_scheduling.util.generic import RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
 
 np.set_printoptions(precision=2)
 data_path = Path.cwd() / 'data' / 'schedules'
-
-_SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
-_SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
 
 
 class Base(RandomGeneratorMixin, ABC):
@@ -108,7 +104,7 @@ class Base(RandomGeneratorMixin, ABC):
     @staticmethod
     def _gen_solution(problem, verbose=False):
         t_ex, ch_ex, t_run = timing_wrapper(partial(branch_bound, verbose=verbose))(*problem)
-        return _SchedulingSolution(t_ex, ch_ex, t_run)
+        return SchedulingSolution(t_ex, ch_ex, t_run)
 
     @staticmethod
     def save(save_dict, file=None):
@@ -175,7 +171,7 @@ class Random(Base):
         tasks = list(self.task_gen(self.n_tasks, rng=rng))
         ch_avail = list(self.ch_avail_gen(self.n_ch, rng=rng))
 
-        return _SchedulingProblem(tasks, ch_avail)
+        return SchedulingProblem(tasks, ch_avail)
 
     @classmethod
     def _task_gen_factory(cls, n_tasks, task_gen, n_ch, ch_avail_lim, rng):
@@ -219,7 +215,7 @@ class FixedTasks(Base, ABC):
                 and isinstance(ch_avail_gen, chan_gens.Deterministic)):
             raise TypeError
 
-        self.problem = _SchedulingProblem(task_gen.tasks, ch_avail_gen.ch_avail)
+        self.problem = SchedulingProblem(task_gen.tasks, ch_avail_gen.ch_avail)
         self._solution = None
 
     @property
@@ -261,7 +257,7 @@ class DeterministicTasks(FixedTasks):
 class PermutedTasks(FixedTasks):
     def _gen_problem(self, rng):
         tasks = list(self.task_gen(self.n_tasks, rng=rng))
-        return _SchedulingProblem(tasks, self.problem.ch_avail)
+        return SchedulingProblem(tasks, self.problem.ch_avail)
 
     def _gen_solution(self, problem, verbose=False):
         idx = []  # permutation indices
@@ -271,7 +267,7 @@ class PermutedTasks(FixedTasks):
             idx.append(i)
             tasks_init[i] = None  # ensures unique indices
 
-        return _SchedulingSolution(self.solution.t_ex[idx], self.solution.ch_ex[idx], self.solution.t_run)
+        return SchedulingSolution(self.solution.t_ex[idx], self.solution.ch_ex[idx], self.solution.t_run)
 
     @classmethod
     def relu_drop(cls, n_tasks, n_ch, rng=None):
@@ -327,7 +323,7 @@ class Dataset(Base):
     def load(cls, file, iter_mode='once', shuffle_mode='never', rng=None):
         """Load problems/solutions from memory."""
 
-        # FIXME: loads entire data set into memory, should load and yield problems on call only!!
+        # TODO: loads entire data set into memory - need iterative read/yield for large data sets
         with data_path.joinpath(file).open(mode='rb') as fid:
             dict_gen = dill.load(fid)
 
