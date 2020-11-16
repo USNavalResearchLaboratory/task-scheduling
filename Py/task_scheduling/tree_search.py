@@ -7,7 +7,7 @@ from numbers import Integral
 
 import numpy as np
 
-from task_scheduling.util.generic import RandomGeneratorMixin, SchedulingProblem, SchedulingSolution
+from task_scheduling.util.generic import RandomGeneratorMixin
 from task_scheduling.util.results import eval_loss
 # from task_scheduling.generators import scheduling_problems as problem_gens
 
@@ -660,21 +660,18 @@ def mcts(tasks, ch_avail, n_mc, verbose=False):
     node_best = None
 
     loss_min = float('inf')
-    do_search = True
-    while do_search:
+    while tree.n_visits < n_mc:
         if verbose:
             print(f'Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_min}', end='\r')
 
-        seq = tree.simulate()   # Roll-out a complete sequence
-        node = TreeNode(tasks, ch_avail, seq)    # Evaluate execution times and channels, total loss
+        seq = tree.simulate()   # roll-out a complete sequence
+        node = TreeNode(tasks, ch_avail, seq)    # evaluate execution times and channels, total loss
 
         loss = node.l_ex
-        tree.backup(seq, loss)  # Update search tree from leaf sequence to root
+        tree.backup(seq, loss)  # update search tree from leaf sequence to root
 
         if loss < loss_min:
             node_best, loss_min = node, loss
-
-        do_search = tree.n_visits < n_mc
 
     return node_best.t_ex, node_best.ch_ex
 

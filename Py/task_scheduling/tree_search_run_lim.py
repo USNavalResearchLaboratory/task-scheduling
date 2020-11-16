@@ -1,12 +1,7 @@
 """Multi-channel Tree Search objects and algorithms."""
 
 from time import perf_counter
-from math import floor, factorial
-import numpy as np
 
-from task_scheduling.util.results import eval_loss
-
-from task_scheduling.generators.scheduling_problems import Random as RandomProblem
 from task_scheduling.tree_search import TreeNode, TreeNodeBound, SearchNode
 
 
@@ -37,45 +32,39 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 
     t_run = perf_counter()
 
-    i_time = 0
-    n_times = len(runtimes)
-
-    stack = [TreeNodeBound(tasks, ch_avail, rng=rng)]  # Initialize Stack
+    stack = [TreeNodeBound(tasks, ch_avail, rng=rng)]  # initialize stack
     node_best = stack[0].roll_out(do_copy=True)  # roll-out initial solution
 
     # Iterate
-    run = True
-    while run and len(stack) > 0:
-        node = stack.pop()  # Extract Node
+    i_time = 0
+    n_times = len(runtimes)
+    while i_time < n_times and len(stack) > 0:
+        node = stack.pop()  # extract node
 
         # Branch
         for node_new in node.branch(do_permute=True):
             # Bound
-            if node_new.l_lo < node_best.l_ex:  # New node is not dominated
+            if node_new.l_lo < node_best.l_ex:  # new node is not dominated
                 if node_new.l_up < node_best.l_ex:
                     node_best = node_new.roll_out(do_copy=True)  # roll-out a new best node
-                    stack = [s for s in stack if s.l_lo < node_best.l_ex]  # Cut Dominated Nodes
+                    stack = [s for s in stack if s.l_lo < node_best.l_ex]  # cut dominated nodes
 
-                stack.append(node_new)  # Add New Node to Stack, LIFO
+                stack.append(node_new)  # add new node to stack, LIFO
 
             # Check run conditions
             if perf_counter() - t_run >= runtimes[i_time]:
                 yield node_best.t_ex, node_best.ch_ex
                 i_time += 1
                 if i_time == n_times:
-                    run = False
                     break
-
-            # if perf_counter() - t_run >= max_runtime:
-            #     run = False
-            #     break
 
         if verbose:
             # progress = 1 - sum(math.factorial(len(node.seq_rem)) for node in stack) / math.factorial(len(tasks))
             # print(f'Search progress: {100*progress:.1f}% - Loss < {node_best.l_ex:.3f}', end='\r')
             print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.l_ex:.3f}', end='\r')
 
-    # return node_best.t_ex, node_best.ch_ex
+    for _ in range(i_time, n_times):
+        yield node_best.t_ex, node_best.ch_ex
 
 
 def mcts(tasks: list, ch_avail: list, runtimes: list, verbose=False):
@@ -106,25 +95,23 @@ def mcts(tasks: list, ch_avail: list, runtimes: list, verbose=False):
 
     t_run = perf_counter()
 
-    i_time = 0
-    n_times = len(runtimes)
-
     l_up = TreeNodeBound(tasks, ch_avail).l_up
     tree = SearchNode(n_tasks=len(tasks), seq=[], l_up=l_up)
 
     node_best = None
-
     loss_min = float('inf')
-    # while perf_counter() - t_run < max_runtime:
+
+    i_time = 0
+    n_times = len(runtimes)
     while i_time < n_times:
         if verbose:
             print(f'Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_min}', end='\r')
 
-        seq = tree.simulate()   # Roll-out a complete sequence
-        node = TreeNode(tasks, ch_avail, seq)    # Evaluate execution times and channels, total loss
+        seq = tree.simulate()   # roll-out a complete sequence
+        node = TreeNode(tasks, ch_avail, seq)    # evaluate execution times and channels, total loss
 
         loss = node.l_ex
-        tree.backup(seq, loss)  # Update search tree from leaf sequence to root
+        tree.backup(seq, loss)  # update search tree from leaf sequence to root
 
         if loss < loss_min:
             node_best, loss_min = node, loss
@@ -132,8 +119,6 @@ def mcts(tasks: list, ch_avail: list, runtimes: list, verbose=False):
         if perf_counter() - t_run >= runtimes[i_time]:
             yield node_best.t_ex, node_best.ch_ex
             i_time += 1
-
-    # return node_best.t_ex, node_best.ch_ex
 
 
 # def mcts_orig(tasks: list, ch_avail: list, max_runtime=float('inf'), n_mc=None, verbose=False, rng=None):

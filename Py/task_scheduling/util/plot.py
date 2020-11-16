@@ -132,7 +132,7 @@ def scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
     ax.set(**ax_kwargs)
 
 
-def plot_loss_runtime(t_run, l_ex, do_std=True, ax=None, ax_kwargs=None):
+def plot_loss_runtime(t_run, l_ex, do_std=False, ax=None, ax_kwargs=None):
     """
     Line plot of total execution loss versus maximum runtime.
 
@@ -144,7 +144,7 @@ def plot_loss_runtime(t_run, l_ex, do_std=True, ax=None, ax_kwargs=None):
         Total loss of scheduled tasks.
     do_std : bool
         Activates error bars for sample standard deviation.
-    ax : Axes or None
+    ax : matplotlib.axes.Axes, optional
         Matplotlib axes target object.
     ax_kwargs : dict
         Additional Axes keyword parameters.
@@ -157,13 +157,16 @@ def plot_loss_runtime(t_run, l_ex, do_std=True, ax=None, ax_kwargs=None):
     if ax_kwargs is None:
         ax_kwargs = {}
 
-    for name in l_ex.dtype.names:
+    names = l_ex.dtype.names
+    for i_name, name in enumerate(names):
         l_mean = l_ex[name].mean(-1)
+        ax.plot(t_run, l_mean, label=name)
         if do_std:
             l_std = l_ex[name].std(-1)
-            ax.errorbar(t_run, l_mean, yerr=l_std, label=name)      # TODO: use fill_between!?
-        else:
-            ax.plot(t_run, l_mean, label=name)
+            # ax.errorbar(t_run, l_mean, yerr=l_std, label=name, errorevery=(i_name, len(names)))
+            ax.fill_between(t_run, l_mean - l_std, l_mean + l_std, alpha=0.25)
+        # else:
+        #     ax.plot(t_run, l_mean, label=name)
 
     ax.set(xlabel='Runtime (s)', ylabel='Loss')
     ax.grid(True)
