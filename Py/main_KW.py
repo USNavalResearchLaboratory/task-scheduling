@@ -129,12 +129,12 @@ for i_gen in range(n_gen):      # Generate new tasks
 
             t_run_iter[alg_repr][i_gen, i_run] = t_run
             l_ex_iter[alg_repr][i_gen, i_run] = l_ex
-            # t_ex_iter[alg_repr][i_gen, i_run,:] = t_ex
+            # t_ex_iter[name][i_gen, i_run,:] = t_ex
             t_ex_alg[i_gen, alg_reprs.index(alg_repr) , i_run, :] = t_ex
             T_alg[i_gen, alg_reprs.index(alg_repr), i_run, :] = np.argsort(t_ex)
 
 
-            # plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, alg_repr=alg_repr, ax=None)
+            # plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, name=name, ax=None)
 
         t_run_mean[alg_repr][i_gen] = t_run_iter[alg_repr][i_gen].mean()
         l_ex_mean[alg_repr][i_gen] = l_ex_iter[alg_repr][i_gen].mean()

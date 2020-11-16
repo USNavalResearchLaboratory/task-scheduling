@@ -21,9 +21,6 @@ from _deprecated.tree_search_run_lim import branch_bound, mcts_orig, mcts, rando
 plt.style.use('seaborn')
 
 
-# TODO: INTEGRATE CHANGES from main.py!!!!
-
-
 # %% Inputs
 n_gen = 2      # number of task scheduling problems
 
@@ -40,7 +37,6 @@ max_runtimes = np.logspace(-2, 0, 11)
 
 # env = StepTaskingEnv(n_tasks, task_gen, n_channels, ch_avail_gen)
 # random_agent = wrap_agent_run_lim(env, RandomAgent(env.action_space))
-
 
 alg_funcs = [partial(branch_bound, verbose=False),
              partial(mcts_orig, n_mc=None, verbose=False),
@@ -89,8 +85,6 @@ for i_gen in range(n_gen):      # Generate new scheduling problem
             # Run algorithm
             t_ex, ch_ex = alg_func(tasks, ch_avail, max_runtime)
 
-            # TODO: try/except, return NaN for algorithm timeout?
-
             # Evaluate schedule
             check_valid(tasks, t_ex, ch_ex)
             l_ex = eval_loss(tasks, t_ex)
@@ -102,7 +96,7 @@ for i_gen in range(n_gen):      # Generate new scheduling problem
 
         l_ex_mean[alg_repr][i_gen] = l_ex_iter[alg_repr][i_gen].mean(-1)
 
-    plot_loss_runtime(max_runtimes, l_ex_iter[i_gen], do_std=False, ax=ax_gen[1])   # TODO: just do scatter?
+    plot_loss_runtime(max_runtimes, l_ex_iter[i_gen], do_std=False, ax=ax_gen[1])
 
 print('')
 

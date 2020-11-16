@@ -1,3 +1,4 @@
+from collections import namedtuple
 from copy import deepcopy
 from functools import wraps
 from math import factorial
@@ -5,6 +6,11 @@ from numbers import Integral
 from time import perf_counter
 
 import numpy as np
+
+
+SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
+SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
+# TODO: use for algorithms and wraps?
 
 
 class RandomGeneratorMixin:
@@ -63,7 +69,19 @@ def timing_wrapper(scheduler):
     return timed_scheduler
 
 
-def sort_wrapper(scheduler, sort_func):
+def timeout_wrapper(scheduler):
+    @wraps(scheduler)
+    def new_scheduler(tasks, ch_avail, max_runtime):
+        t_ex, ch_ex, t_run = timing_wrapper(scheduler)(tasks, ch_avail)
+        if t_run >= max_runtime:
+            raise RuntimeError(f"Algorithm timeout: {t_run} > {max_runtime}.")      # TODO: warn, return NaN?
+        else:
+            return t_ex, ch_ex, t_run
+
+    return new_scheduler
+
+
+def sort_wrapper(scheduler, sort_func):     # TODO: use for basic algorithms?
     if isinstance(sort_func, str):
         attr_str = sort_func
 

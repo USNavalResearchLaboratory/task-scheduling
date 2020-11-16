@@ -7,7 +7,7 @@ from numbers import Integral
 
 import numpy as np
 
-from task_scheduling.util.generic import RandomGeneratorMixin
+from task_scheduling.util.generic import RandomGeneratorMixin, SchedulingProblem, SchedulingSolution
 from task_scheduling.util.results import eval_loss
 # from task_scheduling.generators import scheduling_problems as problem_gens
 
@@ -89,15 +89,7 @@ class TreeNode(RandomGeneratorMixin):
 
     @property
     def seq(self):
-        """
-        Gets the node sequence. Setter calls '__init__' or 'seq_ext'.
-
-        Returns
-        -------
-        list of int
-            Task index sequence
-
-        """
+        """Task index sequence."""
         return self._seq
 
     @seq.setter
@@ -417,7 +409,7 @@ class SearchNode(RandomGeneratorMixin):
 
         n = min(w, key=w.__getitem__)
         if n not in self._children:
-            self._children[n] = SearchNode(self._seq + [n])
+            self._children[n] = SearchNode(self.n_tasks, self._seq + [n], self.l_up, self.rng)
             self._seq_unk.remove(n)
 
         return self[n]

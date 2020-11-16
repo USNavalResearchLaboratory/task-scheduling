@@ -111,24 +111,13 @@ class BaseTasking(ABC, gym.Env):
 
         # Set sorting method
         if callable(sort_func):
-            # self.sort_func = MethodType(sort_func, self)
             self.sort_func = sort_func
         elif isinstance(sort_func, str):
-            # def _sort_func(env, n):
-            #     return getattr(env.tasks[n], sort_func)
-
-            # def _sort_func(env, task):
-            #     if env.tasks.index(task) in env.node.seq:
-            #         return float('inf')
-            #     else:
-            #         return getattr(task, sort_func)
-
-            attr_str = sort_func
+            # attr_str = sort_func
 
             def _sort_func(task):
-                return getattr(task, attr_str)
+                return getattr(task, sort_func)
 
-            # self.sort_func = MethodType(_sort_func, self)
             self.sort_func = _sort_func
         else:
             self.sort_func = None
@@ -160,12 +149,8 @@ class BaseTasking(ABC, gym.Env):
     def sorted_index(self):
         """Indices for task re-ordering for environment state."""
         if callable(self.sort_func):
-            # return np.argsort([self.sort_func(n) for n in range(self.n_tasks)])
-            # return np.argsort([self.sort_func(task) for task in self.tasks])
-
-            # TODO: clean up?
             values = np.array([self.sort_func(task) for task in self.tasks])
-            values[self.node.seq] = np.inf     # unscheduled tasks to the front
+            values[self.node.seq] = np.inf     # scheduled tasks to the end
             return np.argsort(values)
         else:
             return np.arange(self.n_tasks)
@@ -241,7 +226,7 @@ class BaseTasking(ABC, gym.Env):
         self.node = self.node_cls(tasks, ch_avail)
         self.loss_agg = self.node.l_ex  # Loss can be non-zero due to time origin shift during node initialization
 
-        self._update_spaces()       # TODO: remove?
+        self._update_spaces()
 
         return self.state
 
@@ -267,31 +252,31 @@ class BaseTasking(ABC, gym.Env):
 
         """
 
-        # action = self.sorted_index[action]  # decode task index to original order
-        # self.node.seq_extend(action)  # updates sequence, loss, task parameters, etc.
-        #
-        # reward, self.loss_agg = self.loss_agg - self.node.l_ex, self.node.l_ex
-        # done = len(self.node.seq_rem) == 0      # sequence is complete
-        #
-        # self._update_spaces()
-        #
-        # return self.state, reward, done, {}
-
-        ensure_valid = False      # TODO: formalize invalid action functionality?
         action = self.sorted_index[action]  # decode task index to original order
-        if ensure_valid or action in self.node.seq_rem:
-            self.node.seq_extend(action)  # updates sequence, loss, task parameters, etc.
+        self.node.seq_extend(action)  # updates sequence, loss, task parameters, etc.
 
-            reward, self.loss_agg = self.loss_agg - self.node.l_ex, self.node.l_ex
-            done = len(self.node.seq_rem) == 0  # sequence is complete
+        reward, self.loss_agg = self.loss_agg - self.node.l_ex, self.node.l_ex
+        done = len(self.node.seq_rem) == 0      # sequence is complete
 
-            self._update_spaces()
-
-        else:
-            reward = -100
-            done = False
+        self._update_spaces()
 
         return self.state, reward, done, {}
+
+        # ensure_valid = False      # TODO: formalize invalid action functionality?
+        # action = self.sorted_index[action]  # decode task index to original order
+        # if ensure_valid or action in self.node.seq_rem:
+        #     self.node.seq_extend(action)  # updates sequence, loss, task parameters, etc.
+        #
+        #     reward, self.loss_agg = self.loss_agg - self.node.l_ex, self.node.l_ex
+        #     done = len(self.node.seq_rem) == 0  # sequence is complete
+        #
+        #     self._update_spaces()
+        #
+        # else:
+        #     reward = -100
+        #     done = False
+        #
+        # return self.state, reward, done, {}
 
     def render(self, mode='human'):
         if mode == 'human':
