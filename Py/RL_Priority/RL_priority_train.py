@@ -112,12 +112,21 @@ def evaluate(model, num_steps=1000):
 
 
 # Create log dir
-log_dir = "./tmp/gym/"
-os.makedirs(log_dir, exist_ok=True)
+log_dir_A2C = "./tmp/A2C/"
+os.makedirs(log_dir_A2C, exist_ok=True)
+
+log_dir_PPO2 = "./tmp/PPO2/"
+os.makedirs(log_dir_PPO2, exist_ok=True)
+
 # env = gym.make('LunarLanderContinuous-v2')
 
-env = TaskAssignmentDiscrete()
-env = Monitor(env, log_dir, allow_early_resets=True)
+env_A2C = TaskAssignmentDiscrete()
+env_A2C = Monitor(env_A2C, log_dir_A2C, allow_early_resets=True)
+
+env_PPO2 = TaskAssignmentDiscrete()
+env_PPO2 = Monitor(env_PPO2, log_dir_PPO2, allow_early_resets=True)
+
+
 # env.reset()
 # action = env.action_space.sample()
 # env.step(action)
@@ -126,18 +135,20 @@ env = Monitor(env, log_dir, allow_early_resets=True)
 # check_env(env)
 
 
-model = A2C(MlpPolicy, env, verbose=1, learning_rate=0.005)
-model_PPO2 = PPO2(MlpPolicy, env, verbose=1, learning_rate=0.005)
+model = A2C(MlpPolicy, env_A2C, verbose=1, learning_rate=0.005)
+model_PPO2 = PPO2(MlpPolicy, env_PPO2, verbose=1, learning_rate=0.005)
 # model = A2C(MlpPolicy, env, verbose=1, tensorboard_log="./log_tensorboard/")
 
 
 
 
-model.learn(total_timesteps=1000)
-plot_results(log_dir, figNum=1)
+model.learn(total_timesteps=100000)
+model.save(log_dir_A2C + 'A2C')
+plot_results(log_dir_A2C, figNum=1)
 
-model_PPO2.learn(total_timesteps=10000)
-plot_results(log_dir, figNum=2)
+model_PPO2.learn(total_timesteps=100000)
+model_PPO2.save(log_dir_PPO2 + 'PPO2')
+plot_results(log_dir_PPO2, figNum=2)
 
 # model.learn(total_timesteps=200, tb_log_name="first_run")
 # model.learn(total_timesteps=200, callback=callback)

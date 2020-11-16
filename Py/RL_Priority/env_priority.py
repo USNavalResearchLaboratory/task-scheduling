@@ -460,7 +460,7 @@ class TaskAssignmentDiscrete(gym.Env):
                           "Ntrack": 40,  # Number of dedicated tracks
                           "N": 3,  # Number of jobs to process at any time
                           "K": 1,   # Number of Channels
-                          "Nbins": 10, # Number of bins to discretize time variables
+                          "Nbins": 5, # Number of bins to discretize time variables
                           "scheduler": alg_func  # Function used to perform scheduling --> in the future use B&B or NN
                           }
             NumSteps = np.int(np.round(env_config.get("MaxTime") / env_config.get("RP")))
@@ -520,25 +520,32 @@ class TaskAssignmentDiscrete(gym.Env):
 
 
 
-    def map_features_to_state(self, features):
+    def map_features_to_state(self, features, params):
 
         N = self.env_config.get('N')
         M = self.M
         NUM_FEATS = self.NUM_FEATS
+        Nbins = self.env_config.get('Nbins')
+
 
         # Map features to observation space
-        unique_duration = np.unique(features[:, 1])
-        unique_t_drop = np.unique(features[:, 2])
-        unique_slope = np.unique(features[:, 4])
-        low = -12
-        high = 1
-        Nbins = self.env_config.get('Nbins')
-        increment = (high-low)/Nbins
-        unique_t_release = np.empty(Nbins+1)
-        for jj in range(Nbins+1):
-            unique_t_release[jj] = low + increment*jj
+        unique_duration = params.get('unique_duration')
+        unique_t_drop = params.get('unique_t_drop')
+        unique_slope = params.get('unique_slope')
+        unique_t_release = params.get('unique_t_release')
+
+        # unique_duration = np.unique(features[:, 1])
+        # unique_t_drop = np.unique(features[:, 2])
+        # unique_slope = np.unique(features[:, 4])
+        # low = -12
+        # high = 1
+        # increment = (high-low)/Nbins
+        # unique_t_release = np.empty(Nbins+1)
+        # for jj in range(Nbins+1):
+        #     unique_t_release[jj] = low + increment*jj
 
         temp = np.empty((N, NUM_FEATS - 1))
+        # features_discretized = np.empty((N, NUM_FEATS-1))
         # temp[:, 0] = features[:, 0]
         for jj in range(Nbins):
             idx = np.where((features[:, 0] > unique_t_release[jj]) & (features[:, 0] < unique_t_release[jj+1]) )
@@ -566,6 +573,33 @@ class TaskAssignmentDiscrete(gym.Env):
 
 
         return state
+
+    def map_state_to_features(self, state, params):
+
+        N = self.env_config.get('N')
+        M = self.M
+        NUM_FEATS = self.NUM_FEATS
+        Nbins = self.env_config.get('Nbins')
+
+        # Map features to observation space
+        unique_duration = params.get('unique_duration')
+        unique_t_drop = params.get('unique_t_drop')
+        unique_slope = params.get('unique_slope')
+        unique_t_release = params.get('unique_t_release')
+
+        values_list = list(params.values())
+
+        features = np.empty((N,NUM_FEATS-1))  # Note NUM_FEATS is one less here because the dropping loss is not currently encoded.
+        for ii in range(N):
+            for jj in range(NUM_FEATS-1):  # Note NUM_FEATS is one less here because the dropping loss is not currently encoded.
+                state_index = ii + jj*N
+                feat_vector = values_list[jj]
+                features[ii,jj] = feat_vector[state[state_index]]
+
+
+
+        return features
+
 
 
 
@@ -762,7 +796,26 @@ class TaskAssignmentDiscrete(gym.Env):
 
 
 
-        state = self.map_features_to_state(N_features)
+        # Map features to observation space
+        params = {}
+        low = -12
+        high = 1
+        Nbins = self.env_config.get('Nbins')
+        increment = (high-low)/Nbins
+        unique_t_release = np.empty(Nbins+1)
+        for jj in range(Nbins+1):
+            unique_t_release[jj] = low + increment*jj
+        params['unique_t_release'] = unique_t_release
+        params['unique_duration'] = np.unique(features[:, 1])
+        params['unique_t_drop'] = np.unique(features[:, 2])
+        params['unique_slope'] = np.unique(features[:, 4])
+
+
+        self.env_config['params'] = params
+
+        state = self.map_features_to_state(N_features, params)
+
+        feat_check = self.map_state_to_features(state, params)
 
 
         return state
