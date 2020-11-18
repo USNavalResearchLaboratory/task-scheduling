@@ -93,12 +93,6 @@ class ReinforcementLearningScheduler:
             Task execution channels.
         """
 
-        # t_run = time.perf_counter()     # FIXME: integrate runtime control
-        # max_runtime = float('inf')
-        # runtime = time.perf_counter() - t_run
-        # if runtime >= max_runtime:
-        #     raise RuntimeError(f"Algorithm timeout: {runtime} > {max_runtime}.")
-
         obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)
         done = False
         while not done:

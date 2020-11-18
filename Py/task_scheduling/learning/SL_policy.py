@@ -108,8 +108,6 @@ class SupervisedLearningScheduler:
     def learn(self, n_batch_train=1, n_batch_val=1, batch_size=1, weight_func=None,
               fit_params=None, do_tensorboard=False, plot_history=False):
 
-        # TODO: combine learn and fit methods?
-
         d_val = self.env.data_gen_numpy(n_batch_val * batch_size, weight_func=weight_func, verbose=True)
         d_train = self.env.data_gen_numpy(n_batch_train * batch_size, weight_func=weight_func, verbose=True)
 
