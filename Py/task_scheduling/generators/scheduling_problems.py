@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
-from task_scheduling.tree_search import branch_bound
+from task_scheduling.algorithms.base import branch_bound
 from task_scheduling.util.generic import RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
 

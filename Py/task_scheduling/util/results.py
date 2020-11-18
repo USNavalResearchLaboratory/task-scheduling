@@ -73,7 +73,7 @@ def eval_loss(tasks, t_ex):
     return l_ex
 
 
-def compare_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0, save=False, file=None):
+def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0, save=False, file=None):
     """
     Compare scheduling algorithms for numerous sets of tasks and channel availabilities.
 
@@ -215,8 +215,8 @@ def compare_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0,
 
 
 # Runtime-limited algorithms
-def compare_algorithms_lim(algorithms, runtimes, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0,
-                           save=False, file=None):
+def evaluate_algorithms_lim(algorithms, runtimes, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0,
+                            save=False, file=None):
 
     n_runtimes = len(runtimes)
 
@@ -265,7 +265,7 @@ def compare_algorithms_lim(algorithms, runtimes, problem_gen, n_gen=1, solve=Fal
 
                 # Evaluate schedule
                 for i_time, problem in enumerate(func(tasks, ch_avail, runtimes)):
-                    if problem is not None:
+                    if problem is not None:     # TODO: reconsider implementation
                         t_ex, ch_ex = problem
 
                         check_valid(tasks, t_ex, ch_ex)

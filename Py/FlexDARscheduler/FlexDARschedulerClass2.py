@@ -18,7 +18,7 @@ RP = 0.04
 # Tmax = 3
 
 ## Specify Algorithms
-from task_scheduling.tree_search import earliest_release
+from task_scheduling.algorithms.base import earliest_release
 from functools import partial
 from task_scheduling.util.generic import algorithm_repr
 from task_scheduling.util.plot import plot_task_losses, scatter_loss_runtime

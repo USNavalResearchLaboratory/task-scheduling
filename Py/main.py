@@ -6,10 +6,11 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from task_scheduling.util.generic import timeout_wrapper
-from task_scheduling.util.results import compare_algorithms, compare_algorithms_lim
+from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_lim
 from task_scheduling.generators import scheduling_problems as problem_gens
-from task_scheduling.tree_search import TreeNodeShift, earliest_release, random_sequencer, branch_bound, mcts
-from task_scheduling import tree_search_run_lim
+from task_scheduling.tree_search import TreeNodeShift
+from task_scheduling.algorithms import base as algs_base
+from task_scheduling.algorithms import runtime as algs_timed
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.SL_policy import SupervisedLearningScheduler as SL_Scheduler
 # from task_scheduling.learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler
@@ -93,26 +94,26 @@ policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, lay
 
 algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
-    ('Random', random_sequencer, 20),
-    ('ERT', earliest_release, 1),
-    ('MCTS', partial(mcts, n_mc=100, verbose=False), 5),
+    ('Random', algs_base.random_sequencer, 20),
+    ('ERT', algs_base.earliest_release, 1),
+    ('MCTS', partial(algs_base.mcts, n_mc=100, verbose=False), 5),
     # ('DQN Agent', dqn_agent, 5),
     ('DNN Policy', policy_model, 5),
 ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
 
-l_ex_iter, t_run_iter = compare_algorithms(algorithms, problem_gen, n_gen=10, solve=True,
-                                           verbose=2, plotting=1, save=False, file=None)
+l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=10, solve=True,
+                                            verbose=2, plotting=1, save=False, file=None)
 
 
-# algorithms = np.array([
-#     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
-#     ('Random', timeout_wrapper(random_sequencer), 20),
-#     ('ERT', timeout_wrapper(earliest_release), 1),
-#     ('MCTS', partial(tree_search_run_lim.mcts, verbose=False), 5),
-#     # ('DQN Agent', dqn_agent, 5),
-#     ('DNN Policy', timeout_wrapper(policy_model), 5),
-# ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
-#
-# runtimes = np.logspace(-2, .3, 30, endpoint=False)
-# l_ex_iter = compare_algorithms_lim(algorithms, runtimes, problem_gen, n_gen=5, solve=True, verbose=3, plotting=1,
-#                                    save=False, file=None)
+algorithms = np.array([
+    # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
+    ('Random', timeout_wrapper(algs_base.random_sequencer), 20),
+    ('ERT', timeout_wrapper(algs_base.earliest_release), 1),
+    ('MCTS', partial(algs_timed.mcts, verbose=False), 5),
+    # ('DQN Agent', dqn_agent, 5),
+    ('DNN Policy', timeout_wrapper(policy_model), 5),
+], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
+
+runtimes = np.logspace(-2, .3, 30, endpoint=False)
+l_ex_iter = evaluate_algorithms_lim(algorithms, runtimes, problem_gen, n_gen=5, solve=True, verbose=3, plotting=1,
+                                    save=False, file=None)

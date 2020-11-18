@@ -1,5 +1,3 @@
-"""Multi-channel Tree Search objects and algorithms."""
-
 from time import perf_counter
 
 from task_scheduling.tree_search import TreeNode, TreeNodeBound, SearchNode
