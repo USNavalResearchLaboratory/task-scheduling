@@ -399,7 +399,7 @@ class SeqTasking(BaseTasking):
         if self.action_type == 'seq':
             pass
         elif self.action_type == 'int':
-            action = list(num2seq(action, self.n_tasks))
+            action = list(num2seq(action, self.n_tasks))        # decode integer to sequence
         else:
             raise ValueError
 

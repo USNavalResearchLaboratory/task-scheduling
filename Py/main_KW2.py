@@ -11,7 +11,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from task_scheduling.generators.tasks import ContinuousUniformIID as ContinuousUniformTaskGenerator
-from task_scheduling.tree_search import branch_bound, est_alg, est_task_swap_alg, ed_alg, ed_swap_task_alg
+from task_scheduling.tree_search import est_alg, est_task_swap_alg, ed_alg, ed_swap_task_alg
+from task_scheduling.algorithms.base import branch_bound
 from scheduling_algorithms import branch_bound_rules
 
 from util.utils import check_valid, eval_loss

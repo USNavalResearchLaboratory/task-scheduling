@@ -26,7 +26,7 @@ from task_scheduling.util.results import check_valid, eval_loss
 from task_scheduling.util.plot import plot_task_losses, scatter_loss_runtime
 
 from task_scheduling.generators.scheduling_problems import ReluDrop
-from task_scheduling.tree_search import mcts_orig, earliest_release, branch_bound_with_stats
+from task_scheduling.algorithms.base import branch_bound_with_stats, mcts_orig, earliest_release
 from learning.environments import StepTaskingEnv, wrap_agent, RandomAgent
 
 plt.style.use('seaborn')

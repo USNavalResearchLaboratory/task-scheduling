@@ -4,6 +4,7 @@ from functools import wraps
 from math import factorial
 from numbers import Integral
 from time import perf_counter
+from warnings import warn
 
 import numpy as np
 
@@ -69,14 +70,16 @@ def timing_wrapper(scheduler):
     return timed_scheduler
 
 
-def timeout_wrapper(scheduler):
+def runtime_wrapper(scheduler):
     @wraps(scheduler)
-    def new_scheduler(tasks, ch_avail, max_runtime):
+    def new_scheduler(tasks, ch_avail, runtimes):
         t_ex, ch_ex, t_run = timing_wrapper(scheduler)(tasks, ch_avail)
-        if t_run >= max_runtime:
-            raise RuntimeError(f"Algorithm timeout: {t_run} > {max_runtime}.")      # TODO: warn, return NaN?
-        else:
-            return t_ex, ch_ex, t_run
+        for runtime in runtimes:
+            if t_run < runtime:
+                yield t_ex, ch_ex
+            else:
+                yield None
+                # raise RuntimeError(f"Algorithm timeout: {t_run} > {runtime}.")
 
     return new_scheduler
 
