@@ -10,11 +10,12 @@ from tensorboard import program
 import webbrowser
 import os
 
-from util.generic import check_rng
+# from util.generic.RandomGeneratorMixin import check_rng
+from util.generic import RandomGeneratorMixin
 
 from generators.tasks import GenericIID as GenericTaskGenerator
 from tree_search import TreeNodeShift
-from learning.environments import StepTaskingEnv
+from learning.environments import StepTasking
 
 from scipy.stats import rv_discrete, uniform
 
@@ -24,7 +25,7 @@ plt.style.use('seaborn')
 
 
 def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
-                 n_gen_train=1, n_gen_val=1, env_cls=StepTaskingEnv, env_params=None,
+                 n_gen_train=1, n_gen_val=1, env_cls=StepTasking, env_params=None,
                  model=None, compile_params=None, fit_params=None,
                  do_tensorboard=False, plot_history=True, save=False, save_dir=None):
     """
@@ -302,7 +303,7 @@ def main():
     # task_gen = PermuteTaskGenerator(task_gen(n_tasks))
     # task_gen = DeterministicTaskGenerator(task_gen(n_tasks))
 
-    def ch_avail_gen(n_ch, rng=check_rng(None)):  # channel availability time generator
+    def ch_avail_gen(n_ch, rng=RandomGeneratorMixin.check_rng(None)):  # channel availability time generator
         return rng.uniform(6, 6, n_ch)
 
     features = np.array([('duration', lambda self: self.duration, task_gen.duration_lim),

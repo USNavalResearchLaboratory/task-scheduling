@@ -25,13 +25,46 @@ def drange(start, stop, step):
         r += step
 
 
-
 import numpy as np
 import matplotlib.pyplot as plt
 import time     # TODO: use builtin module timeit instead? or cProfile?
 import random
 import math
+from copy import deepcopy
 from SL_policy_Discrete import load_policy, wrap_policy
+from task_scheduling.util.generic import RandomGeneratorMixin
+from task_scheduling import tasks as task_types
+from task_scheduling.tasks import ReluDrop
+
+def algorithm_repr(alg):
+    """
+    Create algorithm string representations.
+
+    Parameters
+    ----------
+    alg : functools.partial
+        Algorithm as a partial function with keyword arguments.
+
+    Returns
+    -------
+    str
+        Compact string representation of the algorithm.
+
+    """
+    keys_del = ['verbose', 'rng']
+    params = deepcopy(alg.keywords)
+    for key in keys_del:
+        try:
+            del params[key]
+        except KeyError:
+            pass
+    if len(params) == 0:
+        return alg.func.__name__
+    else:
+        p_str = ", ".join(f"{key}={str(val)}" for key, val in params.items())
+        return f"{alg.func.__name__}({p_str})"
+
+
 
 
 
@@ -47,7 +80,7 @@ RP = 0.04
 ## Specify Algorithms
 from tree_search import branch_bound, random_sequencer, earliest_release
 from functools import partial
-from util.generic import algorithm_repr, check_rng
+# from util.generic import algorithm_repr
 from util.plot import plot_task_losses, plot_schedule, plot_loss_runtime, scatter_loss_runtime
 from util.results import check_valid, eval_loss
 from more_itertools import locate
@@ -167,8 +200,8 @@ job = []
 cnt = 0 # Make 0-based, saves a lot of trouble later when indexing into python zero-based vectors
 if True: # Don't schedule Search
     for ii in range(Nsearch):
-        # job.append(0, ReluDropTask(SearchParams.JobDuration[ii], SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropTimeFixed[ii], SearchParams.DropCost[ii]))
-        job.append(ReluDropTask(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropCost[ii]))
+        # job.append(0, ReluDrop(SearchParams.JobDuration[ii], SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropTimeFixed[ii], SearchParams.DropCost[ii]))
+        job.append(ReluDrop(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropCost[ii]))
         job[ii].Id = cnt # Numeric Identifier for each job
         cnt = cnt + 1
         if job[ii].slope == 0.4:
@@ -179,8 +212,8 @@ if True: # Don't schedule Search
 
 
 for ii in range(Ntrack):
-    # job.append(ReluDropTask(0, TrackParams.JobDuration[ii], TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropTimeFixed[ii], TrackParams.DropCost[ii]))
-    job.append(ReluDropTask(TrackParams.JobDuration[ii], 0, TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropCost[ii]))
+    # job.append(ReluDrop(0, TrackParams.JobDuration[ii], TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropTimeFixed[ii], TrackParams.DropCost[ii]))
+    job.append(ReluDrop(TrackParams.JobDuration[ii], 0, TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropCost[ii]))
     job[cnt].Id = cnt # Numeric Identifier for each job
     if job[cnt].slope == 0.25:
         job[cnt].Type = 'Tlow' # Low Priority Track
@@ -258,7 +291,7 @@ job_type = np.array([task.Type for task in job]) # Original ordering of job type
 UB_job_type = np.array([1/task.slope for task in job])
 
 M = len(job)
-NUM_FEATS = 5 # Number of feautures
+NUM_FEATS = 8 # Number of feautures
 feat_record = np.empty((NumSteps, M, NUM_FEATS))
 
 
@@ -292,6 +325,9 @@ for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
             feature_names.append('t_drop')
             feature_names.append('l_drop')
             feature_names.append('slope')
+            feature_names.append('timeSec')
+            feature_names.append('ChannelAvailableTime')
+            feature_names.append('t_release')
             for mm in range(len(job)):
                 task = job[mm]
                 features[mm, 0] = np.array([task.t_release]-timeSec)
@@ -299,8 +335,10 @@ for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
                 features[mm, 2] = np.array([task.t_drop])
                 features[mm, 3] = np.array([task.l_drop])
                 features[mm, 4] = np.array([task.slope])
-                # features[mm, 5] = np.array(timeSec)
-                # features[mm, 6] = np.array(ChannelAvailableTime)
+                features[mm, 5] = np.array(timeSec)
+                features[mm, 6] = np.array(ChannelAvailableTime)
+                features[mm, 7] = np.array([task.t_release])
+
             feat_record[ii,:,:] = features
 
             priority = np.array([task.Priority for task in job])
@@ -413,6 +451,18 @@ for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
 F = np.reshape(feat_record, (-1, NUM_FEATS))
 scaler = StandardScaler()
 scaled_features = scaler.fit_transform(F)
+
+for jj in range(F.shape[1]):
+    plt.figure(jj)
+    plt.style.use("fivethirtyeight")
+    if jj == 0:
+        plt.hist(F[:, jj], bins = 100)
+    else:
+        plt.hist(F[:, jj])
+    plt.title(feature_names[jj])
+    fname = 'Figures/' +  feature_names[jj] + '.pdf'
+    plt.savefig(fname, format='pdf')
+
 
 # Knee-method
 kmeans_kwargs = {
