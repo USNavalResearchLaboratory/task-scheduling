@@ -78,7 +78,7 @@ RP = 0.04
 # Tmax = 3
 
 ## Specify Algorithms
-from tree_search import branch_bound, random_sequencer, earliest_release
+from algorithms.base import branch_bound, random_sequencer, earliest_release
 from functools import partial
 # from util.generic import algorithm_repr
 from util.plot import plot_task_losses, plot_schedule, plot_loss_runtime, scatter_loss_runtime
