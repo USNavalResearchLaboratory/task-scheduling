@@ -234,6 +234,18 @@ class ReluDrop(Generic):
         return self.t_release, self.t_release + max(self.duration, self.t_drop) + 1
 
 
+class ReluDropRadar(ReluDrop):
+
+    # param_names = ('duration', 't_release', 'slope', 't_drop', 'l_drop')
+
+    def __init__(self, duration, t_release, slope, t_drop, l_drop, id_, type_, count, t_revisit):
+        super().__init__(duration, t_release, slope, t_drop, l_drop)
+        self.id_ = id_
+        self.type_ = type_
+        self.count = count
+        self.t_revisit = t_revisit
+
+
 # def loss_relu_drop(t_release, slope, t_drop, l_drop):
 #     """
 #     Rectified linear loss function with a constant drop penalty.

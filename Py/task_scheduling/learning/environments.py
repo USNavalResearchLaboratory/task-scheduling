@@ -363,65 +363,67 @@ class BaseTasking(ABC, gym.Env):
         data, = self.data_gen(n_batch=1, batch_size=n_gen, weight_func=weight_func, verbose=verbose)
         return data     # TODO: save dataset to save on Env computation time?
 
-    # def data_gen_baselines(self, n_gen):
-    #     steps_total = n_gen * self.steps_per_episode
-    #
-    #     observations, actions = self.data_gen_numpy(n_gen)
-    #     rewards = np.zeros(steps_total, dtype=np.float)
-    #     episode_returns = np.zeros(n_gen, dtype=np.float)
-    #     episode_starts = np.full(steps_total, False, dtype=np.bool)
-    #     episode_starts[np.arange(0, steps_total, self.steps_per_episode)] = True
-    #
-    #     numpy_dict = {
-    #         'actions': actions,
-    #         'obs': observations,
-    #         'rewards': rewards,
-    #         'episode_returns': episode_returns,
-    #         'episode_starts': episode_starts
-    #     }
-    #
-    #     # return numpy_dict
-    #     return ExpertDataset(traj_data=numpy_dict)
-    #
-    # def data_gen_baselines_adam(self, n_episodes=5):
-    #     actions = []
-    #     observations = []
-    #     rewards = []
-    #     episode_returns = np.zeros((n_episodes,))
-    #     episode_starts = []
-    #
-    #     ep_idx = 0
-    #     while ep_idx < n_episodes:
-    #
-    #         obs = self.reset(solve=True)  # generates new scheduling problem
-    #         print(obs)
-    #
-    #         t_ex, ch_ex = self.solution.t_ex, self.solution.ch_ex
-    #         seq = np.argsort(t_ex)  # maps to optimal schedule (empirically supported...)
-    #
-    #         for i in range(len(seq)):
-    #             observations.append(obs.flatten())
-    #             action = seq[i]
-    #             actions.append(action)
-    #             rewards.append(1)   # need to fix
-    #             print(i)
-    #             episode_starts.append(i == 0)
-    #
-    #         ep_idx += 1
-    #
-    #     observations = np.concatenate(observations).reshape((-1,) + self.observation_space.shape)  # this could be an issue
-    #     actions = np.array(actions).reshape(-1, 1)
-    #     rewards = np.array(rewards)
-    #     episode_starts = np.array(episode_starts)
-    #
-    #     numpy_dict = {
-    #         'actions': actions,
-    #         'obs': observations,
-    #         'rewards': rewards,
-    #         'episode_returns': episode_returns,
-    #         'episode_starts': episode_starts
-    #     }
-    #     return ExpertDataset(traj_data=numpy_dict)
+    def data_gen_baselines(self, n_gen):
+        steps_total = n_gen * self.steps_per_episode
+
+        observations, actions = self.data_gen_numpy(n_gen)
+        rewards = np.zeros(steps_total, dtype=np.float)
+        episode_returns = np.zeros(n_gen, dtype=np.float)
+        episode_starts = np.full(steps_total, False, dtype=np.bool)
+        episode_starts[np.arange(0, steps_total, self.steps_per_episode)] = True
+
+        numpy_dict = {
+            'actions': actions,
+            'obs': observations,
+            'rewards': rewards,
+            'episode_returns': episode_returns,
+            'episode_starts': episode_starts
+        }
+
+        return numpy_dict
+        # return ExpertDataset(traj_data=numpy_dict)
+
+    def data_gen_baselines_adam(self, n_episodes=5):
+        actions = []
+        observations = []
+        rewards = []
+        episode_returns = np.zeros((n_episodes,))
+        episode_starts = []
+
+        ep_idx = 0
+        while ep_idx < n_episodes:
+
+            obs = self.reset(solve=True)  # generates new scheduling problem
+            print(obs)
+
+            t_ex, ch_ex = self.solution.t_ex, self.solution.ch_ex
+            seq = np.argsort(t_ex)  # maps to optimal schedule (empirically supported...)
+
+            for i in range(len(seq)):
+                observations.append(obs.flatten())
+                action = seq[i]
+                actions.append(action)
+                rewards.append(1)   # need to fix
+                print(i)
+                episode_starts.append(i == 0)
+
+            ep_idx += 1
+
+        observations = np.concatenate(observations).reshape((-1,) + self.observation_space.shape)  # this could be an issue
+        actions = np.array(actions).reshape(-1, 1)
+        rewards = np.array(rewards)
+        episode_starts = np.array(episode_starts)
+
+        numpy_dict = {
+            'actions': actions,
+            'obs': observations,
+            'rewards': rewards,
+            'episode_returns': episode_returns,
+            'episode_starts': episode_starts
+        }
+
+        return numpy_dict
+        # return ExpertDataset(traj_data=numpy_dict)
 
 
 class SeqTasking(BaseTasking):
