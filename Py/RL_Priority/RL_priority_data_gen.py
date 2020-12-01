@@ -291,7 +291,7 @@ job_type = np.array([task.Type for task in job]) # Original ordering of job type
 UB_job_type = np.array([1/task.slope for task in job])
 
 M = len(job)
-NUM_FEATS = 8 # Number of feautures
+NUM_FEATS = 9 # Number of feautures
 feat_record = np.empty((NumSteps, M, NUM_FEATS))
 
 
@@ -328,6 +328,8 @@ for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
             feature_names.append('timeSec')
             feature_names.append('ChannelAvailableTime')
             feature_names.append('t_release')
+            feature_names.append('timeSec - t_release - t_drop')
+
             for mm in range(len(job)):
                 task = job[mm]
                 features[mm, 0] = np.array([task.t_release]-timeSec)
@@ -338,6 +340,8 @@ for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
                 features[mm, 5] = np.array(timeSec)
                 features[mm, 6] = np.array(ChannelAvailableTime)
                 features[mm, 7] = np.array([task.t_release])
+                features[mm, 8] = np.array(timeSec - [task.t_release] - [task.t_drop])
+
 
             feat_record[ii,:,:] = features
 
@@ -455,7 +459,7 @@ scaled_features = scaler.fit_transform(F)
 for jj in range(F.shape[1]):
     plt.figure(jj)
     plt.style.use("fivethirtyeight")
-    if jj == 0:
+    if jj == 0 or jj == 8:
         plt.hist(F[:, jj], bins = 100)
     else:
         plt.hist(F[:, jj])

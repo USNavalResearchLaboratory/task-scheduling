@@ -27,7 +27,7 @@ from task_scheduling.learning.RL_policy import ReinforcementLearningScheduler as
 # channel_avail_lim = (0, 10)
 
 # problem_gen = problem_gens.Random.relu_drop(n_tasks=5, n_ch=1, rng=None, duration_lim=(0,.05), t_release_lim=(0,0), slope_lim=(0,2), t_drop_lim=(0,6), l_drop_lim=(300,300))
-problem_gen = problem_gens.Random.search_track(n_tasks=3, n_ch=1, rng=None)
+problem_gen = problem_gens.Random.search_track(n_tasks=4, n_ch=1, rng=None, ch_avail_lim=(0, 6))
 
 # problem_gen = problem_gens.Random.relu_drop(n_tasks=3, n_ch=1, rng=None)
 # problem_gen = problem_gens.DeterministicTasks.relu_drop(n_tasks=8, n_ch=1, rng=None)
@@ -42,8 +42,9 @@ problem_gen = problem_gens.Random.search_track(n_tasks=3, n_ch=1, rng=None)
 features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
                      # ('release time', lambda task: task.t_release,
                      #  (0., problem_gen.task_gen.param_lims['t_release'][1])),
+                     # ('channel_avail', lambda task: task.slope, problem_gen.ch_avail_gen.lims),
                      ('slope', lambda task: task.slope, problem_gen.task_gen.param_lims['slope']),
-                     # ('drop time', lambda task: task.t_drop, (0., problem_gen.task_gen.param_lims['t_drop'][1])),
+                     ('drop time', lambda task: task.t_drop, (0., problem_gen.task_gen.param_lims['t_drop'][1])),
                      # ('drop loss', lambda task: task.l_drop, (0., problem_gen.task_gen.param_lims['l_drop'][1])),
                      # ('is available', lambda task: 1 if task.t_release == 0. else 0, (0, 1)),
                      # ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
@@ -112,7 +113,7 @@ algorithms = np.array([
     # ('DNN Policy', policy_model, 5),
 ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
 
-l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=10, solve=True,
+l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=100, solve=True,
                                             verbose=2, plotting=1, save=True, file=None)
 # l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=10, solve=True,
 #                                             verbose=2, plotting=1, save=True, file=None)
