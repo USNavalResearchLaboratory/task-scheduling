@@ -22,31 +22,38 @@ class Generic:
 
     """
 
-    param_names = ('duration', 't_release')
+    param_names = ('duration', 't_release', 'loss_func')
 
     def __init__(self, duration, t_release, loss_func=None):
         self.duration = duration
         self.t_release = t_release
 
         if callable(loss_func):
-            self._loss_func = loss_func
+            self.loss_func = loss_func
 
     def __repr__(self):
-        return f"Generic(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
+        return f"{self.__class__.__name__}(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
 
     def __call__(self, t):
         """Loss function versus time."""
-        return self._loss_func(t)
+        return self.loss_func(t)
 
     def __eq__(self, other):
         if isinstance(other, Generic):
-            return self.params == other.params and self._loss_func == other._loss_func
+            return self.params == other.params and self.loss_func == other.loss_func
         else:
             return NotImplemented
 
     @property
     def params(self):
         return {name: getattr(self, name) for name in self.param_names}
+
+    def summary(self):
+        """Print a string listing task parameters."""
+        cls_str = self.__class__.__name__
+        param_str = [f"{name}: {getattr(self, name)}" for name in self.param_names]
+
+        print('\n'.join([cls_str, '-' * len(cls_str)] + param_str))
 
     @property
     def plot_lim(self):
@@ -125,8 +132,8 @@ class ReluDrop(Generic):
         self._t_drop = t_drop
         self._l_drop = l_drop
 
-    def __repr__(self):
-        return f"ReluDrop(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
+    # def __repr__(self):
+    #     return f"ReluDrop(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
 
     def __call__(self, t):
         """Loss function versus time."""
@@ -152,7 +159,7 @@ class ReluDrop(Generic):
 
     @slope.setter
     def slope(self, slope):
-        self.check_non_decreasing(slope, self.t_drop, self.l_drop)
+        self._check_non_decreasing(slope, self.t_drop, self.l_drop)
         self._slope = slope
 
     @property
@@ -161,7 +168,7 @@ class ReluDrop(Generic):
 
     @t_drop.setter
     def t_drop(self, t_drop):
-        self.check_non_decreasing(self.slope, t_drop, self.l_drop)
+        self._check_non_decreasing(self.slope, t_drop, self.l_drop)
         self._t_drop = t_drop
 
     @property
@@ -170,11 +177,11 @@ class ReluDrop(Generic):
 
     @l_drop.setter
     def l_drop(self, l_drop):
-        self.check_non_decreasing(self.slope, self.t_drop, l_drop)
+        self._check_non_decreasing(self.slope, self.t_drop, l_drop)
         self._l_drop = l_drop
 
     @staticmethod
-    def check_non_decreasing(slope, t_drop, l_drop):
+    def _check_non_decreasing(slope, t_drop, l_drop):
         if l_drop < slope * t_drop:
             raise ValueError("Loss function must be monotonically non-decreasing.")
 
@@ -215,11 +222,11 @@ class ReluDrop(Generic):
         else:   # default, return task parameters
             return list(self.params.values())
 
-    def summary(self):
-        """Print a string listing task parameters."""
-        print(f'ReluDrop\n------------\nduration: {self.duration:.2f}'
-              f'\nrelease time: {self.t_release:.2f}\nslope: {self.slope:.2f}'
-              f'\ndrop time: {self.t_drop:.2f}\ndrop loss: {self.l_drop:.2f}')
+    # def summary(self):
+    #     """Print a string listing task parameters."""
+    #     print(f'ReluDrop\n------------\nduration: {self.duration:.2f}'
+    #           f'\nrelease time: {self.t_release:.2f}\nslope: {self.slope:.2f}'
+    #           f'\ndrop time: {self.t_drop:.2f}\ndrop loss: {self.l_drop:.2f}')
 
     @property
     def plot_lim(self):
