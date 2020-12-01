@@ -8,11 +8,11 @@ import matplotlib.pyplot as plt
 import gym
 from gym.spaces import Space, Box, Discrete
 # from stable_baselines.common.vec_env import DummyVecEnv
+# from stable_baselines.gail import ExpertDataset
 
 from task_scheduling.util.plot import plot_task_losses
 from task_scheduling.util.generic import seq2num, num2seq
 from task_scheduling.tree_search import TreeNode
-# from task_scheduling.learning.RL_policy import RandomAgent
 
 np.set_printoptions(precision=2)
 
@@ -325,7 +325,13 @@ class BaseTasking(ABC, gym.Env):
             if verbose:
                 print(f'Batch: {i_batch + 1}/{n_batch}', end='\n')
 
-            x_set, y_set, w_set = [], [], []
+            # x_set, y_set, w_set = [], [], []
+
+            steps_total = batch_size * self.steps_per_episode
+            x_set = np.empty((steps_total, *self.observation_space.shape), dtype=self.observation_space.dtype)
+            y_set = np.empty((steps_total, *self.action_space.shape), dtype=self.action_space.dtype)
+            w_set = np.empty(steps_total, dtype=np.float)
+
             for i_gen in range(batch_size):
                 if verbose:
                     print(f'  Problem: {i_gen + 1}/{batch_size}', end='\r')
@@ -341,9 +347,15 @@ class BaseTasking(ABC, gym.Env):
                 # Generate samples for each scheduling step of the optimal sequence
                 x_set_single, y_set_single, w_set_single = self._gen_single(seq, weight_func)
 
-                x_set.extend(x_set_single)
-                y_set.extend(y_set_single)
-                w_set.extend(w_set_single)
+                # x_set.extend(x_set_single)
+                # y_set.extend(y_set_single)
+                # w_set.extend(w_set_single)
+
+                idx = i_gen * self.steps_per_episode + np.arange(self.steps_per_episode)
+                x_set[idx] = x_set_single
+                y_set[idx] = y_set_single
+                if callable(weight_func):
+                    w_set[idx] = w_set_single
 
             if callable(weight_func):
                 yield np.array(x_set), np.array(y_set), np.array(w_set)
@@ -359,6 +371,34 @@ class BaseTasking(ABC, gym.Env):
         """Generate state-action data as NumPy arrays."""
         data, = self.data_gen(n_batch=1, batch_size=n_gen, weight_func=weight_func, verbose=verbose)
         return data     # TODO: save dataset to save on Env computation time?
+
+    # def data_gen_baselines(self, n_gen):
+    #     steps_total = n_gen * self.steps_per_episode
+    #
+    #     actions = np.empty((steps_total, *self.action_space.shape), dtype=self.action_space.dtype)
+    #     observations = np.empty((steps_total, *self.observation_space.shape), dtype=self.observation_space.dtype)
+    #     rewards = np.empty(steps_total, dtype=np.float)
+    #     episode_returns = np.empty(steps_total, dtype=np.float)
+    #     episode_starts = np.empty(steps_total, dtype=np.bool)
+    #
+    #     for i_gen, (obs_i, act_i) in enumerate(self.data_gen(n_batch=n_gen, batch_size=1, verbose=False)):
+    #         idx = i_gen * self.steps_per_episode + np.arange(self.steps_per_episode)
+    #
+    #         actions[idx] = act_i
+    #         observations[idx] = obs_i
+    #         rewards[idx] = np.zeros(self.steps_per_episode)     # FIXME
+    #         episode_returns[i_gen] = 0.     # FIXME
+    #         episode_starts[idx] = np.array([True] + [False for _ in range(self.steps_per_episode - 1)])
+    #
+    #     numpy_dict = {
+    #         'actions': actions,
+    #         'obs': observations,
+    #         'rewards': rewards,
+    #         'episode_returns': episode_returns,
+    #         'episode_starts': episode_starts
+    #     }
+    #
+    #     return ExpertDataset(traj_data=numpy_dict)
 
 
 class SeqTasking(BaseTasking):
@@ -421,7 +461,8 @@ class SeqTasking(BaseTasking):
         if callable(weight_func):
             w_set = [weight_func(self)]  # TODO: weighting based on loss value!? Use MethodType, or new call signature?
         else:
-            w_set = []
+            # w_set = []
+            w_set = None
 
         # self.step(action)
         super().step(seq)        # invoke super method to avoid unnecessary encode-decode process
@@ -532,7 +573,9 @@ class StepTasking(BaseTasking):
 
     def _gen_single(self, seq, weight_func):
         """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
-        x_set, y_set, w_set = [], [], []
+        # x_set, y_set, w_set = [], [], []
+        x_set, y_set = [], []
+        w_set = [] if callable(weight_func) else None
 
         for n in seq:
             n = self.sorted_index_inv[n]
