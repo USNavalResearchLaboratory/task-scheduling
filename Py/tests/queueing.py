@@ -1,28 +1,83 @@
-from task_scheduling.generators import tasks as task_gens, channel_availabilities as ch_gens
+import numpy as np
+
+from task_scheduling.generators import (tasks as task_gens, channel_availabilities as ch_gens,
+                                        scheduling_problems as problem_gens)
 from task_scheduling.algorithms.base import earliest_release
+from task_scheduling.learning import environments as envs
+from task_scheduling.tree_search import TreeNodeShift
 
-
-# TODO: make task list summary util func!
 
 def test_queue():
+    n_tasks = 4
 
     tasks_master = list(task_gens.ContinuousUniformIID.relu_drop()(4))
-    ch_avail = list(ch_gens.UniformIID((0, 0))(2))
+    # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
+    ch_avail = [0, 0]
 
-    q = task_gens.Queue(tasks_master)
+    q = problem_gens.Queue(n_tasks, tasks_master, ch_avail)
     for _ in range(1):
         # print(", ".join([f"{task.t_release:.2f}" for task in q.tasks]))
-        tasks = list(q(2))
-        # print(", ".join([f"{task.t_release:.2f}" for task in q.tasks]))
-        t_ex, ch_ex = earliest_release(tasks, ch_avail)
-        # TODO: calculate/return channel avails?
-        q.update(tasks, t_ex)
-        # print(", ".join([f"{task.t_release:.2f}" for task in q.tasks]))
+        q.summary()
 
-        # tasks_scheduled, tasks_unscheduled = None, None
-        # q.update(tasks_scheduled, solution)
-        # q.add_tasks(tasks_unscheduled)
+        tasks = list(q(2))
+        q.summary()
+
+        t_ex, ch_ex = earliest_release(tasks, ch_avail)
+
+        q.update(tasks, t_ex, ch_ex)
+        q.summary()
+
+
+def test_queue_env():
+    tasks_full = list(task_gens.ContinuousUniformIID.relu_drop()(4))
+    # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
+    ch_avail = [0, .1]
+
+    problem_gen = problem_gens.Queue(2, tasks_full, ch_avail)
+
+    features = np.array([('duration', lambda task: task.duration, (0, 10)),
+                         ('release time', lambda task: task.t_release, (0, 10)),
+                         ('slope', lambda task: task.slope, (0, 10)),
+                         ('drop time', lambda task: task.t_drop, (0, 10)),
+                         ('drop loss', lambda task: task.l_drop, (0, 10)),
+                         ],
+                        dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
+
+    # env_cls = envs.SeqTasking
+    env_cls = envs.StepTasking
+
+    env_params = {'node_cls': TreeNodeShift,
+                  'features': features,
+                  'sort_func': None,
+                  'masking': True,
+                  # 'action_type': 'seq',
+                  'action_type': 'any',
+                  'seq_encoding': 'one-hot',
+                  }
+
+    env = env_cls(problem_gen, **env_params)
+
+    for _ in range(2):
+        env.problem_gen.summary()
+
+        obs = env.reset()
+        env.problem_gen.summary()
+
+        tasks, ch_avail = env.tasks, env.ch_avail
+        t_ex, ch_ex = earliest_release(tasks, ch_avail)
+
+        env.problem_gen.update(tasks, t_ex, ch_ex)      # TODO?
+        env.problem_gen.summary()
+
+        seq = np.argsort(t_ex)
+        for n in seq:
+            obs, reward, done, info = env.step(n)
+
+        # done = False
+        # while not done:
+        #     obs, reward, done, info = env.step(action)
 
 
 if __name__ == '__main__':
-    test_queue()
+    # test_queue()
+    test_queue_env()

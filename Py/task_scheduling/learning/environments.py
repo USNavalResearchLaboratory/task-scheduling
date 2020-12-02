@@ -397,7 +397,7 @@ class BaseTasking(ABC, gym.Env):
             print(obs)
 
             t_ex, ch_ex = self.solution.t_ex, self.solution.ch_ex
-            seq = np.argsort(t_ex)  # maps to optimal schedule (empirically supported...)
+            seq = np.argsort(t_ex)
 
             for i in range(len(seq)):
                 observations.append(obs.flatten())
