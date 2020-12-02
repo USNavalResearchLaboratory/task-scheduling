@@ -16,8 +16,9 @@ from task_scheduling.tasks import ReluDrop
 import gym
 from gym.spaces import Dict, Discrete, Box, Tuple, MultiDiscrete
 
+
 ##
-class TaskParameters: # Initializes to something like matlab structure. Enables dot indexing
+class TaskParameters:  # Initializes to something like matlab structure. Enables dot indexing
     pass
 
 
@@ -139,9 +140,7 @@ class PriorityQueueDiscrete(gym.Env):
                 np.array(temp[:, 2], dtype='int64'),
                 np.array(temp[:, 3], dtype='int64')))
 
-
         return state
-
 
 
     def reset(self):
@@ -316,7 +315,6 @@ class PriorityQueueDiscrete(gym.Env):
         self.NUM_FEATS = NUM_FEATS
         self.done = False
         state = self.map_features_to_state(features)
-
 
         return state
 
@@ -589,7 +587,7 @@ class TaskAssignmentDiscrete(gym.Env):
 
         values_list = list(params.values())
 
-        features = np.empty((N,NUM_FEATS-1))  # Note NUM_FEATS is one less here because the dropping loss is not currently encoded.
+        features = np.empty((N, NUM_FEATS-1))  # Note NUM_FEATS is one less here because the dropping loss is not currently encoded.
         for ii in range(N):
             for jj in range(NUM_FEATS-1):  # Note NUM_FEATS is one less here because the dropping loss is not currently encoded.
                 state_index = ii + jj*N
@@ -857,12 +855,12 @@ class TaskAssignmentDiscrete(gym.Env):
             possible_actions = np.arange(0,N)
             job = self.job
 
-            priority_Idx = np.empty(N,dtype='int64')
+            priority_Idx = np.empty(N, dtype='int64')
             for jj in range(N):
                 priority_Idx[jj] = possible_actions[action[jj]]
-                possible_actions= np.delete(possible_actions, action[jj])  # Remove previously taken actions
+                possible_actions = np.delete(possible_actions, action[jj])  # Remove previously taken actions
 
-            job_scheduler = [] # Jobs to be scheduled (Length N)
+            job_scheduler = []  # Jobs to be scheduled (Length N)
             for nn in range(N):
                 job_scheduler.append(job[priority_Idx[nn]]) # Copy desired job
 

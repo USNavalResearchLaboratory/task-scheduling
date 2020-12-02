@@ -253,6 +253,7 @@ class BaseTasking(ABC, gym.Env):
         """
 
         action = self.sorted_index[action]  # decode task index to original order
+
         self.node.seq_extend(action)  # updates sequence, loss, task parameters, etc.
 
         reward, self.loss_agg = self.loss_agg - self.node.l_ex, self.node.l_ex
@@ -278,9 +279,9 @@ class BaseTasking(ABC, gym.Env):
         #
         # return self.state, reward, done, {}
 
-    def render(self, mode='human'):
+    def render(self, mode='human'):     # TODO: plot partial schedule instead?
         if mode == 'human':
-            fig_env, ax_env = plt.subplots(num='Task Scheduling Env', clear=True)
+            _, ax_env = plt.subplots(num='Task Scheduling Env', clear=True)
             plot_task_losses(self.tasks, ax=ax_env)
 
     def close(self):
@@ -325,9 +326,8 @@ class BaseTasking(ABC, gym.Env):
             if verbose:
                 print(f'Batch: {i_batch + 1}/{n_batch}', end='\n')
 
-            # x_set, y_set, w_set = [], [], []
-
             steps_total = batch_size * self.steps_per_episode
+
             x_set = np.empty((steps_total, *self.observation_space.shape), dtype=self.observation_space.dtype)
             y_set = np.empty((steps_total, *self.action_space.shape), dtype=self.action_space.dtype)
             w_set = np.empty(steps_total, dtype=np.float)
@@ -345,22 +345,13 @@ class BaseTasking(ABC, gym.Env):
                 # TODO: train using complete tree info, not just B&B solution?
 
                 # Generate samples for each scheduling step of the optimal sequence
-                x_set_single, y_set_single, w_set_single = self._gen_single(seq, weight_func)
-
-                # x_set.extend(x_set_single)
-                # y_set.extend(y_set_single)
-                # w_set.extend(w_set_single)
-
                 idx = i_gen * self.steps_per_episode + np.arange(self.steps_per_episode)
-                x_set[idx] = x_set_single
-                y_set[idx] = y_set_single
-                if callable(weight_func):
-                    w_set[idx] = w_set_single
+                x_set[idx], y_set[idx], w_set[idx] = self._gen_single(seq, weight_func)
 
             if callable(weight_func):
-                yield np.array(x_set), np.array(y_set), np.array(w_set)
+                yield x_set, y_set, w_set
             else:
-                yield np.array(x_set), np.array(y_set)
+                yield x_set, y_set
 
     @abstractmethod
     def _gen_single(self, seq, weight_func):
@@ -372,33 +363,67 @@ class BaseTasking(ABC, gym.Env):
         data, = self.data_gen(n_batch=1, batch_size=n_gen, weight_func=weight_func, verbose=verbose)
         return data     # TODO: save dataset to save on Env computation time?
 
-    # def data_gen_baselines(self, n_gen):
-    #     steps_total = n_gen * self.steps_per_episode
-    #
-    #     actions = np.empty((steps_total, *self.action_space.shape), dtype=self.action_space.dtype)
-    #     observations = np.empty((steps_total, *self.observation_space.shape), dtype=self.observation_space.dtype)
-    #     rewards = np.empty(steps_total, dtype=np.float)
-    #     episode_returns = np.empty(steps_total, dtype=np.float)
-    #     episode_starts = np.empty(steps_total, dtype=np.bool)
-    #
-    #     for i_gen, (obs_i, act_i) in enumerate(self.data_gen(n_batch=n_gen, batch_size=1, verbose=False)):
-    #         idx = i_gen * self.steps_per_episode + np.arange(self.steps_per_episode)
-    #
-    #         actions[idx] = act_i
-    #         observations[idx] = obs_i
-    #         rewards[idx] = np.zeros(self.steps_per_episode)     # FIXME
-    #         episode_returns[i_gen] = 0.     # FIXME
-    #         episode_starts[idx] = np.array([True] + [False for _ in range(self.steps_per_episode - 1)])
-    #
-    #     numpy_dict = {
-    #         'actions': actions,
-    #         'obs': observations,
-    #         'rewards': rewards,
-    #         'episode_returns': episode_returns,
-    #         'episode_starts': episode_starts
-    #     }
-    #
-    #     return ExpertDataset(traj_data=numpy_dict)
+    def data_gen_baselines(self, n_gen):
+        steps_total = n_gen * self.steps_per_episode
+
+        observations, actions = self.data_gen_numpy(n_gen)
+        rewards = np.zeros(steps_total, dtype=np.float)
+        episode_returns = np.zeros(n_gen, dtype=np.float)
+        episode_starts = np.full(steps_total, False, dtype=np.bool)
+        episode_starts[np.arange(0, steps_total, self.steps_per_episode)] = True
+
+        numpy_dict = {
+            'actions': actions,
+            'obs': observations,
+            'rewards': rewards,
+            'episode_returns': episode_returns,
+            'episode_starts': episode_starts
+        }
+
+        return numpy_dict
+        # return ExpertDataset(traj_data=numpy_dict)
+
+    def data_gen_baselines_adam(self, n_episodes=5):
+        actions = []
+        observations = []
+        rewards = []
+        episode_returns = np.zeros((n_episodes,))
+        episode_starts = []
+
+        ep_idx = 0
+        while ep_idx < n_episodes:
+
+            obs = self.reset(solve=True)  # generates new scheduling problem
+            print(obs)
+
+            t_ex, ch_ex = self.solution.t_ex, self.solution.ch_ex
+            seq = np.argsort(t_ex)  # maps to optimal schedule (empirically supported...)
+
+            for i in range(len(seq)):
+                observations.append(obs.flatten())
+                action = seq[i]
+                actions.append(action)
+                rewards.append(1)   # need to fix
+                print(i)
+                episode_starts.append(i == 0)
+
+            ep_idx += 1
+
+        observations = np.concatenate(observations).reshape((-1,) + self.observation_space.shape)  # this could be an issue
+        actions = np.array(actions).reshape(-1, 1)
+        rewards = np.array(rewards)
+        episode_starts = np.array(episode_starts)
+
+        numpy_dict = {
+            'actions': actions,
+            'obs': observations,
+            'rewards': rewards,
+            'episode_returns': episode_returns,
+            'episode_starts': episode_starts
+        }
+
+        return numpy_dict
+        # return ExpertDataset(traj_data=numpy_dict)
 
 
 class SeqTasking(BaseTasking):
@@ -449,25 +474,24 @@ class SeqTasking(BaseTasking):
         """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
         seq_sort = self.sorted_index_inv[seq]
 
-        x_set = [self.state.copy()]
+        x = self.state.copy()
 
         if self.action_type == 'seq':
-            y_set = [seq_sort]
+            y = seq_sort
         elif self.action_type == 'int':
-            y_set = [seq2num(seq_sort)]
+            y = seq2num(seq_sort)
         else:
             raise ValueError
 
         if callable(weight_func):
-            w_set = [weight_func(self)]  # TODO: weighting based on loss value!? Use MethodType, or new call signature?
+            w = weight_func(self)  # TODO: weighting based on loss value!? Use MethodType, or new call signature?
         else:
-            # w_set = []
-            w_set = None
+            w = 1.
 
         # self.step(action)
         super().step(seq)        # invoke super method to avoid unnecessary encode-decode process
 
-        return x_set, y_set, w_set
+        return np.array([x]), np.array([y]), np.array([w])
 
 
 class StepTasking(BaseTasking):
@@ -573,17 +597,18 @@ class StepTasking(BaseTasking):
 
     def _gen_single(self, seq, weight_func):
         """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
-        # x_set, y_set, w_set = [], [], []
-        x_set, y_set = [], []
-        w_set = [] if callable(weight_func) else None
 
-        for n in seq:
+        x_set = np.empty((self.steps_per_episode, *self.observation_space.shape), dtype=self.observation_space.dtype)
+        y_set = np.empty((self.steps_per_episode, *self.action_space.shape), dtype=self.action_space.dtype)
+        w_set = np.ones(self.steps_per_episode, dtype=np.float)
+
+        for idx, n in enumerate(seq):
             n = self.sorted_index_inv[n]
 
-            x_set.append(self.state.copy())
-            y_set.append(n)
+            x_set[idx] = self.state.copy()
+            y_set[idx] = n
             if callable(weight_func):
-                w_set.append(weight_func(self))
+                w_set[idx] = weight_func(self)
 
             self.step(n)  # updates environment state
 

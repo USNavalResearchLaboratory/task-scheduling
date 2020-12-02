@@ -337,7 +337,8 @@ class Dataset(Base):
             if self.solutions is None:
                 self.problems = rng.permutation(self.problems).tolist()
             else:
-                _temp = list(zip(self.problems, self.solutions))
+                # _temp = list(zip(self.problems, self.solutions))
+                _temp = np.array(list(zip(self.problems, self.solutions)), dtype=np.object)
                 _p, _s = zip(*rng.permutation(_temp).tolist())
                 self.problems, self.solutions = list(_p), list(_s)
 
@@ -365,7 +366,6 @@ class Dataset(Base):
             return super()._gen_solution(problem, verbose)
 
 
-
 class Queue(Base):
     """Randomly generated scheduling problems."""
     def _gen_problem(self, rng):
@@ -389,7 +389,6 @@ class Queue(Base):
     def search_track(cls, n_tasks, n_ch, probs=None, t_release_lim=(0., 0.), ch_avail_lim=(0., 0.), rng=None):
         task_gen = task_gens.Queue(probs, t_release_lim)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
-
 
 
 def main():
