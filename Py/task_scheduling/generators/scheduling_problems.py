@@ -1,18 +1,22 @@
 """Generator objects for complete tasking problems with optimal solutions."""
 
 from abc import ABC, abstractmethod
+from collections import deque
 from time import strftime
 from functools import partial
 import dill
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 from task_scheduling.algorithms.base import branch_bound
 from task_scheduling.util.generic import RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
 
 np.set_printoptions(precision=2)
+pd.options.display.float_format = '{:,.2f}'.format      # TODO: global??
+
 data_path = Path.cwd() / 'data' / 'schedules'
 
 
@@ -366,7 +370,7 @@ class Dataset(Base):
             return super()._gen_solution(problem, verbose)
 
 
-class Queue(Base):
+class Queue_KW(Base):
     """Randomly generated scheduling problems."""
     def _gen_problem(self, rng):
         """Return a single scheduling problem (and optional solution)."""
@@ -382,26 +386,61 @@ class Queue(Base):
 
     @classmethod
     def relu_drop(cls, n_tasks, n_ch, rng=None, ch_avail_lim=(0., 0.), **relu_lims):
-        task_gen = task_gens.Queue.relu_drop(**relu_lims)
+        task_gen = Queue.relu_drop(**relu_lims)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
     @classmethod
     def search_track(cls, n_tasks, n_ch, probs=None, t_release_lim=(0., 0.), ch_avail_lim=(0., 0.), rng=None):
-        task_gen = task_gens.Queue(probs, t_release_lim)
+        task_gen = Queue(probs, t_release_lim)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
 
-def main():
-    rand_gen = Random.relu_drop(n_tasks=3, n_ch=2, rng=None)
+class Queue(Base):
+    def __init__(self, n_tasks, tasks_full, ch_avail):
 
-    print(list(rand_gen(2)))
-    print(list(rand_gen(3)))
+        self.queue = deque()
+        self.add_tasks(tasks_full)
 
-    # rand_gen = DeterministicTasks.relu_drop(n_tasks=3, n_ch=2, rng=None)
-    #
-    # print(list(rand_gen(2)))
-    # print(list(rand_gen(3)))
+        self.ch_avail = ch_avail
 
+        self._cls_task = tasks_full[0].__class__
+        if not all(isinstance(task, self._cls_task) for task in tasks_full[1:]):
+            raise TypeError("All tasks must be of the same type.")
 
-if __name__ == '__main__':
-    main()
+        # FIXME: make a task_gen???
+        super().__init__(n_tasks, len(self.ch_avail), task_gen=None, ch_avail_gen=None, rng=None)
+
+    def _gen_problem(self, rng):
+        """Return a single scheduling problem (and optional solution)."""
+        # self.queue, tasks = self.queue[:-self.n_tasks], self.queue[-self.n_tasks:]
+        tasks = [self.queue.pop() for _ in range(self.n_tasks)]
+
+        return SchedulingProblem(tasks, self.ch_avail)
+
+    def add_tasks(self, tasks):
+        self.queue.extendleft(tasks[::-1])
+
+        # for task in tasks:        # TODO: move to task counting wrapper?
+        #     try:
+        #         task.count += 1
+        #     except AttributeError:
+        #         task.count = 0
+        #
+        #     self.tasks.append(task)
+
+    def update(self, tasks, t_ex, ch_ex):
+        for task, t_ex_i in zip(tasks, t_ex):
+            task.t_release = t_ex_i + task.duration
+
+        for ch in range(self.n_ch):
+            tasks_ch = np.array(tasks)[ch_ex == ch].tolist()
+            self.ch_avail[ch] = max(task.t_release for task in tasks_ch)
+
+        self.add_tasks(tasks)
+
+    def summary(self):      # TODO: pandas?
+        print(f"Channel availabilities: {self.ch_avail}")
+        print(f"Task queue:")
+        df = pd.DataFrame({name: [getattr(task, name) for task in self.queue]
+                           for name in self._cls_task.param_names})
+        print(df)

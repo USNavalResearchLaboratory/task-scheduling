@@ -1,7 +1,6 @@
 """Generator objects for tasks."""
 
 from types import MethodType
-from collections import deque
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -282,46 +281,3 @@ class Permutation(Fixed):
         rng = self._get_rng(rng)
         for task in rng.permutation(self.tasks).tolist():
             yield task
-
-
-# FIXME: WIP!!!
-class Queue(Base):
-    def __init__(self, tasks, param_lims=None, rng=None):
-
-        cls_task = tasks[0].__class__
-        if not all(isinstance(task, cls_task) for task in tasks[1:]):
-            raise TypeError("All tasks must be of the same type.")
-
-        super().__init__(cls_task, param_lims, rng)
-        self.tasks = deque()
-        self.add_tasks(tasks)
-
-    @property
-    def n_tasks(self):
-        return len(self.tasks)
-
-    def __call__(self, n_tasks, rng=None):
-        for __ in range(n_tasks):
-            yield self.tasks.pop()
-
-    def add_tasks(self, tasks):
-        self.tasks.extendleft(tasks[::-1])
-
-        # for task in tasks:        # TODO: move to task counting wrapper?
-        #     try:
-        #         task.count += 1
-        #     except AttributeError:
-        #         task.count = 0
-        #
-        #     self.tasks.append(task)
-
-    def update(self, tasks, t_ex):
-        for task, t_ex_i in zip(tasks, t_ex):
-            task.t_release = t_ex_i + task.duration
-
-        self.add_tasks(tasks)
-
-        # TODO: calculate/return channel avails?
-
-
-
