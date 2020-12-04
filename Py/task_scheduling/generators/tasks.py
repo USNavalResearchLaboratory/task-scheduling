@@ -281,3 +281,150 @@ class Permutation(Fixed):
         rng = self._get_rng(rng)
         for task in rng.permutation(self.tasks).tolist():
             yield task
+
+
+
+class TaskParameters:  # Initializes to something like matlab structure. Enables dot indexing
+    pass
+
+class FlexDAR():
+    ##
+
+    def __init__(self, n_track=0):
+        self.n_track = n_track
+
+    def __call__(self, param_lims=None, rng=None):
+
+        n_track = self.n_track
+
+        ## Generate Search Tasks
+        SearchParams = TaskParameters()
+        SearchParams.NbeamsPerRow = np.array([28, 29, 14, 9, 10, 9, 8, 7, 6])
+        # SearchParams.NbeamsPerRow = [208 29 14 9 10 9 8 7 6]; % Overload
+        SearchParams.DwellTime = np.array([36, 36, 36, 18, 18, 18, 18, 18, 18]) * 1e-3
+        SearchParams.RevistRate = np.array([2.5, 5, 5, 5, 5, 5, 5, 5, 5])
+        SearchParams.RevisitRateUB = SearchParams.RevistRate + 0.1  # Upper Bound on Revisit Rate
+        SearchParams.Penalty = 300 * np.ones(np.shape(SearchParams.RevistRate))  # Penalty for exceeding UB
+        SearchParams.Slope = 1. / SearchParams.RevistRate
+        Nsearch = np.sum(SearchParams.NbeamsPerRow)
+        SearchParams.JobDuration = np.array([])
+        SearchParams.JobSlope = np.array([])
+        SearchParams.DropTime = np.array([])  # Task dropping time. Will get updated as tasks get processed
+        SearchParams.DropTimeFixed = np.array(
+            [])  # Used to update DropTimes. Fixed for a given task e.x. always 2.6 process task at time 1 DropTime becomes 3.6
+        SearchParams.DropCost = np.array([])
+        for jj in range(len(SearchParams.NbeamsPerRow)):
+            SearchParams.JobDuration = np.append(SearchParams.JobDuration,
+                                                 np.repeat(SearchParams.DwellTime[jj], SearchParams.NbeamsPerRow[jj]))
+            SearchParams.JobSlope = np.append(SearchParams.JobSlope,
+                                              np.repeat(SearchParams.Slope[jj], SearchParams.NbeamsPerRow[jj]))
+            SearchParams.DropTime = np.append(SearchParams.DropTime,
+                                              np.repeat(SearchParams.RevisitRateUB[jj], SearchParams.NbeamsPerRow[jj]))
+            SearchParams.DropTimeFixed = np.append(SearchParams.DropTimeFixed, np.repeat(SearchParams.RevisitRateUB[jj],
+                                                                                         SearchParams.NbeamsPerRow[jj]))
+            SearchParams.DropCost = np.append(SearchParams.DropCost,
+                                              np.repeat(SearchParams.Penalty[jj], SearchParams.NbeamsPerRow[jj]))
+
+        # %% Generate Track Tasks
+        TrackParams = TaskParameters()  # Initializes to something like matlab structure
+        # Ntrack = 10
+
+        # Spawn tracks with uniformly distributed ranges and velocity
+        MaxRangeNmi = 200  #
+        MaxRangeRateMps = 343  # Mach 1 in Mps is 343
+
+        truth = TaskParameters
+        truth.rangeNmi = MaxRangeNmi * np.random.uniform(0, 1, n_track)
+        truth.rangeRateMps = 2 * MaxRangeRateMps * np.random.uniform(0, 1, n_track) - MaxRangeRateMps
+
+        TrackParams.DwellTime = np.array([18, 18, 18]) * 1e-3
+        TrackParams.RevisitRate = np.array([1, 2, 4])
+        TrackParams.RevisitRateUB = TrackParams.RevisitRate + 0.1
+        TrackParams.Penalty = 300 * np.ones(np.shape(TrackParams.DwellTime))
+        TrackParams.Slope = 1. / TrackParams.RevisitRate
+        TrackParams.JobDuration = []
+        TrackParams.JobSlope = []
+        TrackParams.DropTime = []
+        TrackParams.DropTimeFixed = []
+        TrackParams.DropCost = []
+        for jj in range(n_track):
+            if truth.rangeNmi[jj] <= 50:
+                TrackParams.JobDuration = np.append(TrackParams.JobDuration, TrackParams.DwellTime[0])
+                TrackParams.JobSlope = np.append(TrackParams.JobSlope, TrackParams.Slope[0])
+                TrackParams.DropTime = np.append(TrackParams.DropTime, TrackParams.RevisitRateUB[0])
+                TrackParams.DropTimeFixed = np.append(TrackParams.DropTimeFixed, TrackParams.RevisitRateUB[0])
+                TrackParams.DropCost = np.append(TrackParams.DropCost, TrackParams.Penalty[0])
+            elif truth.rangeNmi[jj] > 50 and abs(truth.rangeRateMps[jj]) >= 100:
+                TrackParams.JobDuration = np.append(TrackParams.JobDuration, TrackParams.DwellTime[1])
+                TrackParams.JobSlope = np.append(TrackParams.JobSlope, TrackParams.Slope[1])
+                TrackParams.DropTime = np.append(TrackParams.DropTime, TrackParams.RevisitRateUB[1])
+                TrackParams.DropTimeFixed = np.append(TrackParams.DropTimeFixed, TrackParams.RevisitRateUB[1])
+                TrackParams.DropCost = np.append(TrackParams.DropCost, TrackParams.Penalty[1])
+            else:
+                TrackParams.JobDuration = np.append(TrackParams.JobDuration, TrackParams.DwellTime[2])
+                TrackParams.JobSlope = np.append(TrackParams.JobSlope, TrackParams.Slope[2])
+                TrackParams.DropTime = np.append(TrackParams.DropTime, TrackParams.RevisitRateUB[2])
+                TrackParams.DropTimeFixed = np.append(TrackParams.DropTimeFixed, TrackParams.RevisitRateUB[2])
+                TrackParams.DropCost = np.append(TrackParams.DropCost, TrackParams.Penalty[2])
+
+        # %% Begin Scheduler Loop
+
+        # rng = np.random.default_rng(100)
+        # task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+        #                              t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=rng)       # task set generator
+        # tasks = task_gen.rand_tasks(N)
+
+        # A = list()
+        tasks = []
+        cnt = 0  # Make 0-based, saves a lot of trouble later when indexing into python zero-based vectors
+        for ii in range(Nsearch):
+            # job.append(0, ReluDropTask(SearchParams.JobDuration[ii], SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropTimeFixed[ii], SearchParams.DropCost[ii]))
+            tasks.append(task_types.ReluDrop(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii],
+                                SearchParams.DropCost[ii]))
+            tasks[ii].Id = cnt  # Numeric Identifier for each job
+            cnt = cnt + 1
+            if tasks[ii].slope == 0.4:
+                tasks[ii].Type = 'HS'  # Horizon Search (Used to determine revisit rates by job type
+            else:
+                tasks[ii].Type = 'AHS'  # Above horizon search
+            tasks[ii].Priority = tasks[ii](0)  # Priority used to select which jobs to give to scheduler
+
+            # tasks = ReluDropTask(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropCost[ii])
+            # A.append(tasks)
+            # del tasks
+        for ii in range(n_track):
+            # job.append(ReluDropTask(0, TrackParams.JobDuration[ii], TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropTimeFixed[ii], TrackParams.DropCost[ii]))
+            tasks.append(task_types.ReluDrop(TrackParams.JobDuration[ii], 0, TrackParams.JobSlope[ii], TrackParams.DropTime[ii],
+                                TrackParams.DropCost[ii]))
+            tasks[cnt].Id = cnt  # Numeric Identifier for each job
+            if tasks[cnt].slope == 0.25:
+                tasks[cnt].Type = 'Tlow'  # Low Priority Track
+            elif tasks[cnt].slope == 0.5:
+                tasks[cnt].Type = 'Tmed'  # Medium Priority Track
+            else:
+                tasks[cnt].Type = 'Thigh'  # High Priority Track
+            tasks[cnt].Priority = tasks[cnt](0)
+            cnt = cnt + 1
+
+            self.tasks = list(tasks)
+
+            cls_task = self.tasks[0].__class__
+            if not all(isinstance(task, cls_task) for task in self.tasks[1:]):
+                raise TypeError("All tasks must be of the same type.")
+
+            if param_lims is None:
+                param_lims = {}
+                for name in cls_task.param_names:
+                    values = [getattr(task, name) for task in tasks]
+                    param_lims[name] = (min(values), max(values))
+
+            # super().__init__(cls_task, param_lims, rng)
+
+
+
+            # self.tasks = tasks
+
+        return tasks
+
+    # for task in
+    #     yield task

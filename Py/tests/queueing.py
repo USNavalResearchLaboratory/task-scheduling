@@ -10,7 +10,10 @@ from task_scheduling.tree_search import TreeNodeShift
 def test_queue():
     n_tasks = 4
 
-    tasks_master = list(task_gens.ContinuousUniformIID.relu_drop()(4))
+    # tasks_master = list(task_gens.ContinuousUniformIID.relu_drop()(4))
+    tasks_master = task_gens.FlexDAR(n_track=10)()
+
+
     # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
     ch_avail = [0, 0]
 
