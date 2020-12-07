@@ -140,10 +140,11 @@ class ReluDrop(Generic):
         t = np.asarray(t)[np.newaxis] - self.t_release      # relative time
 
         loss = self.slope * t
-        loss[t < 0] = 0.
+        # loss[t < 0] = 0.
+        loss[t < 0] = np.nan
         loss[t >= self.t_drop] = self.l_drop
         if loss.size == 1:
-            return np.asscalar(loss)
+            return loss.item()
         else:
             return loss.squeeze(axis=0)
 
@@ -235,15 +236,53 @@ class ReluDrop(Generic):
 
 
 class ReluDropRadar(ReluDrop):
+    param_names = ('duration', 't_release', 'slope', 't_drop', 'l_drop', 'id_', 'type_', 'count', 't_revisit')
 
-    # param_names = ('duration', 't_release', 'slope', 't_drop', 'l_drop')
-
-    def __init__(self, duration, t_release, slope, t_drop, l_drop, id_, type_, count, t_revisit):
+    def __init__(self, duration, t_release, slope, t_drop, l_drop, id_, t_revisit=None, dwell_type='search'):
         super().__init__(duration, t_release, slope, t_drop, l_drop)
         self.id_ = id_
-        self.type_ = type_
-        self.count = count
-        self.t_revisit = t_revisit
+        self.t_revisit = [] if t_revisit is None else list(t_revisit)
+        self.dwell_type = dwell_type
+
+    @property
+    def count_revisit(self):
+        return len(self.t_revisit)
+
+    @property
+    def dwell_subtype(self):        # TODO: slope as property, type on set?
+        if self.dwell_type == 'search':
+            if self.slope == 0.4:
+                return 'HS'
+            elif self.slope == 0.2:
+                return 'AHS'
+            else:
+                raise ValueError
+
+        elif self.dwell_type == 'track':
+            if self.slope == 0.25:
+                return 'low'  # Low Priority Track
+            elif self.slope == 0.5:
+                return 'med'  # Medium Priority Track
+            elif self.slope == 1:
+                return 'high'  # High Priority Track
+            else:
+                raise ValueError
+
+    # def priority(self, t):    # TODO
+    #     return self(t)
+
+    @classmethod
+    def from_range(cls, slant_range, range_rate, id_):       # TODO: DRY with search_track?
+        if slant_range <= 50:
+            revisit_rate = 1
+        elif slant_range > 50 and abs(range_rate) >= 100:
+            revisit_rate = 2
+        else:
+            revisit_rate = 4
+
+        params = {'duration': 0.018, 't_release': 0, 'slope': 1 / revisit_rate,
+                  't_drop': revisit_rate + 0.1, 'l_drop': 300., 'id_': id_, 'dwell_type': 'track'}
+        return cls(**params)
 
 
 # def loss_relu_drop(t_release, slope, t_drop, l_drop):

@@ -370,29 +370,29 @@ class Dataset(Base):
             return super()._gen_solution(problem, verbose)
 
 
-class Queue_KW(Base):
-    """Randomly generated scheduling problems."""
-    def _gen_problem(self, rng):
-        """Return a single scheduling problem (and optional solution)."""
-        tasks = list(self.task_gen(self.n_tasks, rng=rng))
-        ch_avail = list(self.ch_avail_gen(self.n_ch, rng=rng))
-
-        return SchedulingProblem(tasks, ch_avail)
-
-    @classmethod
-    def _task_gen_factory(cls, n_tasks, task_gen, n_ch, ch_avail_lim, rng):
-        ch_avail_gen = chan_gens.Queue(lims=ch_avail_lim)
-        return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
-
-    @classmethod
-    def relu_drop(cls, n_tasks, n_ch, rng=None, ch_avail_lim=(0., 0.), **relu_lims):
-        task_gen = Queue.relu_drop(**relu_lims)
-        return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
-
-    @classmethod
-    def search_track(cls, n_tasks, n_ch, probs=None, t_release_lim=(0., 0.), ch_avail_lim=(0., 0.), rng=None):
-        task_gen = Queue(probs, t_release_lim)
-        return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
+# class Queue_KW(Base):
+#     """Randomly generated scheduling problems."""
+#     def _gen_problem(self, rng):
+#         """Return a single scheduling problem (and optional solution)."""
+#         tasks = list(self.task_gen(self.n_tasks, rng=rng))
+#         ch_avail = list(self.ch_avail_gen(self.n_ch, rng=rng))
+#
+#         return SchedulingProblem(tasks, ch_avail)
+#
+#     @classmethod
+#     def _task_gen_factory(cls, n_tasks, task_gen, n_ch, ch_avail_lim, rng):
+#         ch_avail_gen = chan_gens.Queue(lims=ch_avail_lim)
+#         return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
+#
+#     @classmethod
+#     def relu_drop(cls, n_tasks, n_ch, rng=None, ch_avail_lim=(0., 0.), **relu_lims):
+#         task_gen = Queue.relu_drop(**relu_lims)
+#         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
+#
+#     @classmethod
+#     def search_track(cls, n_tasks, n_ch, probs=None, t_release_lim=(0., 0.), ch_avail_lim=(0., 0.), rng=None):
+#         task_gen = Queue(probs, t_release_lim)
+#         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
 
 class Queue(Base):
@@ -412,21 +412,12 @@ class Queue(Base):
 
     def _gen_problem(self, rng):
         """Return a single scheduling problem (and optional solution)."""
-        # self.queue, tasks = self.queue[:-self.n_tasks], self.queue[-self.n_tasks:]
         tasks = [self.queue.pop() for _ in range(self.n_tasks)]
 
         return SchedulingProblem(tasks, self.ch_avail)
 
     def add_tasks(self, tasks):
         self.queue.extendleft(tasks[::-1])
-
-        # for task in tasks:        # TODO: move to task counting wrapper?
-        #     try:
-        #         task.count += 1
-        #     except AttributeError:
-        #         task.count = 0
-        #
-        #     self.tasks.append(task)
 
     def update(self, tasks, t_ex, ch_ex):
         for task, t_ex_i in zip(tasks, t_ex):
@@ -438,7 +429,7 @@ class Queue(Base):
 
         self.add_tasks(tasks)
 
-    def summary(self):      # TODO: pandas?
+    def summary(self):
         print(f"Channel availabilities: {self.ch_avail}")
         print(f"Task queue:")
         df = pd.DataFrame({name: [getattr(task, name) for task in self.queue]

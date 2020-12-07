@@ -2,6 +2,7 @@
 
 from types import MethodType
 from abc import ABC, abstractmethod
+from collections import namedtuple
 
 import numpy as np
 import pandas as pd
@@ -284,21 +285,21 @@ class Permutation(Fixed):
             yield task
 
 
-
 class TaskParameters:  # Initializes to something like matlab structure. Enables dot indexing
     pass
 
-class FlexDAR():
+
+class FlexDAR(Base):
     ##
 
-    def __init__(self, n_track=0):
+    def __init__(self, n_track=0, param_lims=None, rng=None):
+        super().__init__(cls_task=task_types.ReluDropRadar, param_lims=None, rng=None)
+
         self.n_track = n_track
 
-    def __call__(self, param_lims=None, rng=None):
+        # SearchParams = namedtuple('SearchParams', ['NbeamsPerRow', 'DwellTime'])
 
-        n_track = self.n_track
-
-        ## Generate Search Tasks
+        # Generate Search Tasks
         SearchParams = TaskParameters()
         SearchParams.NbeamsPerRow = np.array([28, 29, 14, 9, 10, 9, 8, 7, 6])
         # SearchParams.NbeamsPerRow = [208 29 14 9 10 9 8 7 6]; % Overload
@@ -307,12 +308,13 @@ class FlexDAR():
         SearchParams.RevisitRateUB = SearchParams.RevistRate + 0.1  # Upper Bound on Revisit Rate
         SearchParams.Penalty = 300 * np.ones(np.shape(SearchParams.RevistRate))  # Penalty for exceeding UB
         SearchParams.Slope = 1. / SearchParams.RevistRate
-        Nsearch = np.sum(SearchParams.NbeamsPerRow)
+
+        n_search = np.sum(SearchParams.NbeamsPerRow)
         SearchParams.JobDuration = np.array([])
         SearchParams.JobSlope = np.array([])
         SearchParams.DropTime = np.array([])  # Task dropping time. Will get updated as tasks get processed
-        SearchParams.DropTimeFixed = np.array(
-            [])  # Used to update DropTimes. Fixed for a given task e.x. always 2.6 process task at time 1 DropTime becomes 3.6
+        # Used to update DropTimes. Fixed for a given task e.x. always 2.6 process task at time 1 DropTime becomes 3.6
+        # SearchParams.DropTimeFixed = np.array([])
         SearchParams.DropCost = np.array([])
         for jj in range(len(SearchParams.NbeamsPerRow)):
             SearchParams.JobDuration = np.append(SearchParams.JobDuration,
@@ -321,10 +323,35 @@ class FlexDAR():
                                               np.repeat(SearchParams.Slope[jj], SearchParams.NbeamsPerRow[jj]))
             SearchParams.DropTime = np.append(SearchParams.DropTime,
                                               np.repeat(SearchParams.RevisitRateUB[jj], SearchParams.NbeamsPerRow[jj]))
-            SearchParams.DropTimeFixed = np.append(SearchParams.DropTimeFixed, np.repeat(SearchParams.RevisitRateUB[jj],
-                                                                                         SearchParams.NbeamsPerRow[jj]))
+            # SearchParams.DropTimeFixed = np.append(SearchParams.DropTimeFixed, np.repeat(SearchParams.RevisitRateUB[jj],
+            #                                                                              SearchParams.NbeamsPerRow[jj]))
             SearchParams.DropCost = np.append(SearchParams.DropCost,
                                               np.repeat(SearchParams.Penalty[jj], SearchParams.NbeamsPerRow[jj]))
+
+
+        tasks_master = []
+        idx = 0
+        for n_beams, t_dwell, revisit_rate, penalty, slope in zip(SearchParams.NbeamsPerRow,
+                                                                  SearchParams.DwellTime,
+                                                                  SearchParams.RevisitRateUB,
+                                                                  SearchParams.Penalty,
+                                                                  SearchParams.Slope):
+            for __ in range(n_beams):
+                tasks_master.append(self.cls_task(duration=t_dwell, t_release=0., slope=slope, t_drop=revisit_rate,
+                                                  l_drop=penalty, id_=idx))
+                idx += 1
+
+        for t_dwell, revisit_rate, penalty, slope in zip(TrackParams.DwellTime,
+                                                         TrackParams.RevisitRateUB,
+                                                         TrackParams.Penalty,
+                                                         TrackParams.Slope):
+
+            for __ in range(n_beams):
+                tasks_master.append(self.cls_task(duration=t_dwell, t_release=0., slope=slope, t_drop=revisit_rate,
+                                                  l_drop=penalty, id_=idx))
+                idx += 1
+
+
 
         # %% Generate Track Tasks
         TrackParams = TaskParameters()  # Initializes to something like matlab structure
@@ -335,8 +362,8 @@ class FlexDAR():
         MaxRangeRateMps = 343  # Mach 1 in Mps is 343
 
         truth = TaskParameters
-        truth.rangeNmi = MaxRangeNmi * np.random.uniform(0, 1, n_track)
-        truth.rangeRateMps = 2 * MaxRangeRateMps * np.random.uniform(0, 1, n_track) - MaxRangeRateMps
+        truth.rangeNmi = MaxRangeNmi * self.rng.uniform(0, 1, n_track)
+        truth.rangeRateMps = 2 * MaxRangeRateMps * self.rng.uniform(0, 1, n_track) - MaxRangeRateMps
 
         TrackParams.DwellTime = np.array([18, 18, 18]) * 1e-3
         TrackParams.RevisitRate = np.array([1, 2, 4])
@@ -368,9 +395,13 @@ class FlexDAR():
                 TrackParams.DropTimeFixed = np.append(TrackParams.DropTimeFixed, TrackParams.RevisitRateUB[2])
                 TrackParams.DropCost = np.append(TrackParams.DropCost, TrackParams.Penalty[2])
 
-        # %% Begin Scheduler Loop
+    def __call__(self, rng=None):
 
-        # rng = np.random.default_rng(100)
+        n_track = self.n_track
+
+        # Begin Scheduler Loop
+
+        # rng = self.rng.default_rng(100)
         # task_gen = ReluDropGenerator(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
         #                              t_drop_lim=(12, 20), l_drop_lim=(35, 50), rng=rng)       # task set generator
         # tasks = task_gen.rand_tasks(N)
@@ -379,8 +410,8 @@ class FlexDAR():
         tasks = []
         cnt = 0  # Make 0-based, saves a lot of trouble later when indexing into python zero-based vectors
         for ii in range(Nsearch):
-            # job.append(0, ReluDropTask(SearchParams.JobDuration[ii], SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropTimeFixed[ii], SearchParams.DropCost[ii]))
-            tasks.append(task_types.ReluDrop(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii],
+            # job.append(0, self.cls_task(SearchParams.JobDuration[ii], SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropTimeFixed[ii], SearchParams.DropCost[ii]))
+            tasks.append(self.cls_task(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii],
                                 SearchParams.DropCost[ii]))
             tasks[ii].Id = cnt  # Numeric Identifier for each job
             cnt = cnt + 1
@@ -390,12 +421,13 @@ class FlexDAR():
                 tasks[ii].Type = 'AHS'  # Above horizon search
             tasks[ii].Priority = tasks[ii](0)  # Priority used to select which jobs to give to scheduler
 
-            # tasks = ReluDropTask(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropCost[ii])
+            # tasks = self.cls_task(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropCost[ii])
             # A.append(tasks)
             # del tasks
+
         for ii in range(n_track):
-            # job.append(ReluDropTask(0, TrackParams.JobDuration[ii], TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropTimeFixed[ii], TrackParams.DropCost[ii]))
-            tasks.append(task_types.ReluDrop(TrackParams.JobDuration[ii], 0, TrackParams.JobSlope[ii], TrackParams.DropTime[ii],
+            # job.append(self.cls_task(0, TrackParams.JobDuration[ii], TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropTimeFixed[ii], TrackParams.DropCost[ii]))
+            tasks.append(self.cls_task(TrackParams.JobDuration[ii], 0, TrackParams.JobSlope[ii], TrackParams.DropTime[ii],
                                 TrackParams.DropCost[ii]))
             tasks[cnt].Id = cnt  # Numeric Identifier for each job
             if tasks[cnt].slope == 0.25:
@@ -421,15 +453,11 @@ class FlexDAR():
 
             # super().__init__(cls_task, param_lims, rng)
 
-
-
             # self.tasks = tasks
 
         return tasks
 
-
-    def summary(self): # TODO: Fix this
-
+    def summary(self):  # TODO: Fix this
 
         df = pd.DataFrame({name: [getattr(task, name) for task in self.tasks]
                            for name in self._cls_task.param_names})
@@ -437,3 +465,11 @@ class FlexDAR():
 
     # for task in
     #     yield task
+
+
+def main():
+    task_gen = FlexDAR(n_track=1)
+
+
+if __name__ == '__main__':
+    main()

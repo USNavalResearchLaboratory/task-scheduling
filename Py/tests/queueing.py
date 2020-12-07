@@ -17,7 +17,6 @@ def test_queue():
     #                    for name in tasks_master._cls_task.param_names})
     # print(df)
 
-
     # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
     ch_avail = [0, 0]
 
