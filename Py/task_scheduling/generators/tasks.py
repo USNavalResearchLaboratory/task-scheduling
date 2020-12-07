@@ -4,6 +4,7 @@ from types import MethodType
 from abc import ABC, abstractmethod
 
 import numpy as np
+import pandas as pd
 
 from task_scheduling.util.generic import RandomGeneratorMixin
 from task_scheduling import tasks as task_types
@@ -425,6 +426,14 @@ class FlexDAR():
             # self.tasks = tasks
 
         return tasks
+
+
+    def summary(self): # TODO: Fix this
+
+
+        df = pd.DataFrame({name: [getattr(task, name) for task in self.tasks]
+                           for name in self._cls_task.param_names})
+        print(df)
 
     # for task in
     #     yield task

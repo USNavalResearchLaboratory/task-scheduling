@@ -13,6 +13,10 @@ def test_queue():
     # tasks_master = list(task_gens.ContinuousUniformIID.relu_drop()(4))
     tasks_master = task_gens.FlexDAR(n_track=10)()
 
+    # df = pd.DataFrame({name: [getattr(task, name) for task in tasks_master]
+    #                    for name in tasks_master._cls_task.param_names})
+    # print(df)
+
 
     # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
     ch_avail = [0, 0]
