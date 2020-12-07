@@ -235,54 +235,173 @@ class ReluDrop(Generic):
         return self.t_release, self.t_release + max(self.duration, self.t_drop) + 1
 
 
+#%% Radar tasks
 class ReluDropRadar(ReluDrop):
-    param_names = ('duration', 't_release', 'slope', 't_drop', 'l_drop', 'id_', 'type_', 'count', 't_revisit')
+    # param_names = ('duration', 't_release', 'slope', 't_drop', 'l_drop', 't_revisit', 'dwell_type')
 
-    def __init__(self, duration, t_release, slope, t_drop, l_drop, id_, t_revisit=None, dwell_type='search'):
-        super().__init__(duration, t_release, slope, t_drop, l_drop)
-        self.id_ = id_
-        self.t_revisit = [] if t_revisit is None else list(t_revisit)
-        self.dwell_type = dwell_type
+    def __init__(self, t_dwell, t_revisit, revisit_times=None):
+        self.t_revisit = t_revisit
+
+        relu_drop_params = {'duration': t_dwell, 't_release': 0, 'slope': 1 / self.t_revisit,
+                            't_drop': self.t_revisit + 0.1, 'l_drop': 300}
+        super().__init__(**relu_drop_params)
+
+        self.revisit_times = [] if revisit_times is None else list(revisit_times)
 
     @property
     def count_revisit(self):
-        return len(self.t_revisit)
-
-    @property
-    def dwell_subtype(self):        # TODO: slope as property, type on set?
-        if self.dwell_type == 'search':
-            if self.slope == 0.4:
-                return 'HS'
-            elif self.slope == 0.2:
-                return 'AHS'
-            else:
-                raise ValueError
-
-        elif self.dwell_type == 'track':
-            if self.slope == 0.25:
-                return 'low'  # Low Priority Track
-            elif self.slope == 0.5:
-                return 'med'  # Medium Priority Track
-            elif self.slope == 1:
-                return 'high'  # High Priority Track
-            else:
-                raise ValueError
+        return len(self.revisit_times)
 
     # def priority(self, t):    # TODO
     #     return self(t)
 
     @classmethod
-    def from_range(cls, slant_range, range_rate, id_):       # TODO: DRY with search_track?
-        if slant_range <= 50:
-            revisit_rate = 1
-        elif slant_range > 50 and abs(range_rate) >= 100:
-            revisit_rate = 2
+    def search(cls, t_dwell, dwell_type):
+        if dwell_type == 'HS':
+            return cls(t_dwell, t_revisit=2.5)
+        elif dwell_type == 'AHS':
+            return cls(t_dwell, t_revisit=5)
         else:
-            revisit_rate = 4
+            raise ValueError
 
-        params = {'duration': 0.018, 't_release': 0, 'slope': 1 / revisit_rate,
-                  't_drop': revisit_rate + 0.1, 'l_drop': 300., 'id_': id_, 'dwell_type': 'track'}
-        return cls(**params)
+    @classmethod
+    def track(cls, dwell_type):
+        if dwell_type == 'low':
+            return cls(t_dwell=0.018, t_revisit=4)
+        elif dwell_type == 'med':
+            return cls(t_dwell=0.018, t_revisit=2)
+        elif dwell_type == 'high':
+            return cls(t_dwell=0.018, t_revisit=1)
+        else:
+            raise ValueError
+
+    @classmethod
+    def from_kinematics(cls, slant_range, rate_range):  # TODO: DRY with search_track?
+        if slant_range <= 50:
+            return cls.track('high')
+        elif slant_range > 50 and abs(rate_range) >= 100:
+            return cls.track('med')
+        else:
+            return cls.track('low')
+
+
+# class ReluDropSearch(ReluDrop):
+#     # param_names = ('duration', 't_release', 'slope', 't_drop', 'l_drop', 't_revisit', 'dwell_type')
+#
+#     def __init__(self, t_dwell, dwell_type, revisit_times=None):
+#         self.dwell_type = dwell_type
+#
+#         if self.dwell_type == 'HS':
+#             self.t_revisit = 2.5
+#         elif self.dwell_type == 'AHS':
+#             self.t_revisit = 5
+#         else:
+#             raise ValueError
+#
+#         relu_drop_params = {'duration': t_dwell, 't_release': 0, 'slope': 1 / self.t_revisit,
+#                             't_drop': self.t_revisit + 0.1, 'l_drop': 300}
+#         super().__init__(**relu_drop_params)
+#
+#         self.revisit_times = [] if revisit_times is None else list(revisit_times)
+#
+#     @property
+#     def count_revisit(self):
+#         return len(self.revisit_times)
+#
+#     # def priority(self, t):    # TODO
+#     #     return self(t)
+#
+#
+# class ReluDropTrack(ReluDrop):
+#     # param_names = ('duration', 't_release', 'slope', 't_drop', 'l_drop', 't_revisit', 'dwell_type')
+#
+#     def __init__(self, dwell_type, revisit_times=None):
+#         self.dwell_type = dwell_type
+#
+#         if self.dwell_type == 'low':
+#             self.t_revisit = 4
+#         elif self.dwell_type == 'med':
+#             self.t_revisit = 2
+#         elif self.dwell_type == 'high':
+#             self.t_revisit = 1
+#         else:
+#             raise ValueError
+#
+#         relu_drop_params = {'duration': 0.018, 't_release': 0, 'slope': 1 / self.t_revisit,
+#                             't_drop': self.t_revisit + 0.1, 'l_drop': 300}
+#         super().__init__(**relu_drop_params)
+#
+#         self.revisit_times = [] if revisit_times is None else list(revisit_times)
+#
+#     @property
+#     def count_revisit(self):
+#         return len(self.revisit_times)
+#
+#     # def priority(self, t):    # TODO
+#     #     return self(t)
+#
+#     @classmethod
+#     def from_kinematics(cls, slant_range, rate_range):       # TODO: DRY with search_track?
+#         if slant_range <= 50:
+#             return cls('high')
+#         elif slant_range > 50 and abs(rate_range) >= 100:
+#             return cls('med')
+#         else:
+#             return cls('low')
+
+
+
+
+
+# class ReluDropRadar(ReluDrop):
+#     param_names = ('duration', 't_release', 'slope', 't_drop', 'l_drop', 't_revisit', 'dwell_type')
+#
+#     def __init__(self, duration, t_release, slope, t_drop, l_drop, t_revisit=None, dwell_type='search'):
+#         super().__init__(duration, t_release, slope, t_drop, l_drop)
+#         self.t_revisit = [] if t_revisit is None else list(t_revisit)
+#         self.dwell_type = dwell_type
+#
+#     @property
+#     def count_revisit(self):
+#         return len(self.t_revisit)
+#
+#     @property
+#     def dwell_subtype(self):        # TODO: this logic belongs in the constructor...
+#         if self.dwell_type == 'search':
+#             if self.slope == 0.4:
+#                 return 'HS'
+#             elif self.slope == 0.2:
+#                 return 'AHS'
+#             else:
+#                 raise ValueError
+#
+#         elif self.dwell_type == 'track':
+#             if self.slope == 0.25:
+#                 return 'low'  # Low Priority Track
+#             elif self.slope == 0.5:
+#                 return 'med'  # Medium Priority Track
+#             elif self.slope == 1:
+#                 return 'high'  # High Priority Track
+#             else:
+#                 raise ValueError
+#
+#     # def priority(self, t):    # TODO
+#     #     return self(t)
+#
+#     # TODO: make search factory method
+#
+#     @classmethod
+#     def track_from_kinematics(cls, slant_range, rate_range):       # TODO: DRY with search_track?
+#         if slant_range <= 50:
+#             rate_revisit = 1
+#         elif slant_range > 50 and abs(rate_range) >= 100:
+#             rate_revisit = 2
+#         else:
+#             rate_revisit = 4
+#
+#         params = {'duration': 0.018, 't_release': 0, 'slope': 1 / rate_revisit,
+#                   't_drop': rate_revisit + 0.1, 'l_drop': 300, 'dwell_type': 'track'}
+#         return cls(**params)
 
 
 # def loss_relu_drop(t_release, slope, t_drop, l_drop):

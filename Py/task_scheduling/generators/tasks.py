@@ -285,8 +285,8 @@ class Permutation(Fixed):
             yield task
 
 
-class TaskParameters:  # Initializes to something like matlab structure. Enables dot indexing
-    pass
+# class TaskParameters:  # Initializes to something like matlab structure. Enables dot indexing
+#     pass
 
 
 class FlexDAR(Base):
@@ -295,105 +295,91 @@ class FlexDAR(Base):
     def __init__(self, n_track=0, param_lims=None, rng=None):
         super().__init__(cls_task=task_types.ReluDropRadar, param_lims=None, rng=None)
 
-        self.n_track = n_track
+        tasks_full = []
 
-        # SearchParams = namedtuple('SearchParams', ['NbeamsPerRow', 'DwellTime'])
+        # Search tasks
+        n_beams_per_row = np.array([28, 29, 14, 9, 10, 9, 8, 7, 6])
+        t_dwells = np.array([36, 36, 36, 18, 18, 18, 18, 18, 18]) * 1e-3
+        dwell_types = ['HS', *('AHS' for _ in range(8))]
+        for n_beams, t_dwell, dwell_type in zip(n_beams_per_row, t_dwells, dwell_types):
+            tasks_full.extend([self.cls_task.search(t_dwell, dwell_type) for _ in range(n_beams)])
 
-        # Generate Search Tasks
-        SearchParams = TaskParameters()
-        SearchParams.NbeamsPerRow = np.array([28, 29, 14, 9, 10, 9, 8, 7, 6])
-        # SearchParams.NbeamsPerRow = [208 29 14 9 10 9 8 7 6]; % Overload
-        SearchParams.DwellTime = np.array([36, 36, 36, 18, 18, 18, 18, 18, 18]) * 1e-3
-        SearchParams.RevistRate = np.array([2.5, 5, 5, 5, 5, 5, 5, 5, 5])
-        SearchParams.RevisitRateUB = SearchParams.RevistRate + 0.1  # Upper Bound on Revisit Rate
-        SearchParams.Penalty = 300 * np.ones(np.shape(SearchParams.RevistRate))  # Penalty for exceeding UB
-        SearchParams.Slope = 1. / SearchParams.RevistRate
-
-        n_search = np.sum(SearchParams.NbeamsPerRow)
-        SearchParams.JobDuration = np.array([])
-        SearchParams.JobSlope = np.array([])
-        SearchParams.DropTime = np.array([])  # Task dropping time. Will get updated as tasks get processed
-        # Used to update DropTimes. Fixed for a given task e.x. always 2.6 process task at time 1 DropTime becomes 3.6
-        # SearchParams.DropTimeFixed = np.array([])
-        SearchParams.DropCost = np.array([])
-        for jj in range(len(SearchParams.NbeamsPerRow)):
-            SearchParams.JobDuration = np.append(SearchParams.JobDuration,
-                                                 np.repeat(SearchParams.DwellTime[jj], SearchParams.NbeamsPerRow[jj]))
-            SearchParams.JobSlope = np.append(SearchParams.JobSlope,
-                                              np.repeat(SearchParams.Slope[jj], SearchParams.NbeamsPerRow[jj]))
-            SearchParams.DropTime = np.append(SearchParams.DropTime,
-                                              np.repeat(SearchParams.RevisitRateUB[jj], SearchParams.NbeamsPerRow[jj]))
-            # SearchParams.DropTimeFixed = np.append(SearchParams.DropTimeFixed, np.repeat(SearchParams.RevisitRateUB[jj],
-            #                                                                              SearchParams.NbeamsPerRow[jj]))
-            SearchParams.DropCost = np.append(SearchParams.DropCost,
-                                              np.repeat(SearchParams.Penalty[jj], SearchParams.NbeamsPerRow[jj]))
+        # Track tasks
+        for slant_range, range_rate in zip(self.rng.uniform(0, 200, n_track), self.rng.uniform(-343, 343, n_track)):
+            # tasks_full.append(self.cls_task.track_from_kinematics(slant_range, range_rate))
+            tasks_full.append(self.cls_task.track_from_kinematics(slant_range, range_rate))
 
 
-        tasks_master = []
-        idx = 0
-        for n_beams, t_dwell, revisit_rate, penalty, slope in zip(SearchParams.NbeamsPerRow,
-                                                                  SearchParams.DwellTime,
-                                                                  SearchParams.RevisitRateUB,
-                                                                  SearchParams.Penalty,
-                                                                  SearchParams.Slope):
-            for __ in range(n_beams):
-                tasks_master.append(self.cls_task(duration=t_dwell, t_release=0., slope=slope, t_drop=revisit_rate,
-                                                  l_drop=penalty, id_=idx))
-                idx += 1
+        # # Generate Search Tasks
+        # SearchParams = TaskParameters()
+        # SearchParams.NbeamsPerRow = np.array([28, 29, 14, 9, 10, 9, 8, 7, 6])
+        # # SearchParams.NbeamsPerRow = [208 29 14 9 10 9 8 7 6]; % Overload
+        # SearchParams.DwellTime = np.array([36, 36, 36, 18, 18, 18, 18, 18, 18]) * 1e-3
+        # SearchParams.RevistRate = np.array([2.5, 5, 5, 5, 5, 5, 5, 5, 5])
+        # SearchParams.RevisitRateUB = SearchParams.RevistRate + 0.1  # Upper Bound on Revisit Rate
+        # SearchParams.Penalty = 300 * np.ones(np.shape(SearchParams.RevistRate))  # Penalty for exceeding UB
+        # SearchParams.Slope = 1. / SearchParams.RevistRate
+        #
+        # n_search = np.sum(SearchParams.NbeamsPerRow)
+        # SearchParams.JobDuration = np.array([])
+        # SearchParams.JobSlope = np.array([])
+        # SearchParams.DropTime = np.array([])  # Task dropping time. Will get updated as tasks get processed
+        # # Used to update DropTimes. Fixed for a given task e.x. always 2.6 process task at time 1 DropTime becomes 3.6
+        # # SearchParams.DropTimeFixed = np.array([])
+        # SearchParams.DropCost = np.array([])
+        # for jj in range(len(SearchParams.NbeamsPerRow)):
+        #     SearchParams.JobDuration = np.append(SearchParams.JobDuration,
+        #                                          np.repeat(SearchParams.DwellTime[jj], SearchParams.NbeamsPerRow[jj]))
+        #     SearchParams.JobSlope = np.append(SearchParams.JobSlope,
+        #                                       np.repeat(SearchParams.Slope[jj], SearchParams.NbeamsPerRow[jj]))
+        #     SearchParams.DropTime = np.append(SearchParams.DropTime,
+        #                                       np.repeat(SearchParams.RevisitRateUB[jj], SearchParams.NbeamsPerRow[jj]))
+        #     # SearchParams.DropTimeFixed = np.append(SearchParams.DropTimeFixed, np.repeat(SearchParams.RevisitRateUB[jj],
+        #     #                                                                              SearchParams.NbeamsPerRow[jj]))
+        #     SearchParams.DropCost = np.append(SearchParams.DropCost,
+        #                                       np.repeat(SearchParams.Penalty[jj], SearchParams.NbeamsPerRow[jj]))
 
-        for t_dwell, revisit_rate, penalty, slope in zip(TrackParams.DwellTime,
-                                                         TrackParams.RevisitRateUB,
-                                                         TrackParams.Penalty,
-                                                         TrackParams.Slope):
-
-            for __ in range(n_beams):
-                tasks_master.append(self.cls_task(duration=t_dwell, t_release=0., slope=slope, t_drop=revisit_rate,
-                                                  l_drop=penalty, id_=idx))
-                idx += 1
-
-
-
-        # %% Generate Track Tasks
-        TrackParams = TaskParameters()  # Initializes to something like matlab structure
-        # Ntrack = 10
-
-        # Spawn tracks with uniformly distributed ranges and velocity
-        MaxRangeNmi = 200  #
-        MaxRangeRateMps = 343  # Mach 1 in Mps is 343
-
-        truth = TaskParameters
-        truth.rangeNmi = MaxRangeNmi * self.rng.uniform(0, 1, n_track)
-        truth.rangeRateMps = 2 * MaxRangeRateMps * self.rng.uniform(0, 1, n_track) - MaxRangeRateMps
-
-        TrackParams.DwellTime = np.array([18, 18, 18]) * 1e-3
-        TrackParams.RevisitRate = np.array([1, 2, 4])
-        TrackParams.RevisitRateUB = TrackParams.RevisitRate + 0.1
-        TrackParams.Penalty = 300 * np.ones(np.shape(TrackParams.DwellTime))
-        TrackParams.Slope = 1. / TrackParams.RevisitRate
-        TrackParams.JobDuration = []
-        TrackParams.JobSlope = []
-        TrackParams.DropTime = []
-        TrackParams.DropTimeFixed = []
-        TrackParams.DropCost = []
-        for jj in range(n_track):
-            if truth.rangeNmi[jj] <= 50:
-                TrackParams.JobDuration = np.append(TrackParams.JobDuration, TrackParams.DwellTime[0])
-                TrackParams.JobSlope = np.append(TrackParams.JobSlope, TrackParams.Slope[0])
-                TrackParams.DropTime = np.append(TrackParams.DropTime, TrackParams.RevisitRateUB[0])
-                TrackParams.DropTimeFixed = np.append(TrackParams.DropTimeFixed, TrackParams.RevisitRateUB[0])
-                TrackParams.DropCost = np.append(TrackParams.DropCost, TrackParams.Penalty[0])
-            elif truth.rangeNmi[jj] > 50 and abs(truth.rangeRateMps[jj]) >= 100:
-                TrackParams.JobDuration = np.append(TrackParams.JobDuration, TrackParams.DwellTime[1])
-                TrackParams.JobSlope = np.append(TrackParams.JobSlope, TrackParams.Slope[1])
-                TrackParams.DropTime = np.append(TrackParams.DropTime, TrackParams.RevisitRateUB[1])
-                TrackParams.DropTimeFixed = np.append(TrackParams.DropTimeFixed, TrackParams.RevisitRateUB[1])
-                TrackParams.DropCost = np.append(TrackParams.DropCost, TrackParams.Penalty[1])
-            else:
-                TrackParams.JobDuration = np.append(TrackParams.JobDuration, TrackParams.DwellTime[2])
-                TrackParams.JobSlope = np.append(TrackParams.JobSlope, TrackParams.Slope[2])
-                TrackParams.DropTime = np.append(TrackParams.DropTime, TrackParams.RevisitRateUB[2])
-                TrackParams.DropTimeFixed = np.append(TrackParams.DropTimeFixed, TrackParams.RevisitRateUB[2])
-                TrackParams.DropCost = np.append(TrackParams.DropCost, TrackParams.Penalty[2])
+        # # Generate Track Tasks
+        # TrackParams = TaskParameters()  # Initializes to something like matlab structure
+        # # Ntrack = 10
+        #
+        # # Spawn tracks with uniformly distributed ranges and velocity
+        # MaxRangeNmi = 200  #
+        # MaxRangeRateMps = 343  # Mach 1 in Mps is 343
+        #
+        # truth = TaskParameters
+        # truth.rangeNmi = MaxRangeNmi * self.rng.uniform(0, 1, n_track)
+        # truth.rangeRateMps = 2 * MaxRangeRateMps * self.rng.uniform(0, 1, n_track) - MaxRangeRateMps
+        #
+        # TrackParams.DwellTime = np.array([18, 18, 18]) * 1e-3
+        # TrackParams.RevisitRate = np.array([1, 2, 4])
+        # TrackParams.RevisitRateUB = TrackParams.RevisitRate + 0.1
+        # TrackParams.Penalty = 300 * np.ones(np.shape(TrackParams.DwellTime))
+        # TrackParams.Slope = 1. / TrackParams.RevisitRate
+        # TrackParams.JobDuration = []
+        # TrackParams.JobSlope = []
+        # TrackParams.DropTime = []
+        # TrackParams.DropTimeFixed = []
+        # TrackParams.DropCost = []
+        # for jj in range(n_track):
+        #     if truth.rangeNmi[jj] <= 50:
+        #         TrackParams.JobDuration = np.append(TrackParams.JobDuration, TrackParams.DwellTime[0])
+        #         TrackParams.JobSlope = np.append(TrackParams.JobSlope, TrackParams.Slope[0])
+        #         TrackParams.DropTime = np.append(TrackParams.DropTime, TrackParams.RevisitRateUB[0])
+        #         TrackParams.DropTimeFixed = np.append(TrackParams.DropTimeFixed, TrackParams.RevisitRateUB[0])
+        #         TrackParams.DropCost = np.append(TrackParams.DropCost, TrackParams.Penalty[0])
+        #     elif truth.rangeNmi[jj] > 50 and abs(truth.rangeRateMps[jj]) >= 100:
+        #         TrackParams.JobDuration = np.append(TrackParams.JobDuration, TrackParams.DwellTime[1])
+        #         TrackParams.JobSlope = np.append(TrackParams.JobSlope, TrackParams.Slope[1])
+        #         TrackParams.DropTime = np.append(TrackParams.DropTime, TrackParams.RevisitRateUB[1])
+        #         TrackParams.DropTimeFixed = np.append(TrackParams.DropTimeFixed, TrackParams.RevisitRateUB[1])
+        #         TrackParams.DropCost = np.append(TrackParams.DropCost, TrackParams.Penalty[1])
+        #     else:
+        #         TrackParams.JobDuration = np.append(TrackParams.JobDuration, TrackParams.DwellTime[2])
+        #         TrackParams.JobSlope = np.append(TrackParams.JobSlope, TrackParams.Slope[2])
+        #         TrackParams.DropTime = np.append(TrackParams.DropTime, TrackParams.RevisitRateUB[2])
+        #         TrackParams.DropTimeFixed = np.append(TrackParams.DropTimeFixed, TrackParams.RevisitRateUB[2])
+        #         TrackParams.DropCost = np.append(TrackParams.DropCost, TrackParams.Penalty[2])
 
     def __call__(self, rng=None):
 
