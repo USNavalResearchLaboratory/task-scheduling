@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 from collections import deque
 from time import strftime
+from typing import Iterable
 from functools import partial
 import dill
 from pathlib import Path
@@ -142,7 +143,7 @@ class Base(RandomGeneratorMixin, ABC):
             if all(conditions):     # Append loaded problems and solutions
                 print('File already exists. Appending existing data.')
 
-                if 'solutions' in save_dict.keys():
+                if 'solutions' in save_dict.keys():     # FIXME: check!!
                     try:
                         save_dict['solutions'] += load_dict['solutions']
                         save_dict['problems'] += load_dict['problems']
@@ -194,6 +195,8 @@ class Random(Base):
 
 
 class FixedTasks(Base, ABC):
+    cls_task_gen = None
+
     def __init__(self, n_tasks, n_ch, task_gen, ch_avail_gen, rng=None):
         """
         Problem generators with fixed set of tasks.
@@ -215,11 +218,16 @@ class FixedTasks(Base, ABC):
 
         super().__init__(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
-        if not (isinstance(task_gen, task_gens.Fixed) and isinstance(ch_avail_gen, chan_gens.Deterministic)):
-            raise TypeError
+        self._check_task_gen(task_gen)
+        if not isinstance(ch_avail_gen, chan_gens.Deterministic):
+            raise TypeError("Channel generator must be Deterministic.")
 
         self.problem = SchedulingProblem(task_gen.tasks, ch_avail_gen.ch_avail)
         self._solution = None
+
+    @abstractmethod
+    def _check_task_gen(self, task_gen):
+        raise NotImplementedError
 
     @property
     def solution(self):
@@ -238,26 +246,38 @@ class FixedTasks(Base, ABC):
         ch_avail_gen = chan_gens.Deterministic.from_uniform(n_ch)
         return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
+    @classmethod
+    def relu_drop(cls, n_tasks, n_ch, rng=None):
+        task_gen = cls.cls_task_gen.relu_drop(n_tasks)
+        return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
+
+    @classmethod
+    def search_track(cls, n_tasks, n_ch, probs=None, t_release_lim=(0., 0.), rng=None):
+        task_gen = cls.cls_task_gen.search_track(n_tasks, probs, t_release_lim)
+        return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
+
 
 class DeterministicTasks(FixedTasks):
+    cls_task_gen = task_gens.Deterministic
+
+    def _check_task_gen(self, task_gen):
+        if not isinstance(task_gen, task_gens.Deterministic):
+            raise TypeError
+
     def _gen_problem(self, rng):
         return self.problem
 
     def _gen_solution(self, problem, verbose=False):
         return self.solution
 
-    @classmethod
-    def relu_drop(cls, n_tasks, n_ch, rng=None):
-        task_gen = task_gens.Deterministic.relu_drop(n_tasks)
-        return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
-
-    @classmethod
-    def search_track(cls, n_tasks, n_ch, probs=None, t_release_lim=(0., 0.), rng=None):
-        task_gen = task_gens.Deterministic.search_track(n_tasks, probs, t_release_lim)
-        return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
-
 
 class PermutedTasks(FixedTasks):
+    cls_task_gen = task_gens.Permutation
+
+    def _check_task_gen(self, task_gen):
+        if not isinstance(task_gen, task_gens.Permutation):
+            raise TypeError
+
     def _gen_problem(self, rng):
         tasks = list(self.task_gen(self.n_tasks, rng=rng))
         return SchedulingProblem(tasks, self.problem.ch_avail)
@@ -272,109 +292,164 @@ class PermutedTasks(FixedTasks):
 
         return SchedulingSolution(self.solution.t_ex[idx], self.solution.ch_ex[idx], self.solution.t_run)
 
-    @classmethod
-    def relu_drop(cls, n_tasks, n_ch, rng=None):
-        task_gen = task_gens.Permutation.relu_drop(n_tasks)
-        return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
 
-    @classmethod
-    def search_track(cls, n_tasks, n_ch, probs=None, t_release_lim=(0., 0.), rng=None):
-        task_gen = task_gens.Permutation.search_track(n_tasks, probs, t_release_lim)
-        return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
+# class DatasetOld(Base):
+#     """
+#     Generator of scheduling problems in memory.
+#
+#     Parameters
+#     ----------
+#     problems : List of SchedulingProblem
+#         Scheduling problems
+#     solutions : List of SchedulingSolution, optional
+#         Optimal scheduling solutions
+#     task_gen : generators.tasks.BaseIID, optional
+#         Task generation object.
+#     ch_avail_gen : generators.channel_availabilities.BaseIID, optional
+#         Returns random initial channel availabilities.
+#     iter_mode : str, optional
+#         If 'once', generator call raises a warning when all data has been yielded. If 'repeat', a new pass is started.
+#     shuffle_mode : str, optional
+#         If 'once', data is randomly permuted during initialization. If 'repeat', data is permuted every complete pass.
+#     rng : int or RandomState or Generator, optional
+#         Random number generator seed or object.
+#
+#     """
+#
+#     def __init__(self, problems, solutions=None, task_gen=None, ch_avail_gen=None,
+#                  iter_mode='once', shuffle_mode='never', rng=None):
+#
+#         self.problems = problems
+#         self.solutions = solutions
+#
+#         n_tasks, n_ch = len(problems[0].tasks), len(problems[0].ch_avail)
+#         super().__init__(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
+#
+#         self.iter_mode = iter_mode
+#         self.shuffle_mode = shuffle_mode
+#
+#         self.i = None
+#         self.n_problems = len(self.problems)
+#         self.restart(self.shuffle_mode in ('once', 'repeat'))
+#
+#     @classmethod
+#     def load(cls, file, iter_mode='once', shuffle_mode='never', rng=None):
+#         """Load problems/solutions from memory."""
+#
+#         # TODO: loads entire data set into memory - need iterative read/yield for large data sets
+#         with data_path.joinpath(file).open(mode='rb') as fid:
+#             dict_gen = dill.load(fid)
+#
+#         return cls(**dict_gen, iter_mode=iter_mode, shuffle_mode=shuffle_mode, rng=rng)
+#
+#     def restart(self, shuffle=False, rng=None):
+#         """Resets data index pointer to beginning, performs optional data shuffle."""
+#         self.i = 0
+#         if shuffle:
+#             rng = self._get_rng(rng)
+#             if self.solutions is None:
+#                 self.problems = rng.permutation(self.problems).tolist()
+#             else:
+#                 # _temp = list(zip(self.problems, self.solutions))
+#                 _temp = np.array(list(zip(self.problems, self.solutions)), dtype=np.object)
+#                 _p, _s = zip(*rng.permutation(_temp).tolist())
+#                 self.problems, self.solutions = list(_p), list(_s)
+#
+#     def _gen_problem(self, rng):
+#         """Return a single scheduling problem (and optional solution)."""
+#         if self.i == self.n_problems:
+#             if self.iter_mode == 'once':
+#                 raise ValueError("Problem generator data has been exhausted.")
+#             elif self.iter_mode == 'repeat':
+#                 self.restart(self.shuffle_mode == 'repeat', rng=rng)
+#
+#         problem = self.problems[self.i]
+#         if self.solutions is not None:
+#             self._solution_i = self.solutions[self.i]
+#         else:
+#             self._solution_i = None
+#
+#         self.i += 1
+#         return problem
+#
+#     def _gen_solution(self, problem, verbose=False):
+#         if self._solution_i is not None:
+#             return self._solution_i
+#         else:
+#             return super()._gen_solution(problem, verbose)
 
 
 class Dataset(Base):
-    """
-    Generator of scheduling problems in memory.
-
-    Parameters
-    ----------
-    problems : Iterable of SchedulingProblem
-        Scheduling problems
-    solutions : Iterable of SchedulingSolution, optional
-        Optimal scheduling solutions
-    task_gen : generators.tasks.BaseIID, optional
-        Task generation object.
-    ch_avail_gen : generators.channel_availabilities.BaseIID, optional
-        Returns random initial channel availabilities.
-    iter_mode : str, optional
-        If 'once', generator call raises a warning when all data has been yielded. If 'repeat', a new pass is started.
-    shuffle_mode : str, optional
-        If 'once', data is randomly permuted during initialization. If 'repeat', data is permuted every complete pass.
-    rng : int or RandomState or Generator, optional
-        Random number generator seed or object.
-
-    """
-
-    def __init__(self, problems, solutions=None, task_gen=None, ch_avail_gen=None,
-                 iter_mode='once', shuffle_mode='never', rng=None):
-
-        self.problems = problems
-        self.solutions = solutions
+    def __init__(self, problems, solutions=None, shuffle=False, repeat=False, task_gen=None, ch_avail_gen=None,
+                 rng=None):
 
         n_tasks, n_ch = len(problems[0].tasks), len(problems[0].ch_avail)
         super().__init__(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
-        self.iter_mode = iter_mode
-        self.shuffle_mode = shuffle_mode
+        # self.problems = deque(problems)
+        # self.solutions = deque(solutions) if solutions is not None else None
+        self.problems = deque()
+        self.solutions = deque()
+        self.add_problems(problems, solutions)
 
-        self.i = None
-        self.n_problems = len(self.problems)
-        self.restart(self.shuffle_mode in ('once', 'repeat'))
+        if shuffle:
+            self.shuffle()
+
+        self.repeat = repeat
+
+    def add_problems(self, problems, solutions=None):
+        self.problems.extendleft(problems[::-1])
+
+        if solutions is None:
+            solutions = [None for __ in range(len(problems))]
+        self.solutions.extendleft(solutions[::-1])
 
     @classmethod
-    def load(cls, file, iter_mode='once', shuffle_mode='never', rng=None):
+    def load(cls, file, shuffle=False, repeat=False, rng=None):
         """Load problems/solutions from memory."""
 
         # TODO: loads entire data set into memory - need iterative read/yield for large data sets
         with data_path.joinpath(file).open(mode='rb') as fid:
             dict_gen = dill.load(fid)
 
-        return cls(**dict_gen, iter_mode=iter_mode, shuffle_mode=shuffle_mode, rng=rng)
+        return cls(**dict_gen, shuffle=shuffle, repeat=repeat, rng=rng)
 
-    def restart(self, shuffle=False, rng=None):
-        """Resets data index pointer to beginning, performs optional data shuffle."""
-        self.i = 0
-        if shuffle:
-            rng = self._get_rng(rng)
-            if self.solutions is None:
-                self.problems = rng.permutation(self.problems).tolist()
-            else:
-                # _temp = list(zip(self.problems, self.solutions))
-                _temp = np.array(list(zip(self.problems, self.solutions)), dtype=np.object)
-                _p, _s = zip(*rng.permutation(_temp).tolist())
-                self.problems, self.solutions = list(_p), list(_s)
+    def shuffle(self, rng=None):
+        rng = self._get_rng(rng)
+
+        _temp = np.array(list(zip(self.problems, self.solutions)), dtype=np.object)
+        _p, _s = zip(*rng.permutation(_temp).tolist())
+        self.problems, self.solutions = deque(_p), deque(_s)
 
     def _gen_problem(self, rng):
         """Return a single scheduling problem (and optional solution)."""
-        if self.i == self.n_problems:
-            if self.iter_mode == 'once':
-                raise ValueError("Problem generator data has been exhausted.")
-            elif self.iter_mode == 'repeat':
-                self.restart(self.shuffle_mode == 'repeat', rng=rng)
+        if len(self.problems) == 0:
+            raise ValueError("Problem generator data has been exhausted.")
 
-        problem = self.problems[self.i]
-        if self.solutions is not None:
-            self._solution_i = self.solutions[self.i]
-        else:
-            self._solution_i = None
+        problem = self.problems.pop()
+        self._solution_i = self.solutions.pop()
 
-        self.i += 1
+        if self.repeat:
+            self.problems.appendleft(problem)
+            self.solutions.appendleft(self._solution_i)
+
         return problem
 
     def _gen_solution(self, problem, verbose=False):
         if self._solution_i is not None:
             return self._solution_i
-        else:
-            return super()._gen_solution(problem, verbose)
+        else:   # use B&B solver
+            solution = super()._gen_solution(problem, verbose)
+            if self.repeat:     # store result
+                self.solutions[0] = solution
+            return solution
 
 
+# TODO: deprecate in favor of generators.tasks.Dataset?
 class Queue(Base):
     def __init__(self, n_tasks, tasks_full, ch_avail):
 
-        self._cls_task = tasks_full[0].__class__
-        if not all(isinstance(task, self._cls_task) for task in tasks_full[1:]):
-            raise TypeError("All tasks must be of the same type.")
+        self._cls_task = task_gens.check_task_types(tasks_full)
 
         # FIXME: make a task_gen???
         super().__init__(n_tasks, len(ch_avail), task_gen=None, ch_avail_gen=None, rng=None)
@@ -391,17 +466,25 @@ class Queue(Base):
         return SchedulingProblem(tasks, self.ch_avail)
 
     def add_tasks(self, tasks):
-        self.queue.extendleft(tasks[::-1])
+        if isinstance(tasks, Iterable):
+            self.queue.extendleft(tasks[::-1])
+        else:
+            self.queue.appendleft(tasks)    # for single tasks
 
     def update(self, tasks, t_ex, ch_ex):
-        for task, t_ex_i in zip(tasks, t_ex):
+        for task, t_ex_i, ch_ex_i in zip(tasks, t_ex, ch_ex):
             task.t_release = t_ex_i + task.duration
+            self.ch_avail[ch_ex_i] = max(self.ch_avail[ch_ex_i], task.t_release)
+            self.add_tasks(task)
 
-        for ch in range(self.n_ch):
-            tasks_ch = np.array(tasks)[ch_ex == ch].tolist()
-            self.ch_avail[ch] = max(task.t_release for task in tasks_ch)
-
-        self.add_tasks(tasks)
+        # for task, t_ex_i in zip(tasks, t_ex):
+        #     task.t_release = t_ex_i + task.duration
+        #
+        # for ch in range(self.n_ch):
+        #     tasks_ch = np.array(tasks)[ch_ex == ch].tolist()
+        #     self.ch_avail[ch] = max(self.ch_avail[ch], *(task.t_release for task in tasks_ch))
+        #
+        # self.add_tasks(tasks)
 
     def summary(self):
         print(f"Channel availabilities: {self.ch_avail}")

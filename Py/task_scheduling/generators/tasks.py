@@ -1,8 +1,9 @@
 """Generator objects for tasks."""
 
 from types import MethodType
+from typing import Iterable
 from abc import ABC, abstractmethod
-from collections import namedtuple
+from collections import namedtuple, deque
 
 import numpy as np
 import pandas as pd
@@ -12,6 +13,16 @@ from task_scheduling import tasks as task_types
 
 np.set_printoptions(precision=2)
 
+
+def check_task_types(tasks):
+    cls_task = tasks[0].__class__
+    if all(isinstance(task, cls_task) for task in tasks[1:]):
+        return cls_task
+    else:
+        raise TypeError("All tasks must be of the same type.")
+
+
+# TODO: more generic Base class for heterogeneous task types?
 
 class Base(RandomGeneratorMixin, ABC):
     def __init__(self, cls_task, param_lims=None, rng=None):
@@ -45,11 +56,21 @@ class Base(RandomGeneratorMixin, ABC):
     @property
     def default_features(self):
         """Returns a NumPy structured array of default features, the task parameters."""
+
+        def _make_getattr(name):
+            def func(task):
+                return getattr(task, name)
+            return func
+
         features = np.array(list(zip(self.cls_task.param_names,
-                                     [lambda task, name=name_: getattr(task, name)
-                                      for name_ in self.cls_task.param_names],  # note: late-binding closure
+                                     [_make_getattr(name) for name in self.cls_task.param_names],
                                      self.param_lims.values())),
                             dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
+        # features = np.array(list(zip(self.cls_task.param_names,
+        #                              [lambda task, name=name_: getattr(task, name)
+        #                               for name_ in self.cls_task.param_names],  # note: late-binding closure
+        #                              self.param_lims.values())),
+        #                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
         return features
 
@@ -215,18 +236,14 @@ class Fixed(Base, ABC):
 
         Parameters
         ----------
-        tasks : Iterable of tasks.Generic
+        tasks : Sequence of tasks.Generic
         param_lims : dict, optional
             Maps parameter name strings to 2-tuples of parameter lower and upper bounds.
         rng : int or RandomState or Generator, optional
             Random number generator seed or object.
         """
 
-        self.tasks = list(tasks)
-
-        cls_task = self.tasks[0].__class__
-        if not all(isinstance(task, cls_task) for task in self.tasks[1:]):
-            raise TypeError("All tasks must be of the same type.")
+        cls_task = check_task_types(tasks)
 
         if param_lims is None:
             param_lims = {}
@@ -235,6 +252,8 @@ class Fixed(Base, ABC):
                 param_lims[name] = (min(values), max(values))
 
         super().__init__(cls_task, param_lims, rng)
+
+        self.tasks = list(tasks)
 
     @abstractmethod
     def __call__(self, n_tasks, rng=None):
@@ -285,8 +304,47 @@ class Permutation(Fixed):
             yield task
 
 
-# class TaskParameters:  # Initializes to something like matlab structure. Enables dot indexing
-#     pass
+class Dataset(Fixed):
+    def __init__(self, tasks, shuffle=False, repeat=False, param_lims=None, rng=None):
+        super().__init__(tasks, param_lims, rng)
+
+        self.tasks = deque()
+        self.add_tasks(tasks)
+
+        if shuffle:
+            self.shuffle()
+
+        self.repeat = repeat
+
+    def add_tasks(self, tasks):
+        if isinstance(tasks, Iterable):
+            self.tasks.extendleft(tasks[::-1])
+        else:
+            self.tasks.appendleft(tasks)    # for single tasks
+
+    def shuffle(self, rng=None):
+        rng = self._get_rng(rng)
+        self.tasks = deque(rng.permutation(self.tasks))
+
+    def __call__(self, n_tasks, rng=None):
+        for __ in range(n_tasks):
+            if len(self.tasks) == 0:
+                raise ValueError("Task generator data has been exhausted.")
+
+            task = self.tasks.pop()
+            if self.repeat:
+                self.tasks.appendleft(task)
+
+            yield task
+
+
+
+
+
+
+
+
+
 
 
 class FlexDAR(Base):
