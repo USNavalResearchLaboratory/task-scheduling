@@ -348,8 +348,6 @@ class Dataset(Fixed):
 
 
 class FlexDAR(Base):
-    ##
-
     def __init__(self, n_track=0, param_lims=None, rng=None):
         super().__init__(cls_task=task_types.ReluDropRadar, param_lims=None, rng=None)
 

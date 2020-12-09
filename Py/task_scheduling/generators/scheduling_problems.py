@@ -463,6 +463,8 @@ class Queue(Base):
         """Return a single scheduling problem (and optional solution)."""
         tasks = [self.queue.pop() for _ in range(self.n_tasks)]
 
+        # TODO: add prioritization?
+
         return SchedulingProblem(tasks, self.ch_avail)
 
     def add_tasks(self, tasks):

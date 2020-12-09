@@ -202,8 +202,10 @@ class ReluDrop(Generic):
 
         """
 
-        if t <= 0:
+        if t < 0.:
             raise ValueError("Shift time must be positive.")
+        elif t == 0.:
+            return 0.
 
         t_excess = t - self.t_release
         self.t_release = max(0., -t_excess)
@@ -236,6 +238,7 @@ class ReluDrop(Generic):
 
 
 #%% Radar tasks
+
 class ReluDropRadar(ReluDrop):
     # param_names = ('duration', 't_release', 'slope', 't_drop', 'l_drop', 't_revisit', 'dwell_type')
 
@@ -283,6 +286,8 @@ class ReluDropRadar(ReluDrop):
             return cls.track('med')
         else:
             return cls.track('low')
+
+
 
 
 # class ReluDropSearch(ReluDrop):
