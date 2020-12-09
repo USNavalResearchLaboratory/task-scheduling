@@ -1,5 +1,6 @@
 import numpy as np
 
+import task_scheduling
 from task_scheduling.generators import (tasks as task_gens, channel_availabilities as ch_gens,
                                         scheduling_problems as problem_gens)
 from task_scheduling.algorithms.base import earliest_release
@@ -9,7 +10,14 @@ from task_scheduling.util.results import timing_wrapper
 
 
 ch_avail = np.zeros(2, dtype=np.float)
-tasks_full = list(task_gens.ContinuousUniformIID.relu_drop()(4))
+# tasks_full = list(task_gens.ContinuousUniformIID.relu_drop()(4))
+
+tasks_full = []
+n_beams_per_row = np.array([28, 29, 14, 9, 10, 9, 8, 7, 6])
+t_dwells = np.array([36, 36, 36, 18, 18, 18, 18, 18, 18]) * 1e-3
+dwell_types = ['HS', *('AHS' for _ in range(8))]
+for n_beams, t_dwell, dwell_type in zip(n_beams_per_row, t_dwells, dwell_types):
+    tasks_full.extend([task_scheduling.tasks.ReluDropRadar.search(t_dwell, dwell_type) for _ in range(n_beams)])
 
 
 # def get_tasks(tasks_):
@@ -31,20 +39,21 @@ for __ in range(100):
     t_ex, ch_ex = earliest_release(tasks, ch_avail)
     # t_ex, ch_ex, t_run = timing_wrapper(earliest_release)(tasks, ch_avail)
 
+    # Scheduled task updates
     for task, t_ex_i, ch_ex_i in zip(tasks, t_ex, ch_ex):
         loss_full += task(t_ex_i)
 
         task.t_release = t_ex_i + task.duration
         ch_avail[ch_ex_i] = max(ch_avail[ch_ex_i], task.t_release)      # TODO: get from TreeNode?
 
-    # TODO: update ALL tasks based on new time. Drops, loss incurred...
+    # TODO: effectively jumps sim time to ch_avail_min
+
+    # Dropped task updates
     ch_avail_min = min(ch_avail)
     for task in tasks_full:
         while task.t_release + task.t_drop < ch_avail_min:      # absolute drop time
             loss_full += task.l_drop        # add drop loss
             task.t_release += task.t_drop   # increment release time
-            # task.t_release = ch_avail_min
-
 
     # t_clock += t_del
 
