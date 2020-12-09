@@ -84,12 +84,12 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
     """
 
     stack = [TreeNodeBound(tasks, ch_avail, rng=rng)]  # Initialize Stack
-    NodeStats = [TreeNodeBound(tasks, ch_avail, rng=rng)]
+    node_stats = [TreeNodeBound(tasks, ch_avail, rng=rng)]
     # NodeStats = []
 
     node_best = stack[0].roll_out(do_copy=True)  # roll-out initial solution
     l_best = node_best.l_ex
-    NodeStats.append(node_best)
+    node_stats.append(node_best)
 
     # Iterate
     while len(stack) > 0:
@@ -100,7 +100,7 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
             # Bound
             if len(node_new.seq) == len(tasks):
                 # Append any complete solutions, use for training NN. Can decipher what's good/bad based on final costs
-                NodeStats.append(node_new)
+                node_stats.append(node_new)
 
             if node_new.l_lo < l_best:  # New node is not dominated
                 if node_new.l_up < l_best:
@@ -116,8 +116,8 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
             # print(f'Search progress: {100*progress:.1f}% - Loss < {l_best:.3f}', end='\r')
             print(f'# Remaining Nodes = {len(stack)}, Loss < {l_best:.3f}', end='\r')
 
-    NodeStats.pop(0)    # Remove First Initialization stage
-    return node_best.t_ex, node_best.ch_ex, NodeStats
+    node_stats.pop(0)    # Remove First Initialization stage
+    return node_best.t_ex, node_best.ch_ex, node_stats
 
 
 def mcts_orig(tasks, ch_avail, n_mc, verbose=False, rng=None):
@@ -164,7 +164,7 @@ def mcts_orig(tasks, ch_avail, n_mc, verbose=False, rng=None):
                 node_best = node_mc
 
         # Assign next task from earliest available channel
-        node.seq_extend(node_best.seq[n], check_valid=False)
+        node.seq_append(node_best.seq[n], check_valid=False)
 
     return node_best.t_ex, node_best.ch_ex
 
@@ -321,12 +321,8 @@ def est_alg_kw(tasks, ch_avail):
 
     """
 
-    t_release = [task.t_release for task in tasks]
-
-    T = np.argsort(t_release)  # Task Order
-    RP = 100
-    ChannelAvailableTime = deepcopy(ch_avail)
-    t_ex, ch_ex = FlexDARMultiChannelSequenceScheduler(T, tasks, ChannelAvailableTime, RP)
+    seq = list(np.argsort([task.t_release for task in tasks]))  # Task Order
+    t_ex, ch_ex = FlexDARMultiChannelSequenceScheduler(seq, tasks, deepcopy(ch_avail), RP=100)
 
     return t_ex, ch_ex
 
@@ -339,6 +335,4 @@ def ert_alg_kw(tasks, ch_avail, do_swap=False):
     if do_swap:
         node.check_swaps()
 
-    t_ex, ch_ex, T = node.t_ex, node.ch_ex, node.seq
-
-    return t_ex, ch_ex, T
+    return node.t_ex, node.ch_ex, node.seq

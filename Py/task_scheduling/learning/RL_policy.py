@@ -9,8 +9,6 @@ from stable_baselines.bench import Monitor
 from stable_baselines.results_plotter import plot_results
 from stable_baselines import DQN, PPO2, A2C
 
-from task_scheduling.generators import scheduling_problems as problem_gens
-from task_scheduling.tree_search import TreeNodeShift
 from task_scheduling.learning import environments as envs
 
 np.set_printoptions(precision=2)

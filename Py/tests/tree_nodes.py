@@ -34,7 +34,9 @@ def test_argsort(problem_gen, n_iter=1):
 
 def test_shift(problem_gen, n_iter=1):
     # check accuracy of TreeNodeShift solution
-    for _ in range(n_iter):
+    for i in range(n_iter):
+        print(f"{i}", end='\n')
+
         (tasks, ch_avail), = problem_gen(1)
         seq = np.random.permutation(problem_gen.n_tasks)
         node, node_s = TreeNode(tasks, ch_avail, seq), TreeNodeShift(tasks, ch_avail, seq)

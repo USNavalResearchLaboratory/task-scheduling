@@ -5,16 +5,45 @@ from task_scheduling.generators import (tasks as task_gens, channel_availabiliti
 from task_scheduling.algorithms.base import earliest_release
 from task_scheduling.learning import environments as envs
 from task_scheduling.tree_search import TreeNodeShift
+from task_scheduling.util.results import timing_wrapper
+
+
+ch_avail = np.zeros(2, dtype=np.float)
+tasks_full = list(task_gens.ContinuousUniformIID.relu_drop()(4))
+
+
+# def get_tasks(tasks_):
+#     tasks_sort = sorted(tasks_, key=lambda task_: task_.t_release)
+#     return tasks_sort[:2]
+
+def priority(task_):
+    return -task_.t_release
+
+
+# t_clock = 0.
+loss_full = 0.
+for __ in range(1):
+    # tasks = get_tasks(tasks_full)
+    tasks_full.sort(key=priority)
+    tasks = tasks_full[-2:]
+
+    t_ex, ch_ex = earliest_release(tasks, ch_avail)
+    # t_ex, ch_ex, t_run = timing_wrapper(earliest_release)(tasks, ch_avail)
+
+    for task, t_ex_i, ch_ex_i in zip(tasks, t_ex, ch_ex):
+        loss_full += task(t_ex_i)
+
+        task.t_release = t_ex_i + task.duration
+        ch_avail[ch_ex_i] = max(ch_avail[ch_ex_i], task.t_release)      # TODO: get from TreeNode?
+
+    # TODO: update ALL tasks based on new time. Drops, loss incurred...
 
 
 def test_queue():
+    n_tasks = 4
 
-
-
-    n_tasks = 8
-
-    # tasks_full = list(task_gens.ContinuousUniformIID.relu_drop()(4))
-    tasks_full = task_gens.FlexDAR(n_track=10).tasks_full
+    tasks_full = list(task_gens.ContinuousUniformIID.relu_drop()(4))
+    # tasks_full = task_gens.FlexDAR(n_track=10)()
 
     # df = pd.DataFrame({name: [getattr(task, name) for task in tasks_full]
     #                    for name in tasks_full._cls_task.param_names})
@@ -23,20 +52,19 @@ def test_queue():
     # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
     ch_avail = [0, 0]
 
-    # RP = 40*1e-3 # Resource period in seconds, set to 40 ms by default
-    # clock = 0
-    q = problem_gens.QueueFlexDAR(n_tasks, tasks_full, ch_avail)
-    for _ in range(4):
+    q = problem_gens.Queue(n_tasks, tasks_full, ch_avail)
+    for _ in range(1):
         # print(", ".join([f"{task.t_release:.2f}" for task in q.tasks]))
-        q.summary()
-
-        q.reprioritize()
         q.summary()
 
         tasks = list(q(2))
         q.summary()
 
-        t_ex, ch_ex = earliest_release(tasks, ch_avail)
+        # t_ex, ch_ex = earliest_release(tasks, ch_avail)
+        t_ex, ch_ex, t_run = timing_wrapper(earliest_release)(tasks, ch_avail)
+
+        # TODO: use t_run to check validity of t_ex
+        t_ex = np.max([t_ex, [t_run for _ in range(len(t_ex))]], axis=0)
 
         q.update(tasks, t_ex, ch_ex)
         q.summary()

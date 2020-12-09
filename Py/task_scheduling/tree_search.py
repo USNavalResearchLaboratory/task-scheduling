@@ -42,10 +42,7 @@ class TreeNode(RandomGeneratorMixin):
         self._tasks = deepcopy(tasks)
         self._ch_avail = np.array(ch_avail)
 
-        if self.n_tasks == 0 or self.n_ch == 0:
-            raise AttributeError("Cannot instantiate objects before assigning "
-                                 "the '_tasks' and 'n_ch class attributes.")
-        elif min(self._ch_avail) < 0.:
+        if min(self._ch_avail) < 0.:
             raise ValueError("Initial channel availabilities must be non-negative.")
 
         self._seq = []
@@ -73,7 +70,7 @@ class TreeNode(RandomGeneratorMixin):
     n_ch = property(lambda self: len(self._ch_avail))
 
     seq_rem = property(lambda self: self._seq_rem)
-    ch_min = property(lambda self: int(np.argmin(self.ch_avail)))
+    ch_min = property(lambda self: np.argmin(self.ch_avail))
 
     t_ex = property(lambda self: self._t_ex)
     ch_ex = property(lambda self: self._ch_ex)
@@ -86,11 +83,43 @@ class TreeNode(RandomGeneratorMixin):
 
     @seq.setter
     def seq(self, seq):
-        if seq[:len(self._seq)] != self._seq:  # new sequence is not an extension of current sequence
+        seq_prev, seq_ext = seq[:len(self._seq)], seq[len(self._seq):]
+        if seq_prev == self._seq:  # new sequence is an extension of current sequence
+            if len(seq_ext) > 0:
+                self.seq_extend(seq_ext)
+        else:
             # self.__init__(seq)  # initialize from scratch
             raise ValueError(f"Sequence must be an extension of {self._seq}")
-        else:
-            self.seq_extend(seq[len(self._seq):])
+
+    # def seq_extend(self, seq_ext, check_valid=True):
+    #     """
+    #     Extends node sequence and updates attributes using sequence-to-schedule approach.
+    #
+    #     Parameters
+    #     ----------
+    #     seq_ext : int or Iterable of int
+    #         Iterable of indices referencing cls._tasks.
+    #     check_valid : bool
+    #         Perform check of index sequence validity.
+    #
+    #     """
+    #
+    #     if isinstance(seq_ext, (Integral, np.integer)):
+    #         seq_ext = [seq_ext]
+    #     if len(seq_ext) == 0:
+    #         return
+    #
+    #     if check_valid:
+    #         seq_ext_set = set(seq_ext)
+    #         if len(seq_ext) != len(seq_ext_set):
+    #             raise ValueError("Input 'seq_ext' must have unique values.")
+    #         if not seq_ext_set.issubset(self._seq_rem):
+    #             raise ValueError("Values in 'seq_ext' must not be in the current node sequence.")
+    #
+    #     for n in seq_ext:
+    #         self._seq.append(n)
+    #         self._seq_rem.remove(n)
+    #         self._update_ex(n, self.ch_min)     # assign task to channel with earliest availability
 
     def seq_extend(self, seq_ext, check_valid=True):
         """
@@ -99,28 +128,44 @@ class TreeNode(RandomGeneratorMixin):
         Parameters
         ----------
         seq_ext : int or Iterable of int
-            Iterable of indices referencing cls._tasks.
+            Iterable of indices referencing self.tasks.
         check_valid : bool
             Perform check of index sequence validity.
 
         """
 
         if isinstance(seq_ext, (Integral, np.integer)):
-            seq_ext = [seq_ext]
-        if len(seq_ext) == 0:
-            return
+            self.seq_append(seq_ext, check_valid)
 
         if check_valid:
-            seq_ext_set = set(seq_ext)
-            if len(seq_ext) != len(seq_ext_set):
+            set_ext = set(seq_ext)
+            if len(seq_ext) != len(set_ext):
                 raise ValueError("Input 'seq_ext' must have unique values.")
-            if not seq_ext_set.issubset(self._seq_rem):
+            elif not set_ext.issubset(self._seq_rem):
                 raise ValueError("Values in 'seq_ext' must not be in the current node sequence.")
 
         for n in seq_ext:
-            self._seq.append(n)
-            self._seq_rem.remove(n)
-            self._update_ex(n, self.ch_min)     # assign task to channel with earliest availability
+            self.seq_append(n, check_valid=False)
+
+    def seq_append(self, n, check_valid=True):
+        """
+        Extends node sequence and updates attributes using sequence-to-schedule approach.
+
+        Parameters
+        ----------
+        n : int
+            Index referencing self.tasks.
+        check_valid : bool
+            Perform check of index validity.
+
+        """
+
+        if check_valid and n in self.seq:
+            raise ValueError("Appended index must not be in the current node sequence.")
+
+        self._seq.append(n)
+        self._seq_rem.remove(n)
+        self._update_ex(n, self.ch_min)     # assign task to channel with earliest availability
 
     def _update_ex(self, n, ch):
         self._ch_ex[n] = ch
@@ -155,7 +200,7 @@ class TreeNode(RandomGeneratorMixin):
 
         for n in seq_iter:
             node_new = deepcopy(self)  # new TreeNode object
-            node_new.seq_extend(n, check_valid=False)
+            node_new.seq_append(n, check_valid=False)
             yield node_new
 
     def roll_out(self, do_copy=False, rng=None):
@@ -248,7 +293,7 @@ class TreeNodeBound(TreeNode):
         Parameters
         ----------
         seq_ext : int or Iterable of int
-            Iterable of indices referencing cls._tasks.
+            Iterable of indices referencing self.tasks.
         check_valid : bool
             Perform check of index sequence validity.
 
@@ -276,11 +321,20 @@ class TreeNodeShift(TreeNode):
         self.t_origin = 0.
         super().__init__(tasks, ch_avail, seq, rng)
 
-        if len(self._seq) == 0:     # otherwise, shift_origin is invoked during initial call to 'seq_extend'
-            self.shift_origin()
+        self.shift_origin()     # performs initial shift when initialized with empty sequence
 
     def __repr__(self):
         return f"TreeNodeShift(sequence: {self.seq}, loss incurred:{self.l_ex:.3f})"
+
+    def _update_ex(self, n, ch):
+        self._ch_ex[n] = ch
+
+        t_ex_rel = max(self._tasks[n].t_release, self._ch_avail[ch])  # relative to time origin
+        self._t_ex[n] = self.t_origin + t_ex_rel    # absolute time
+        self._l_ex += self._tasks[n](t_ex_rel)      # add task execution loss
+
+        self._ch_avail[ch] = t_ex_rel + self._tasks[n].duration  # relative to time origin
+        self.shift_origin()
 
     def shift_origin(self):
         """Shifts the time origin to the earliest channel availability and invokes shift method of each task,
@@ -296,16 +350,6 @@ class TreeNodeShift(TreeNode):
             loss_inc = task.shift_origin(ch_avail_min)  # re-parameterize task, return any incurred loss
             if n in self._seq_rem:
                 self._l_ex += loss_inc      # add loss incurred due to origin shift for any unscheduled tasks
-
-    def _update_ex(self, n, ch):
-        self._ch_ex[n] = ch
-
-        t_ex_rel = max(self._tasks[n].t_release, self._ch_avail[ch])  # relative to time origin
-        self._t_ex[n] = self.t_origin + t_ex_rel    # absolute time
-        self._l_ex += self._tasks[n](t_ex_rel)      # add task execution loss
-
-        self._ch_avail[ch] = t_ex_rel + self._tasks[n].duration  # relative to time origin
-        self.shift_origin()
 
 
 class SearchNode(RandomGeneratorMixin):
