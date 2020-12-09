@@ -21,8 +21,9 @@ def priority(task_):
 
 
 # t_clock = 0.
+# t_del = 0.01
 loss_full = 0.
-for __ in range(1):
+for __ in range(100):
     # tasks = get_tasks(tasks_full)
     tasks_full.sort(key=priority)
     tasks = tasks_full[-2:]
@@ -37,18 +38,21 @@ for __ in range(1):
         ch_avail[ch_ex_i] = max(ch_avail[ch_ex_i], task.t_release)      # TODO: get from TreeNode?
 
     # TODO: update ALL tasks based on new time. Drops, loss incurred...
+    ch_avail_min = min(ch_avail)
+    for task in tasks_full:
+        while task.t_release + task.t_drop < ch_avail_min:      # absolute drop time
+            loss_full += task.l_drop        # add drop loss
+            task.t_release += task.t_drop   # increment release time
+            # task.t_release = ch_avail_min
 
 
-
-
-
-
+    # t_clock += t_del
 
 
 
 def test_queue():
 
-    n_tasks = 8 # Number of tasks to process at each iteration
+    n_tasks = 8  # Number of tasks to process at each iteration
     n_track = 10
     ch_avail = np.zeros(2, dtype=np.float)
     tasks_full = task_gens.FlexDAR(n_track=n_track).tasks_full

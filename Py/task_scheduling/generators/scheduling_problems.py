@@ -543,7 +543,7 @@ class QueueFlexDAR(Base):
         clock = self.clock
         # clock = 1 # For debugging
         priority = np.array([task(clock) for task in self.queue])
-        index = np.argsort(-priority, kind='mergesort') # -1 used to reverse order
+        index = np.argsort(-priority, kind='mergesort')  # -1 used to reverse order
         tasks = []
         tasks_sorted = []
         for task in self.queue:
