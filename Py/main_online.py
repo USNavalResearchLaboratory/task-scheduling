@@ -39,10 +39,21 @@ for __ in range(1):
     # TODO: update ALL tasks based on new time. Drops, loss incurred...
 
 
-def test_queue():
-    n_tasks = 4
 
-    tasks_full = list(task_gens.ContinuousUniformIID.relu_drop()(4))
+
+
+
+
+
+
+def test_queue():
+
+    n_tasks = 8 # Number of tasks to process at each iteration
+    n_track = 10
+    ch_avail = np.zeros(2, dtype=np.float)
+    tasks_full = task_gens.FlexDAR(n_track=n_track).tasks_full
+
+    # tasks_full = list(task_gens.ContinuousUniformIID.relu_drop()(4))
     # tasks_full = task_gens.FlexDAR(n_track=10)()
 
     # df = pd.DataFrame({name: [getattr(task, name) for task in tasks_full]
@@ -52,12 +63,15 @@ def test_queue():
     # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
     ch_avail = [0, 0]
 
-    q = problem_gens.Queue(n_tasks, tasks_full, ch_avail)
-    for _ in range(1):
+    q = problem_gens.QueueFlexDAR(n_tasks, tasks_full, ch_avail)
+    for _ in range(5):
         # print(", ".join([f"{task.t_release:.2f}" for task in q.tasks]))
         q.summary()
+        q.reprioritize()
+        q.summary()
 
-        tasks = list(q(2))
+
+        tasks = list(q(1))
         q.summary()
 
         # t_ex, ch_ex = earliest_release(tasks, ch_avail)
@@ -121,5 +135,5 @@ def test_queue_env():
 
 
 if __name__ == '__main__':
-    # test_queue()
-    test_queue_env()
+    test_queue()
+    # test_queue_env()
