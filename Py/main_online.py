@@ -66,10 +66,19 @@ def test_queue():
 
     # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
     ch_avail = [0, 0]
-
     q = problem_gens.QueueFlexDAR(n_tasks, tasks_full, ch_avail)
-    for _ in range(5):
+    maxTime = 10
+    n_step = np.int(np.floor(maxTime/q.RP))
+    for ii in range(n_step):
+        q.clock = ii*q.RP
         # print(", ".join([f"{task.t_release:.2f}" for task in q.tasks]))
+
+        if np.min(ch_avail) > q.clock:
+            continue
+
+        if q.clock % q.RP * 1 == 0:
+            print('time =', q.clock)
+
         q.summary()
         q.reprioritize()
         q.summary()
@@ -84,58 +93,58 @@ def test_queue():
         # TODO: use t_run to check validity of t_ex
         # t_ex = np.max([t_ex, [t_run for _ in range(len(t_ex))]], axis=0)
 
-        q.update(tasks, t_ex, ch_ex)
+        q.updateFlexDAR(tasks, t_ex, ch_ex)
         q.summary()
 
+if 0:
+    def test_queue_env():
+        tasks_full = list(task_gens.ContinuousUniformIID.relu_drop()(4))
+        # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
+        ch_avail = [0, .1]
 
-def test_queue_env():
-    tasks_full = list(task_gens.ContinuousUniformIID.relu_drop()(4))
-    # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
-    ch_avail = [0, .1]
+        problem_gen = problem_gens.Queue(2, tasks_full, ch_avail)
 
-    problem_gen = problem_gens.Queue(2, tasks_full, ch_avail)
+        features = np.array([('duration', lambda task: task.duration, (0, 10)),
+                             ('release time', lambda task: task.t_release, (0, 10)),
+                             ('slope', lambda task: task.slope, (0, 10)),
+                             ('drop time', lambda task: task.t_drop, (0, 10)),
+                             ('drop loss', lambda task: task.l_drop, (0, 10)),
+                             ],
+                            dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
-    features = np.array([('duration', lambda task: task.duration, (0, 10)),
-                         ('release time', lambda task: task.t_release, (0, 10)),
-                         ('slope', lambda task: task.slope, (0, 10)),
-                         ('drop time', lambda task: task.t_drop, (0, 10)),
-                         ('drop loss', lambda task: task.l_drop, (0, 10)),
-                         ],
-                        dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
+        # env_cls = envs.SeqTasking
+        env_cls = envs.StepTasking
 
-    # env_cls = envs.SeqTasking
-    env_cls = envs.StepTasking
+        env_params = {'node_cls': TreeNodeShift,
+                      'features': features,
+                      'sort_func': None,
+                      'masking': True,
+                      # 'action_type': 'seq',
+                      'action_type': 'any',
+                      'seq_encoding': 'one-hot',
+                      }
 
-    env_params = {'node_cls': TreeNodeShift,
-                  'features': features,
-                  'sort_func': None,
-                  'masking': True,
-                  # 'action_type': 'seq',
-                  'action_type': 'any',
-                  'seq_encoding': 'one-hot',
-                  }
+        env = env_cls(problem_gen, **env_params)
 
-    env = env_cls(problem_gen, **env_params)
+        for _ in range(2):
+            env.problem_gen.summary()
 
-    for _ in range(2):
-        env.problem_gen.summary()
+            obs = env.reset()
+            env.problem_gen.summary()
 
-        obs = env.reset()
-        env.problem_gen.summary()
+            tasks, ch_avail = env.tasks, env.ch_avail
+            t_ex, ch_ex = earliest_release(tasks, ch_avail)
 
-        tasks, ch_avail = env.tasks, env.ch_avail
-        t_ex, ch_ex = earliest_release(tasks, ch_avail)
+            env.problem_gen.update(tasks, t_ex, ch_ex)      # TODO?
+            env.problem_gen.summary()
 
-        env.problem_gen.update(tasks, t_ex, ch_ex)      # TODO?
-        env.problem_gen.summary()
+            seq = np.argsort(t_ex)
+            for n in seq:
+                obs, reward, done, info = env.step(n)
 
-        seq = np.argsort(t_ex)
-        for n in seq:
-            obs, reward, done, info = env.step(n)
-
-        # done = False
-        # while not done:
-        #     obs, reward, done, info = env.step(action)
+            # done = False
+            # while not done:
+            #     obs, reward, done, info = env.step(action)
 
 
 if __name__ == '__main__':
