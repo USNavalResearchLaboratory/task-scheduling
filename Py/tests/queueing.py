@@ -8,10 +8,13 @@ from task_scheduling.tree_search import TreeNodeShift
 
 
 def test_queue():
-    n_tasks = 4
+
+
+
+    n_tasks = 8
 
     # tasks_full = list(task_gens.ContinuousUniformIID.relu_drop()(4))
-    tasks_full = task_gens.FlexDAR(n_track=10)()
+    tasks_full = task_gens.FlexDAR(n_track=10).tasks_full
 
     # df = pd.DataFrame({name: [getattr(task, name) for task in tasks_full]
     #                    for name in tasks_full._cls_task.param_names})
@@ -20,9 +23,14 @@ def test_queue():
     # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
     ch_avail = [0, 0]
 
-    q = problem_gens.Queue(n_tasks, tasks_full, ch_avail)
-    for _ in range(1):
+    # RP = 40*1e-3 # Resource period in seconds, set to 40 ms by default
+    # clock = 0
+    q = problem_gens.QueueFlexDAR(n_tasks, tasks_full, ch_avail)
+    for _ in range(4):
         # print(", ".join([f"{task.t_release:.2f}" for task in q.tasks]))
+        q.summary()
+
+        q.reprioritize()
         q.summary()
 
         tasks = list(q(2))

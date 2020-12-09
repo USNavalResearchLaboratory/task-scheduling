@@ -353,6 +353,7 @@ class FlexDAR(Base):
     def __init__(self, n_track=0, param_lims=None, rng=None):
         super().__init__(cls_task=task_types.ReluDropRadar, param_lims=None, rng=None)
 
+        self.n_track = n_track
         tasks_full = []
 
         # Search tasks
@@ -365,7 +366,10 @@ class FlexDAR(Base):
         # Track tasks
         for slant_range, range_rate in zip(self.rng.uniform(0, 200, n_track), self.rng.uniform(-343, 343, n_track)):
             # tasks_full.append(self.cls_task.track_from_kinematics(slant_range, range_rate))
-            tasks_full.append(self.cls_task.track_from_kinematics(slant_range, range_rate))
+            # Current classmethod called "from_kinematics"
+            tasks_full.append(self.cls_task.from_kinematics(slant_range, range_rate))
+
+        self.tasks_full = tasks_full
 
 
         # # Generate Search Tasks
