@@ -70,15 +70,15 @@ def test_queue():
         q.reprioritize()
         q.summary()
 
-
-        tasks = list(q(1))
+        temp = list(q(1))
+        tasks = temp[0][0]
         q.summary()
 
         # t_ex, ch_ex = earliest_release(tasks, ch_avail)
         t_ex, ch_ex, t_run = timing_wrapper(earliest_release)(tasks, ch_avail)
 
         # TODO: use t_run to check validity of t_ex
-        t_ex = np.max([t_ex, [t_run for _ in range(len(t_ex))]], axis=0)
+        # t_ex = np.max([t_ex, [t_run for _ in range(len(t_ex))]], axis=0)
 
         q.update(tasks, t_ex, ch_ex)
         q.summary()
