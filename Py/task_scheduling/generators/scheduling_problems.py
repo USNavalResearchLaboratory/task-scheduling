@@ -510,7 +510,23 @@ class QueueFlexDAR(Base):
 
     def _gen_problem(self, rng):
         """Return a single scheduling problem (and optional solution)."""
-        tasks = [self.queue.pop() for _ in range(self.n_tasks)]
+        from task_scheduling.algorithms.base import earliest_release
+
+        self.reprioritize()  # Reprioritize
+        tasks = [self.queue.pop() for _ in range(self.n_tasks)]  # Pop tasks
+        ch_avail = self.ch_avail
+        t_ex, ch_ex, t_run = timing_wrapper(earliest_release)(tasks, ch_avail)  # Scheduling using ERT
+        # TODO: use t_run to check validity of t_ex
+        # t_ex = np.max([t_ex, [t_run for _ in range(len(t_ex))]], axis=0)
+
+        # obs, reward, done, info = env.step()
+
+        # done = False
+        # while not done:
+        #     obs, reward, done, info = env.step(action)
+
+        self.updateFlexDAR(tasks, t_ex, ch_ex)  # Add tasks back on queue
+        self.clock += self.RP  # Update clock
 
         # TODO: add prioritization?
 
@@ -537,13 +553,39 @@ class QueueFlexDAR(Base):
         #
         # self.add_tasks(tasks)
 
+    def updateFlexDAR(self, tasks, t_ex, ch_ex):
+        for task, t_ex_i, ch_ex_i in zip(tasks, t_ex, ch_ex):
+            # duration = np.array([task.duration for task in job_scheduler])
+            # executed_tasks = t_complete <= timeSec + RP # Task that are executed
+            t_complete_i = t_ex_i + task.duration
+            if t_complete_i <= self.RP + self.clock:
+                task.t_release = t_ex_i + task.duration
+                task.revisit_times.append(t_ex_i)
+                # task.count_revisit += 1  Node need as count is = len(revisit_times) in ReluDropRadar
+                self.ch_avail[ch_ex_i] = max(self.ch_avail[ch_ex_i], task.t_release)
+                self.add_tasks(task)
+            else:
+                self.add_tasks(task)
+
+        # self.clock += self.RP # Update Overall Clock
+
+        # for task, t_ex_i in zip(tasks, t_ex):
+        #     task.t_release = t_ex_i + task.duration
+        #
+        # for ch in range(self.n_ch):
+        #     tasks_ch = np.array(tasks)[ch_ex == ch].tolist()
+        #     self.ch_avail[ch] = max(self.ch_avail[ch], *(task.t_release for task in tasks_ch))
+        #
+        # self.add_tasks(tasks)
+
+
     def reprioritize(self):
 
         # Evaluate tasks at current time
         clock = self.clock
         # clock = 1 # For debugging
         priority = np.array([task(clock) for task in self.queue])
-        index = np.argsort(-priority, kind='mergesort')  # -1 used to reverse order
+        index = np.argsort(priority, kind='mergesort')  # -1 used to reverse order
         tasks = []
         tasks_sorted = []
         for task in self.queue:
@@ -565,4 +607,6 @@ class QueueFlexDAR(Base):
         print(f"Task queue:")
         df = pd.DataFrame({name: [getattr(task, name) for task in self.queue]
                            for name in self._cls_task.param_names})
+        priority = np.array([task(self.clock) for task in self.queue])
+        df['priority'] = priority
         print(df)
