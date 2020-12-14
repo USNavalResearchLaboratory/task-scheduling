@@ -35,7 +35,6 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
     # TODO: different search strategies? pre-sort?
 
     stack = deque([TreeNodeBound(tasks, ch_avail, rng=rng)])        # initialize stack
-
     node_best = stack[0].roll_out(do_copy=True)  # roll-out initial solution
 
     # Iterate

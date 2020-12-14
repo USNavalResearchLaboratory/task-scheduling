@@ -2,10 +2,10 @@ from math import isclose
 
 import numpy as np
 
-from task_scheduling.tree_search import TreeNode, TreeNodeShift
+from task_scheduling.tree_search import TreeNode, TreeNodeShift, TreeNodeBound
 from task_scheduling.algorithms.base import branch_bound
 from task_scheduling.util.results import eval_loss
-from task_scheduling.generators import scheduling_problems as problem_gens
+from task_scheduling.generators import scheduling_problems as problem_gens, tasks as task_gens
 
 # TODO: use proper testing w/ builtin module
 
@@ -47,6 +47,10 @@ def test_shift(problem_gen, n_iter=1):
 
 
 def main():
+    # tasks = list(task_gens.ContinuousUniformIID.relu_drop()(4))
+    # # node = TreeNodeBound(tasks, ch_avail=[0, 0], seq=[2, 0])
+    # branch_bound(tasks, ch_avail)
+
     problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1)
     test_argsort(problem_gen, n_iter=10)
     test_shift(problem_gen, n_iter=10)

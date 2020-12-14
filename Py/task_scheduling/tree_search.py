@@ -49,7 +49,7 @@ class TreeNode(RandomGeneratorMixin):
         self._seq_rem = set(range(self.n_tasks))
 
         self._t_ex = np.full(self.n_tasks, np.nan)
-        self._ch_ex = np.full(self.n_tasks, -1)
+        self._ch_ex = np.full(self.n_tasks, np.nan)
 
         self._l_ex = 0.  # incurred loss
 
@@ -300,7 +300,13 @@ class TreeNodeBound(TreeNode):
         """
 
         super().seq_extend(seq_ext, check_valid)
+        self._update_bounds()
 
+    def seq_append(self, n, check_valid=True):
+        super().seq_append(n, check_valid)
+        self._update_bounds()
+
+    def _update_bounds(self):
         # Add bound attributes
         t_ex_max = (max([self._tasks[n].t_release for n in self._seq_rem] + [min(self._ch_avail)])
                     + sum(self._tasks[n].duration for n in self._seq_rem))  # maximum execution time for bounding
@@ -311,9 +317,9 @@ class TreeNodeBound(TreeNode):
             self._l_lo += self._tasks[n](max(self._tasks[n].t_release, min(self._ch_avail)))
             self._l_up += self._tasks[n](t_ex_max)
 
-        # Roll-out if bounds converge
-        if len(self._seq_rem) > 0 and self._l_lo == self._l_up:
-            self.roll_out()
+        # # Roll-out if bounds converge     # TODO: move or delete?
+        # if len(self._seq_rem) > 0 and self._l_lo == self._l_up:
+        #     self.roll_out()
 
 
 class TreeNodeShift(TreeNode):
