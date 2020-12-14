@@ -25,8 +25,8 @@ class Generic:
     param_names = ('duration', 't_release', 'loss_func')
 
     def __init__(self, duration, t_release, loss_func=None):
-        self.duration = duration
-        self.t_release = t_release
+        self.duration = np.float(duration)
+        self.t_release = np.float(t_release)
 
         if callable(loss_func):
             self.loss_func = loss_func
@@ -128,9 +128,9 @@ class ReluDrop(Generic):
 
     def __init__(self, duration, t_release, slope, t_drop, l_drop):
         super().__init__(duration, t_release)
-        self._slope = slope
-        self._t_drop = t_drop
-        self._l_drop = l_drop
+        self._slope = np.float(slope)
+        self._t_drop = np.float(t_drop)
+        self._l_drop = np.float(l_drop)
 
     # def __repr__(self):
     #     return f"ReluDrop(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"

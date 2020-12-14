@@ -53,18 +53,18 @@ class SupervisedLearningScheduler:
         """
 
         # ensure_valid = isinstance(self.env, envs.StepTasking)
-        ensure_valid = False    # TODO: trained models may naturally avoid invalid actions!!
+        # ensure_valid = False    # TODO: trained models may naturally avoid invalid actions!!
 
         obs = self.env.reset(tasks, ch_avail)
         done = False
         while not done:
             prob = self.model.predict(obs[np.newaxis]).squeeze(0)
 
-            if ensure_valid:
-                seq_rem_sort = self.env.sorted_index_inv[list(self.env.node.seq_rem)]
-                mask = np.isin(np.arange(self.env.n_tasks), seq_rem_sort, invert=True)
-
-                prob = np.ma.masked_array(prob, mask)
+            # if ensure_valid:
+            #     seq_rem_sort = self.env.sorted_index_inv[list(self.env.node.seq_rem)]
+            #     mask = np.isin(np.arange(self.env.n_tasks), seq_rem_sort, invert=True)
+            #
+            #     prob = np.ma.masked_array(prob, mask)
 
             action = prob.argmax()
             obs, reward, done, info = self.env.step(action)
@@ -213,7 +213,7 @@ class SupervisedLearningScheduler:
         # Create model
         if layers is None:
             layers = [keras.layers.Dense(60, activation='relu'),
-                      keras.layers.Dense(60, activation='relu'),
+                      # keras.layers.Dense(60, activation='relu'),
                       # keras.layers.Dense(30, activation='relu'),
                       # keras.layers.Dropout(0.2),
                       # keras.layers.Dense(100, activation='relu'),
@@ -221,7 +221,14 @@ class SupervisedLearningScheduler:
 
         model = keras.Sequential([keras.layers.Flatten(input_shape=env.observation_space.shape),
                                   *layers,
-                                  keras.layers.Dense(env.action_space.n, activation='softmax')])
+                                  keras.layers.Dense(env.action_space.n, activation=None)])
+
+        # inputs = keras.Input(shape=env.observation_space.shape)
+        # # inputs = keras.layers.Flatten(input_shape=env.observation_space.shape)
+        # x = keras.layers.Dense(8, activation='sigmoid')(inputs)
+        # outputs = keras.layers.Dense(env.action_space.n, activation='softmax')(x)
+        # model = keras.Model(inputs=inputs, outputs=outputs, name='model_ex')
+
 
         if compile_params is None:
             compile_params = {'optimizer': 'rmsprop',

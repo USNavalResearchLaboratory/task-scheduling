@@ -49,7 +49,7 @@ class TreeNode(RandomGeneratorMixin):
         self._seq_rem = set(range(self.n_tasks))
 
         self._t_ex = np.full(self.n_tasks, np.nan)
-        self._ch_ex = np.full(self.n_tasks, np.nan)
+        self._ch_ex = np.full(self.n_tasks, np.nan, dtype=np.int)
 
         self._l_ex = 0.  # incurred loss
 

@@ -518,10 +518,3 @@ class FlexDAR(Base):
     # for task in
     #     yield task
 
-
-def main():
-    task_gen = FlexDAR(n_track=1)
-
-
-if __name__ == '__main__':
-    main()

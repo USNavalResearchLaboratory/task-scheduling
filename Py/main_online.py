@@ -7,7 +7,7 @@ from task_scheduling.algorithms.base import earliest_release
 from task_scheduling.learning import environments as envs
 from task_scheduling.tree_search import TreeNodeShift
 from task_scheduling.util.results import timing_wrapper
-from task_scheduling.learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler
+# from task_scheduling.learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler
 from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime
 
 
@@ -17,44 +17,43 @@ tasks_full = [task_scheduling.tasks.ReluDrop(1, 0, slope, 5, 10) for slope in np
 # tasks_full = [task_scheduling.tasks.ReluDropRadar.search(0.018, 'AHS') for _ in range(4)]
 
 
-
-
 # def get_tasks(tasks_):
 #     tasks_sort = sorted(tasks_, key=lambda task_: task_.t_release)
 #     return tasks_sort[:2]
+
 
 def priority(task_):
     return -task_.t_release
 
 
 # t_clock = 0.
-# t_del = 0.01
-loss_full = 0.
-for __ in range(100):
-    # tasks = get_tasks(tasks_full)
-    tasks_full.sort(key=priority)
-    tasks = tasks_full[-2:]
-
-    t_ex, ch_ex = earliest_release(tasks, ch_avail)
-    # t_ex, ch_ex, t_run = timing_wrapper(earliest_release)(tasks, ch_avail)
-
-    # Scheduled task updates
-    for task, t_ex_i, ch_ex_i in zip(tasks, t_ex, ch_ex):
-        loss_full += task(t_ex_i)
-
-        task.t_release = t_ex_i + task.duration
-        ch_avail[ch_ex_i] = max(ch_avail[ch_ex_i], task.t_release)      # TODO: get from TreeNode?
-
-    # TODO: effectively jumps sim time to ch_avail_min
-
-    # Dropped task updates
-    ch_avail_min = min(ch_avail)
-    for task in tasks_full:
-        while task.t_release + task.t_drop < ch_avail_min:      # absolute drop time
-            loss_full += task.l_drop        # add drop loss
-            task.t_release += task.t_drop   # increment release time
-
-    # t_clock += t_del
+# # t_del = 0.01
+# loss_full = 0.
+# for __ in range(100):
+#     # tasks = get_tasks(tasks_full)
+#     tasks_full.sort(key=priority)
+#     tasks = tasks_full[-2:]
+#
+#     t_ex, ch_ex = earliest_release(tasks, ch_avail)
+#     # t_ex, ch_ex, t_run = timing_wrapper(earliest_release)(tasks, ch_avail)
+#
+#     # Scheduled task updates
+#     for task, t_ex_i, ch_ex_i in zip(tasks, t_ex, ch_ex):
+#         loss_full += task(t_ex_i)
+#
+#         task.t_release = t_ex_i + task.duration
+#         ch_avail[ch_ex_i] = max(ch_avail[ch_ex_i], task.t_release)      # TODO: get from TreeNode?
+#
+#     # TODO: effectively jumps sim time to ch_avail_min
+#
+#     # Dropped task updates
+#     ch_avail_min = min(ch_avail)
+#     for task in tasks_full:
+#         while task.t_release + task.t_drop < ch_avail_min:      # absolute drop time
+#             loss_full += task.l_drop        # add drop loss
+#             task.t_release += task.t_drop   # increment release time
+#
+#     # t_clock += t_del
 
 
 def test_env():
@@ -62,7 +61,6 @@ def test_env():
     n_track = 10
     ch_avail = np.zeros(2, dtype=np.float)
     tasks_full = task_gens.FlexDAR(n_track=n_track).tasks_full
-
 
     # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
     ch_avail = [0, 0]
@@ -94,8 +92,6 @@ def test_env():
     # env.reset()
     # for __ in range(10):
     #     (tasks, ch_avail), = env.problem_gen(1, solve=False)
-
-
 
     dqn_agent = RL_Scheduler.train_from_gen(q, env_cls, env_params,
                                             model_cls='DQN', model_params={'verbose': 1}, n_episodes=1000,
@@ -178,8 +174,8 @@ def test_queue():
                          ],
                         dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
-    # env_cls = envs.SeqTasking
     env_cls = envs.SeqTasking
+    # env_cls = envs.StepTasking
 
     env_params = {'node_cls': TreeNodeShift,
                   'features': features,
@@ -202,7 +198,7 @@ def test_queue():
 
 
     maxTime = 10
-    n_step = np.int(np.floor(maxTime/env.problem_gen.RP))
+    n_step = np.int(np.floor(maxTime / env.problem_gen.RP))
     for ii in range(n_step):
         env.problem_gen.clock = ii*env.problem_gen.RP
         # print(", ".join([f"{task.t_release:.2f}" for task in env.problem_gen.tasks]))
@@ -236,8 +232,6 @@ def test_queue():
 
         env.problem_gen.updateFlexDAR(tasks, t_ex, ch_ex)
         # q.summary()
-
-
 
 
 def test_queue_env():
