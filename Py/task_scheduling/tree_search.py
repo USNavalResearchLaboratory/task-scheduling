@@ -136,6 +136,7 @@ class TreeNode(RandomGeneratorMixin):
 
         if isinstance(seq_ext, (Integral, np.integer)):
             self.seq_append(seq_ext, check_valid)
+            return
 
         if check_valid:
             set_ext = set(seq_ext)

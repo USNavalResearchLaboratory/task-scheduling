@@ -160,7 +160,7 @@ class DiscreteIID(BaseIID):
 
     def __init__(self, cls_task, param_probs, rng=None):
         param_lims = {name: (min(param_probs[name].keys()), max(param_probs[name].keys()))
-                      for name in self.cls_task.param_names}
+                      for name in cls_task.param_names}
 
         super().__init__(cls_task, param_lims, rng)
 
@@ -178,7 +178,8 @@ class DiscreteIID(BaseIID):
             return NotImplemented
 
     @classmethod
-    def relu_drop(cls, duration_vals, t_release_vals, slope_vals, t_drop_vals, l_drop_vals, rng=None):
+    def relu_drop(cls, duration_vals=(3, 6), t_release_vals=(0, 4), slope_vals=(0.5, 2), t_drop_vals=(6, 12),
+                  l_drop_vals=(35, 50), rng=None):
         """Factory constructor for ReluDrop task objects."""
 
         param_probs = {'duration': dict(zip(duration_vals, np.ones(len(duration_vals)) / len(duration_vals))),
