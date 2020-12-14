@@ -263,22 +263,6 @@ class BaseTasking(ABC, gym.Env):
 
         return self.state, reward, done, {}
 
-        # ensure_valid = False      # TODO: formalize invalid action functionality?
-        # action = self.sorted_index[action]  # decode task index to original order
-        # if ensure_valid or action in self.node.seq_rem:
-        #     self.node.seq_extend(action)  # updates sequence, loss, task parameters, etc.
-        #
-        #     reward, self.loss_agg = self.loss_agg - self.node.l_ex, self.node.l_ex
-        #     done = len(self.node.seq_rem) == 0  # sequence is complete
-        #
-        #     self._update_spaces()
-        #
-        # else:
-        #     reward = -100
-        #     done = False
-        #
-        # return self.state, reward, done, {}
-
     def render(self, mode='human'):     # TODO: plot partial schedule instead?
         if mode == 'human':
             _, ax_env = plt.subplots(num='Task Scheduling Env', clear=True)
@@ -599,6 +583,15 @@ class StepTasking(BaseTasking):
             self.action_space = DiscreteSet(seq_rem_sort)
         else:
             pass
+
+    def step(self, action):
+        if self.do_valid_actions:
+            return super().step(action)
+        else:
+            try:
+                return super().step(action)
+            except ValueError:
+                return self.state, -100, False, {}
 
     def _gen_single(self, seq, weight_func):
         """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""

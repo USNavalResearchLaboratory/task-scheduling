@@ -136,17 +136,16 @@ class TreeNode(RandomGeneratorMixin):
 
         if isinstance(seq_ext, (Integral, np.integer)):
             self.seq_append(seq_ext, check_valid)
-            return
+        else:
+            if check_valid:
+                set_ext = set(seq_ext)
+                if len(seq_ext) != len(set_ext):
+                    raise ValueError("Input 'seq_ext' must have unique values.")
+                elif not set_ext.issubset(self._seq_rem):
+                    raise ValueError("Values in 'seq_ext' must not be in the current node sequence.")
 
-        if check_valid:
-            set_ext = set(seq_ext)
-            if len(seq_ext) != len(set_ext):
-                raise ValueError("Input 'seq_ext' must have unique values.")
-            elif not set_ext.issubset(self._seq_rem):
-                raise ValueError("Values in 'seq_ext' must not be in the current node sequence.")
-
-        for n in seq_ext:
-            self.seq_append(n, check_valid=False)
+            for n in seq_ext:
+                self.seq_append(n, check_valid=False)
 
     def seq_append(self, n, check_valid=True):
         """
