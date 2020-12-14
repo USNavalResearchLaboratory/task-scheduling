@@ -184,8 +184,13 @@ class Random(Base):
         return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
     @classmethod
-    def relu_drop(cls, n_tasks, n_ch, rng=None, ch_avail_lim=(0., 0.), **relu_lims):
+    def continuous_relu_drop(cls, n_tasks, n_ch, rng=None, ch_avail_lim=(0., 0.), **relu_lims):
         task_gen = task_gens.ContinuousUniformIID.relu_drop(**relu_lims)
+        return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
+
+    @classmethod
+    def discrete_relu_drop(cls, n_tasks, n_ch, rng=None, ch_avail_lim=(0., 0.), **relu_vals):
+        task_gen = task_gens.DiscreteIID.relu_drop(**relu_vals)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
     @classmethod
@@ -247,8 +252,13 @@ class FixedTasks(Base, ABC):
         return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
     @classmethod
-    def relu_drop(cls, n_tasks, n_ch, rng=None):
-        task_gen = cls.cls_task_gen.relu_drop(n_tasks)
+    def continuous_relu_drop(cls, n_tasks, n_ch, rng=None, **relu_lims):
+        task_gen = cls.cls_task_gen.continuous_relu_drop(n_tasks, **relu_lims)
+        return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
+
+    @classmethod
+    def discrete_relu_drop(cls, n_tasks, n_ch, rng=None, **relu_vals):
+        task_gen = cls.cls_task_gen.discrete_relu_drop(n_tasks, **relu_vals)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
 
     @classmethod

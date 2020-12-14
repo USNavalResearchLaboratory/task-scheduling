@@ -13,9 +13,9 @@ import os
 # from util.generic.RandomGeneratorMixin import check_rng
 from util.generic import RandomGeneratorMixin
 
-from generators.tasks import GenericIID as GenericTaskGenerator
+from generators import tasks as task_gens
 from tree_search import TreeNodeShift
-from learning.environments import StepTasking
+from learning import environments as envs
 
 from scipy.stats import rv_discrete, uniform
 
@@ -185,7 +185,7 @@ def load_policy(load_dir):
 
 def wrap_policy(env, model):
     """Generate scheduling function by running a policy on a single environment episode."""
-    if not isinstance(env, StepTaskingEnv):
+    if not isinstance(env, envs.StepTasking):
         raise NotImplementedError("Tasking environment must be step Env.")
 
     if type(model) == str:
@@ -298,7 +298,7 @@ def main():
                   't_drop': (0, 15),
                   'l_drop': (100, 300)}
 
-    task_gen = GenericTaskGenerator.relu_drop(param_gen, param_lims, rng=None)
+    task_gen = task_gens.GenericIID.relu_drop(param_gen, param_lims, rng=None)
 
     # task_gen = PermuteTaskGenerator(task_gen(n_tasks))
     # task_gen = DeterministicTaskGenerator(task_gen(n_tasks))
@@ -322,7 +322,7 @@ def main():
         else:
             return self.node.tasks[n].t_release
 
-    env_cls = StepTaskingEnv
+    env_cls = envs.StepTasking
     env_params = {'node_cls': TreeNodeShift,
                   'features': features,
                   'sort_func': sort_func,

@@ -13,13 +13,10 @@ from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithm
 
 ch_avail = np.zeros(2, dtype=np.float)
 # tasks_full = list(task_gens.ContinuousUniformIID.relu_drop()(4))
+tasks_full = [task_scheduling.tasks.ReluDrop(1, 0, slope, 5, 10) for slope in np.arange(1, 1.4, .1)]
+# tasks_full = [task_scheduling.tasks.ReluDropRadar.search(0.018, 'AHS') for _ in range(4)]
 
-tasks_full = []
-n_beams_per_row = np.array([28, 29, 14, 9, 10, 9, 8, 7, 6])
-t_dwells = np.array([36, 36, 36, 18, 18, 18, 18, 18, 18]) * 1e-3
-dwell_types = ['HS', *('AHS' for _ in range(8))]
-for n_beams, t_dwell, dwell_type in zip(n_beams_per_row, t_dwells, dwell_types):
-    tasks_full.extend([task_scheduling.tasks.ReluDropRadar.search(t_dwell, dwell_type) for _ in range(n_beams)])
+
 
 
 # def get_tasks(tasks_):
@@ -242,55 +239,55 @@ def test_queue():
 
 
 
-if 0:
-    def test_queue_env():
-        tasks_full = list(task_gens.ContinuousUniformIID.relu_drop()(4))
-        # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
-        ch_avail = [0, .1]
 
-        problem_gen = problem_gens.Queue(2, tasks_full, ch_avail)
+def test_queue_env():
+    tasks_full = list(task_gens.ContinuousUniformIID.relu_drop()(4))
+    # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
+    ch_avail = [0, .1]
 
-        features = np.array([('duration', lambda task: task.duration, (0, 10)),
-                             ('release time', lambda task: task.t_release, (0, 10)),
-                             ('slope', lambda task: task.slope, (0, 10)),
-                             ('drop time', lambda task: task.t_drop, (0, 10)),
-                             ('drop loss', lambda task: task.l_drop, (0, 10)),
-                             ],
-                            dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
+    problem_gen = problem_gens.Queue(2, tasks_full, ch_avail)
 
-        # env_cls = envs.SeqTasking
-        env_cls = envs.StepTasking
+    features = np.array([('duration', lambda task: task.duration, (0, 10)),
+                         ('release time', lambda task: task.t_release, (0, 10)),
+                         ('slope', lambda task: task.slope, (0, 10)),
+                         ('drop time', lambda task: task.t_drop, (0, 10)),
+                         ('drop loss', lambda task: task.l_drop, (0, 10)),
+                         ],
+                        dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
-        env_params = {'node_cls': TreeNodeShift,
-                      'features': features,
-                      'sort_func': None,
-                      'masking': True,
-                      # 'action_type': 'seq',
-                      'action_type': 'any',
-                      'seq_encoding': 'one-hot',
-                      }
+    # env_cls = envs.SeqTasking
+    env_cls = envs.StepTasking
 
-        env = env_cls(problem_gen, **env_params)
+    env_params = {'node_cls': TreeNodeShift,
+                  'features': features,
+                  'sort_func': None,
+                  'masking': True,
+                  # 'action_type': 'seq',
+                  'action_type': 'any',
+                  'seq_encoding': 'one-hot',
+                  }
 
-        for _ in range(2):
-            env.problem_gen.summary()
+    env = env_cls(problem_gen, **env_params)
 
-            obs = env.reset()
-            env.problem_gen.summary()
+    for _ in range(2):
+        env.problem_gen.summary()
 
-            tasks, ch_avail = env.tasks, env.ch_avail
-            t_ex, ch_ex = earliest_release(tasks, ch_avail)
+        obs = env.reset()
+        env.problem_gen.summary()
 
-            env.problem_gen.update(tasks, t_ex, ch_ex)      # TODO?
-            env.problem_gen.summary()
+        tasks, ch_avail = env.tasks, env.ch_avail
+        t_ex, ch_ex = earliest_release(tasks, ch_avail)
 
-            seq = np.argsort(t_ex)
-            for n in seq:
-                obs, reward, done, info = env.step(n)
+        env.problem_gen.update(tasks, t_ex, ch_ex)      # TODO?
+        env.problem_gen.summary()
 
-            # done = False
-            # while not done:
-            #     obs, reward, done, info = env.step(action)
+        seq = np.argsort(t_ex)
+        for n in seq:
+            obs, reward, done, info = env.step(n)
+
+        # done = False
+        # while not done:
+        #     obs, reward, done, info = env.step(action)
 
 
 if __name__ == '__main__':

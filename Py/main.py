@@ -22,10 +22,10 @@ from task_scheduling.learning.SL_policy import SupervisedLearningScheduler as SL
 # NOTE: ensure train/test separation for loaded data, use iter_mode='once'
 # NOTE: to train multiple schedulers on same loaded data, use problem_gen.restart(shuffle=False)
 
-# problem_gen = problem_gens.Random.relu_drop(n_tasks=8, n_ch=1, rng=None)
-# problem_gen = problem_gens.DeterministicTasks.relu_drop(n_tasks=8, n_ch=1, rng=None)
-# problem_gen = problem_gens.PermutedTasks.relu_drop(n_tasks=8, n_ch=1, rng=None)
-problem_gen = problem_gens.Dataset.load('relu_c1t8_1000', shuffle=True, repeat=False, rng=None)
+problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
+# problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
+# problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
+# problem_gen = problem_gens.Dataset.load('relu_c1t8_1000', shuffle=True, repeat=False, rng=None)
 # problem_gen = problem_gens.DatasetOld.load('relu_c2t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
 # problem_gen = problem_gens.Random.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.01))
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2))

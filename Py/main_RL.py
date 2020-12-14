@@ -26,14 +26,14 @@ from task_scheduling.learning.RL_policy import ReinforcementLearningScheduler as
 # t_release_lim=(0, 0)
 # channel_avail_lim = (0, 10)
 
-# problem_gen = problem_gens.Random.relu_drop(n_tasks=5, n_ch=1, rng=None, duration_lim=(0,.05), t_release_lim=(0,0), slope_lim=(0,2), t_drop_lim=(0,6), l_drop_lim=(300,300))
+# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=5, n_ch=1, rng=None, duration_lim=(0,.05), t_release_lim=(0,0), slope_lim=(0,2), t_drop_lim=(0,6), l_drop_lim=(300,300))
 # problem_gen = problem_gens.Random.search_track(n_tasks=4, n_ch=1, rng=None, ch_avail_lim=(0, 6))
 problem_gen = problem_gens.Queue.search_track(n_tasks=4, n_ch=1, rng=None, ch_avail_lim=(0, 6))
 
 
-# problem_gen = problem_gens.Random.relu_drop(n_tasks=3, n_ch=1, rng=None)
-# problem_gen = problem_gens.DeterministicTasks.relu_drop(n_tasks=8, n_ch=1, rng=None)
-# problem_gen = problem_gens.PermutedTasks.relu_drop(n_tasks=8, n_ch=1, rng=None)
+# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=3, n_ch=1, rng=None)
+# problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
+# problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.Dataset.load('relu_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
 # problem_gen = problem_gens.Random.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.01))
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2))

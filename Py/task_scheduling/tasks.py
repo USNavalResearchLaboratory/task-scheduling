@@ -240,7 +240,7 @@ class ReluDrop(Generic):
 #%% Radar tasks
 
 class ReluDropRadar(ReluDrop):
-    # param_names = ('duration', 't_release', 'slope', 't_drop', 'l_drop', 't_revisit', 'dwell_type')
+    # param_names = ('duration', 't_release', 'slope', 't_drop', 'l_drop', 't_dwell', 't_revisit')
 
     def __init__(self, t_dwell, t_revisit, revisit_times=None):
         self.t_revisit = t_revisit

@@ -47,7 +47,7 @@ def test_shift(problem_gen, n_iter=1):
 
 
 def main():
-    problem_gen = problem_gens.Random.relu_drop(n_tasks=8, n_ch=1)
+    problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1)
     test_argsort(problem_gen, n_iter=10)
     test_shift(problem_gen, n_iter=10)
 

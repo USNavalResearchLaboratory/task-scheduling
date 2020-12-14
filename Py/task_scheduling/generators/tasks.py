@@ -178,7 +178,7 @@ class DiscreteIID(BaseIID):
             return NotImplemented
 
     @classmethod
-    def uniform_relu_drop(cls, duration_vals, t_release_vals, slope_vals, t_drop_vals, l_drop_vals, rng=None):
+    def relu_drop(cls, duration_vals, t_release_vals, slope_vals, t_drop_vals, l_drop_vals, rng=None):
         """Factory constructor for ReluDrop task objects."""
 
         param_probs = {'duration': dict(zip(duration_vals, np.ones(len(duration_vals)) / len(duration_vals))),
@@ -273,8 +273,13 @@ class Fixed(Base, ABC):
         return cls(tasks, param_lims, rng)
 
     @classmethod
-    def relu_drop(cls, n_tasks, rng=None, **relu_lims):
+    def continuous_relu_drop(cls, n_tasks, rng=None, **relu_lims):
         task_gen = ContinuousUniformIID.relu_drop(**relu_lims)
+        return cls._task_gen_to_fixed(n_tasks, task_gen, rng)
+
+    @classmethod
+    def discrete_relu_drop(cls, n_tasks, rng=None, **relu_vals):
+        task_gen = DiscreteIID.relu_drop(**relu_vals)
         return cls._task_gen_to_fixed(n_tasks, task_gen, rng)
 
     @classmethod
