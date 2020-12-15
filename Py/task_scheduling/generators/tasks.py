@@ -3,26 +3,20 @@
 from types import MethodType
 from typing import Iterable
 from abc import ABC, abstractmethod
-from collections import namedtuple, deque
+from collections import deque
 
 import numpy as np
 import pandas as pd
 
+from task_scheduling.tasks import check_task_types
 from task_scheduling.util.generic import RandomGeneratorMixin
 from task_scheduling import tasks as task_types
 
 np.set_printoptions(precision=2)
 
 
-def check_task_types(tasks):
-    cls_task = tasks[0].__class__
-    if all(isinstance(task, cls_task) for task in tasks[1:]):
-        return cls_task
-    else:
-        raise TypeError("All tasks must be of the same type.")
-
-
 # TODO: more generic Base class for heterogeneous task types?
+
 
 class Base(RandomGeneratorMixin, ABC):
     def __init__(self, cls_task, param_lims=None, rng=None):

@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from task_scheduling.util.generic import runtime_wrapper
 from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime
 from task_scheduling.generators import scheduling_problems as problem_gens
-from task_scheduling.tree_search import TreeNodeShift
+from task_scheduling import tree_search
 from task_scheduling.algorithms import base as algs_base
 from task_scheduling.algorithms import runtime as algs_timed
 from task_scheduling import learning
@@ -54,24 +54,24 @@ weight_func_ = None
 # def weight_func_(env):
 #     return (env.n_tasks - len(env.node.seq)) / env.n_tasks
 
-# env_cls = envs.SeqTasking
-env_cls = envs.StepTasking
+env_cls = envs.SeqTasking
+# env_cls = envs.StepTasking
 
-env_params = {'node_cls': TreeNodeShift,
+env_params = {'node_cls': tree_search.TreeNodeShift,
               'features': features,
               'sort_func': sort_func,
               'masking': True,
-              # 'action_type': 'int',
-              'action_type': 'any',
-              'seq_encoding': 'one-hot',
+              'action_type': 'int',
+              # 'action_type': 'any',
+              # 'seq_encoding': 'one-hot',
               }
 
 env = env_cls(problem_gen, **env_params)
 
 
 policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, layers=None, compile_params=None,
-                                           n_batch_train=90, n_batch_val=10, batch_size=4, weight_func=weight_func_,
-                                           fit_params={'epochs': 100}, do_tensorboard=False, plot_history=True,
+                                           n_batch_train=100, n_batch_val=10, batch_size=5, weight_func=weight_func_,
+                                           fit_params={'epochs': 80}, do_tensorboard=False, plot_history=True,
                                            save=False, save_path=None)
 # policy_model = SL_Scheduler.load('temp/2020-10-28_14-56-42')
 
@@ -110,8 +110,8 @@ algorithms = np.array([
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
 
-l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=True,
-                                            verbose=1, plotting=2, save=True, file=None)
+l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=10, solve=True,
+                                            verbose=1, plotting=1, save=True, file=None)
 
 
 # algorithms = np.array([

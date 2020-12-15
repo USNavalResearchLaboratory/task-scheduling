@@ -2,9 +2,25 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
+
+
+def check_task_types(tasks):
+    cls_task = tasks[0].__class__
+    if all(isinstance(task, cls_task) for task in tasks[1:]):
+        return cls_task
+    else:
+        raise TypeError("All tasks must be of the same type.")
+
+
+def summarize_tasks(tasks):
+    cls_task = check_task_types(tasks)
+    df = pd.DataFrame({name: [getattr(task, name) for task in tasks]
+                       for name in cls_task.param_names})
+    print(df)
 
 
 class Generic:
@@ -140,8 +156,8 @@ class ReluDrop(Generic):
         t = np.asarray(t)[np.newaxis] - self.t_release      # relative time
 
         loss = self.slope * t
-        # loss[t < 0] = 0.
-        loss[t < 0] = np.nan
+        loss[t < 0] = 0.
+        # loss[t < 0] = np.nan
         loss[t >= self.t_drop] = self.l_drop
         if loss.size == 1:
             return loss.item()

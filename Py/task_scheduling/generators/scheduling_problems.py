@@ -11,6 +11,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+import task_scheduling.tasks
 from task_scheduling.algorithms.base import branch_bound, earliest_release
 from task_scheduling.util.generic import RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
@@ -505,7 +506,7 @@ class Dataset(Base):
 class QueueFlexDAR(Base):
     def __init__(self, n_tasks, tasks_full, ch_avail, RP=0.04, clock=0):
 
-        self._cls_task = task_gens.check_task_types(tasks_full)
+        self._cls_task = task_scheduling.tasks.check_task_types(tasks_full)
 
         # FIXME: make a task_gen???
         super().__init__(n_tasks, len(ch_avail), task_gen=None, ch_avail_gen=None, rng=None)

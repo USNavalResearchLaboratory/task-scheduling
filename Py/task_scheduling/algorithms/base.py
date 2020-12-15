@@ -6,7 +6,7 @@ import numpy as np
 
 from task_scheduling.tree_search import TreeNodeBound, TreeNode, SearchNode
 
-from sequence2schedule import FlexDARMultiChannelSequenceScheduler
+# from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
 
 def branch_bound(tasks, ch_avail, verbose=False, rng=None):
@@ -301,29 +301,29 @@ def earliest_drop(tasks, ch_avail, do_swap=False):
     return node.t_ex, node.ch_ex
 
 
-def est_alg_kw(tasks, ch_avail):
-    """
-    Earliest Start Times Algorithm using FlexDAR scheduler function.
-
-    Parameters
-    ----------
-    tasks : Iterable of task_scheduling.tasks.Generic
-    ch_avail : Iterable of float
-        Channel availability times.
-
-    Returns
-    -------
-    t_ex : ndarray
-        Task execution times.
-    ch_ex : ndarray
-        Task execution channels.
-
-    """
-
-    seq = list(np.argsort([task.t_release for task in tasks]))  # Task Order
-    t_ex, ch_ex = FlexDARMultiChannelSequenceScheduler(seq, tasks, deepcopy(ch_avail), RP=100)
-
-    return t_ex, ch_ex
+# def est_alg_kw(tasks, ch_avail):
+#     """
+#     Earliest Start Times Algorithm using FlexDAR scheduler function.
+#
+#     Parameters
+#     ----------
+#     tasks : Iterable of task_scheduling.tasks.Generic
+#     ch_avail : Iterable of float
+#         Channel availability times.
+#
+#     Returns
+#     -------
+#     t_ex : ndarray
+#         Task execution times.
+#     ch_ex : ndarray
+#         Task execution channels.
+#
+#     """
+#
+#     seq = list(np.argsort([task.t_release for task in tasks]))  # Task Order
+#     t_ex, ch_ex = FlexDARMultiChannelSequenceScheduler(seq, tasks, deepcopy(ch_avail), RP=100)
+#
+#     return t_ex, ch_ex
 
 
 def ert_alg_kw(tasks, ch_avail, do_swap=False):

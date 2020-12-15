@@ -61,8 +61,8 @@ class TreeNode(RandomGeneratorMixin):
 
     def summary(self):
         """Print a string describing important node attributes."""
-        print(f'TreeNode\n--------\nsequence: {self.seq}\nexecution time: {self.t_ex}'
-              f'\nexecution channel: {self.ch_ex}\nloss incurred: {self.l_ex:.2f}')
+        print(f'TreeNode\n--------\nsequence: {self.seq}\nexecution times: {self.t_ex}'
+              f'\nexecution channels: {self.ch_ex}\nloss incurred: {self.l_ex:.2f}')
 
     tasks = property(lambda self: self._tasks)
     ch_avail = property(lambda self: self._ch_avail)
