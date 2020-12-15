@@ -20,7 +20,9 @@ def test_env():
     # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
     ch_avail = [0, 0]
     # Problem Generator
-    q = problem_gens.QueueFlexDAR(n_tasks, tasks_full, ch_avail)
+    # problem_gen = problem_gens.Dataset.load('abc', iter_mode='once', shuffle_mode='once', rng=None)
+
+    problem_gen = problem_gens.QueueFlexDAR(n_tasks, tasks_full, ch_avail)
 
     features = np.array([('duration', lambda task: task.duration, (0, 10)),
                          ('release time', lambda task: task.t_release, (0, 10)),
@@ -42,15 +44,17 @@ def test_env():
                   # 'seq_encoding': 'one-hot',
                   }
 
-    env = env_cls(q, **env_params)
+    env = env_cls(problem_gen, **env_params)
+    env.reset()
+    A = env.problem_gen(n_gen=100, save=True, file='data_test')
     # env.problem_gen(1, solve=False)
     # env.reset()
     # for __ in range(10):
     #     (tasks, ch_avail), = env.problem_gen(1, solve=False)
 
-    dqn_agent = RL_Scheduler.train_from_gen(q, env_cls, env_params,
+    dqn_agent = RL_Scheduler.train_from_gen(problem_gen, env_cls, env_params,
                                             model_cls='DQN', model_params={'verbose': 1}, n_episodes=1000,
-                                            save=False, save_path=None)
+                                            save=True, save_path='./')
 
     algorithms = np.array([
         # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
@@ -61,7 +65,7 @@ def test_env():
         # ('DNN Policy', policy_model, 5),
     ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
 
-    l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, q, n_gen=100, solve=True,
+    l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=100, solve=True,
                                                 verbose=2, plotting=1, save=True, file=None)
 
 
