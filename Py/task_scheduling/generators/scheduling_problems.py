@@ -409,11 +409,11 @@ class Dataset(Base):
         self.repeat = repeat
 
     def add_problems(self, problems, solutions=None):
-        self.problems.extendleft(problems[::-1])
+        self.problems.extendleft(problems)
 
         if solutions is None:
             solutions = [None for __ in range(len(problems))]
-        self.solutions.extendleft(solutions[::-1])
+        self.solutions.extendleft(solutions)
 
     @classmethod
     def load(cls, file, shuffle=False, repeat=False, rng=None):
@@ -476,7 +476,7 @@ class Dataset(Base):
 #
 #     def add_tasks(self, tasks):
 #         if isinstance(tasks, Iterable):
-#             self.queue.extendleft(tasks[::-1])
+#             self.queue.extendleft(tasks)
 #         else:
 #             self.queue.appendleft(tasks)    # for single tasks
 #
@@ -543,7 +543,7 @@ class QueueFlexDAR(Base):
 
     def add_tasks(self, tasks):
         if isinstance(tasks, Iterable):
-            self.queue.extendleft(tasks[::-1])
+            self.queue.extendleft(tasks)
         else:
             self.queue.appendleft(tasks)    # for single tasks
 
