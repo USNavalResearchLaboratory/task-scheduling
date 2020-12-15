@@ -318,7 +318,7 @@ class Dataset(Fixed):
 
     def add_tasks(self, tasks):
         if isinstance(tasks, Iterable):
-            self.tasks.extendleft(tasks[::-1])
+            self.tasks.extendleft(tasks)
         else:
             self.tasks.appendleft(tasks)    # for single tasks
 
