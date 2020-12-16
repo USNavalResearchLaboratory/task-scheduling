@@ -9,7 +9,9 @@ from task_scheduling.tree_search import TreeNodeShift
 from task_scheduling.util.results import timing_wrapper
 from task_scheduling.learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler
 from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime
-
+from tasks import check_task_types
+import pandas as pd
+import matplotlib.pyplot as plt
 
 def test_env():
     n_tasks = 4  # Number of tasks to process at each iteration
@@ -20,11 +22,42 @@ def test_env():
     # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
     ch_avail = [0, 0]
     # Problem Generator
-    if 0:  # Load dataset
-        problem_gen = problem_gens.Dataset.load('data_test', shuffle=False, rng=None)
-        tt = list(problem_gen(100))
+    load_data_flag = 1
+    if load_data_flag:  # Load dataset
+        n_gen = 1000
+        filename = 'FlexDAR_' + 'ch' + str(len(ch_avail)) + 't' + str(n_tasks) + '_' + str(n_gen)
+        problem_gen = problem_gens.Dataset.load(file=filename, shuffle=False, rng=None)
+        n_problems = len(problem_gen.problems)
+        df = pd.DataFrame()
+        for jj in range(n_problems):
+            tasks = problem_gen.problems[jj].tasks
+            ch_avail = problem_gen.problems[jj].ch_avail
+            cls_task = check_task_types(tasks)
+            df2 = pd.DataFrame({name: [getattr(task, name) for task in tasks]
+                               for name in cls_task.param_names})
+            for kk in range(len(ch_avail)):
+                name = 'ch' + str(kk)
+                df2[name] = np.ones(shape=len(tasks)) * np.array(ch_avail[kk], dtype=float)
+                name = 'ch_max'
+                df2[name] = np.ones(shape=len(tasks)) * np.max(np.array(ch_avail, dtype=float))
+                name = 'ch_min'
+                df2[name] = np.ones(shape=len(tasks)) * np.min(np.array(ch_avail, dtype=float))
 
-    problem_gen = problem_gens.QueueFlexDAR(n_tasks, tasks_full, ch_avail)
+            df = df.append(df2)
+
+        name = 't_release - ch_min'
+        df[name] = df['t_release'] - df['ch_min']
+
+        for col in df.columns:
+            # plt.figure()
+            # df.plot.hist(column=jj, bins=100, title=df.columns[jj], ax=jj)
+            df.hist(column=col, bins=100)
+    else:
+        problem_gen = problem_gens.QueueFlexDAR(n_tasks, tasks_full, ch_avail)
+
+        # plt.title(df.columns[jj])
+            # tt = list(problem_gen(100))
+
 
     features = np.array([('duration', lambda task: task.duration, (0, 10)),
                          ('release time', lambda task: task.t_release, (0, 10)),
@@ -48,7 +81,10 @@ def test_env():
 
     env = env_cls(problem_gen, **env_params)
     # env.reset()
-    list(env.problem_gen(n_gen=100, save=True, file='data_test'))
+    if load_data_flag == 0:
+        n_gen = 1000
+        filename = 'FlexDAR_' + 'ch' + str(len(ch_avail)) + 't' + str(n_tasks) + '_' + str(n_gen)
+        list(env.problem_gen(n_gen=n_gen, save=True, file=filename))
 
     # env.problem_gen(1, solve=False)
     # env.reset()
@@ -56,8 +92,8 @@ def test_env():
     #     (tasks, ch_avail), = env.problem_gen(1, solve=False)
 
     dqn_agent = RL_Scheduler.train_from_gen(problem_gen, env_cls, env_params,
-                                            model_cls='DQN', model_params={'verbose': 1}, n_episodes=1000,
-                                            save=True, save_path='./')
+                                            model_cls='DQN', model_params={'verbose': 1}, n_episodes=n_gen,
+                                            save=False, save_path='./')
 
     algorithms = np.array([
         # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
@@ -69,7 +105,7 @@ def test_env():
     ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
 
     l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=100, solve=True,
-                                                verbose=2, plotting=1, save=True, file=None)
+                                                verbose=2, plotting=1, save=False, file=None)
 
 
     # maxTime = 10

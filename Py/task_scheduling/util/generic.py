@@ -10,6 +10,7 @@ import numpy as np
 
 
 SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
+SchedulingProblemFlexDAR = namedtuple('SchedulingProblem', ['tasks', 'ch_avail', 'clock'])
 SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
 # TODO: use for algorithms and wraps?
 

@@ -14,7 +14,7 @@ import pandas as pd
 
 import task_scheduling.tasks
 from task_scheduling.algorithms.base import branch_bound, earliest_release
-from task_scheduling.util.generic import RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution
+from task_scheduling.util.generic import RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution, SchedulingProblemFlexDAR
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
 
 np.set_printoptions(precision=2)
@@ -515,7 +515,7 @@ class QueueFlexDAR(Base):
         self.queue = deque()
         self.add_tasks(tasks_full)
         self.ch_avail = np.array(ch_avail, dtype=np.float)
-        self.clock = 0
+        self.clock = np.array(0, dtype=np.float)
         self.RP = RP
 
     def _gen_problem(self, rng):
@@ -540,7 +540,7 @@ class QueueFlexDAR(Base):
 
         # TODO: add prioritization?
 
-        return SchedulingProblem(tasks, self.ch_avail.copy())
+        return SchedulingProblem(tasks, self.ch_avail.copy())  # SchedulingProblemFlexDAR(tasks, self.ch_avail.copy(), self.clock.copy())
 
     def add_tasks(self, tasks):
         if isinstance(tasks, Iterable):
