@@ -20,7 +20,9 @@ def test_env():
     # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
     ch_avail = [0, 0]
     # Problem Generator
-    # problem_gen = problem_gens.Dataset.load('abc', iter_mode='once', shuffle_mode='once', rng=None)
+    if 0:  # Load dataset
+        problem_gen = problem_gens.Dataset.load('data_test', shuffle=False, rng=None)
+        tt = list(problem_gen(100))
 
     problem_gen = problem_gens.QueueFlexDAR(n_tasks, tasks_full, ch_avail)
 
@@ -45,8 +47,9 @@ def test_env():
                   }
 
     env = env_cls(problem_gen, **env_params)
-    env.reset()
-    A = env.problem_gen(n_gen=100, save=True, file='data_test')
+    # env.reset()
+    list(env.problem_gen(n_gen=100, save=True, file='data_test'))
+
     # env.problem_gen(1, solve=False)
     # env.reset()
     # for __ in range(10):
