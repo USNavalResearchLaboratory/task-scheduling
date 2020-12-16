@@ -188,7 +188,7 @@ class DiscreteIID(BaseIID):
 class SearchTrackIID(BaseIID):
     """Search and Track tasks based on 2020 TSRS paper."""
 
-    def __init__(self, probs=None, t_release_lim=(0., 0.), rng=None):
+    def __init__(self, probs=None, t_release_lim=(0., .018), rng=None):
         self.targets = [{'duration': .036, 't_revisit': 2.5},
                         {'duration': .036, 't_revisit': 5.0},
                         {'duration': .018, 't_revisit': 5.0},
