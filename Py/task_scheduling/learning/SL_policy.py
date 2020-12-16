@@ -5,7 +5,7 @@ import dill
 
 import numpy as np
 import matplotlib.pyplot as plt
-# import tensorflow as tf
+import tensorflow as tf
 from tensorflow import keras
 from tensorboard import program
 import webbrowser
@@ -52,13 +52,14 @@ class SupervisedLearningScheduler:
             Task execution channels.
         """
 
-        # ensure_valid = isinstance(self.env, envs.StepTasking)
-        ensure_valid = True    # TODO: trained models may naturally avoid invalid actions!!
+        ensure_valid = isinstance(self.env, envs.StepTasking) and not self.env.do_valid_actions
+        # ensure_valid = False    # TODO: trained models may naturally avoid invalid actions!!
 
         obs = self.env.reset(tasks, ch_avail)
         done = False
         while not done:
-            prob = self.model.predict(obs[np.newaxis]).squeeze(0)
+            prob = self.model(obs[np.newaxis]).numpy().squeeze(0)
+            # prob = self.model.predict(obs[np.newaxis]).squeeze(0)
 
             if ensure_valid:
                 seq_rem_sort = self.env.sorted_index_inv[list(self.env.node.seq_rem)]
@@ -90,6 +91,11 @@ class SupervisedLearningScheduler:
         # history = model.fit(d_train, **fit_params)      # generator Dataset
         history = self.model.fit(x, y, **fit_params)  # NumPy data
 
+        if tf.version.VERSION[0] == '1':
+            acc_str = 'acc'
+        else:
+            acc_str = 'accuracy'
+
         if plot_history:
             plt.figure(num='training history', clear=True, figsize=(10, 4.8))
             plt.subplot(1, 2, 1)
@@ -98,8 +104,8 @@ class SupervisedLearningScheduler:
             plt.legend()
             plt.gca().set(xlabel='epoch', ylabel='loss')
             plt.subplot(1, 2, 2)
-            plt.plot(history.epoch, history.history['accuracy'], label='training')
-            plt.plot(history.epoch, history.history['val_accuracy'], label='validation')
+            plt.plot(history.epoch, history.history[acc_str], label='training')
+            plt.plot(history.epoch, history.history['val_' + acc_str], label='validation')
             plt.legend()
             plt.gca().set(xlabel='epoch', ylabel='accuracy')
 
@@ -221,7 +227,7 @@ class SupervisedLearningScheduler:
 
         model = keras.Sequential([keras.layers.Flatten(input_shape=env.observation_space.shape),
                                   *layers,
-                                  keras.layers.Dense(env.action_space.n, activation=None)])
+                                  keras.layers.Dense(env.action_space.n, activation='softmax')])
 
         if compile_params is None:
             compile_params = {'optimizer': 'rmsprop',

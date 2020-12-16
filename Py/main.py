@@ -4,6 +4,7 @@ import pstats
 
 import numpy as np
 from matplotlib import pyplot as plt
+from tensorflow import keras
 
 from task_scheduling.util.generic import runtime_wrapper
 from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime
@@ -25,11 +26,11 @@ from task_scheduling.learning.SL_policy import SupervisedLearningScheduler as SL
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=16, n_ch=1, rng=None)
-problem_gen = problem_gens.Dataset.load('relu_c1t4_1000', shuffle=True, repeat=False, rng=None)
-# problem_gen = problem_gens.DatasetOld.load('relu_c2t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
+problem_gen = problem_gens.Dataset.load('discrete_relu_c1t8_1000', shuffle=True, repeat=False, rng=None)
+# problem_gen = problem_gens.DatasetOld.load('discrete_relu_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
+# problem_gen = problem_gens.Dataset.load('search_track_c1t8_1000', shuffle=True, repeat=False, rng=None)
 # problem_gen = problem_gens.Random.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.01))
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2))
-# problem_gen = problem_gens.Dataset.load('search_track_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
 
 # Algorithms
 features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
@@ -49,29 +50,33 @@ sort_func = 't_release'
 # def sort_func(task):
 #     return task.t_release
 
-
 weight_func_ = None
 # def weight_func_(env):
 #     return (env.n_tasks - len(env.node.seq)) / env.n_tasks
 
-env_cls = envs.SeqTasking
-# env_cls = envs.StepTasking
+# env_cls = envs.SeqTasking
+env_cls = envs.StepTasking
 
-env_params = {'node_cls': tree_search.TreeNodeShift,
-              'features': features,
+env_params = {'features': features,
               'sort_func': sort_func,
+              'time_shift': True,
               'masking': True,
-              'action_type': 'int',
-              # 'action_type': 'any',
-              # 'seq_encoding': 'one-hot',
+              # 'action_type': 'int',
+              'action_type': 'any',
+              'seq_encoding': 'one-hot',
               }
 
-env = env_cls(problem_gen, **env_params)
+# layers = None
+layers = [keras.layers.Dense(30, activation='relu'),
+          # keras.layers.Dense(10, activation='relu'),
+          # keras.layers.Dense(30, activation='relu'),
+          # keras.layers.Dropout(0.2),
+          # keras.layers.Dense(100, activation='relu'),
+          ]
 
-
-policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, layers=None, compile_params=None,
-                                           n_batch_train=100, n_batch_val=10, batch_size=5, weight_func=weight_func_,
-                                           fit_params={'epochs': 80}, do_tensorboard=False, plot_history=True,
+policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, layers=layers, compile_params=None,
+                                           n_batch_train=35, n_batch_val=10, batch_size=20, weight_func=weight_func_,
+                                           fit_params={'epochs': 400}, do_tensorboard=False, plot_history=True,
                                            save=False, save_path=None)
 # policy_model = SL_Scheduler.load('temp/2020-10-28_14-56-42')
 
@@ -110,7 +115,7 @@ algorithms = np.array([
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
 
-l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=10, solve=True,
+l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=100, solve=True,
                                             verbose=1, plotting=1, save=True, file=None)
 
 

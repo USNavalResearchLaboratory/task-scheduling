@@ -10,9 +10,9 @@ from gym.spaces import Space, Box, Discrete
 # from stable_baselines.common.vec_env import DummyVecEnv
 # from stable_baselines.gail import ExpertDataset
 
+from task_scheduling import tree_search
 from task_scheduling.util.plot import plot_task_losses
 from task_scheduling.util.generic import seq2num, num2seq
-from task_scheduling.tree_search import TreeNode
 
 np.set_printoptions(precision=2)
 
@@ -79,12 +79,12 @@ class BaseTasking(ABC, gym.Env):
     ----------
     problem_gen : generators.scheduling_problems.Base
         Scheduling problem generation object.
-    node_cls : TreeNode or callable
-        Class for tree search node generation.
     features : ndarray, optional
         Structured numpy array of features with fields 'name', 'func', and 'lims'.
     sort_func : function or str, optional
         Method that returns a sorting value for re-indexing given a task index 'n'.
+    time_shift : bool, optional
+        Enables task re-parameterization after sequence updates.
     masking : bool, optional
         If True, features are zeroed out for scheduled tasks.
 
@@ -92,7 +92,7 @@ class BaseTasking(ABC, gym.Env):
 
     # FIXME: add normalization option for RL learners!? Or just use gym.Wrappers?
 
-    def __init__(self, problem_gen, node_cls=TreeNode, features=None, sort_func=None, masking=False):
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False):
         self.problem_gen = problem_gen
         self.solution = None
 
@@ -113,8 +113,6 @@ class BaseTasking(ABC, gym.Env):
         if callable(sort_func):
             self.sort_func = sort_func
         elif isinstance(sort_func, str):
-            # attr_str = sort_func
-
             def _sort_func(task):
                 return getattr(task, sort_func)
 
@@ -127,7 +125,10 @@ class BaseTasking(ABC, gym.Env):
         self.reward_range = (-float('inf'), 0)
         self.loss_agg = None
 
-        self.node_cls = node_cls
+        if time_shift:
+            self.node_cls = tree_search.TreeNodeShift
+        else:
+            self.node_cls = tree_search.TreeNode
         self.node = None
 
         self.steps_per_episode = None
@@ -418,9 +419,8 @@ class BaseTasking(ABC, gym.Env):
 class SeqTasking(BaseTasking):
     """Tasking environment with single action of a complete task index sequence."""
 
-    def __init__(self, problem_gen, node_cls=TreeNode, features=None, sort_func=None, masking=False,
-                 action_type='seq'):
-        super().__init__(problem_gen, node_cls, features, sort_func, masking)
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='seq'):
+        super().__init__(problem_gen, features, sort_func, time_shift, masking)
 
         self.action_type = action_type      # 'seq' for sequences, 'int' for integers
         if self.action_type == 'seq':
@@ -491,12 +491,12 @@ class StepTasking(BaseTasking):
     ----------
     problem_gen : generators.scheduling_problems.Base
         Scheduling problem generation object.
-    node_cls : TreeNode or callable
-        Class for tree search node generation.
     features : ndarray, optional
         Structured numpy array of features with fields 'name', 'func', and 'lims'.
     sort_func : function or str, optional
         Method that returns a sorting value for re-indexing given a task index 'n'.
+    time_shift : bool, optional
+        Enables task re-parameterization after sequence updates.
     masking : bool, optional
         If True, features are zeroed out for scheduled tasks.
     action_type : str, optional
@@ -508,10 +508,10 @@ class StepTasking(BaseTasking):
 
     """
 
-    def __init__(self, problem_gen, node_cls=TreeNode, features=None, sort_func=None, masking=False,
-                 action_type='valid', seq_encoding='one-hot'):
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='valid',
+                 seq_encoding='one-hot'):
 
-        super().__init__(problem_gen, node_cls, features, sort_func, masking)
+        super().__init__(problem_gen, features, sort_func, time_shift, masking)
 
         # Action types
         if action_type == 'valid':

@@ -35,9 +35,9 @@ def test_env():
     # env_cls = envs.SeqTasking
     env_cls = envs.SeqTasking
 
-    env_params = {'node_cls': TreeNodeShift,
-                  'features': features,
+    env_params = {'features': features,
                   'sort_func': None,
+                  'time_shift': True,
                   'masking': True,
                   'action_type': 'int',
                   # 'action_type': 'any',
@@ -136,9 +136,9 @@ def test_queue():
     env_cls = envs.SeqTasking
     # env_cls = envs.StepTasking
 
-    env_params = {'node_cls': TreeNodeShift,
-                  'features': features,
+    env_params = {'features': features,
                   'sort_func': None,
+                  'time_shift': True,
                   'masking': True,
                   'action_type': 'int',
                   # 'action_type': 'any',
@@ -211,9 +211,9 @@ def test_queue_env():
     # env_cls = envs.SeqTasking
     env_cls = envs.StepTasking
 
-    env_params = {'node_cls': TreeNodeShift,
-                  'features': features,
+    env_params = {'features': features,
                   'sort_func': None,
+                  'time_shift': True,
                   'masking': True,
                   # 'action_type': 'seq',
                   'action_type': 'any',
