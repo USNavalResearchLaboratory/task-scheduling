@@ -94,18 +94,6 @@ dqn_agent = RL_Scheduler.train_from_gen(problem_gen, env_cls, env_params,
 # policy_model = SL_Scheduler.load('temp/2020-10-28_14-56-42')
 
 
-# (tasks, ch_avail), = problem_gen(n_gen=1)
-
-# with cProfile.Profile() as pr:        # TODO: DNN speed vs DQN?
-#     out = policy_model(tasks, ch_avail)
-#
-# # pr.print_stats()
-#
-# ps = pstats.Stats(pr).sort_stats('cumulative')
-# ps.print_stats()
-# pr.dump_stats('profile.pstat')
-
-
 algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
     # ('Random', algs_base.random_sequencer, 20),

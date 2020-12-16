@@ -1,6 +1,7 @@
 """Generator objects for complete tasking problems with optimal solutions."""
 
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from collections import deque
 from time import strftime
 from typing import Iterable
@@ -513,7 +514,7 @@ class QueueFlexDAR(Base):
 
         self.queue = deque()
         self.add_tasks(tasks_full)
-        self.ch_avail = ch_avail
+        self.ch_avail = np.array(ch_avail, dtype=np.float)
         self.clock = 0
         self.RP = RP
 
@@ -534,12 +535,12 @@ class QueueFlexDAR(Base):
         # while not done:
         #     obs, reward, done, info = env.step(action)
 
-        self.updateFlexDAR(tasks, t_ex, ch_ex)  # Add tasks back on queue
+        self.updateFlexDAR(deepcopy(tasks), t_ex, ch_ex)  # Add tasks back on queue
         self.clock += self.RP  # Update clock
 
         # TODO: add prioritization?
 
-        return SchedulingProblem(tasks, self.ch_avail)
+        return SchedulingProblem(tasks, self.ch_avail.copy())
 
     def add_tasks(self, tasks):
         if isinstance(tasks, Iterable):

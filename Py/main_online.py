@@ -15,7 +15,7 @@ def test_env():
     n_tasks = 4  # Number of tasks to process at each iteration
     n_track = 10
     ch_avail = np.zeros(2, dtype=np.float)
-    tasks_full = task_gens.FlexDAR(n_track=n_track).tasks_full
+    tasks_full = task_gens.FlexDAR(n_track=n_track, rng=100).tasks_full
 
     # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
     ch_avail = [0, 0]
