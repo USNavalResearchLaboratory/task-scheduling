@@ -123,8 +123,16 @@ def scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
     if ax_kwargs is None:
         ax_kwargs = {}
 
+
     for name in t_run.dtype.names:
+        color = next(ax._get_lines.prop_cycler)['color']
         ax.scatter(t_run[name], l_ex[name], label=name)
+        x_mean = np.mean(t_run[name])
+        x_std = np.std(t_run[name])
+        y_mean = np.mean(l_ex[name])
+        y_std = np.std(l_ex[name])
+        ax.scatter(np.mean(t_run[name]), np.mean(l_ex[name]), label=name+'_mean', color=color, marker='*', s=500)
+        ax.errorbar(x_mean, y_mean, xerr=x_std, yerr=y_std, color=color, capsize=2)
 
     ax.set(xlabel='Runtime (s)', ylabel='Loss')
     ax.grid(True)
