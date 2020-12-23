@@ -64,14 +64,15 @@ def generate_data(create_data_flag=False, n_gen=None, n_tasks=None, n_track=None
 def test_rl_train():
 
     plot_hist_flag = False
-    n_gen = 100
+    # n_gen = 100
     # n_train = np.array(n_gen*0.9, dtype=int)
     # n_eval = n_gen - n_train - 1
     n_train = 100
-    n_eval = 100
+    n_eval = 200
 
-    n_tasks = 6  # Number of tasks to process at each iteration
+    n_tasks = 7  # Number of tasks to process at each iteration
     n_track = 10
+    n_track_eval = 11
     # ch_avail = np.zeros(2, dtype=np.float)
     tasks_full = task_gens.FlexDAR(n_track=n_track, rng=100).tasks_full
 
@@ -85,19 +86,19 @@ def test_rl_train():
     # Use separate datasets for training and evaluation. Let Training dataset repeat for training.
     filename_train = 'FlexDAR_' + 'ch' + str(len(ch_avail)) + 't' + str(n_tasks) + '_track' + str(n_track) + '_' + str(n_train)
     # Eval with 0 tracks for now
-    filename_eval = 'FlexDAR_' + 'ch' + str(len(ch_avail)) + 't' + str(n_tasks) + '_track' + str(0) + '_' + str(n_eval)
+    filename_eval = 'FlexDAR_' + 'ch' + str(len(ch_avail)) + 't' + str(n_tasks) + '_track' + str(n_track_eval) + '_' + str(n_eval)
     filepath_train = './data/schedules/' + filename_train
     filepath_eval = './data/schedules/' + filename_eval
     if os.path.isfile(filepath_train):
         problem_gen = problem_gens.Dataset.load(file=filename_train, shuffle=False, rng=None, repeat=True)
     else:
-        generate_data(create_data_flag=True, n_gen=n_gen, n_tasks=n_tasks, n_track=n_track, n_ch=n_ch)
+        generate_data(create_data_flag=True, n_gen=n_train, n_tasks=n_tasks, n_track=n_track, n_ch=n_ch)
         problem_gen = problem_gens.Dataset.load(file=filename_train, shuffle=False, rng=None, repeat=True)
 
     if os.path.isfile(filepath_eval):
         problem_gen_eval = problem_gens.Dataset.load(file=filename_eval, shuffle=False, rng=None)
     else:
-        generate_data(create_data_flag=True, n_gen=n_eval, n_tasks=n_tasks, n_track=0, n_ch=n_ch)
+        generate_data(create_data_flag=True, n_gen=n_eval, n_tasks=n_tasks, n_track=n_track_eval, n_ch=n_ch)
         problem_gen_eval = problem_gens.Dataset.load(file=filename_eval, shuffle=False, rng=None)
 
 
@@ -151,7 +152,7 @@ def test_rl_train():
     env_params = {'features': features,
                   'sort_func': None,
                   'time_shift': True,
-                  'masking': True,
+                  'masking': False,
                   'action_type': 'int',
                   # 'action_type': 'any',
                   # 'seq_encoding': 'one-hot',
@@ -167,7 +168,7 @@ def test_rl_train():
     #     (tasks, ch_avail), = env.problem_gen(1, solve=False)
 
     dqn_agent = RL_Scheduler.train_from_gen(problem_gen, env_cls, env_params,
-                                            model_cls='DQN', model_params={'verbose': 1}, n_episodes=n_train*1000,
+                                            model_cls='DQN', model_params={'verbose': 1}, n_episodes=n_train*100,
                                             save=False, save_path='./')
 
     algorithms = np.array([
@@ -175,7 +176,7 @@ def test_rl_train():
         # ('Random', algs_base.random_sequencer, 20),
         ('ERT', earliest_release, 1),
         # ('MCTS', partial(algs_base.mcts, n_mc=100, verbose=False), 5),
-        ('DQN Agent', dqn_agent, 5),
+        ('DQN Agent', dqn_agent, 1),
         # ('DNN Policy', policy_model, 5),
     ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
 
@@ -183,6 +184,8 @@ def test_rl_train():
                                                 verbose=2, plotting=1, save=False, file=None)
     plt.show()
     a = 1
+
+
 
 
     # maxTime = 10

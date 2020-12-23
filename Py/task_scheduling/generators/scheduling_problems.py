@@ -521,6 +521,7 @@ class QueueFlexDAR(Base):
     def _gen_problem(self, rng):
         """Return a single scheduling problem (and optional solution)."""
 
+        ch_avail_input = deepcopy(self.ch_avail)  # This is what you want to pass out in the scheduling problem
         self.reprioritize()  # Reprioritize
         tasks = [self.queue.pop() for _ in range(self.n_tasks)]  # Pop tasks
 
@@ -540,7 +541,7 @@ class QueueFlexDAR(Base):
 
         # TODO: add prioritization?
 
-        return SchedulingProblem(tasks, self.ch_avail.copy())  # SchedulingProblemFlexDAR(tasks, self.ch_avail.copy(), self.clock.copy())
+        return SchedulingProblem(tasks, ch_avail_input.copy())  # SchedulingProblemFlexDAR(tasks, self.ch_avail.copy(), self.clock.copy())
 
     def add_tasks(self, tasks):
         if isinstance(tasks, Iterable):
