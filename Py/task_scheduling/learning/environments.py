@@ -584,14 +584,11 @@ class StepTasking(BaseTasking):
         else:
             pass
 
-    # def step(self, action):   # TODO: improve or delete
-    #     if self.do_valid_actions:
-    #         return super().step(action)
-    #     else:
-    #         try:
-    #             return super().step(action)
-    #         except ValueError:
-    #             return self.state, -100, False, {}
+    def step(self, action):   # TODO: improve or delete
+        if self.do_valid_actions or self.sorted_index[action] in self.node.seq_rem:
+            return super().step(action)
+        else:
+            return self.state, -100, False, {}
 
     def _gen_single(self, seq, weight_func):
         """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""

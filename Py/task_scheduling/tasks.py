@@ -96,11 +96,6 @@ class Generic:
 
         if t_plot is None:
             t_plot = np.arange(*self.plot_lim, 0.01)
-        elif t_plot[0] < self.t_release:
-            t_plot = t_plot[t_plot >= self.t_release]
-
-        x_lim = t_plot[0], t_plot[-1]
-        y_lim = self(x_lim)
 
         if ax is None:
             _, ax = plt.subplots()
@@ -108,13 +103,6 @@ class Generic:
             ax.set(xlabel='t', ylabel='Loss')
             plt.grid(True)
             plt.title(self.__repr__())
-        else:
-            x_lim_gca, y_lim_gca = ax.get_xlim(), ax.get_ylim()
-            x_lim = min(x_lim[0], x_lim_gca[0]), max(x_lim[1], x_lim_gca[1])
-            y_lim = min(y_lim[0], y_lim_gca[0]), max(y_lim[1], y_lim_gca[1])
-
-        ax.set_xlim(*x_lim)
-        ax.set_ylim(*y_lim)
 
         plot_data = ax.plot(t_plot, self(t_plot), label=self.__repr__())
 
@@ -156,8 +144,8 @@ class ReluDrop(Generic):
         t = np.asarray(t)[np.newaxis] - self.t_release      # relative time
 
         loss = self.slope * t
-        loss[t < 0] = 0.
-        # loss[t < 0] = np.nan
+        # loss[t < 0] = 0.
+        loss[t < -1e-9] = np.nan
         loss[t >= self.t_drop] = self.l_drop
         if loss.size == 1:
             return loss.item()
@@ -250,7 +238,8 @@ class ReluDrop(Generic):
     @property
     def plot_lim(self):
         """2-tuple of limits for automatic plotting."""
-        return self.t_release, self.t_release + max(self.duration, self.t_drop) + 1
+        return self.t_release, self.t_release + self.t_drop + 1
+        # return self.t_release, self.t_release + max(self.duration, self.t_drop) + 1
 
 
 #%% Radar tasks
@@ -302,8 +291,6 @@ class ReluDropRadar(ReluDrop):
             return cls.track('med')
         else:
             return cls.track('low')
-
-
 
 
 # class ReluDropSearch(ReluDrop):
@@ -369,9 +356,6 @@ class ReluDropRadar(ReluDrop):
 #             return cls('med')
 #         else:
 #             return cls('low')
-
-
-
 
 
 # class ReluDropRadar(ReluDrop):

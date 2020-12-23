@@ -1,4 +1,9 @@
+import itertools
+import os
+
 import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
 
 import task_scheduling
 from task_scheduling.generators import (tasks as task_gens, channel_availabilities as ch_gens,
@@ -6,13 +11,11 @@ from task_scheduling.generators import (tasks as task_gens, channel_availabiliti
 from task_scheduling.algorithms.base import earliest_release
 from task_scheduling.learning import environments as envs
 from task_scheduling.tree_search import TreeNodeShift
-from task_scheduling.util.results import timing_wrapper
 from task_scheduling.learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler
-from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime
-from tasks import check_task_types
-import pandas as pd
-import matplotlib.pyplot as plt
-import os
+from task_scheduling.util.results import timing_wrapper, evaluate_algorithms, evaluate_algorithms_runtime, _iter_to_mean
+from task_scheduling.util.plot import scatter_loss_runtime_stats
+from task_scheduling.tasks import check_task_types
+
 
 def generate_data(create_data_flag=False, n_gen=None, n_tasks=None, n_track=None, n_ch=None):
 
@@ -182,6 +185,10 @@ def test_rl_train():
 
     l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen_eval, n_gen=n_eval, solve=True,
                                                 verbose=2, plotting=1, save=False, file=None)
+
+    l_ex_mean, t_run_mean = map(_iter_to_mean, (l_ex_iter, t_run_iter))
+    scatter_loss_runtime_stats(t_run_mean, l_ex_mean, ax=None, ax_kwargs=None)
+
     plt.show()
     a = 1
 
