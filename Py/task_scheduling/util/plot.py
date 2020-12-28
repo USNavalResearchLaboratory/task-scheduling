@@ -26,9 +26,12 @@ def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
     if t_plot is None:
         x_lim = min(task.plot_lim[0] for task in tasks), max(task.plot_lim[1] for task in tasks)
         t_plot = np.arange(*x_lim, 0.01)
+    else:
+        x_lim = t_plot[0], t_plot[-1]
 
-    x_lim = t_plot[0], t_plot[-1]
-    y_lim = min(task(x_lim[0]) for task in tasks), max(task(x_lim[1]) for task in tasks)
+    _temp = np.array([task(x_lim) for task in tasks])
+    _temp[np.isnan(_temp)] = 0.
+    y_lim = _temp[:, 0].min(), _temp[:, 1].max()
 
     if ax is None:
         _, ax = plt.subplots()
@@ -123,15 +126,29 @@ def scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
     if ax_kwargs is None:
         ax_kwargs = {}
 
+    for name in t_run.dtype.names:
+        ax.scatter(t_run[name], l_ex[name], label=name)
+
+    ax.set(xlabel='Runtime (s)', ylabel='Loss')
+    ax.grid(True)
+    ax.legend()
+    ax.set(**ax_kwargs)
+
+
+def scatter_loss_runtime_stats(t_run, l_ex, ax=None, ax_kwargs=None):
+    if ax is None:
+        _, ax = plt.subplots()
+
+    if ax_kwargs is None:
+        ax_kwargs = {}
 
     for name in t_run.dtype.names:
         color = next(ax._get_lines.prop_cycler)['color']
-        ax.scatter(t_run[name], l_ex[name], label=name)
         x_mean = np.mean(t_run[name])
         x_std = np.std(t_run[name])
         y_mean = np.mean(l_ex[name])
         y_std = np.std(l_ex[name])
-        ax.scatter(np.mean(t_run[name]), np.mean(l_ex[name]), label=name+'_mean', color=color, marker='*', s=500)
+        ax.scatter(x_mean, y_mean, label=name, color=color, marker='*', s=500)
         ax.errorbar(x_mean, y_mean, xerr=x_std, yerr=y_std, color=color, capsize=2)
 
     ax.set(xlabel='Runtime (s)', ylabel='Loss')

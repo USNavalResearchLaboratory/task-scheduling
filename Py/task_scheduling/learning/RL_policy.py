@@ -94,10 +94,23 @@ class ReinforcementLearningScheduler:
             Task execution channels.
         """
 
-        obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)
+        ensure_valid = isinstance(self.env, envs.StepTasking) and not self.env.do_valid_actions
+
+        obs = self.env.reset(tasks, ch_avail)
         done = False
         while not done:
-            action, _states = self.model.predict(obs)
+            # action, _states = self.model.predict(obs)
+
+            prob = self.model.action_probability(obs)
+
+            if ensure_valid:
+                seq_rem_sort = self.env.sorted_index_inv[list(self.env.node.seq_rem)]
+                mask = np.isin(np.arange(self.env.n_tasks), seq_rem_sort, invert=True)
+
+                prob = np.ma.masked_array(prob, mask)
+
+            action = prob.argmax()
+
             obs, reward, done, info = self.env.step(action)
 
         return self.env.node.t_ex, self.env.node.ch_ex

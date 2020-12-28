@@ -26,7 +26,7 @@ from task_scheduling.learning.SL_policy import SupervisedLearningScheduler as SL
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=16, n_ch=1, rng=None)
-problem_gen = problem_gens.Dataset.load('discrete_relu_c1t8_1000', shuffle=True, repeat=False, rng=None)
+problem_gen = problem_gens.Dataset.load('relu_c1t8_1000', shuffle=True, repeat=False, rng=None)
 # problem_gen = problem_gens.DatasetOld.load('discrete_relu_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
 # problem_gen = problem_gens.Dataset.load('search_track_c1t8_1000', shuffle=True, repeat=False, rng=None)
 # problem_gen = problem_gens.Random.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.01))
@@ -74,10 +74,10 @@ layers = [keras.layers.Dense(30, activation='relu'),
           # keras.layers.Dense(100, activation='relu'),
           ]
 
-policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, layers=layers, compile_params=None,
-                                           n_batch_train=35, n_batch_val=10, batch_size=20, weight_func=weight_func_,
-                                           fit_params={'epochs': 400}, do_tensorboard=False, plot_history=True,
-                                           save=False, save_path=None)
+# policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, layers=layers, compile_params=None,
+#                                            n_batch_train=35, n_batch_val=10, batch_size=20, weight_func=weight_func_,
+#                                            fit_params={'epochs': 400}, do_tensorboard=False, plot_history=True,
+#                                            save=False, save_path=None)
 # policy_model = SL_Scheduler.load('temp/2020-10-28_14-56-42')
 
 
@@ -98,13 +98,13 @@ algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
     ('Random', algs_base.random_sequencer, 20),
     ('ERT', algs_base.earliest_release, 1),
-    # ('MCTS', partial(algs_base.mcts, n_mc=100, verbose=False), 5),
-    ('DNN Policy', policy_model, 5),
+    ('MCTS', partial(algs_base.mcts, n_mc=100, verbose=False), 5),
+    # ('DNN Policy', policy_model, 5),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
 
-l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=100, solve=True,
-                                            verbose=1, plotting=1, save=True, file=None)
+l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=2, solve=True, verbose=1, plotting=1,
+                                            save=True, file=None)
 
 
 # algorithms = np.array([
@@ -112,10 +112,10 @@ l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=100, 
 #     ('Random', runtime_wrapper(algs_base.random_sequencer), 20),
 #     ('ERT', runtime_wrapper(algs_base.earliest_release), 1),
 #     ('MCTS', partial(algs_timed.mcts, verbose=False), 5),
+#     ('DNN Policy', runtime_wrapper(policy_model), 5),
 #     # ('DQN Agent', dqn_agent, 5),
-#     # ('DNN Policy', runtime_wrapper(policy_model), 5),
 # ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
 #
-# runtimes = np.logspace(-2, 0, 30, endpoint=False)
-# l_ex_iter = evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=5, solve=True, verbose=3, plotting=1,
-#                                         save=False, file=None)
+# runtimes = np.logspace(-2, -1, 20, endpoint=False)
+# evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=2, solve=True, verbose=2, plotting=2,
+#                             save=False, file=None)

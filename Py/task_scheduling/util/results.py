@@ -71,6 +71,11 @@ def eval_loss(tasks, t_ex):
     return l_ex
 
 
+def _iter_to_mean(array):
+    return np.array([tuple(map(np.mean, item)) for item in array],
+                    dtype=[(name, np.float) for name in array.dtype.names])
+
+
 def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0, save=False, file=None):
     """
     Compare scheduling algorithms for numerous sets of tasks and channel availabilities.
@@ -277,7 +282,7 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
                               ax_kwargs={'title': f'Relative performance, {problem_gen.n_tasks} tasks',
                                          'ylabel': 'Excess Loss (Normalized)'})
 
-    return l_ex_iter
+    return l_ex_iter, l_ex_opt
 
 
 # def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0, save=False, file=None):
