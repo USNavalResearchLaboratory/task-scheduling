@@ -164,6 +164,8 @@ class BaseTasking(ABC, gym.Env):
     @property
     def state_tasks(self):
         """State sub-array for task features."""
+        for task in self.tasks: # TODO FIX ME, This is a terrible hack to get ch_avail appended to tasks, should occur else where
+            task.ch_avail = self.ch_avail
         state_tasks = np.array([task.feature_gen(*self.features['func']) for task in self.tasks])
         if self.masking:
             state_tasks[self.node.seq] = 0.     # zero out state rows for scheduled tasks

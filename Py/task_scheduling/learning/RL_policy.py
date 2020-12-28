@@ -8,6 +8,7 @@ import numpy as np
 from stable_baselines.bench import Monitor
 from stable_baselines.results_plotter import plot_results
 from stable_baselines import DQN, PPO2, A2C
+from stable_baselines.deepq.policies import MlpPolicy, CnnPolicy
 
 from task_scheduling.learning import environments as envs
 
@@ -48,8 +49,10 @@ class ReinforcementLearningScheduler:
     _default_tuple = namedtuple('ModelDefault', ['cls', 'kwargs'])
     model_defaults = {'Random': _default_tuple(RandomAgent, {}),
                       'DQN': _default_tuple(DQN, {'policy': 'MlpPolicy', 'verbose': 1}),
+                      'DQN_LN': _default_tuple(DQN, {'policy': 'LnMlpPolicy', 'verbose': 1}),
+                      'CNN': _default_tuple(DQN, {'policy': 'CnnPolicy', 'verbose': 1}),
                       'PPO2': _default_tuple(PPO2, {}),
-                      'A2C': _default_tuple(A2C, {}),
+                      'A2C': _default_tuple(A2C, {'policy': 'MlpPolicy', 'verbose': 1}),
                       }
 
     def __init__(self, model, env=None):
@@ -203,6 +206,8 @@ class ReinforcementLearningScheduler:
             model_params = model_params_
 
         model = model_cls(env=env, **model_params)
+        #     model = DQN(CnnPolicy, env, verbose=1)
+
 
         scheduler = cls(model, env)
         scheduler.learn(n_episodes)

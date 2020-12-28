@@ -70,7 +70,7 @@ def test_rl_train():
     n_train = 100
     n_eval = 200
 
-    n_tasks = 7  # Number of tasks to process at each iteration
+    n_tasks = 5  # Number of tasks to process at each iteration
     n_track = 10
     n_track_eval = 11
     # ch_avail = np.zeros(2, dtype=np.float)
@@ -140,7 +140,7 @@ def test_rl_train():
                          # ('release time', lambda task: task.t_release - , (0, 10)),
                          ('slope', lambda task: task.slope, (0, 1)),
                          ('drop time', lambda task: task.t_drop, (0, 6)),
-                         # ('offset', lambda task, ch_avail: task.t_release - min(ch_avail), (-5, 0)),
+                         ('offset', lambda task: task.t_release - np.min(task.ch_avail), (-5, 0)),
 
                          # ('drop loss', lambda task: task.l_drop, (0, 10)),
                          ],
@@ -151,7 +151,7 @@ def test_rl_train():
 
     env_params = {'features': features,
                   'sort_func': None,
-                  'time_shift': True,
+                  'time_shift': False,
                   'masking': False,
                   'action_type': 'int',
                   # 'action_type': 'any',
@@ -168,7 +168,9 @@ def test_rl_train():
     #     (tasks, ch_avail), = env.problem_gen(1, solve=False)
 
     dqn_agent = RL_Scheduler.train_from_gen(problem_gen, env_cls, env_params,
-                                            model_cls='DQN', model_params={'verbose': 1}, n_episodes=n_train*100,
+                                            model_cls='DQN_LN', model_params={'verbose': 1}, n_episodes=n_train * 100,
+                                            # model_cls='CNN', model_params={'verbose': 1}, n_episodes=n_train*100,
+                                            # model_cls='DQN', model_params={'verbose': 1}, n_episodes=n_train * 100,
                                             save=False, save_path='./')
 
     algorithms = np.array([
@@ -180,10 +182,17 @@ def test_rl_train():
         # ('DNN Policy', policy_model, 5),
     ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
 
-    l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen_eval, n_gen=n_eval, solve=True,
-                                                verbose=2, plotting=1, save=False, file=None)
+    l_ex_iter, t_run_iter, l_ex_mean, t_run_mean, l_ex_mean_norm = evaluate_algorithms(algorithms, problem_gen_eval,
+                                                                                       n_gen=n_eval, solve=True,
+                                                                                       verbose=2, plotting=1,
+                                                                                       save=False, file=None)
     plt.show()
     a = 1
+
+    print('\nAvg. Performance\n' + 16 * '-')
+    print(f"{'Algorithm:':<35}{'Loss:':<8}{'Runtime (s):':<10}")
+    for name in algorithms['name']:
+        print(f"{name:<35}{l_ex_mean[name].mean():<8.2f}{t_run_mean[name].mean():<10.6f}")
 
 
 
