@@ -59,15 +59,10 @@ class SupervisedLearningScheduler:
         done = False
         while not done:
             prob = self.model(obs[np.newaxis]).numpy().squeeze(0)
-            # prob = self.model.predict(obs[np.newaxis]).squeeze(0)
-
             if ensure_valid:
-                seq_rem_sort = self.env.sorted_index_inv[list(self.env.node.seq_rem)]
-                mask = np.isin(np.arange(self.env.n_tasks), seq_rem_sort, invert=True)
-
-                prob = np.ma.masked_array(prob, mask)
-
+                prob = self.env.mask_probability(prob)
             action = prob.argmax()
+
             obs, reward, done, info = self.env.step(action)
 
         return self.env.node.t_ex, self.env.node.ch_ex

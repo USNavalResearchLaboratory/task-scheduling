@@ -8,7 +8,6 @@ import numpy as np
 from stable_baselines.bench import Monitor
 from stable_baselines.results_plotter import plot_results
 from stable_baselines import DQN, PPO2, A2C
-from stable_baselines.deepq.policies import MlpPolicy, CnnPolicy
 
 from task_scheduling.learning import environments as envs
 
@@ -43,8 +42,6 @@ class RandomAgent:
 # Schedulers
 class ReinforcementLearningScheduler:
     log_dir = log_path / 'SB_train'
-
-    # model_cls_dict = {'Random': RandomAgent, 'DQN': DQN, 'PPO2': PPO2, 'A2C': A2C}
 
     _default_tuple = namedtuple('ModelDefault', ['cls', 'kwargs'])
     model_defaults = {'Random': _default_tuple(RandomAgent, {}),
@@ -96,19 +93,14 @@ class ReinforcementLearningScheduler:
 
         ensure_valid = isinstance(self.env, envs.StepTasking) and not self.env.do_valid_actions
 
-        obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)  # Problem exists here when trying to run both RL and SL??
+        obs = self.env.reset(tasks, ch_avail)  # TODO: problem exists here when trying to run both RL and SL??
         done = False
         while not done:
             # action, _states = self.model.predict(obs)
 
             prob = self.model.action_probability(obs)
-
             if ensure_valid:
-                seq_rem_sort = self.env.sorted_index_inv[list(self.env.node.seq_rem)]
-                mask = np.isin(np.arange(self.env.n_tasks), seq_rem_sort, invert=True)
-
-                prob = np.ma.masked_array(prob, mask)
-
+                prob = self.env.mask_probability(prob)
             action = prob.argmax()
 
             obs, reward, done, info = self.env.step(action)
@@ -213,14 +205,11 @@ class ReinforcementLearningScheduler:
         if model_cls is None:
             model_cls, model_params = cls.model_defaults['Random']
         elif isinstance(model_cls, str):
-            # model_cls = cls.model_cls_dict[model_cls]
             model_cls, model_params_ = cls.model_defaults[model_cls]
             model_params_.update(model_params)
             model_params = model_params_
 
         model = model_cls(env=env, **model_params)
-        #     model = DQN(CnnPolicy, env, verbose=1)
-
 
         scheduler = cls(model, env)
         scheduler.learn(n_episodes)
