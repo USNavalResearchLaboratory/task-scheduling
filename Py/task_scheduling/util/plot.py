@@ -144,53 +144,19 @@ def scatter_loss_runtime_stats(t_run, l_ex, ax=None, ax_kwargs=None):
 
     for name in t_run.dtype.names:
         color = next(ax._get_lines.prop_cycler)['color']
-        x_mean = np.mean(t_run[name])
-        x_std = np.std(t_run[name])
-        y_mean = np.mean(l_ex[name])
-        y_std = np.std(l_ex[name])
-        ax.scatter(x_mean, y_mean, label=name, color=color, marker='*', s=500)
-        ax.errorbar(x_mean, y_mean, xerr=x_std, yerr=y_std, color=color, capsize=2)
 
-    ax.set(xlabel='Runtime (s)', ylabel='Loss')
-    ax.grid(True)
-    ax.legend()
-    ax.set(**ax_kwargs)
-
-
-def scatter_loss_runtime_stats(t_run, l_ex, ax=None, ax_kwargs=None):
-    """
-    Scatter plot of total execution loss versus runtime.
-
-    Parameters
-    ----------
-    t_run : ndarray
-        Runtime of algorithm.
-    l_ex : ndarray
-        Total loss of scheduled tasks.
-    ax : Axes or None
-        Matplotlib axes target object.
-    ax_kwargs : dict
-        Additional Axes keyword parameters.
-
-    """
-    if ax is None:
-        _, ax = plt.subplots()
-
-    if ax_kwargs is None:
-        ax_kwargs = {}
-
-
-    for name in t_run.dtype.names:
-        color = next(ax._get_lines.prop_cycler)['color']
         # ax.scatter(t_run[name], l_ex[name], label=name)
+
         x_mean = np.mean(t_run[name])
-        x_std = np.std(t_run[name])
         y_mean = np.mean(l_ex[name])
-        y_std = np.std(l_ex[name])
-        ax.scatter(np.mean(t_run[name]), np.mean(l_ex[name]), label=name+'_mean', color=color, marker='*', s=500)
-        ax.scatter(np.median(t_run[name]), np.median(l_ex[name]), label=name+'_median', color=color, marker='d', s=500)
+        ax.scatter(x_mean, y_mean, label=name + '_mean', color=color, marker='*', s=500)
 
+        x_median = np.median(t_run[name])
+        y_median = np.median(l_ex[name])
+        ax.scatter(x_median, y_median, label=name + '_median', color=color, marker='d', s=500)
 
+        # x_std = np.std(t_run[name])
+        # y_std = np.std(l_ex[name])
         # ax.errorbar(x_mean, y_mean, xerr=x_std, yerr=y_std, color=color, capsize=2)
 
     ax.set(xlabel='Runtime (s)', ylabel='Loss')

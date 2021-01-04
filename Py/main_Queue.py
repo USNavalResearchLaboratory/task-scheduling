@@ -221,16 +221,16 @@ algorithms = np.array([
         ('DNN Policy', policy_model, 1),
 ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
 
-l_ex_iter, t_run_iter, l_ex_mean, t_run_mean, l_ex_mean_norm = evaluate_algorithms(algorithms, problem_gen_eval,
-                                                                                   n_gen=n_eval, solve=True,
-                                                                                   verbose=2, plotting=1,
-                                                                                   save=False, file=None)
+# l_ex_iter, t_run_iter, l_ex_mean, t_run_mean, l_ex_mean_norm = evaluate_algorithms(algorithms, problem_gen_eval,
+#                                                                                    n_gen=n_eval, solve=True,
+#                                                                                    verbose=2, plotting=1,
+#                                                                                    save=False, file=None)
 
-# l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen_eval, n_gen=n_eval, solve=True,
-#                                             verbose=2, plotting=1, save=False, file=None)
-#
-# l_ex_mean, t_run_mean = map(_iter_to_mean, (l_ex_iter, t_run_iter))
-# scatter_loss_runtime_stats(t_run_mean, l_ex_mean, ax=None, ax_kwargs=None)
+l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen_eval, n_gen=n_eval, solve=True,
+                                            verbose=2, plotting=1, save=False, file=None)
+
+l_ex_mean, t_run_mean = map(_iter_to_mean, (l_ex_iter, t_run_iter))
+scatter_loss_runtime_stats(t_run_mean, l_ex_mean, ax=None, ax_kwargs=None)
 
 plt.show()
 a = 1
