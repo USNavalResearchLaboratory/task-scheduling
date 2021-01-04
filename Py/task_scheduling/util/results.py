@@ -71,7 +71,7 @@ def eval_loss(tasks, t_ex):
     return l_ex
 
 
-def _iter_to_mean(array):
+def iter_to_mean(array):
     return np.array([tuple(map(np.mean, item)) for item in array],
                     dtype=[(name, np.float) for name in array.dtype.names])
 
@@ -196,14 +196,6 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
                                             'ylabel': 'Excess Loss (Normalized)',
                                             }
                                  )
-
-            # _, ax_results_norm2 = plt.subplots(num='Results (Normalized Mean/Median)', clear=True)
-            # scatter_loss_runtime_stats(t_run_mean, l_ex_mean_norm,
-            #                            ax=ax_results_norm2,
-            #                            ax_kwargs={'title': f'Relative performance, {problem_gen.n_tasks} tasks',
-            #                                       'ylabel': 'Excess Loss (Normalized)',
-            #                                       }
-            #                            )
 
     return l_ex_iter, t_run_iter
 

@@ -171,10 +171,6 @@ class BaseTasking(ABC, gym.Env):
     @property
     def state_tasks(self):
         """State sub-array for task features."""
-        for task in self.tasks:
-            # FIXME: This is a terrible hack to get ch_avail appended to tasks, should occur elsewhere
-            task.ch_avail = self.ch_avail
-
         state_tasks = np.array([func(self.tasks, self.ch_avail) for func in self.features['func']]).transpose()
         # state_tasks = np.array([task.feature_gen(*self.features['func']) for task in self.tasks])
 
@@ -449,7 +445,6 @@ class SeqTasking(BaseTasking):
         else:
             w = 1.
 
-        # self.step(action)
         super().step(seq)        # invoke super method to avoid unnecessary encode-decode process
 
         return np.array([x]), np.array([y]), np.array([w])

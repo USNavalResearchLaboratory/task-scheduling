@@ -305,7 +305,7 @@ class PermutedTasks(FixedTasks):
         return SchedulingSolution(self.solution.t_ex[idx], self.solution.ch_ex[idx], self.solution.t_run)
 
 
-# class DatasetOld(Base):
+# class DatasetOld(Base):   # TODO: deprecate?
 #     """
 #     Generator of scheduling problems in memory.
 #
