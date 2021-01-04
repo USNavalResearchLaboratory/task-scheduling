@@ -70,17 +70,17 @@ def generate_data(create_data_flag=False, n_gen=None, n_tasks=None, n_track=None
 
 plot_hist_flag = False
 train_RL_flag = True
-train_SL_flag = True
+train_SL_flag = False
 
-# n_gen = 100
-# n_train = np.array(n_gen*0.9, dtype=int)
-# n_eval = n_gen - n_train - 1
-n_train = 100
-n_eval = 200
+n_gen = 1000
+n_train = np.array(n_gen*0.9, dtype=int)
+n_eval = n_gen - n_train - 1
+# n_train = 10000
+# n_eval = 200
 
 n_tasks = 5  # Number of tasks to process at each iteration
-n_track = 8
-n_track_eval = 11
+n_track = 10
+# n_track_eval = 10
 # ch_avail = np.zeros(2, dtype=np.float)
 tasks_full = task_gens.FlexDAR(n_track=n_track, rng=100).tasks_full
 
@@ -93,23 +93,23 @@ ch_avail = [0 ] *n_ch
 # Problem Generator
 # Use separate datasets for training and evaluation. Let Training dataset repeat for training.
 filename_train = 'FlexDAR_' + 'ch' + str(len(ch_avail)) + 't' + str(n_tasks) + '_track' + str(n_track) + '_' + str \
-    (n_train)
+    (n_gen)
 # Eval with 0 tracks for now
-filename_eval = 'FlexDAR_' + 'ch' + str(len(ch_avail)) + 't' + str(n_tasks) + '_track' + str(n_track_eval) + '_' + str \
-    (n_eval)
+# filename_eval = 'FlexDAR_' + 'ch' + str(len(ch_avail)) + 't' + str(n_tasks) + '_track' + str(n_track_eval) + '_' + str \
+#     (n_eval)
 filepath_train = './data/schedules/' + filename_train
-filepath_eval = './data/schedules/' + filename_eval
+# filepath_eval = './data/schedules/' + filename_eval
 if os.path.isfile(filepath_train):
     problem_gen = problem_gens.Dataset.load(file=filename_train, shuffle=False, rng=None, repeat=True)
 else:
-    generate_data(create_data_flag=True, n_gen=n_train, n_tasks=n_tasks, n_track=n_track, n_ch=n_ch)
+    generate_data(create_data_flag=True, n_gen=n_gen, n_tasks=n_tasks, n_track=n_track, n_ch=n_ch)
     problem_gen = problem_gens.Dataset.load(file=filename_train, shuffle=False, rng=None, repeat=True)
 
-if os.path.isfile(filepath_eval):
-    problem_gen_eval = problem_gens.Dataset.load(file=filename_eval, shuffle=False, rng=None)
-else:
-    generate_data(create_data_flag=True, n_gen=n_eval, n_tasks=n_tasks, n_track=n_track_eval, n_ch=n_ch)
-    problem_gen_eval = problem_gens.Dataset.load(file=filename_eval, shuffle=False, rng=None)
+# if os.path.isfile(filepath_eval):
+#     problem_gen_eval = problem_gens.Dataset.load(file=filename_eval, shuffle=False, rng=None)
+# else:
+#     generate_data(create_data_flag=True, n_gen=n_eval, n_tasks=n_tasks, n_track=n_track_eval, n_ch=n_ch)
+#     problem_gen_eval = problem_gens.Dataset.load(file=filename_eval, shuffle=False, rng=None)
 
 
 n_problems = len(problem_gen.problems)
@@ -183,7 +183,7 @@ if train_RL_flag:
     dqn_agent = RL_Scheduler.train_from_gen(problem_gen, env_cls_RL, env_params,
                                             # model_cls='DQN_LN', model_params={'verbose': 1}, n_episodes=n_train * 10,
                                             # model_cls='CNN', model_params={'verbose': 1}, n_episodes=n_train*100,
-                                            model_cls='DQN', model_params={'verbose': 1}, n_episodes=n_train * 10,
+                                            model_cls='DQN', model_params={'verbose': 1}, n_episodes=n_train * 1,
                                             save=False, save_path='./')
 
 
@@ -218,10 +218,10 @@ algorithms = np.array([
     # if train_RL_flag:
         ('DQN Agent', dqn_agent, 1),
     # if train_SL_flag:
-        ('DNN Policy', policy_model, 1),
+    #     ('DNN Policy', policy_model, 1),
 ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
 
-l_ex_iter, t_run_iter, l_ex_mean, t_run_mean, l_ex_mean_norm = evaluate_algorithms(algorithms, problem_gen_eval,
+l_ex_iter, t_run_iter, l_ex_mean, t_run_mean, l_ex_mean_norm = evaluate_algorithms(algorithms, problem_gen,
                                                                                    n_gen=n_eval, solve=True,
                                                                                    verbose=2, plotting=1,
                                                                                    save=False, file=None)
