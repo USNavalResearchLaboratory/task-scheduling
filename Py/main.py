@@ -46,17 +46,6 @@ features = np.array([('duration', make_attr_feature('duration'), problem_gen.tas
                      ],
                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
-# features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
-#                      ('release time', lambda task: task.t_release,
-#                       (0., problem_gen.task_gen.param_lims['t_release'][1])),
-#                      ('slope', lambda task: task.slope, problem_gen.task_gen.param_lims['slope']),
-#                      ('drop time', lambda task: task.t_drop, (0., problem_gen.task_gen.param_lims['t_drop'][1])),
-#                      ('drop loss', lambda task: task.l_drop, (0., problem_gen.task_gen.param_lims['l_drop'][1])),
-#                      # ('is available', lambda task: 1 if task.t_release == 0. else 0, (0, 1)),
-#                      # ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
-#                      ],
-#                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
-
 
 # sort_func = None
 sort_func = 't_release'

@@ -55,16 +55,6 @@ class Base(RandomGeneratorMixin, ABC):
                              for name in self.cls_task.param_names],
                             dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
-        # def _make_getattr(name):
-        #     def func(task):
-        #         return getattr(task, name)
-        #     return func
-        #
-        # features = np.array(list(zip(self.cls_task.param_names,
-        #                              [_make_getattr(name) for name in self.cls_task.param_names],
-        #                              self.param_lims.values())),
-        #                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
-
         return features
 
 
@@ -152,8 +142,13 @@ class DiscreteIID(BaseIID):
     """
 
     def __init__(self, cls_task, param_probs, rng=None):
-        param_lims = {name: (min(param_probs[name].keys()), max(param_probs[name].keys()))
-                      for name in cls_task.param_names}
+        # param_lims = {name: (min(param_probs[name].keys()), max(param_probs[name].keys()))
+        #               for name in cls_task.param_names}
+
+        param_lims = {}
+        for name in cls_task.param_names:
+            values = param_probs[name].keys()
+            param_lims[name] = (min(values), max(values))
 
         super().__init__(cls_task, param_lims, rng)
 

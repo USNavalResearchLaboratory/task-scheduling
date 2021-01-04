@@ -171,9 +171,8 @@ class BaseTasking(ABC, gym.Env):
     @property
     def state_tasks(self):
         """State sub-array for task features."""
-        state_tasks = np.array([func(self.tasks, self.ch_avail) for func in self.features['func']]).transpose()
-        # state_tasks = np.array([task.feature_gen(*self.features['func']) for task in self.tasks])
 
+        state_tasks = np.array([func(self.tasks, self.ch_avail) for func in self.features['func']]).transpose()
         if self.masking:
             state_tasks[self.node.seq] = 0.     # zero out state rows for scheduled tasks
 
