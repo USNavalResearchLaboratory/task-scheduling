@@ -611,6 +611,13 @@ class StepTasking(BaseTasking):
 
         return x_set, y_set, w_set
 
+    def mask_probability(self, p):
+        """Returns masked action probabilities based on unscheduled task indices."""
+
+        seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
+        mask = np.isin(np.arange(self.n_tasks), seq_rem_sort, invert=True)
+
+        return np.ma.masked_array(p, mask)
 
 # class DummyVecTaskingEnv(DummyVecEnv):
 #     def reset(self, *args, **kwargs):
