@@ -48,7 +48,10 @@ class Generic:
             self.loss_func = loss_func
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
+        params_str = ", ".join([f"{name}: {getattr(self, name):.2f}" for name in ("duration", "t_release")])
+        # params_str = ", ".join([f"{name}: {getattr(self, name):.2f}" for name in self.param_names])
+        return f"{self.__class__.__name__}({params_str})"
+        # return f"{self.__class__.__name__}(duration: {self.duration:.2f}, release time: {self.t_release:.2f})"
 
     def __call__(self, t):
         """Loss function versus time."""
@@ -67,17 +70,16 @@ class Generic:
     def summary(self):
         """Print a string listing task parameters."""
         cls_str = self.__class__.__name__
-        # param_str = [f"{name}: {getattr(self, name)}" for name in self.param_names]
-        param_str = [f"{name}: {val}" for name, val in self.params]
+        param_str = [f"{name}: {val}" for name, val in self.params.items()]
 
         print('\n'.join([cls_str, '-' * len(cls_str)] + param_str))
 
-    def feature_gen(self, *funcs):
-        """Generate features from input functions. Defaults to the parametric representation."""
-        if len(funcs) > 0:
-            return [func(self) for func in funcs]
-        else:   # default, return task parameters
-            return list(self.params.values())
+    # def feature_gen(self, *funcs):
+    #     """Generate features from input functions. Defaults to the parametric representation."""
+    #     if len(funcs) > 0:
+    #         return [func(self) for func in funcs]
+    #     else:   # default, return task parameters
+    #         return list(self.params.values())
 
     @property
     def plot_lim(self):
@@ -144,15 +146,11 @@ class ReluDrop(Generic):
         self._t_drop = np.float(t_drop)
         self._l_drop = np.float(l_drop)
 
-    # def __repr__(self):
-    #     return f"ReluDrop(duration: {self.duration:.2f}, release time:{self.t_release:.2f})"
-
     def __call__(self, t):
         """Loss function versus time."""
         t = np.asarray(t)[np.newaxis] - self.t_release      # relative time
 
         loss = self.slope * t
-        # loss[t < 0] = 0.
         loss[t < -1e-9] = np.nan
         loss[t >= self.t_drop] = self.l_drop
         if loss.size == 1:

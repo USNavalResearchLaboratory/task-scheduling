@@ -6,7 +6,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from tensorflow import keras
 
-from task_scheduling.util.generic import runtime_wrapper
+from task_scheduling.util.generic import runtime_wrapper, make_attr_feature
 from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime
 from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling import tree_search
@@ -33,16 +33,29 @@ problem_gen = problem_gens.Dataset.load('relu_c1t8_1000', shuffle=True, repeat=F
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2))
 
 # Algorithms
-features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
-                     ('release time', lambda task: task.t_release,
+features = np.array([('duration', make_attr_feature('duration'), problem_gen.task_gen.param_lims['duration']),
+                     ('t_release', make_attr_feature('t_release'),
                       (0., problem_gen.task_gen.param_lims['t_release'][1])),
-                     ('slope', lambda task: task.slope, problem_gen.task_gen.param_lims['slope']),
-                     ('drop time', lambda task: task.t_drop, (0., problem_gen.task_gen.param_lims['t_drop'][1])),
-                     ('drop loss', lambda task: task.l_drop, (0., problem_gen.task_gen.param_lims['l_drop'][1])),
+                     ('t_r_rel', lambda tasks, ch_avail: [task.t_release - np.min(ch_avail) for task in tasks],
+                      (0., problem_gen.task_gen.param_lims['t_release'][1])),
+                     ('slope', make_attr_feature('slope'), problem_gen.task_gen.param_lims['slope']),
+                     ('t_drop', make_attr_feature('t_drop'), (0., problem_gen.task_gen.param_lims['t_drop'][1])),
+                     ('l_drop', make_attr_feature('l_drop'), (0., problem_gen.task_gen.param_lims['l_drop'][1])),
                      # ('is available', lambda task: 1 if task.t_release == 0. else 0, (0, 1)),
                      # ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
                      ],
                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
+
+# features = np.array([('duration', lambda task: task.duration, problem_gen.task_gen.param_lims['duration']),
+#                      ('release time', lambda task: task.t_release,
+#                       (0., problem_gen.task_gen.param_lims['t_release'][1])),
+#                      ('slope', lambda task: task.slope, problem_gen.task_gen.param_lims['slope']),
+#                      ('drop time', lambda task: task.t_drop, (0., problem_gen.task_gen.param_lims['t_drop'][1])),
+#                      ('drop loss', lambda task: task.l_drop, (0., problem_gen.task_gen.param_lims['l_drop'][1])),
+#                      # ('is available', lambda task: 1 if task.t_release == 0. else 0, (0, 1)),
+#                      # ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
+#                      ],
+#                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
 
 # sort_func = None

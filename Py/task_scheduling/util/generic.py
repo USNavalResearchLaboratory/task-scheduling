@@ -168,14 +168,11 @@ def num2seq(num, length, check_input=True):
     return tuple(seq)
 
 
-def main():
-    length = 5
-    for _ in range(100):
-        seq = tuple(np.random.permutation(length))
-        assert seq == num2seq(seq2num(seq), length)
+def make_attr_feature(name):
+    def func(tasks, ch_avail):
+        return [getattr(task, name) for task in tasks]
 
-        num = np.random.default_rng().integers(factorial(length))
-        assert num == seq2num(num2seq(num, length))
+    return func
 
 
 # def algorithm_repr(alg):
@@ -205,6 +202,3 @@ def main():
 #     else:
 #         p_str = ", ".join(f"{key}={str(val)}" for key, val in params.items())
 #         return f"{alg.func.__name__}({p_str})"
-
-if __name__ == '__main__':
-    main()

@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from task_scheduling.tasks import check_task_types
-from task_scheduling.util.generic import RandomGeneratorMixin
+from task_scheduling.util.generic import RandomGeneratorMixin, make_attr_feature
 from task_scheduling import tasks as task_types
 
 np.set_printoptions(precision=2)
@@ -51,18 +51,17 @@ class Base(RandomGeneratorMixin, ABC):
     def default_features(self):
         """Returns a NumPy structured array of default features, the task parameters."""
 
-        def _make_getattr(name):
-            def func(task):
-                return getattr(task, name)
-            return func
-
-        features = np.array(list(zip(self.cls_task.param_names,
-                                     [_make_getattr(name) for name in self.cls_task.param_names],
-                                     self.param_lims.values())),
+        features = np.array([(name, make_attr_feature(name), self.param_lims[name])
+                             for name in self.cls_task.param_names],
                             dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
+
+        # def _make_getattr(name):
+        #     def func(task):
+        #         return getattr(task, name)
+        #     return func
+        #
         # features = np.array(list(zip(self.cls_task.param_names,
-        #                              [lambda task, name=name_: getattr(task, name)
-        #                               for name_ in self.cls_task.param_names],  # note: late-binding closure
+        #                              [_make_getattr(name) for name in self.cls_task.param_names],
         #                              self.param_lims.values())),
         #                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 

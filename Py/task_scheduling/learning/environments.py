@@ -175,7 +175,9 @@ class BaseTasking(ABC, gym.Env):
             # FIXME: This is a terrible hack to get ch_avail appended to tasks, should occur elsewhere
             task.ch_avail = self.ch_avail
 
-        state_tasks = np.array([task.feature_gen(*self.features['func']) for task in self.tasks])
+        state_tasks = np.array([func(self.tasks, self.ch_avail) for func in self.features['func']]).transpose()
+        # state_tasks = np.array([task.feature_gen(*self.features['func']) for task in self.tasks])
+
         if self.masking:
             state_tasks[self.node.seq] = 0.     # zero out state rows for scheduled tasks
 

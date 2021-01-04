@@ -13,6 +13,7 @@ from task_scheduling.algorithms.base import earliest_release
 from task_scheduling.learning import environments as envs
 from task_scheduling.tree_search import TreeNodeShift
 from task_scheduling.learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler
+from task_scheduling.util.generic import make_attr_feature
 from task_scheduling.util.results import timing_wrapper, evaluate_algorithms, evaluate_algorithms_runtime, _iter_to_mean
 from task_scheduling.util.plot import scatter_loss_runtime_stats
 from task_scheduling.tasks import check_task_types
@@ -20,6 +21,7 @@ from task_scheduling.learning.SL_policy import SupervisedLearningScheduler as SL
 from tensorflow import keras
 import tensorflow as tf
 tf.enable_eager_execution()  # Set tf to eager execution --> avoids error in SL_policy line 61
+
 
 def generate_data(create_data_flag=False, n_gen=None, n_tasks=None, n_track=None, n_ch=None):
 
@@ -145,16 +147,27 @@ if plot_hist_flag:
 
 
 
-features = np.array([('duration', lambda task: task.duration, (0, 0.05)),
-                     # ('release time', lambda task: task.t_release, (0, 1)),
-                     # ('release time', lambda task: task.t_release - , (0, 10)),
-                     ('slope', lambda task: task.slope, (0, 1)),
-                     ('drop time', lambda task: task.t_drop, (0, 6)),
-                     ('offset', lambda task: task.t_release - np.min(task.ch_avail), (-5, 0)),
-
-                     # ('drop loss', lambda task: task.l_drop, (0, 10)),
+features = np.array([('duration', make_attr_feature('duration'), problem_gen.task_gen.param_lims['duration']),
+                     # ('t_release', make_attr_feature('t_release'),
+                     #  (0., problem_gen.task_gen.param_lims['t_release'][1])),
+                     ('slope', make_attr_feature('slope'), problem_gen.task_gen.param_lims['slope']),
+                     ('t_drop', make_attr_feature('t_drop'), (0., problem_gen.task_gen.param_lims['t_drop'][1])),
+                     ('offset', lambda tasks_, ch_avail_: [task.t_release - np.min(ch_avail_) for task in tasks_],
+                      (0., problem_gen.task_gen.param_lims['t_release'][1])),
+                     # ('l_drop', make_attr_feature('l_drop'), (0., problem_gen.task_gen.param_lims['l_drop'][1])),
                      ],
                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
+
+# features = np.array([('duration', lambda task: task.duration, (0, 0.05)),
+#                      # ('release time', lambda task: task.t_release, (0, 1)),
+#                      # ('release time', lambda task: task.t_release - , (0, 10)),
+#                      ('slope', lambda task: task.slope, (0, 1)),
+#                      ('drop time', lambda task: task.t_drop, (0, 6)),
+#                      ('offset', lambda task: task.t_release - np.min(task.ch_avail), (-5, 0)),
+#
+#                      # ('drop loss', lambda task: task.l_drop, (0, 10)),
+#                      ],
+#                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
 # env_cls = envs.SeqTasking
 env_cls = envs.SeqTasking
@@ -226,7 +239,7 @@ algorithms = np.array([
 #                                                                                    verbose=2, plotting=1,
 #                                                                                    save=False, file=None)
 
-l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen_eval, n_gen=n_eval, solve=True,
+l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=n_eval, solve=True,
                                             verbose=2, plotting=1, save=False, file=None)
 
 l_ex_mean, t_run_mean = map(_iter_to_mean, (l_ex_iter, t_run_iter))

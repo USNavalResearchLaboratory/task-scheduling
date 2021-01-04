@@ -93,7 +93,7 @@ class ReinforcementLearningScheduler:
 
         ensure_valid = isinstance(self.env, envs.StepTasking) and not self.env.do_valid_actions
 
-        obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)
+        obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)    # kwargs required for wrapped Monitor environment
         done = False
         while not done:
             # action, _states = self.model.predict(obs)
