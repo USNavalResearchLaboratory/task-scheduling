@@ -17,6 +17,13 @@ from task_scheduling.util.generic import seq2num, num2seq
 np.set_printoptions(precision=2)
 
 
+# class DummyVecTaskingEnv(DummyVecEnv):
+#     def reset(self, *args, **kwargs):
+#         for env_idx in range(self.num_envs):
+#             obs = self.envs[env_idx].reset(*args, **kwargs)
+#             self._save_obs(env_idx, obs)
+#         return self._obs_from_buf()
+
 # Gym Spaces
 class Permutation(Space):
     """Gym Space for index sequences."""
@@ -164,7 +171,7 @@ class BaseTasking(ABC, gym.Env):
     @property
     def state_tasks(self):
         """State sub-array for task features."""
-        for task in self.tasks: # TODO FIX ME, This is a terrible hack to get ch_avail appended to tasks, should occur else where
+        for task in self.tasks:  # TODO FIX ME, This is a terrible hack to get ch_avail appended to tasks, should occur else where
             task.ch_avail = self.ch_avail
         state_tasks = np.array([task.feature_gen(*self.features['func']) for task in self.tasks])
         if self.masking:
@@ -372,50 +379,8 @@ class BaseTasking(ABC, gym.Env):
             'episode_starts': episode_starts
         }
 
-        return numpy_dict
         # return ExpertDataset(traj_data=numpy_dict)
-
-    # def data_gen_baselines_adam(self, n_episodes=5):
-    #     actions = []
-    #     observations = []
-    #     rewards = []
-    #     episode_returns = np.zeros((n_episodes,))
-    #     episode_starts = []
-    #
-    #     ep_idx = 0
-    #     while ep_idx < n_episodes:
-    #
-    #         obs = self.reset(solve=True)  # generates new scheduling problem
-    #         print(obs)
-    #
-    #         t_ex, ch_ex = self.solution.t_ex, self.solution.ch_ex
-    #         seq = np.argsort(t_ex)
-    #
-    #         for i in range(len(seq)):
-    #             observations.append(obs.flatten())
-    #             action = seq[i]
-    #             actions.append(action)
-    #             rewards.append(1)   # need to fix
-    #             print(i)
-    #             episode_starts.append(i == 0)
-    #
-    #         ep_idx += 1
-    #
-    #     observations = np.concatenate(observations).reshape((-1,) + self.observation_space.shape)  # this could be an issue
-    #     actions = np.array(actions).reshape(-1, 1)
-    #     rewards = np.array(rewards)
-    #     episode_starts = np.array(episode_starts)
-    #
-    #     numpy_dict = {
-    #         'actions': actions,
-    #         'obs': observations,
-    #         'rewards': rewards,
-    #         'episode_returns': episode_returns,
-    #         'episode_starts': episode_starts
-    #     }
-    #
-    #     return numpy_dict
-    #     # return ExpertDataset(traj_data=numpy_dict)
+        return numpy_dict
 
 
 class SeqTasking(BaseTasking):
@@ -618,10 +583,3 @@ class StepTasking(BaseTasking):
         mask = np.isin(np.arange(self.n_tasks), seq_rem_sort, invert=True)
 
         return np.ma.masked_array(p, mask)
-
-# class DummyVecTaskingEnv(DummyVecEnv):
-#     def reset(self, *args, **kwargs):
-#         for env_idx in range(self.num_envs):
-#             obs = self.envs[env_idx].reset(*args, **kwargs)
-#             self._save_obs(env_idx, obs)
-#         return self._obs_from_buf()

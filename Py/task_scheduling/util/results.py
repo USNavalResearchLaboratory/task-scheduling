@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from task_scheduling.util.generic import timing_wrapper
-from task_scheduling.util.plot import plot_task_losses, plot_schedule, scatter_loss_runtime, plot_loss_runtime, scatter_loss_runtime_stats
+from task_scheduling.util.plot import plot_task_losses, plot_schedule, scatter_loss_runtime, plot_loss_runtime
 
 # logging.basicConfig(level=logging.INFO,       # TODO: logging?
 #                     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -197,16 +197,15 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
                                             }
                                  )
 
-            _, ax_results_norm2 = plt.subplots(num='Results (Normalized Mean/Median)', clear=True)
-            scatter_loss_runtime_stats(t_run_mean, l_ex_mean_norm,
-                                 ax=ax_results_norm2,
-                                 ax_kwargs={'title': f'Relative performance, {problem_gen.n_tasks} tasks',
-                                            'ylabel': 'Excess Loss (Normalized)',
-                                            }
-                                 )
+            # _, ax_results_norm2 = plt.subplots(num='Results (Normalized Mean/Median)', clear=True)
+            # scatter_loss_runtime_stats(t_run_mean, l_ex_mean_norm,
+            #                            ax=ax_results_norm2,
+            #                            ax_kwargs={'title': f'Relative performance, {problem_gen.n_tasks} tasks',
+            #                                       'ylabel': 'Excess Loss (Normalized)',
+            #                                       }
+            #                            )
 
-
-    return l_ex_iter, t_run_iter, l_ex_mean, t_run_mean, l_ex_mean_norm
+    return l_ex_iter, t_run_iter
 
 
 def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0,
