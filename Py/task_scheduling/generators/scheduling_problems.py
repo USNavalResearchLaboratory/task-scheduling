@@ -505,7 +505,7 @@ class Dataset(Base):
 
 
 class QueueFlexDAR(Base):
-    def __init__(self, n_tasks, tasks_full, ch_avail, RP=0.04, clock=0):
+    def __init__(self, n_tasks, tasks_full, ch_avail, RP=0.04, clock=0, record_revisit=True):
 
         self._cls_task = task_scheduling.tasks.check_task_types(tasks_full)
 
@@ -517,6 +517,7 @@ class QueueFlexDAR(Base):
         self.ch_avail = np.array(ch_avail, dtype=np.float)
         self.clock = np.array(0, dtype=np.float)
         self.RP = RP
+        self.record_revisit = record_revisit
 
     def _gen_problem(self, rng):
         """Return a single scheduling problem (and optional solution)."""
@@ -571,7 +572,8 @@ class QueueFlexDAR(Base):
             t_complete_i = t_ex_i + task.duration
             if t_complete_i <= self.RP + self.clock:
                 task.t_release = t_ex_i + task.duration
-                task.revisit_times.append(t_ex_i)
+                if self.record_revisit:
+                    task.revisit_times.append(t_ex_i)
                 # task.count_revisit += 1  Node need as count is = len(revisit_times) in ReluDropRadar
                 self.ch_avail[ch_ex_i] = max(self.ch_avail[ch_ex_i], task.t_release)
                 self.add_tasks(task)

@@ -36,40 +36,40 @@ def generate_data(create_data_flag=False, n_gen=None, n_tasks=None, n_track=None
         # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
         # ch_avail = [0, 0]
         ch_avail = [0]*n_ch
-        problem_gen = problem_gens.QueueFlexDAR(n_tasks, tasks_full, ch_avail)
+        problem_gen = problem_gens.QueueFlexDAR(n_tasks, tasks_full, ch_avail, record_revisit=False)
 
 
-        features = np.array([('duration', lambda task: task.duration, (0, 10)),
-                             ('release time', lambda task: task.t_release, (0, 10)),
-                             ('slope', lambda task: task.slope, (0, 10)),
-                             ('drop time', lambda task: task.t_drop, (0, 10)),
-                             ('drop loss', lambda task: task.l_drop, (0, 10)),
-                             ],
-                            dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
-
+        # features = np.array([('duration', lambda task: task.duration, (0, 10)),
+        #                      ('release time', lambda task: task.t_release, (0, 10)),
+        #                      ('slope', lambda task: task.slope, (0, 10)),
+        #                      ('drop time', lambda task: task.t_drop, (0, 10)),
+        #                      ('drop loss', lambda task: task.l_drop, (0, 10)),
+        #                      ],
+        #                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
+        #
+        # # env_cls = envs.SeqTasking
         # env_cls = envs.SeqTasking
-        env_cls = envs.SeqTasking
-
-        env_params = {'features': features,
-                      'sort_func': None,
-                      'time_shift': True,
-                      'masking': True,
-                      'action_type': 'int',
-                      # 'action_type': 'any',
-                      # 'seq_encoding': 'one-hot',
-                      }
-
-        env = env_cls(problem_gen, **env_params)
+        #
+        # env_params = {'features': features,
+        #               'sort_func': None,
+        #               'time_shift': True,
+        #               'masking': True,
+        #               'action_type': 'int',
+        #               # 'action_type': 'any',
+        #               # 'seq_encoding': 'one-hot',
+        #               }
+        #
+        # env = env_cls(problem_gen, **env_params)
 
         filename = 'FlexDAR_' + 'ch' + str(len(ch_avail)) + 't' + str(n_tasks) + '_track' + str(n_track) + \
                    '_' + str(n_gen)
-        list(env.problem_gen(n_gen=n_gen, save=True, file=filename))
+        list(problem_gen(n_gen=n_gen, save=True, file=filename))
 
 
 
 
 plot_hist_flag = False
-train_RL_flag = False
+train_RL_flag = True
 train_SL_flag = True
 
 # n_gen = 100
@@ -79,7 +79,7 @@ n_train = 100
 n_eval = 200
 
 n_tasks = 5  # Number of tasks to process at each iteration
-n_track = 10
+n_track = 8
 n_track_eval = 11
 # ch_avail = np.zeros(2, dtype=np.float)
 tasks_full = task_gens.FlexDAR(n_track=n_track, rng=100).tasks_full
@@ -181,9 +181,9 @@ env = env_cls(problem_gen, **env_params)
 if train_RL_flag:
     env_cls_RL = envs.SeqTasking
     dqn_agent = RL_Scheduler.train_from_gen(problem_gen, env_cls_RL, env_params,
-                                            model_cls='DQN_LN', model_params={'verbose': 1}, n_episodes=n_train * 10,
+                                            # model_cls='DQN_LN', model_params={'verbose': 1}, n_episodes=n_train * 10,
                                             # model_cls='CNN', model_params={'verbose': 1}, n_episodes=n_train*100,
-                                            # model_cls='DQN', model_params={'verbose': 1}, n_episodes=n_train * 100,
+                                            model_cls='DQN', model_params={'verbose': 1}, n_episodes=n_train * 10,
                                             save=False, save_path='./')
 
 
@@ -205,7 +205,7 @@ if train_SL_flag:
 
     policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls_SL, env_params, layers=layers, compile_params=None,
                                                n_batch_train=35, n_batch_val=10, batch_size=20, weight_func=weight_func_,
-                                               fit_params={'epochs': 5000}, do_tensorboard=False, plot_history=True,
+                                               fit_params={'epochs': 300}, do_tensorboard=False, plot_history=True,
                                                save=False, save_path=None)
 
 
@@ -216,7 +216,7 @@ algorithms = np.array([
     ('ERT', earliest_release, 1),
     # ('MCTS', partial(algs_base.mcts, n_mc=100, verbose=False), 5),
     # if train_RL_flag:
-    #     ('DQN Agent', dqn_agent, 1),
+        ('DQN Agent', dqn_agent, 1),
     # if train_SL_flag:
         ('DNN Policy', policy_model, 1),
 ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
