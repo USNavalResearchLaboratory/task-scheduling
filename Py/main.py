@@ -74,10 +74,10 @@ layers = [keras.layers.Dense(30, activation='relu'),
           # keras.layers.Dense(100, activation='relu'),
           ]
 
-# policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, layers=layers, compile_params=None,
-#                                            n_batch_train=35, n_batch_val=10, batch_size=20, weight_func=weight_func_,
-#                                            fit_params={'epochs': 400}, do_tensorboard=False, plot_history=True,
-#                                            save=False, save_path=None)
+policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, layers=layers, compile_params=None,
+                                           n_batch_train=35, n_batch_val=10, batch_size=20, weight_func=weight_func_,
+                                           fit_params={'epochs': 400}, do_tensorboard=False, plot_history=True,
+                                           save=False, save_path=None)
 # policy_model = SL_Scheduler.load('temp/2020-10-28_14-56-42')
 
 
@@ -99,7 +99,7 @@ algorithms = np.array([
     ('Random', algs_base.random_sequencer, 20),
     ('ERT', algs_base.earliest_release, 1),
     ('MCTS', partial(algs_base.mcts, n_mc=100, verbose=False), 5),
-    # ('DNN Policy', policy_model, 5),
+    ('DNN Policy', policy_model, 5),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
 

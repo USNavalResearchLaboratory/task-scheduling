@@ -93,7 +93,7 @@ class ReinforcementLearningScheduler:
 
         ensure_valid = isinstance(self.env, envs.StepTasking) and not self.env.do_valid_actions
 
-        obs = self.env.reset(tasks, ch_avail)  # TODO: problem exists here when trying to run both RL and SL??
+        obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)
         done = False
         while not done:
             # action, _states = self.model.predict(obs)

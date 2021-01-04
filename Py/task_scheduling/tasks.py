@@ -67,9 +67,17 @@ class Generic:
     def summary(self):
         """Print a string listing task parameters."""
         cls_str = self.__class__.__name__
-        param_str = [f"{name}: {getattr(self, name)}" for name in self.param_names]
+        # param_str = [f"{name}: {getattr(self, name)}" for name in self.param_names]
+        param_str = [f"{name}: {val}" for name, val in self.params]
 
         print('\n'.join([cls_str, '-' * len(cls_str)] + param_str))
+
+    def feature_gen(self, *funcs):
+        """Generate features from input functions. Defaults to the parametric representation."""
+        if len(funcs) > 0:
+            return [func(self) for func in funcs]
+        else:   # default, return task parameters
+            return list(self.params.values())
 
     @property
     def plot_lim(self):
@@ -222,24 +230,10 @@ class ReluDrop(Generic):
         else:
             return 0.   # No loss incurred
 
-    def feature_gen(self, *funcs):
-        """Generate features from input functions. Defaults to the parametric representation."""
-        if len(funcs) > 0:
-            return [func(self) for func in funcs]
-        else:   # default, return task parameters
-            return list(self.params.values())
-
-    # def summary(self):
-    #     """Print a string listing task parameters."""
-    #     print(f'ReluDrop\n------------\nduration: {self.duration:.2f}'
-    #           f'\nrelease time: {self.t_release:.2f}\nslope: {self.slope:.2f}'
-    #           f'\ndrop time: {self.t_drop:.2f}\ndrop loss: {self.l_drop:.2f}')
-
     @property
     def plot_lim(self):
         """2-tuple of limits for automatic plotting."""
         return self.t_release, self.t_release + self.t_drop + 1
-        # return self.t_release, self.t_release + max(self.duration, self.t_drop) + 1
 
 
 #%% Radar tasks

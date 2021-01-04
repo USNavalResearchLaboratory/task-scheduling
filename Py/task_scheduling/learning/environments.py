@@ -171,8 +171,10 @@ class BaseTasking(ABC, gym.Env):
     @property
     def state_tasks(self):
         """State sub-array for task features."""
-        for task in self.tasks:  # TODO FIX ME, This is a terrible hack to get ch_avail appended to tasks, should occur else where
+        for task in self.tasks:
+            # FIXME: This is a terrible hack to get ch_avail appended to tasks, should occur elsewhere
             task.ch_avail = self.ch_avail
+
         state_tasks = np.array([task.feature_gen(*self.features['func']) for task in self.tasks])
         if self.masking:
             state_tasks[self.node.seq] = 0.     # zero out state rows for scheduled tasks
@@ -273,10 +275,11 @@ class BaseTasking(ABC, gym.Env):
 
         return self.state, reward, done, {}
 
-    def render(self, mode='human'):     # TODO: plot partial schedule instead?
+    def render(self, mode='human'):
         if mode == 'human':
             _, ax_env = plt.subplots(num='Task Scheduling Env', clear=True)
-            plot_task_losses(self.tasks, ax=ax_env)
+            tasks_plot = [self.tasks[n] for n in self.node.seq]
+            plot_task_losses(tasks_plot, ax=ax_env)
 
     def close(self):
         plt.close('all')
@@ -531,13 +534,12 @@ class StepTasking(BaseTasking):
     @property
     def state(self):
         """Complete state."""
-        state_seq = np.array([self.seq_encoding(n) for n in range(self.n_tasks)])[self.sorted_index]
+        state_seq = np.array([self.seq_encoding(n) for n in self.sorted_index])
         return np.concatenate((state_seq, self.state_tasks), axis=1)
 
     def infer_action_space(self, obs):
         """Determines the action Gym.Space from an observation."""
         if self.do_valid_actions:
-            # _state_seq = obs[:, :-len(self.features)]
             _state_seq = obs[:, :self.len_seq_encode]
             return DiscreteSet(np.flatnonzero(1 - _state_seq.sum(1)))
         else:
@@ -551,11 +553,11 @@ class StepTasking(BaseTasking):
         else:
             pass
 
-    def step(self, action):   # TODO: improve or delete
-        if self.do_valid_actions or self.sorted_index[action] in self.node.seq_rem:
-            return super().step(action)
-        else:
-            return self.state, -100, False, {}
+    # def step(self, action):   # TODO: improve or delete
+    #     if self.do_valid_actions or self.sorted_index[action] in self.node.seq_rem:
+    #         return super().step(action)
+    #     else:
+    #         return self.state, -100, False, {}
 
     def _gen_single(self, seq, weight_func):
         """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""

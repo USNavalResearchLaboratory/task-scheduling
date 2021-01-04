@@ -55,7 +55,7 @@ class SupervisedLearningScheduler:
         ensure_valid = isinstance(self.env, envs.StepTasking) and not self.env.do_valid_actions
         # ensure_valid = False    # TODO: trained models may naturally avoid invalid actions!!
 
-        obs = self.env.reset(tasks, ch_avail)
+        obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)
         done = False
         while not done:
             prob = self.model(obs[np.newaxis]).numpy().squeeze(0)
