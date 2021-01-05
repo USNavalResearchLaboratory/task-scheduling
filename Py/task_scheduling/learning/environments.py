@@ -5,14 +5,14 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 import matplotlib.pyplot as plt
-import gym
-from gym.spaces import Space, Box, Discrete
+from gym import Env, spaces
 # from stable_baselines.common.vec_env import DummyVecEnv
 # from stable_baselines.gail import ExpertDataset
 
 from task_scheduling import tree_search
 from task_scheduling.util.plot import plot_task_losses
 from task_scheduling.util.generic import seq2num, num2seq
+from task_scheduling.learning import spaces as tasking_spaces
 
 np.set_printoptions(precision=2)
 
@@ -25,61 +25,8 @@ np.set_printoptions(precision=2)
 #         return self._obs_from_buf()
 
 
-# Gym Spaces
-class Permutation(Space):
-    """Gym Space for index sequences."""
-
-    def __init__(self, n):
-        self.n = n      # sequence length
-        super().__init__(shape=(self.n,), dtype=np.int)
-
-    def sample(self):
-        return self.np_random.permutation(self.n)
-
-    def contains(self, x):
-        return True if (np.sort(np.asarray(x, dtype=int)) == np.arange(self.n)).all() else False
-
-    def __repr__(self):
-        return f"Permutation({self.n})"
-
-    def __eq__(self, other):
-        if isinstance(other, Permutation):
-            return self.n == other.n
-        else:
-            return NotImplemented
-
-    def __len__(self):
-        return factorial(self.n)
-
-
-class DiscreteSet(Space):
-    """Gym Space for discrete, non-integral elements."""
-
-    def __init__(self, elements):
-        self.elements = np.sort(np.array(list(elements)).flatten())   # ndarray representation of set
-        super().__init__(shape=(), dtype=self.elements.dtype)
-
-    def sample(self):
-        return self.np_random.choice(self.elements)
-
-    def contains(self, x):
-        return True if x in self.elements else False
-
-    def __repr__(self):
-        return f"DiscreteSet({self.elements})"
-
-    def __eq__(self, other):
-        if isinstance(other, DiscreteSet):
-            return self.elements == other.elements
-        else:
-            return NotImplemented
-
-    def __len__(self):
-        return self.elements.size
-
-
 # Gym Environments
-class BaseTasking(ABC, gym.Env):
+class BaseTasking(ABC, Env):
     """
     Base environment for task scheduling.
 
@@ -113,8 +60,6 @@ class BaseTasking(ABC, gym.Env):
         else:
             self.features = self.problem_gen.task_gen.default_features
 
-        self._state_tasks_lims = np.broadcast_to(self.features['lims'], (self.n_tasks, len(self.features), 2))
-
         # Set sorting method
         if callable(sort_func):
             self.sort_func = sort_func
@@ -139,6 +84,23 @@ class BaseTasking(ABC, gym.Env):
 
         self.steps_per_episode = None
 
+        # gym.Env observation and action spaces
+        if any([not isinstance(space, (spaces.Discrete, spaces.Box, tasking_spaces.DiscreteSet))
+                for space in self.features['space']]):
+
+            if all([isinstance(space, spaces.Discrete) for space in self.features['space']]):
+                # Combine into MultiDiscrete space
+                self._obs_space_task = spaces.MultiDiscrete([space.n for space in self.features['space']])
+            else:
+                # Upcast each space and combine into multi-dimensional Box
+                # boxes = [tasking_spaces.as_box(space) for space in self.features['space']]
+                # low, high = zip(*[(box.low, box.high) for box in boxes])
+                low, high = zip(*[tasking_spaces.get_space_lims(space) for space in self.features['space']])
+                self._obs_space_task = spaces.Box(low, high)
+        else:
+            raise NotImplementedError("Space objects must be Discrete, Box, or DiscreteSet.")
+
+        # self._state_tasks_lims = np.broadcast_to(self.features['lims'], (self.n_tasks, len(self.features), 2))
         self.observation_space = None
         self.action_space = None
 
@@ -390,16 +352,17 @@ class SeqTasking(BaseTasking):
 
         self.action_type = action_type      # 'seq' for sequences, 'int' for integers
         if self.action_type == 'seq':
-            self._action_space_map = lambda n: Permutation(n)
+            self._action_space_map = lambda n: tasking_spaces.Permutation(n)
         elif self.action_type == 'int':
-            self._action_space_map = lambda n: Discrete(factorial(n))
+            self._action_space_map = lambda n: spaces.Discrete(factorial(n))
         else:
             raise ValueError
 
         self.steps_per_episode = 1
 
         # gym.Env observation and action spaces
-        self.observation_space = Box(*np.rollaxis(self._state_tasks_lims, -1), dtype=np.float64)
+        self.observation_space = tasking_spaces.broadcast_to(self._obs_space_task, (self.n_tasks, len(self.features)))
+        # self.observation_space = spaces.Box(*np.rollaxis(self._state_tasks_lims, -1), dtype=np.float64)
         self.action_space = self._action_space_map(self.n_tasks)
 
     @property
@@ -516,14 +479,17 @@ class StepTasking(BaseTasking):
 
         self.steps_per_episode = self.n_tasks
 
+        # gym.Env observation and action spaces
+        space_seq = spaces.MultiDiscrete(2 * np.ones((self.n_tasks, self.len_seq_encode)))
+
         _state_lims = np.concatenate((np.broadcast_to([0, 1], (self.n_tasks, self.len_seq_encode, 2)),
                                       self._state_tasks_lims), axis=1)
-        self.observation_space = Box(*np.rollaxis(_state_lims, -1), dtype=np.float64)
+        self.observation_space = spaces.Box(*np.rollaxis(_state_lims, -1), dtype=np.float64)
 
         if self.do_valid_actions:
-            self.action_space = DiscreteSet(set(range(self.n_tasks)))
+            self.action_space = tasking_spaces.DiscreteSet(set(range(self.n_tasks)))
         else:
-            self.action_space = Discrete(self.n_tasks)
+            self.action_space = spaces.Discrete(self.n_tasks)
 
     @property
     def state(self):
@@ -535,15 +501,15 @@ class StepTasking(BaseTasking):
         """Determines the action Gym.Space from an observation."""
         if self.do_valid_actions:
             _state_seq = obs[:, :self.len_seq_encode]
-            return DiscreteSet(np.flatnonzero(1 - _state_seq.sum(1)))
+            return tasking_spaces.DiscreteSet(np.flatnonzero(1 - _state_seq.sum(1)))
         else:
-            return Discrete(len(obs))
+            return spaces.Discrete(len(obs))
 
     def _update_spaces(self):
         """Update observation and action spaces."""
         if self.do_valid_actions:
             seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
-            self.action_space = DiscreteSet(seq_rem_sort)
+            self.action_space = tasking_spaces.DiscreteSet(seq_rem_sort)
         else:
             pass
 

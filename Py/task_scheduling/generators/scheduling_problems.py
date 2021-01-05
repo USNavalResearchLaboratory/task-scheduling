@@ -192,7 +192,7 @@ class Random(Base):
 
     @classmethod
     def discrete_relu_drop(cls, n_tasks, n_ch, rng=None, ch_avail_lim=(0., 0.), **relu_vals):
-        task_gen = task_gens.DiscreteIID.relu_drop(**relu_vals)
+        task_gen = task_gens.DiscreteIID.relu_drop_uniform(**relu_vals)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
     @classmethod
