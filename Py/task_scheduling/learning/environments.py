@@ -24,6 +24,7 @@ np.set_printoptions(precision=2)
 #             self._save_obs(env_idx, obs)
 #         return self._obs_from_buf()
 
+
 # Gym Spaces
 class Permutation(Space):
     """Gym Space for index sequences."""
@@ -112,9 +113,15 @@ class BaseTasking(ABC, gym.Env):
         else:
             self.features = self.problem_gen.task_gen.default_features
 
-        _low, _high = zip(*self.features['lims'])
-        self._state_tasks_low = np.broadcast_to(_low, (self.n_tasks, len(_low)))
-        self._state_tasks_high = np.broadcast_to(_high, (self.n_tasks, len(_high)))
+        # _low, _high = zip(*self.features['lims'])
+        # self._state_tasks_low = np.broadcast_to(_low, (self.n_tasks, len(_low)))
+        # self._state_tasks_high = np.broadcast_to(_high, (self.n_tasks, len(_high)))
+        # self._state_tasks_lims = (np.broadcast_to(_low, (self.n_tasks, len(_low))),
+        #                           np.broadcast_to(_high, (self.n_tasks, len(_high))))
+
+        # self._state_tasks_lims = np.rollaxis(np.broadcast_to(self.features['lims'],
+        #                                                      (self.n_tasks, len(self.features), 2)), -1)
+        self._state_tasks_lims = np.broadcast_to(self.features['lims'], (self.n_tasks, len(self.features), 2))
 
         # Set sorting method
         if callable(sort_func):
@@ -400,7 +407,7 @@ class SeqTasking(BaseTasking):
         self.steps_per_episode = 1
 
         # gym.Env observation and action spaces
-        self.observation_space = Box(self._state_tasks_low, self._state_tasks_high, dtype=np.float64)
+        self.observation_space = Box(*np.rollaxis(self._state_tasks_lims, -1), dtype=np.float64)
         self.action_space = self._action_space_map(self.n_tasks)
 
     @property
@@ -518,9 +525,15 @@ class StepTasking(BaseTasking):
         self.steps_per_episode = self.n_tasks
 
         # gym.Env observation and action spaces
-        _state_low = np.concatenate((np.zeros((self.n_tasks, self.len_seq_encode)), self._state_tasks_low), axis=1)
-        _state_high = np.concatenate((np.ones((self.n_tasks, self.len_seq_encode)), self._state_tasks_high), axis=1)
-        self.observation_space = Box(_state_low, _state_high, dtype=np.float64)
+        # _state_low = np.concatenate((np.zeros((self.n_tasks, self.len_seq_encode)),
+        #                              self._state_tasks_lims[0]), axis=1)
+        # _state_high = np.concatenate((np.ones((self.n_tasks, self.len_seq_encode)),
+        #                               self._state_tasks_lims[1]), axis=1)
+        # self.observation_space = Box(_state_low, _state_high, dtype=np.float64)
+
+        _state_lims = np.concatenate((np.broadcast_to([0, 1], (self.n_tasks, self.len_seq_encode, 2)),
+                                      self._state_tasks_lims), axis=1)
+        self.observation_space = Box(*np.rollaxis(_state_lims, -1), dtype=np.float64)
 
         if self.do_valid_actions:
             self.action_space = DiscreteSet(set(range(self.n_tasks)))
