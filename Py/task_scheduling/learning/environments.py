@@ -113,14 +113,6 @@ class BaseTasking(ABC, gym.Env):
         else:
             self.features = self.problem_gen.task_gen.default_features
 
-        # _low, _high = zip(*self.features['lims'])
-        # self._state_tasks_low = np.broadcast_to(_low, (self.n_tasks, len(_low)))
-        # self._state_tasks_high = np.broadcast_to(_high, (self.n_tasks, len(_high)))
-        # self._state_tasks_lims = (np.broadcast_to(_low, (self.n_tasks, len(_low))),
-        #                           np.broadcast_to(_high, (self.n_tasks, len(_high))))
-
-        # self._state_tasks_lims = np.rollaxis(np.broadcast_to(self.features['lims'],
-        #                                                      (self.n_tasks, len(self.features), 2)), -1)
         self._state_tasks_lims = np.broadcast_to(self.features['lims'], (self.n_tasks, len(self.features), 2))
 
         # Set sorting method
@@ -523,13 +515,6 @@ class StepTasking(BaseTasking):
             raise TypeError("Permutation encoding input must be callable or str.")
 
         self.steps_per_episode = self.n_tasks
-
-        # gym.Env observation and action spaces
-        # _state_low = np.concatenate((np.zeros((self.n_tasks, self.len_seq_encode)),
-        #                              self._state_tasks_lims[0]), axis=1)
-        # _state_high = np.concatenate((np.ones((self.n_tasks, self.len_seq_encode)),
-        #                               self._state_tasks_lims[1]), axis=1)
-        # self.observation_space = Box(_state_low, _state_high, dtype=np.float64)
 
         _state_lims = np.concatenate((np.broadcast_to([0, 1], (self.n_tasks, self.len_seq_encode, 2)),
                                       self._state_tasks_lims), axis=1)
