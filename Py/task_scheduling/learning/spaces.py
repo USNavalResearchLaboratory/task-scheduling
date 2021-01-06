@@ -5,48 +5,6 @@ from gym.spaces import Space, Discrete, MultiDiscrete, Box
 
 
 # Utilities
-def get_space_lims(space):
-    """Get minimum and maximum values for a scalar-valued space."""
-
-    if isinstance(space, Box):
-        if space.shape == ():
-            return space.low, space.high
-        else:
-            raise ValueError("Only supported for scalar-value spaces.")
-    elif isinstance(space, Discrete):
-        return 0, space.n - 1
-    elif isinstance(space, DiscreteSet):
-        return tuple(space.elements[[0, -1]])
-    else:
-        raise NotImplementedError('Only supported for Box, Discrete, or DiscreteSet spaces.')
-
-
-def as_box(space):
-    """Upcast space to a Box."""
-
-    if isinstance(space, Box):
-        return space
-    elif isinstance(space, MultiDiscrete):
-        return Box(np.zeros(space.shape), space.nvec - 1)
-    elif isinstance(space, Discrete):
-        return Box(0, space.n - 1, shape=())
-    elif isinstance(space, DiscreteSet):
-        return Box(*space.elements[[0, -1]], shape=())
-    else:
-        raise TypeError('Only supported for Box, Discrete, or DiscreteSet type inputs.')
-
-
-def as_multidiscrete(space):
-    if isinstance(space, MultiDiscrete):
-        return space
-    elif isinstance(space, Discrete):
-        return MultiDiscrete([space.n])
-
-
-def upcast_space(space, stype):
-    pass
-
-
 def broadcast_to(space, shape):
     """Broadcast space to new shape."""
 
@@ -55,32 +13,75 @@ def broadcast_to(space, shape):
         return Box(low, high, dtype=space.dtype)
     elif isinstance(space, MultiDiscrete):
         return MultiDiscrete(np.broadcast_to(space.nvec, shape))
-    # elif isinstance(space, Discrete):
-    #     if shape == ():
-    #         return space
-    #     else:
-    #         return MultiDiscrete(np.broadcast_to(space.n, shape))
     else:
         raise NotImplementedError("Only supported for Box and MultiDiscrete spaces.")
 
 
-def concatenate(spaces, axis=0):
-    shapes = [space.shape for space in spaces]
+# def as_box(space):
+#     """Upcast space to a Box."""
+#
+#     if isinstance(space, Box):
+#         return space
+#     elif isinstance(space, MultiDiscrete):
+#         return Box(np.zeros(space.shape), space.nvec - 1)
+#     elif isinstance(space, Discrete):
+#         return Box(0, space.n - 1, shape=())
+#     elif isinstance(space, DiscreteSet):
+#         return Box(*space.elements[[0, -1]], shape=())
+#     else:
+#         raise TypeError('Only supported for Box, Discrete, or DiscreteSet type inputs.')
+#
+#
+# def as_multidiscrete(space):
+#     if isinstance(space, MultiDiscrete):
+#         return space
+#     elif isinstance(space, Discrete):
+#         return MultiDiscrete([space.n])
+#     else:
+#         raise TypeError
 
 
-    if all([isinstance(space, Discrete) for space in spaces]) and axis == 0:
-        # Combine into MultiDiscrete space
-        return MultiDiscrete([space.n for space in spaces])
-    elif all([isinstance(space, MultiDiscrete) for space in spaces]):
-        # Combine into MultiDiscrete space
-        return MultiDiscrete(np.concatenate([space.nvec for space in spaces], axis=axis))
+def get_space_lims(space):
+    """Get minimum and maximum values of a space."""
+
+    if isinstance(space, Box):
+        return np.stack((space.low, space.high), axis=-1)
+    elif isinstance(space, Discrete):
+        return np.array([0, space.n - 1])
+    elif isinstance(space, MultiDiscrete):
+        return np.stack((np.zeros(space.shape), space.nvec - 1), axis=-1)
+    elif isinstance(space, DiscreteSet):
+        return space.elements[[0, -1]]
     else:
-        # Upcast each space and combine into multi-dimensional Box
+        raise NotImplementedError('Only supported for Box, Discrete, or DiscreteSet spaces.')
 
-        # boxes = [tasking_spaces.as_box(space) for space in self.features['space']]
-        # low, high = zip(*[(box.low, box.high) for box in boxes])
-        low, high = zip(*[get_space_lims(space) for space in spaces])
-        return Box(low, high)
+
+def stack(spaces, axis=0):
+    if len(spaces) == 1:
+        return spaces[0]
+
+    if all(isinstance(space, (Discrete, MultiDiscrete)) for space in spaces):
+        nvecs = [space.n if isinstance(space, Discrete) else space.nvec for space in spaces]
+        return MultiDiscrete(np.stack(nvecs, axis=axis))
+    else:
+        if axis == -1:
+            axis = -2
+        lims = np.stack([get_space_lims(space) for space in spaces], axis=axis)
+        return Box(lims[..., 0], lims[..., 1], dtype=np.float)
+
+
+def concatenate(spaces, axis=0):
+    if len(spaces) == 1:
+        return spaces[0]
+
+    if all(isinstance(space, MultiDiscrete) for space in spaces):
+        nvecs = [space.nvec for space in spaces]
+        return MultiDiscrete(np.concatenate(nvecs, axis=axis))
+    else:
+        if axis == -1:
+            axis = -2
+        lims = np.concatenate([get_space_lims(space) for space in spaces], axis=axis)
+        return Box(lims[..., 0], lims[..., 1], dtype=np.float)
 
 
 # Space classes

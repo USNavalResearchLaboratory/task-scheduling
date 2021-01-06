@@ -85,22 +85,9 @@ class BaseTasking(ABC, Env):
         self.steps_per_episode = None
 
         # gym.Env observation and action spaces
-        if any([not isinstance(space, (spaces.Discrete, spaces.Box, tasking_spaces.DiscreteSet))
-                for space in self.features['space']]):
-
-            if all([isinstance(space, spaces.Discrete) for space in self.features['space']]):
-                # Combine into MultiDiscrete space
-                self._obs_space_task = spaces.MultiDiscrete([space.n for space in self.features['space']])
-            else:
-                # Upcast each space and combine into multi-dimensional Box
-                # boxes = [tasking_spaces.as_box(space) for space in self.features['space']]
-                # low, high = zip(*[(box.low, box.high) for box in boxes])
-                low, high = zip(*[tasking_spaces.get_space_lims(space) for space in self.features['space']])
-                self._obs_space_task = spaces.Box(low, high)
-        else:
-            raise NotImplementedError("Space objects must be Discrete, Box, or DiscreteSet.")
-
+        self._obs_space_features = tasking_spaces.stack(self.features['space'])
         # self._state_tasks_lims = np.broadcast_to(self.features['lims'], (self.n_tasks, len(self.features), 2))
+
         self.observation_space = None
         self.action_space = None
 
@@ -361,8 +348,9 @@ class SeqTasking(BaseTasking):
         self.steps_per_episode = 1
 
         # gym.Env observation and action spaces
-        self.observation_space = tasking_spaces.broadcast_to(self._obs_space_task, (self.n_tasks, len(self.features)))
-        # self.observation_space = spaces.Box(*np.rollaxis(self._state_tasks_lims, -1), dtype=np.float64)
+        self.observation_space = tasking_spaces.broadcast_to(self._obs_space_features,
+                                                             shape=(self.n_tasks, len(self.features)))
+        # self.observation_space = spaces.Box(*np.rollaxis(self._state_tasks_lims, -1), dtype=np.float)
         self.action_space = self._action_space_map(self.n_tasks)
 
     @property
@@ -480,11 +468,14 @@ class StepTasking(BaseTasking):
         self.steps_per_episode = self.n_tasks
 
         # gym.Env observation and action spaces
-        space_seq = spaces.MultiDiscrete(2 * np.ones((self.n_tasks, self.len_seq_encode)))
+        obs_space_seq = spaces.MultiDiscrete(2 * np.ones(self.len_seq_encode))
+        obs_space_concat = tasking_spaces.concatenate((obs_space_seq, self._obs_space_features))
+        self.observation_space = tasking_spaces.broadcast_to(obs_space_concat,
+                                                             shape=(self.n_tasks, *obs_space_concat.shape))
 
-        _state_lims = np.concatenate((np.broadcast_to([0, 1], (self.n_tasks, self.len_seq_encode, 2)),
-                                      self._state_tasks_lims), axis=1)
-        self.observation_space = spaces.Box(*np.rollaxis(_state_lims, -1), dtype=np.float64)
+        # _state_lims = np.concatenate((np.broadcast_to([0, 1], (self.n_tasks, self.len_seq_encode, 2)),
+        #                               self._state_tasks_lims), axis=1)
+        # self.observation_space = spaces.Box(*np.rollaxis(_state_lims, -1), dtype=np.float)
 
         if self.do_valid_actions:
             self.action_space = tasking_spaces.DiscreteSet(set(range(self.n_tasks)))

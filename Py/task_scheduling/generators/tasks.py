@@ -39,7 +39,8 @@ class Base(RandomGeneratorMixin, ABC):
         self.cls_task = cls_task
 
         if param_spaces is None:
-            self.param_spaces = {name: spaces.Box(-np.inf, np.inf, shape=()) for name in self.cls_task.param_names}
+            self.param_spaces = {name: spaces.Box(-np.inf, np.inf, shape=(), dtype=np.float)
+                                 for name in self.cls_task.param_names}
         else:
             self.param_spaces = param_spaces
 
@@ -54,7 +55,7 @@ class Base(RandomGeneratorMixin, ABC):
 
         features = np.array([(name, make_attr_feature(name), self.param_spaces[name])
                              for name in self.cls_task.param_names],
-                            dtype=[('name', '<U16'), ('func', object), ('space', np.float, 2)])
+                            dtype=[('name', '<U16'), ('func', object), ('space', object)])
 
         return features
 
@@ -107,7 +108,8 @@ class ContinuousUniformIID(BaseIID):
     """Generates I.I.D. tasks with independently uniform continuous parameters."""
 
     def __init__(self, cls_task, param_lims, rng=None):
-        param_spaces = {name: spaces.Box(*param_lims[name], shape=()) for name in cls_task.param_names}
+        param_spaces = {name: spaces.Box(*param_lims[name], shape=(), dtype=np.float)
+                        for name in cls_task.param_names}
         super().__init__(cls_task, param_spaces, rng)
 
         self.param_lims = param_lims
@@ -197,7 +199,7 @@ class SearchTrackIID(BaseIID):
 
         durations, t_revisits = map(np.array, zip(*[target.values() for target in self.targets]))
         param_spaces = {'duration': DiscreteSet(durations),
-                        't_release': spaces.Box(*t_release_lim, shape=()),
+                        't_release': spaces.Box(*t_release_lim, shape=(), dtype=np.float),
                         'slope': DiscreteSet(1 / t_revisits),
                         't_drop': DiscreteSet(t_revisits + 0.1),
                         'l_drop': DiscreteSet([300.])

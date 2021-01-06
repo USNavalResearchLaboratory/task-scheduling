@@ -22,11 +22,11 @@ from task_scheduling.learning.SL_policy import SupervisedLearningScheduler as SL
 # NOTE: ensure train/test separation for loaded data, use iter_mode='once'
 # NOTE: to train multiple schedulers on same loaded data, use problem_gen.restart(shuffle=False)
 
-# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
+problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=16, n_ch=1, rng=None)
-problem_gen = problem_gens.Dataset.load('relu_c1t8_1000', shuffle=True, repeat=False, rng=None)
+# problem_gen = problem_gens.Dataset.load('relu_c1t8_1000', shuffle=True, repeat=False, rng=None)
 # problem_gen = problem_gens.DatasetOld.load('discrete_relu_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
 # problem_gen = problem_gens.Dataset.load('search_track_c1t8_1000', shuffle=True, repeat=False, rng=None)
 # problem_gen = problem_gens.Random.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.01))
@@ -45,6 +45,7 @@ features = np.array([('duration', make_attr_feature('duration'), problem_gen.tas
                      # ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
                      ],
                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
+features = None
 
 
 # sort_func = None
