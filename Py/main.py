@@ -6,7 +6,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from tensorflow import keras
 
-from task_scheduling.util.generic import runtime_wrapper, make_param_feature
+from task_scheduling.util.generic import runtime_wrapper
+from task_scheduling.learning.features import get_param
 from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime
 from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.algorithms import base as algs_base
@@ -34,28 +35,38 @@ problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=None
 
 # Algorithms
 
-# features = np.array([('duration', make_param_feature('duration'), problem_gen.task_gen.param_lims['duration']),
-#                      ('t_release', make_param_feature('t_release'),
+# features = np.array([('duration', get_param('duration'), problem_gen.task_gen.param_lims['duration']),
+#                      ('t_release', get_param('t_release'),
 #                       (0., problem_gen.task_gen.param_lims['t_release'][1])),
 #                      # ('t_r_rel', lambda tasks, ch_avail: [task.t_release - np.min(ch_avail) for task in tasks],
 #                      #  (0., problem_gen.task_gen.param_lims['t_release'][1])),
-#                      ('slope', make_param_feature('slope'), problem_gen.task_gen.param_lims['slope']),
-#                      ('t_drop', make_param_feature('t_drop'), (0., problem_gen.task_gen.param_lims['t_drop'][1])),
-#                      ('l_drop', make_param_feature('l_drop'), (0., problem_gen.task_gen.param_lims['l_drop'][1])),
+#                      ('slope', get_param('slope'), problem_gen.task_gen.param_lims['slope']),
+#                      ('t_drop', get_param('t_drop'), (0., problem_gen.task_gen.param_lims['t_drop'][1])),
+#                      ('l_drop', get_param('l_drop'), (0., problem_gen.task_gen.param_lims['l_drop'][1])),
 #                      # ('is available', lambda task: 1 if task.t_release == 0. else 0, (0, 1)),
 #                      # ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
 #                      ],
 #                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
 _param_spaces = problem_gen.task_gen.param_spaces
-features = np.array([('duration', make_param_feature('duration'), _param_spaces['duration']),
-                     ('t_release', make_param_feature('t_release'), shift_space(_param_spaces['t_release'])),
-                     ('slope', make_param_feature('slope'), _param_spaces['slope']),
-                     ('t_drop', make_param_feature('t_drop'), shift_space(_param_spaces['t_drop'])),
-                     ('l_drop', make_param_feature('l_drop'), shift_space(_param_spaces['l_drop'])),
+# features = np.array([('duration', get_param('duration'), _param_spaces['duration']),
+#                      ('t_release', get_param('t_release'), shift_space(_param_spaces['t_release'])),
+#                      ('slope', get_param('slope'), _param_spaces['slope']),
+#                      ('t_drop', get_param('t_drop'), shift_space(_param_spaces['t_drop'])),
+#                      ('l_drop', get_param('l_drop'), shift_space(_param_spaces['l_drop'])),
+#                      ],
+#                     dtype=[('name', '<U16'), ('func', object), ('space', object)])
+
+features = np.array([('duration', get_param('duration'), _param_spaces['duration']),
+                     ('t_release', get_param('t_release'), shift_space(_param_spaces['t_release'])),
+                     ('slope', get_param('slope'), _param_spaces['slope']),
+                     ('t_drop', get_param('t_drop'), shift_space(_param_spaces['t_drop'])),
+                     ('l_drop', get_param('l_drop'), shift_space(_param_spaces['l_drop'])),
                      ],
                     dtype=[('name', '<U16'), ('func', object), ('space', object)])
 
+# features = None
+# features = learning.features.param_features(problem_gen.task_gen.param_spaces, ('t_release', 't_drop', 'l_drop'))
 
 # sort_func = None
 sort_func = 't_release'
@@ -71,7 +82,7 @@ env_cls = envs.StepTasking
 
 env_params = {'features': features,
               'sort_func': sort_func,
-              'time_shift': True,
+              'time_shift': False,
               'masking': True,
               # 'action_type': 'int',
               'action_type': 'any',
