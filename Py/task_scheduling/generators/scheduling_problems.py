@@ -505,7 +505,7 @@ class Dataset(Base):
 
 
 class QueueFlexDAR(Base):
-    def __init__(self, n_tasks, tasks_full, ch_avail, RP=0.04, clock=0, record_revisit=True):
+    def __init__(self, n_tasks, tasks_full, ch_avail, RP=0.04, clock=0, scheduler=earliest_release, record_revisit=True):
 
         self._cls_task = task_scheduling.tasks.check_task_types(tasks_full)
 
@@ -518,6 +518,7 @@ class QueueFlexDAR(Base):
         self.clock = np.array(0, dtype=np.float)
         self.RP = RP
         self.record_revisit = record_revisit
+        self.scheduler = scheduler
 
     def _gen_problem(self, rng):
         """Return a single scheduling problem (and optional solution)."""
@@ -526,7 +527,7 @@ class QueueFlexDAR(Base):
         self.reprioritize()  # Reprioritize
         tasks = [self.queue.pop() for _ in range(self.n_tasks)]  # Pop tasks
 
-        t_ex, ch_ex, t_run = timing_wrapper(earliest_release)(tasks, self.ch_avail)  # Scheduling using ERT
+        t_ex, ch_ex, t_run = timing_wrapper(self.scheduler)(tasks, self.ch_avail)  # Scheduling using ERT
 
         # TODO: use t_run to check validity of t_ex
         # t_ex = np.max([t_ex, [t_run for _ in range(len(t_ex))]], axis=0)

@@ -239,8 +239,9 @@ class ReluDrop(Generic):
 class ReluDropRadar(ReluDrop):
     # param_names = ('duration', 't_release', 'slope', 't_drop', 'l_drop', 't_dwell', 't_revisit')
 
-    def __init__(self, t_dwell, t_revisit, revisit_times=None):
+    def __init__(self, t_dwell, t_revisit, dwell_type=None, revisit_times=None):
         self.t_revisit = t_revisit
+        self.dwell_type = dwell_type
 
         relu_drop_params = {'duration': t_dwell, 't_release': 0, 'slope': 1 / self.t_revisit,
                             't_drop': self.t_revisit + 0.1, 'l_drop': 300}
@@ -258,20 +259,20 @@ class ReluDropRadar(ReluDrop):
     @classmethod
     def search(cls, t_dwell, dwell_type):
         if dwell_type == 'HS':
-            return cls(t_dwell, t_revisit=2.5)
+            return cls(t_dwell, t_revisit=2.5, dwell_type=dwell_type)
         elif dwell_type == 'AHS':
-            return cls(t_dwell, t_revisit=5)
+            return cls(t_dwell, t_revisit=5, dwell_type=dwell_type)
         else:
             raise ValueError
 
     @classmethod
     def track(cls, dwell_type):
         if dwell_type == 'low':
-            return cls(t_dwell=0.018, t_revisit=4)
+            return cls(t_dwell=0.018, t_revisit=4, dwell_type='track_low')
         elif dwell_type == 'med':
-            return cls(t_dwell=0.018, t_revisit=2)
+            return cls(t_dwell=0.018, t_revisit=2, dwell_type='track_med')
         elif dwell_type == 'high':
-            return cls(t_dwell=0.018, t_revisit=1)
+            return cls(t_dwell=0.018, t_revisit=1, dwell_type='track_high')
         else:
             raise ValueError
 
@@ -283,6 +284,21 @@ class ReluDropRadar(ReluDrop):
             return cls.track('med')
         else:
             return cls.track('low')
+
+    # @classmethod
+    # def dwell_type(cls):
+    #     if cls.t_revisit == 2.5:
+    #         return 'HS'
+    #     elif cls.t_revisit == 5:
+    #         return 'AHS'
+    #     elif cls.t_revisit == 4:
+    #         return 'track_low'
+    #     elif cls.t_revisit == 2:
+    #         return 'track_med'
+    #     elif cls.t_revisit == 1:
+    #         return 'track_high'
+
+
 
 
 # class ReluDropSearch(ReluDrop):
