@@ -7,12 +7,11 @@ from matplotlib import pyplot as plt
 from tensorflow import keras
 
 from task_scheduling.util.generic import runtime_wrapper
-from task_scheduling.learning.features import get_param
 from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime
 from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.algorithms import base as algs_base
 from task_scheduling.algorithms import runtime as algs_timed
-from task_scheduling import learning
+from task_scheduling.learning.features import get_param, param_features, encode_discrete_features
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.SL_policy import SupervisedLearningScheduler as SL_Scheduler
 from task_scheduling.learning.spaces import shift_space
@@ -48,25 +47,10 @@ problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=None
 #                      ],
 #                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
-_param_spaces = problem_gen.task_gen.param_spaces
-# features = np.array([('duration', get_param('duration'), _param_spaces['duration']),
-#                      ('t_release', get_param('t_release'), shift_space(_param_spaces['t_release'])),
-#                      ('slope', get_param('slope'), _param_spaces['slope']),
-#                      ('t_drop', get_param('t_drop'), shift_space(_param_spaces['t_drop'])),
-#                      ('l_drop', get_param('l_drop'), shift_space(_param_spaces['l_drop'])),
-#                      ],
-#                     dtype=[('name', '<U16'), ('func', object), ('space', object)])
-
-features = np.array([('duration', get_param('duration'), _param_spaces['duration']),
-                     ('t_release', get_param('t_release'), shift_space(_param_spaces['t_release'])),
-                     ('slope', get_param('slope'), _param_spaces['slope']),
-                     ('t_drop', get_param('t_drop'), shift_space(_param_spaces['t_drop'])),
-                     ('l_drop', get_param('l_drop'), shift_space(_param_spaces['l_drop'])),
-                     ],
-                    dtype=[('name', '<U16'), ('func', object), ('space', object)])
 
 # features = None
-# features = learning.features.param_features(problem_gen.task_gen.param_spaces, ('t_release', 't_drop', 'l_drop'))
+# features = param_features(problem_gen.task_gen.param_spaces, shift_params=('t_release', 't_drop', 'l_drop'))
+features = encode_discrete_features(problem_gen.task_gen.param_spaces)
 
 # sort_func = None
 sort_func = 't_release'
