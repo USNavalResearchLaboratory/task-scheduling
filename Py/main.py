@@ -6,15 +6,15 @@ import numpy as np
 from matplotlib import pyplot as plt
 from tensorflow import keras
 
-from task_scheduling.util.generic import runtime_wrapper, make_attr_feature
+from task_scheduling.util.generic import runtime_wrapper, make_param_feature
 from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime
 from task_scheduling.generators import scheduling_problems as problem_gens
-from task_scheduling import tree_search
 from task_scheduling.algorithms import base as algs_base
 from task_scheduling.algorithms import runtime as algs_timed
 from task_scheduling import learning
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.SL_policy import SupervisedLearningScheduler as SL_Scheduler
+from task_scheduling.learning.spaces import shift_space
 
 
 #%%
@@ -22,8 +22,8 @@ from task_scheduling.learning.SL_policy import SupervisedLearningScheduler as SL
 # NOTE: ensure train/test separation for loaded data, use iter_mode='once'
 # NOTE: to train multiple schedulers on same loaded data, use problem_gen.restart(shuffle=False)
 
-problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
-# problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=None)
+# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=4, n_ch=1, rng=None)
+problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=None)
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=16, n_ch=1, rng=None)
 # problem_gen = problem_gens.Dataset.load('relu_c1t8_1000', shuffle=True, repeat=False, rng=None)
@@ -33,19 +33,28 @@ problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=No
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2))
 
 # Algorithms
-features = np.array([('duration', make_attr_feature('duration'), problem_gen.task_gen.param_lims['duration']),
-                     ('t_release', make_attr_feature('t_release'),
-                      (0., problem_gen.task_gen.param_lims['t_release'][1])),
-                     # ('t_r_rel', lambda tasks, ch_avail: [task.t_release - np.min(ch_avail) for task in tasks],
-                     #  (0., problem_gen.task_gen.param_lims['t_release'][1])),
-                     ('slope', make_attr_feature('slope'), problem_gen.task_gen.param_lims['slope']),
-                     ('t_drop', make_attr_feature('t_drop'), (0., problem_gen.task_gen.param_lims['t_drop'][1])),
-                     ('l_drop', make_attr_feature('l_drop'), (0., problem_gen.task_gen.param_lims['l_drop'][1])),
-                     # ('is available', lambda task: 1 if task.t_release == 0. else 0, (0, 1)),
-                     # ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
+
+# features = np.array([('duration', make_param_feature('duration'), problem_gen.task_gen.param_lims['duration']),
+#                      ('t_release', make_param_feature('t_release'),
+#                       (0., problem_gen.task_gen.param_lims['t_release'][1])),
+#                      # ('t_r_rel', lambda tasks, ch_avail: [task.t_release - np.min(ch_avail) for task in tasks],
+#                      #  (0., problem_gen.task_gen.param_lims['t_release'][1])),
+#                      ('slope', make_param_feature('slope'), problem_gen.task_gen.param_lims['slope']),
+#                      ('t_drop', make_param_feature('t_drop'), (0., problem_gen.task_gen.param_lims['t_drop'][1])),
+#                      ('l_drop', make_param_feature('l_drop'), (0., problem_gen.task_gen.param_lims['l_drop'][1])),
+#                      # ('is available', lambda task: 1 if task.t_release == 0. else 0, (0, 1)),
+#                      # ('is dropped', lambda task: 1 if task.l_drop == 0. else 0, (0, 1)),
+#                      ],
+#                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
+
+_param_spaces = problem_gen.task_gen.param_spaces
+features = np.array([('duration', make_param_feature('duration'), _param_spaces['duration']),
+                     ('t_release', make_param_feature('t_release'), shift_space(_param_spaces['t_release'])),
+                     ('slope', make_param_feature('slope'), _param_spaces['slope']),
+                     ('t_drop', make_param_feature('t_drop'), shift_space(_param_spaces['t_drop'])),
+                     ('l_drop', make_param_feature('l_drop'), shift_space(_param_spaces['l_drop'])),
                      ],
-                    dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
-features = None
+                    dtype=[('name', '<U16'), ('func', object), ('space', object)])
 
 
 # sort_func = None
@@ -78,7 +87,7 @@ layers = [keras.layers.Dense(30, activation='relu'),
           ]
 
 policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, layers=layers, compile_params=None,
-                                           n_batch_train=35, n_batch_val=10, batch_size=20, weight_func=weight_func_,
+                                           n_batch_train=35, n_batch_val=10, batch_size=2, weight_func=weight_func_,
                                            fit_params={'epochs': 400}, do_tensorboard=False, plot_history=True,
                                            save=False, save_path=None)
 # policy_model = SL_Scheduler.load('temp/2020-10-28_14-56-42')
@@ -101,7 +110,7 @@ algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
     ('Random', algs_base.random_sequencer, 20),
     ('ERT', algs_base.earliest_release, 1),
-    ('MCTS', partial(algs_base.mcts, n_mc=100, verbose=False), 5),
+    # ('MCTS', partial(algs_base.mcts, n_mc=100, verbose=False), 5),
     ('DNN Policy', policy_model, 5),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])

@@ -5,6 +5,26 @@ from gym.spaces import Space, Discrete, MultiDiscrete, Box
 
 
 # Utilities
+def shift_space(space):
+    """Convert scalar space to Box with zero lower bound."""
+
+    if space.shape != ():
+        raise NotImplementedError("Only supported for scalar spaces.")
+
+    if isinstance(space, Box):
+        high = space.high
+    elif isinstance(space, Discrete):
+        high = space.n - 1
+    elif isinstance(space, MultiDiscrete):
+        high = space.nvec - 1
+    elif isinstance(space, DiscreteSet):
+        high = space.elements[-1]
+    else:
+        raise NotImplementedError
+
+    return Box(0., high, shape=(), dtype=np.float)
+
+
 def broadcast_to(space, shape):
     """Broadcast space to new shape."""
 

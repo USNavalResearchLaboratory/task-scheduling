@@ -168,7 +168,7 @@ def num2seq(num, length, check_input=True):
     return tuple(seq)
 
 
-def make_attr_feature(name):
+def make_param_feature(name):
     def func(tasks, ch_avail):
         return [getattr(task, name) for task in tasks]
 

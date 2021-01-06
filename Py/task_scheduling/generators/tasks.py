@@ -10,7 +10,7 @@ import pandas as pd
 from gym import spaces
 
 from task_scheduling import tasks as task_types
-from task_scheduling.util.generic import RandomGeneratorMixin, make_attr_feature
+from task_scheduling.util.generic import RandomGeneratorMixin, make_param_feature
 from task_scheduling.learning.spaces import DiscreteSet
 
 np.set_printoptions(precision=2)
@@ -53,7 +53,7 @@ class Base(RandomGeneratorMixin, ABC):
     def default_features(self):
         """Returns a NumPy structured array of default features, the task parameters."""
 
-        features = np.array([(name, make_attr_feature(name), self.param_spaces[name])
+        features = np.array([(name, make_param_feature(name), self.param_spaces[name])
                              for name in self.cls_task.param_names],
                             dtype=[('name', '<U16'), ('func', object), ('space', object)])
 

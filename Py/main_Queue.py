@@ -13,7 +13,7 @@ from task_scheduling.algorithms.base import earliest_release
 from task_scheduling.learning import environments as envs
 from task_scheduling.tree_search import TreeNodeShift
 from task_scheduling.learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler
-from task_scheduling.util.generic import make_attr_feature
+from task_scheduling.util.generic import make_param_feature
 from task_scheduling.util.results import timing_wrapper, evaluate_algorithms, evaluate_algorithms_runtime, iter_to_mean
 from task_scheduling.util.plot import scatter_loss_runtime_stats
 from task_scheduling.tasks import check_task_types
@@ -147,14 +147,14 @@ if plot_hist_flag:
 
 
 
-features = np.array([('duration', make_attr_feature('duration'), problem_gen.task_gen.param_lims['duration']),
-                     # ('t_release', make_attr_feature('t_release'),
+features = np.array([('duration', make_param_feature('duration'), problem_gen.task_gen.param_lims['duration']),
+                     # ('t_release', make_param_feature('t_release'),
                      #  (0., problem_gen.task_gen.param_lims['t_release'][1])),
-                     ('slope', make_attr_feature('slope'), problem_gen.task_gen.param_lims['slope']),
-                     ('t_drop', make_attr_feature('t_drop'), (0., problem_gen.task_gen.param_lims['t_drop'][1])),
+                     ('slope', make_param_feature('slope'), problem_gen.task_gen.param_lims['slope']),
+                     ('t_drop', make_param_feature('t_drop'), (0., problem_gen.task_gen.param_lims['t_drop'][1])),
                      ('offset', lambda tasks_, ch_avail_: [task.t_release - np.min(ch_avail_) for task in tasks_],
                       (0., problem_gen.task_gen.param_lims['t_release'][1])),
-                     # ('l_drop', make_attr_feature('l_drop'), (0., problem_gen.task_gen.param_lims['l_drop'][1])),
+                     # ('l_drop', make_param_feature('l_drop'), (0., problem_gen.task_gen.param_lims['l_drop'][1])),
                      ],
                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
