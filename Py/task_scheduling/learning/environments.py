@@ -60,7 +60,7 @@ class BaseTasking(ABC, Env):
         if features is not None:
             self.features = features
         else:
-            self.features = param_features(self.problem_gen)
+            self.features = param_features(self.problem_gen, time_shift)
 
         # Set sorting method
         if callable(sort_func):

@@ -5,26 +5,6 @@ from gym.spaces import Space, Discrete, MultiDiscrete, Box
 
 
 # Utilities
-def shift_space(space):
-    """Convert scalar space to Box with zero lower bound."""
-
-    if space.shape != ():
-        raise NotImplementedError("Only supported for scalar spaces.")
-
-    if isinstance(space, Box):
-        high = space.high
-    elif isinstance(space, Discrete):
-        high = space.n - 1
-    elif isinstance(space, MultiDiscrete):
-        high = space.nvec - 1
-    elif isinstance(space, DiscreteSet):
-        high = space.elements[-1]
-    else:
-        raise NotImplementedError
-
-    return Box(0., high, shape=(), dtype=np.float)
-
-
 def broadcast_to(space, shape):
     """Broadcast space to new shape."""
 
@@ -35,30 +15,6 @@ def broadcast_to(space, shape):
         return MultiDiscrete(np.broadcast_to(space.nvec, shape))
     else:
         raise NotImplementedError("Only supported for Box and MultiDiscrete spaces.")
-
-
-# def as_box(space):
-#     """Upcast space to a Box."""
-#
-#     if isinstance(space, Box):
-#         return space
-#     elif isinstance(space, MultiDiscrete):
-#         return Box(np.zeros(space.shape), space.nvec - 1)
-#     elif isinstance(space, Discrete):
-#         return Box(0, space.n - 1, shape=())
-#     elif isinstance(space, DiscreteSet):
-#         return Box(*space.elements[[0, -1]], shape=())
-#     else:
-#         raise TypeError('Only supported for Box, Discrete, or DiscreteSet type inputs.')
-#
-#
-# def as_multidiscrete(space):
-#     if isinstance(space, MultiDiscrete):
-#         return space
-#     elif isinstance(space, Discrete):
-#         return MultiDiscrete([space.n])
-#     else:
-#         raise TypeError
 
 
 def get_space_lims(space):
@@ -102,6 +58,30 @@ def concatenate(spaces, axis=0):
             axis = -2
         lims = np.concatenate([get_space_lims(space) for space in spaces], axis=axis)
         return Box(lims[..., 0], lims[..., 1], dtype=np.float)
+
+
+# def as_box(space):
+#     """Upcast space to a Box."""
+#
+#     if isinstance(space, Box):
+#         return space
+#     elif isinstance(space, MultiDiscrete):
+#         return Box(np.zeros(space.shape), space.nvec - 1)
+#     elif isinstance(space, Discrete):
+#         return Box(0, space.n - 1, shape=())
+#     elif isinstance(space, DiscreteSet):
+#         return Box(*space.elements[[0, -1]], shape=())
+#     else:
+#         raise TypeError('Only supported for Box, Discrete, or DiscreteSet type inputs.')
+#
+#
+# def as_multidiscrete(space):
+#     if isinstance(space, MultiDiscrete):
+#         return space
+#     elif isinstance(space, Discrete):
+#         return MultiDiscrete([space.n])
+#     else:
+#         raise TypeError
 
 
 # Space classes
