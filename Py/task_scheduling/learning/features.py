@@ -1,5 +1,4 @@
 import numpy as np
-
 from gym.spaces import Discrete
 
 from task_scheduling.learning.spaces import shift_space, DiscreteSet

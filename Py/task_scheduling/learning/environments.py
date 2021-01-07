@@ -452,7 +452,7 @@ class StepTasking(BaseTasking):
                 self.len_seq_encode = 1
             elif seq_encoding == 'one-hot':
                 def _seq_encoding(env, n):
-                    out = np.zeros(env.n_tasks)
+                    out = np.zeros(env.n_tasks, dtype=np.int)
                     if n in env.node.seq:
                         out[env.node.seq.index(n)] = 1
                     return out

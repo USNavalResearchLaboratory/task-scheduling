@@ -1,6 +1,4 @@
 from functools import partial
-import cProfile
-import pstats
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -11,10 +9,9 @@ from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithm
 from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.algorithms import base as algs_base
 from task_scheduling.algorithms import runtime as algs_timed
-from task_scheduling.learning.features import get_param, param_features, encode_discrete_features
+from task_scheduling import learning
+from task_scheduling.learning.features import param_features, encode_discrete_features
 from task_scheduling.learning import environments as envs
-from task_scheduling.learning.SL_policy import SupervisedLearningScheduler as SL_Scheduler
-from task_scheduling.learning.spaces import shift_space
 
 
 #%%
@@ -23,11 +20,10 @@ from task_scheduling.learning.spaces import shift_space
 # NOTE: to train multiple schedulers on same loaded data, use problem_gen.restart(shuffle=False)
 
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=4, n_ch=1, rng=None)
-problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=None)
+# problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=None)
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=16, n_ch=1, rng=None)
-# problem_gen = problem_gens.Dataset.load('relu_c1t8_1000', shuffle=True, repeat=False, rng=None)
-# problem_gen = problem_gens.DatasetOld.load('discrete_relu_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
+problem_gen = problem_gens.Dataset.load('relu_c1t4_1000_new', shuffle=True, repeat=False, rng=None)
 # problem_gen = problem_gens.Dataset.load('search_track_c1t8_1000', shuffle=True, repeat=False, rng=None)
 # problem_gen = problem_gens.Random.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.01))
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2))
@@ -49,8 +45,8 @@ problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=None
 
 
 # features = None
-# features = param_features(problem_gen.task_gen.param_spaces, shift_params=('t_release', 't_drop', 'l_drop'))
-features = encode_discrete_features(problem_gen.task_gen.param_spaces)
+features = param_features(problem_gen.task_gen.param_spaces, shift_params=('t_release', 't_drop', 'l_drop'))
+# features = encode_discrete_features(problem_gen.task_gen.param_spaces)
 
 # sort_func = None
 sort_func = 't_release'
@@ -81,22 +77,22 @@ layers = [keras.layers.Dense(30, activation='relu'),
           # keras.layers.Dense(100, activation='relu'),
           ]
 
-policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, layers=layers, compile_params=None,
-                                           n_batch_train=35, n_batch_val=10, batch_size=2, weight_func=weight_func_,
-                                           fit_params={'epochs': 400}, do_tensorboard=False, plot_history=True,
-                                           save=False, save_path=None)
+
+SL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
+           'layers': layers,
+           'n_batch_train': 35, 'n_batch_val': 10, 'batch_size': 20,
+           'weight_func': weight_func_,
+           'fit_params': {'epochs': 400},
+           'plot_history': True,
+           'save': False, 'save_path': None}
+policy_model = learning.SL_policy.SupervisedLearningScheduler.train_from_gen(**SL_args)
 # policy_model = SL_Scheduler.load('temp/2020-10-28_14-56-42')
 
 
-# random_agent = RL_Scheduler.train_from_gen(problem_gen, env_cls, env_params, model_cls='Random', n_episodes=1)
-# RL_args = {'problem_gen': problem_gen,
-#            'env_cls': env_cls,
-#            'env_params': env_params,
-#            'model_cls': 'DQN',
-#            'model_params': {'verbose': 1},
-#            'n_episodes': 100,
-#            'save': False,
-#            'save_path': None}
+RL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
+           'model_cls': 'DQN', 'model_params': {'verbose': 1},
+           'n_episodes': 100,
+           'save': False, 'save_path': None}
 # dqn_agent = learning.RL_policy.ReinforcementLearningScheduler.train_from_gen(**RL_args)
 # dqn_agent = RL_Scheduler.load('temp/DQN_2020-10-28_15-44-00', env=None, model_cls='DQN')
 
