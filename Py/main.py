@@ -20,10 +20,10 @@ from task_scheduling.learning import environments as envs
 # NOTE: to train multiple schedulers on same loaded data, use problem_gen.restart(shuffle=False)
 
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=4, n_ch=1, rng=None)
-# problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=None)
+problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=None)
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=16, n_ch=1, rng=None)
-problem_gen = problem_gens.Dataset.load('relu_c1t4_1000_new', shuffle=True, repeat=False, rng=None)
+# problem_gen = problem_gens.Dataset.load('relu_c1t4_1000_new', shuffle=True, repeat=False, rng=None)
 # problem_gen = problem_gens.Dataset.load('search_track_c1t8_1000', shuffle=True, repeat=False, rng=None)
 # problem_gen = problem_gens.Random.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.01))
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2))
@@ -45,8 +45,8 @@ problem_gen = problem_gens.Dataset.load('relu_c1t4_1000_new', shuffle=True, repe
 
 
 # features = None
-features = param_features(problem_gen.task_gen.param_spaces, shift_params=('t_release', 't_drop', 'l_drop'))
-# features = encode_discrete_features(problem_gen.task_gen.param_spaces)
+# features = param_features(problem_gen, shift_params=('t_release', 't_drop', 'l_drop'))
+features = encode_discrete_features(problem_gen)
 
 # sort_func = None
 sort_func = 't_release'

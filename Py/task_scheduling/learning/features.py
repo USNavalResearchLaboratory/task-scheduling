@@ -13,11 +13,11 @@ def get_param(name):
     return func
 
 
-def param_features(space_dict, shift_params=()):
+def param_features(problem_gen, shift_params=()):
     """Create array of parameter features from parameter spaces."""
 
     data = []
-    for name, space in space_dict.items():
+    for name, space in problem_gen.task_gen.param_spaces.items():
         if name in shift_params:
             space = shift_space(space)
         data.append((name, get_param(name), space))
@@ -34,11 +34,11 @@ def encode_param(name, space):
     return func
 
 
-def encode_discrete_features(space_dict):
+def encode_discrete_features(problem_gen):
     """Create array of parameter features, encoding DiscreteSet-typed parameters to Discrete-type."""
 
     data = []
-    for name, space in space_dict.items():
+    for name, space in problem_gen.task_gen.param_spaces.items():
         if isinstance(space, DiscreteSet):  # use encoding feature func, change space to Discrete
             func = encode_param(name, space)
             space = Discrete(len(space))

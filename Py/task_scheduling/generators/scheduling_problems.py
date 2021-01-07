@@ -14,8 +14,7 @@ import pandas as pd
 
 import task_scheduling.tasks
 from task_scheduling.algorithms.base import branch_bound, earliest_release
-from task_scheduling.util.generic import (RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution,
-                                          SchedulingProblemFlexDAR)
+from task_scheduling.util.generic import RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
 
 np.set_printoptions(precision=2)
