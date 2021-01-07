@@ -5,14 +5,16 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 import matplotlib.pyplot as plt
-from gym import Env, spaces
+from gym import Env
+from gym.spaces import Discrete, MultiDiscrete
 # from stable_baselines.common.vec_env import DummyVecEnv
 # from stable_baselines.gail import ExpertDataset
 
 from task_scheduling import tree_search
+from task_scheduling.learning import spaces as spaces_tasking
+from task_scheduling.learning.features import param_features
 from task_scheduling.util.plot import plot_task_losses
 from task_scheduling.util.generic import seq2num, num2seq
-from task_scheduling.learning import spaces as tasking_spaces
 
 np.set_printoptions(precision=2)
 
@@ -58,7 +60,8 @@ class BaseTasking(ABC, Env):
         if features is not None:
             self.features = features
         else:
-            self.features = self.problem_gen.task_gen.default_features
+            # self.features = self.problem_gen.task_gen.default_features
+            self.features = param_features(self.problem_gen.task_gen.param_spaces)
 
         # Set sorting method
         if callable(sort_func):
@@ -85,9 +88,7 @@ class BaseTasking(ABC, Env):
         self.steps_per_episode = None
 
         # gym.Env observation and action spaces
-        self._obs_space_features = tasking_spaces.stack(self.features['space'])
-        # self._state_tasks_lims = np.broadcast_to(self.features['lims'], (self.n_tasks, len(self.features), 2))
-
+        self._obs_space_features = spaces_tasking.stack(self.features['space'])
         self.observation_space = None
         self.action_space = None
 
@@ -339,18 +340,17 @@ class SeqTasking(BaseTasking):
 
         self.action_type = action_type      # 'seq' for sequences, 'int' for integers
         if self.action_type == 'seq':
-            self._action_space_map = lambda n: tasking_spaces.Permutation(n)
+            self._action_space_map = lambda n: spaces_tasking.Permutation(n)
         elif self.action_type == 'int':
-            self._action_space_map = lambda n: spaces.Discrete(factorial(n))
+            self._action_space_map = lambda n: Discrete(factorial(n))
         else:
             raise ValueError
 
         self.steps_per_episode = 1
 
         # gym.Env observation and action spaces
-        self.observation_space = tasking_spaces.broadcast_to(self._obs_space_features,
+        self.observation_space = spaces_tasking.broadcast_to(self._obs_space_features,
                                                              shape=(self.n_tasks, len(self.features)))
-        # self.observation_space = spaces.Box(*np.rollaxis(self._state_tasks_lims, -1), dtype=np.float)
         self.action_space = self._action_space_map(self.n_tasks)
 
     @property
@@ -468,19 +468,15 @@ class StepTasking(BaseTasking):
         self.steps_per_episode = self.n_tasks
 
         # gym.Env observation and action spaces
-        obs_space_seq = spaces.MultiDiscrete(2 * np.ones(self.len_seq_encode))
-        obs_space_concat = tasking_spaces.concatenate((obs_space_seq, self._obs_space_features))
-        self.observation_space = tasking_spaces.broadcast_to(obs_space_concat,
+        obs_space_seq = MultiDiscrete(2 * np.ones(self.len_seq_encode))
+        obs_space_concat = spaces_tasking.concatenate((obs_space_seq, self._obs_space_features))
+        self.observation_space = spaces_tasking.broadcast_to(obs_space_concat,
                                                              shape=(self.n_tasks, *obs_space_concat.shape))
 
-        # _state_lims = np.concatenate((np.broadcast_to([0, 1], (self.n_tasks, self.len_seq_encode, 2)),
-        #                               self._state_tasks_lims), axis=1)
-        # self.observation_space = spaces.Box(*np.rollaxis(_state_lims, -1), dtype=np.float)
-
         if self.do_valid_actions:
-            self.action_space = tasking_spaces.DiscreteSet(set(range(self.n_tasks)))
+            self.action_space = spaces_tasking.DiscreteSet(set(range(self.n_tasks)))
         else:
-            self.action_space = spaces.Discrete(self.n_tasks)
+            self.action_space = Discrete(self.n_tasks)
 
     @property
     def state(self):
@@ -492,15 +488,15 @@ class StepTasking(BaseTasking):
         """Determines the action Gym.Space from an observation."""
         if self.do_valid_actions:
             _state_seq = obs[:, :self.len_seq_encode]
-            return tasking_spaces.DiscreteSet(np.flatnonzero(1 - _state_seq.sum(1)))
+            return spaces_tasking.DiscreteSet(np.flatnonzero(1 - _state_seq.sum(1)))
         else:
-            return spaces.Discrete(len(obs))
+            return Discrete(len(obs))
 
     def _update_spaces(self):
         """Update observation and action spaces."""
         if self.do_valid_actions:
             seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
-            self.action_space = tasking_spaces.DiscreteSet(seq_rem_sort)
+            self.action_space = spaces_tasking.DiscreteSet(seq_rem_sort)
         else:
             pass
 
