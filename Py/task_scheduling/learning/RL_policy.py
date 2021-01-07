@@ -8,6 +8,7 @@ import numpy as np
 from stable_baselines.bench import Monitor
 from stable_baselines.results_plotter import plot_results
 from stable_baselines import DQN, PPO2, A2C
+from stable_baselines.common.vec_env import DummyVecEnv
 
 from task_scheduling.learning import environments as envs
 
@@ -16,6 +17,14 @@ np.set_printoptions(precision=2)
 pkg_path = Path.cwd()
 log_path = pkg_path / 'logs'
 agent_path = pkg_path / 'agents'
+
+
+class DummyVecTaskingEnv(DummyVecEnv):
+    def reset(self, *args, **kwargs):
+        for env_idx in range(self.num_envs):
+            obs = self.envs[env_idx].reset(*args, **kwargs)
+            self._save_obs(env_idx, obs)
+        return self._obs_from_buf()
 
 
 # Agents

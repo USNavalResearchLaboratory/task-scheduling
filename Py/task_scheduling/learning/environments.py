@@ -7,8 +7,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from gym import Env
 from gym.spaces import Discrete, MultiDiscrete
-# from stable_baselines.common.vec_env import DummyVecEnv
-# from stable_baselines.gail import ExpertDataset
 
 from task_scheduling import tree_search
 from task_scheduling.learning import spaces as spaces_tasking
@@ -17,14 +15,6 @@ from task_scheduling.util.plot import plot_task_losses
 from task_scheduling.util.generic import seq2num, num2seq
 
 np.set_printoptions(precision=2)
-
-
-# class DummyVecTaskingEnv(DummyVecEnv):
-#     def reset(self, *args, **kwargs):
-#         for env_idx in range(self.num_envs):
-#             obs = self.envs[env_idx].reset(*args, **kwargs)
-#             self._save_obs(env_idx, obs)
-#         return self._obs_from_buf()
 
 
 # Gym Environments
@@ -327,8 +317,7 @@ class BaseTasking(ABC, Env):
             'episode_starts': episode_starts
         }
 
-        # return ExpertDataset(traj_data=numpy_dict)
-        return numpy_dict
+        return numpy_dict   # used to instantiate ExpertDataset object via `traj_data` arg
 
 
 class SeqTasking(BaseTasking):
