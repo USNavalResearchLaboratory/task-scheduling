@@ -13,7 +13,7 @@ from task_scheduling.algorithms.base import earliest_release, branch_bound
 from task_scheduling.learning import environments as envs
 from task_scheduling.tree_search import TreeNodeShift
 from task_scheduling.learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler
-from task_scheduling.learning.features import get_param
+from task_scheduling.learning.features import _get_param
 from task_scheduling.util.results import timing_wrapper, evaluate_algorithms, evaluate_algorithms_runtime, iter_to_mean
 from task_scheduling.util.plot import scatter_loss_runtime_stats
 from task_scheduling.tasks import check_task_types
@@ -147,11 +147,11 @@ if plot_hist_flag:
 
 
 
-features = np.array([('duration', get_param('duration'), problem_gen.task_gen.param_lims['duration']),
+features = np.array([('duration', _get_param('duration'), problem_gen.task_gen.param_lims['duration']),
                      # ('t_release', get_param('t_release'),
                      #  (0., problem_gen.task_gen.param_lims['t_release'][1])),
-                     ('slope', get_param('slope'), problem_gen.task_gen.param_lims['slope']),
-                     ('t_drop', get_param('t_drop'), (0., problem_gen.task_gen.param_lims['t_drop'][1])),
+                     ('slope', _get_param('slope'), problem_gen.task_gen.param_lims['slope']),
+                     ('t_drop', _get_param('t_drop'), (0., problem_gen.task_gen.param_lims['t_drop'][1])),
                      ('offset', lambda tasks_, ch_avail_: [task.t_release - np.min(ch_avail_) for task in tasks_],
                       (0., problem_gen.task_gen.param_lims['t_release'][1])),
                      # ('l_drop', get_param('l_drop'), (0., problem_gen.task_gen.param_lims['l_drop'][1])),
