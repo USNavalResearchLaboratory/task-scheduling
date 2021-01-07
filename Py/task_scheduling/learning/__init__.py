@@ -1,5 +1,5 @@
-from . import environments, SL_policy
-__all__ = ['environments', 'SL_policy']
+from . import environments, SL_policy, spaces, features
+__all__ = ['environments', 'SL_policy', 'spaces', 'features']
 
 import tensorflow
 if tensorflow.version.VERSION[0] == '1':

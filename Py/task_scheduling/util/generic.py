@@ -1,10 +1,8 @@
 from collections import namedtuple
-from copy import deepcopy
 from functools import wraps
 from math import factorial
 from numbers import Integral
 from time import perf_counter
-from warnings import warn
 
 import numpy as np
 
@@ -166,39 +164,3 @@ def num2seq(num, length, check_input=True):
         seq.append(n)
 
     return tuple(seq)
-
-
-def make_attr_feature(name):
-    def func(tasks, ch_avail):
-        return [getattr(task, name) for task in tasks]
-
-    return func
-
-
-# def algorithm_repr(alg):
-#     """
-#     Create algorithm string representations.
-#
-#     Parameters
-#     ----------
-#     alg : functools.partial
-#         Algorithm as a partial function with keyword arguments.
-#
-#     Returns
-#     -------
-#     str
-#         Compact string representation of the algorithm.
-#
-#     """
-#     keys_del = ['verbose', 'rng']
-#     params = deepcopy(alg.keywords)
-#     for key in keys_del:
-#         try:
-#             del params[key]
-#         except KeyError:
-#             pass
-#     if len(params) == 0:
-#         return alg.func.__name__
-#     else:
-#         p_str = ", ".join(f"{key}={str(val)}" for key, val in params.items())
-#         return f"{alg.func.__name__}({p_str})"

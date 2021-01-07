@@ -7,10 +7,11 @@ from collections import deque
 
 import numpy as np
 import pandas as pd
+from gym import spaces
 
-from task_scheduling.tasks import check_task_types
-from task_scheduling.util.generic import RandomGeneratorMixin, make_attr_feature
 from task_scheduling import tasks as task_types
+from task_scheduling.util.generic import RandomGeneratorMixin
+from task_scheduling.learning.spaces import DiscreteSet
 
 np.set_printoptions(precision=2)
 
@@ -19,7 +20,7 @@ np.set_printoptions(precision=2)
 
 
 class Base(RandomGeneratorMixin, ABC):
-    def __init__(self, cls_task, param_lims=None, rng=None):
+    def __init__(self, cls_task, param_spaces=None, rng=None):
         """
         Base class for generation of task objects.
 
@@ -27,8 +28,8 @@ class Base(RandomGeneratorMixin, ABC):
         ----------
         cls_task : class
             Class for instantiating task objects.
-        param_lims : dict, optional
-            Maps parameter name strings to 2-tuples of parameter lower and upper bounds.
+        param_spaces : dict, optional
+            Maps parameter name strings to gym.spaces.Space objects
         rng : int or RandomState or Generator, optional
             Random number generator seed or object.
 
@@ -37,25 +38,16 @@ class Base(RandomGeneratorMixin, ABC):
         super().__init__(rng)
         self.cls_task = cls_task
 
-        if param_lims is None:
-            self.param_lims = {name: (-float('inf'), float('inf')) for name in self.cls_task.param_names}
+        if param_spaces is None:
+            self.param_spaces = {name: spaces.Box(-np.inf, np.inf, shape=(), dtype=np.float)
+                                 for name in self.cls_task.param_names}
         else:
-            self.param_lims = param_lims
+            self.param_spaces = param_spaces
 
     @abstractmethod
     def __call__(self, n_tasks, rng=None):
         """Yield tasks."""
         raise NotImplementedError
-
-    @property
-    def default_features(self):
-        """Returns a NumPy structured array of default features, the task parameters."""
-
-        features = np.array([(name, make_attr_feature(name), self.param_lims[name])
-                             for name in self.cls_task.param_names],
-                            dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
-
-        return features
 
 
 class BaseIID(Base, ABC):
@@ -83,27 +75,38 @@ class GenericIID(BaseIID):
         Class for instantiating task objects.
     param_gen : callable
         Callable object with 'self' argument, for use as the '_param_gen' method.
-    param_lims : dict, optional
-        Maps parameter name strings to 2-tuples of parameter lower and upper bounds.
+    param_spaces : dict, optional
+            Maps parameter name strings to gym.spaces.Space objects
     rng : int or RandomState or Generator, optional
         Random number generator seed or object.
 
     """
 
-    def __init__(self, cls_task, param_gen, param_lims=None, rng=None):
-        super().__init__(cls_task, param_lims, rng)
+    def __init__(self, cls_task, param_gen, param_spaces=None, rng=None):
+        super().__init__(cls_task, param_spaces, rng)
         self._param_gen_init = MethodType(param_gen, self)
 
     def _param_gen(self, rng):
         return self._param_gen_init(rng)
 
     @classmethod
-    def relu_drop(cls, param_gen, param_lims=None, rng=None):
-        return cls(task_types.ReluDrop, param_gen, param_lims, rng)
+    def relu_drop(cls, param_gen, param_spaces=None, rng=None):
+        return cls(task_types.ReluDrop, param_gen, param_spaces, rng)
 
 
 class ContinuousUniformIID(BaseIID):
     """Generates I.I.D. tasks with independently uniform continuous parameters."""
+
+    def __init__(self, cls_task, param_lims, rng=None):
+        param_spaces = {name: spaces.Box(*param_lims[name], shape=(), dtype=np.float)
+                        for name in cls_task.param_names}
+        super().__init__(cls_task, param_spaces, rng)
+
+        self.param_lims = param_lims
+        # if param_lims is None:
+        #     self.param_lims = {name: (-np.inf, np.inf) for name in cls_task.param_names}
+        # else:
+        #     self.param_lims = param_lims
 
     def _param_gen(self, rng):
         """Randomly generate task parameters."""
@@ -142,15 +145,8 @@ class DiscreteIID(BaseIID):
     """
 
     def __init__(self, cls_task, param_probs, rng=None):
-        # param_lims = {name: (min(param_probs[name].keys()), max(param_probs[name].keys()))
-        #               for name in cls_task.param_names}
-
-        param_lims = {}
-        for name in cls_task.param_names:
-            values = param_probs[name].keys()
-            param_lims[name] = (min(values), max(values))
-
-        super().__init__(cls_task, param_lims, rng)
+        param_spaces = {name: DiscreteSet(param_probs[name].keys()) for name in cls_task.param_names}
+        super().__init__(cls_task, param_spaces, rng)
 
         self.param_probs = param_probs
 
@@ -166,8 +162,8 @@ class DiscreteIID(BaseIID):
             return NotImplemented
 
     @classmethod
-    def relu_drop(cls, duration_vals=(3, 6), t_release_vals=(0, 4), slope_vals=(0.5, 2), t_drop_vals=(6, 12),
-                  l_drop_vals=(35, 50), rng=None):
+    def relu_drop_uniform(cls, duration_vals=(3, 6), t_release_vals=(0, 4), slope_vals=(0.5, 2), t_drop_vals=(6, 12),
+                          l_drop_vals=(35, 50), rng=None):
         """Factory constructor for ReluDrop task objects."""
 
         param_probs = {'duration': dict(zip(duration_vals, np.ones(len(duration_vals)) / len(duration_vals))),
@@ -191,26 +187,30 @@ class SearchTrackIID(BaseIID):
                         {'duration': .018, 't_revisit': 4.0},
                         ]
 
-        durations, t_revisits = zip(*[target.values() for target in self.targets])
-        param_lims = {'duration': (min(durations), max(durations)),
-                      't_release': t_release_lim,
-                      'slope': (1 / max(t_revisits), 1 / min(t_revisits)),
-                      't_drop': (min(t_revisits) + 0.1, max(t_revisits) + 0.1),
-                      'l_drop': (300., 300.)
-                      }
+        durations, t_revisits = map(np.array, zip(*[target.values() for target in self.targets]))
+        param_spaces = {'duration': DiscreteSet(durations),
+                        't_release': spaces.Box(*t_release_lim, shape=(), dtype=np.float),
+                        'slope': DiscreteSet(1 / t_revisits),
+                        't_drop': DiscreteSet(t_revisits + 0.1),
+                        'l_drop': DiscreteSet([300.])
+                        }
 
-        super().__init__(task_types.ReluDrop, param_lims, rng)
+        super().__init__(task_types.ReluDrop, param_spaces, rng)
 
         if probs is None:
-            self.probs = [.1, .2, .4, .1, .1, .1]
+            # self.probs = [.1, .2, .4, .1, .1, .1]
+            probs_search = [.17, .25, .58]  # proportionate to # beams divided by dwell time
+            probs_track = [.14, .29, .57]   # inversely proportionate to revisit rate
         else:
             self.probs = probs
+
+        self.t_release_lim = t_release_lim
 
     def _param_gen(self, rng):
         """Randomly generate task parameters."""
         duration, t_revisit = rng.choice(self.targets, p=self.probs).values()
         params = {'duration': duration,
-                  't_release': rng.uniform(*self.param_lims['t_release']),
+                  't_release': rng.uniform(*self.t_release_lim),
                   'slope': 1 / t_revisit,
                   't_drop': t_revisit + 0.1,
                   'l_drop': 300.
@@ -219,28 +219,25 @@ class SearchTrackIID(BaseIID):
 
 
 class Fixed(Base, ABC):
-    def __init__(self, tasks, param_lims=None, rng=None):
+    def __init__(self, tasks, param_spaces=None, rng=None):
         """
         Permutation task generator.
 
         Parameters
         ----------
         tasks : Sequence of tasks.Generic
-        param_lims : dict, optional
-            Maps parameter name strings to 2-tuples of parameter lower and upper bounds.
+        param_spaces : dict, optional
+            Maps parameter name strings to gym.spaces.Space objects
         rng : int or RandomState or Generator, optional
             Random number generator seed or object.
         """
 
-        cls_task = check_task_types(tasks)
+        cls_task = task_types.check_task_types(tasks)
 
-        if param_lims is None:
-            param_lims = {}
-            for name in cls_task.param_names:
-                values = [getattr(task, name) for task in tasks]
-                param_lims[name] = (min(values), max(values))
+        if param_spaces is None:
+            param_spaces = {name: DiscreteSet([getattr(task, name) for task in tasks]) for name in cls_task.param_names}
 
-        super().__init__(cls_task, param_lims, rng)
+        super().__init__(cls_task, param_spaces, rng)
 
         self.tasks = list(tasks)
 
@@ -258,8 +255,7 @@ class Fixed(Base, ABC):
     @classmethod
     def _task_gen_to_fixed(cls, n_tasks, task_gen, rng):
         tasks = list(task_gen(n_tasks, rng))
-        param_lims = task_gen.param_lims
-        return cls(tasks, param_lims, rng)
+        return cls(tasks, task_gen.param_spaces, rng)
 
     @classmethod
     def continuous_relu_drop(cls, n_tasks, rng=None, **relu_lims):
@@ -268,7 +264,7 @@ class Fixed(Base, ABC):
 
     @classmethod
     def discrete_relu_drop(cls, n_tasks, rng=None, **relu_vals):
-        task_gen = DiscreteIID.relu_drop(**relu_vals)
+        task_gen = DiscreteIID.relu_drop_uniform(**relu_vals)
         return cls._task_gen_to_fixed(n_tasks, task_gen, rng)
 
     @classmethod
@@ -299,8 +295,8 @@ class Permutation(Fixed):
 
 
 class Dataset(Fixed):
-    def __init__(self, tasks, shuffle=False, repeat=False, param_lims=None, rng=None):
-        super().__init__(tasks, param_lims, rng)
+    def __init__(self, tasks, shuffle=False, repeat=False, param_spaces=None, rng=None):
+        super().__init__(tasks, param_spaces, rng)
 
         self.tasks = deque()
         self.add_tasks(tasks)
