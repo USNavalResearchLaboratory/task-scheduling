@@ -198,7 +198,9 @@ class SearchTrackIID(BaseIID):
         super().__init__(task_types.ReluDrop, param_spaces, rng)
 
         if probs is None:
-            self.probs = [.1, .2, .4, .1, .1, .1]
+            # self.probs = [.1, .2, .4, .1, .1, .1]
+            probs_search = [.17, .25, .58]  # proportionate to # beams divided by dwell time
+            probs_track = [.14, .29, .57]   # inversely proportionate to revisit rate
         else:
             self.probs = probs
 

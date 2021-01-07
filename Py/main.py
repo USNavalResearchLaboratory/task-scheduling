@@ -22,7 +22,7 @@ from task_scheduling.learning.features import param_features, encode_discrete_fe
 problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=16, n_ch=1, rng=None)
-# problem_gen = problem_gens.Dataset.load('relu_c1t4_1000_new', shuffle=True, repeat=False, rng=None)
+# problem_gen = problem_gens.Dataset.load('relu_c1t4_1000', shuffle=True, repeat=False, rng=None)
 # problem_gen = problem_gens.Dataset.load('search_track_c1t8_1000', shuffle=True, repeat=False, rng=None)
 # problem_gen = problem_gens.Random.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.01))
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2))
@@ -34,6 +34,7 @@ problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=None
 time_shift = True
 
 features = None
+# features = param_features(problem_gen, time_shift)
 # features = encode_discrete_features(problem_gen)
 
 # sort_func = None
