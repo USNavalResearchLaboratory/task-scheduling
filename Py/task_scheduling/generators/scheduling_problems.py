@@ -196,7 +196,7 @@ class Random(Base):
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
     @classmethod
-    def search_track(cls, n_tasks, n_ch, probs=None, t_release_lim=(0., 0.), ch_avail_lim=(0., 0.), rng=None):
+    def search_track(cls, n_tasks, n_ch, probs=None, t_release_lim=(0., .018), ch_avail_lim=(0., 0.), rng=None):
         task_gen = task_gens.SearchTrackIID(probs, t_release_lim)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 

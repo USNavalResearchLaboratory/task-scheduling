@@ -17,6 +17,7 @@ np.set_printoptions(precision=2)
 
 
 # TODO: more generic Base class for heterogeneous task types?
+# TODO: use `space` RNG method instead of using the `rng` attribute?
 
 
 class Base(RandomGeneratorMixin, ABC):
@@ -179,12 +180,12 @@ class SearchTrackIID(BaseIID):
     """Search and Track tasks based on 2020 TSRS paper."""
 
     def __init__(self, probs=None, t_release_lim=(0., .018), rng=None):
-        self.targets = [{'duration': .036, 't_revisit': 2.5},
-                        {'duration': .036, 't_revisit': 5.0},
-                        {'duration': .018, 't_revisit': 5.0},
-                        {'duration': .018, 't_revisit': 1.0},
-                        {'duration': .018, 't_revisit': 2.0},
-                        {'duration': .018, 't_revisit': 4.0},
+        self.targets = [{'duration': .036, 't_revisit': 2.5},   # horizon search
+                        {'duration': .036, 't_revisit': 5.0},   # above horizon search
+                        {'duration': .018, 't_revisit': 5.0},   # above horizon search
+                        {'duration': .018, 't_revisit': 1.0},   # high priority track
+                        {'duration': .018, 't_revisit': 2.0},   # med priority track
+                        {'duration': .018, 't_revisit': 4.0},   # low priority track
                         ]
 
         durations, t_revisits = map(np.array, zip(*[target.values() for target in self.targets]))
@@ -198,9 +199,9 @@ class SearchTrackIID(BaseIID):
         super().__init__(task_types.ReluDrop, param_spaces, rng)
 
         if probs is None:
-            # self.probs = [.1, .2, .4, .1, .1, .1]
-            probs_search = [.17, .25, .58]  # proportionate to # beams divided by dwell time
-            probs_track = [.14, .29, .57]   # inversely proportionate to revisit rate
+            # n = np.array([28, 43, 49,  1,  1,  1])
+            # t_r = np.array([2.5, 5., 5., 1., 2., 4.])
+            self.probs = np.array([0.36, 0.27, 0.31, 0.03, 0.02, 0.01])  # proportionate to (# beams) / (revisit rate)
         else:
             self.probs = probs
 
@@ -268,7 +269,7 @@ class Fixed(Base, ABC):
         return cls._task_gen_to_fixed(n_tasks, task_gen, rng)
 
     @classmethod
-    def search_track(cls, n_tasks, probs=None, t_release_lim=(0., 0.), rng=None):
+    def search_track(cls, n_tasks, probs=None, t_release_lim=(0., .018), rng=None):
         task_gen = SearchTrackIID(probs, t_release_lim)
         return cls._task_gen_to_fixed(n_tasks, task_gen, rng)
 
