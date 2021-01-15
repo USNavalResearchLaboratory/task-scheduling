@@ -277,6 +277,17 @@ class ReluDropRadar(ReluDrop):
             raise ValueError
 
     @classmethod
+    def track_notional(cls, dwell_type):
+        if dwell_type == 'low':
+            return cls(t_dwell=0.020, t_revisit=4, dwell_type='track_low')
+        elif dwell_type == 'med':
+            return cls(t_dwell=0.020, t_revisit=2, dwell_type='track_med')
+        elif dwell_type == 'high':
+            return cls(t_dwell=0.020, t_revisit=1, dwell_type='track_high')
+        else:
+            raise ValueError
+
+    @classmethod
     def from_kinematics(cls, slant_range, rate_range):  # TODO: DRY with search_track?
         if slant_range <= 50:
             return cls.track('high')
@@ -284,6 +295,15 @@ class ReluDropRadar(ReluDrop):
             return cls.track('med')
         else:
             return cls.track('low')
+
+    @classmethod
+    def from_kinematics_notional(cls, slant_range, rate_range):  # TODO: DRY with search_track?
+        if slant_range <= 50:
+            return cls.track_notional('high')
+        elif slant_range > 50 and abs(rate_range) >= 100:
+            return cls.track_notional('med')
+        else:
+            return cls.track_notional('low')
 
     # @classmethod
     # def dwell_type(cls):

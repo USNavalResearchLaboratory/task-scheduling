@@ -5,6 +5,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+from gym import spaces
 
 import task_scheduling
 from task_scheduling.generators import (tasks as task_gens, channel_availabilities as ch_gens,
@@ -20,10 +21,17 @@ from task_scheduling.tasks import check_task_types
 from task_scheduling.learning.SL_policy import SupervisedLearningScheduler as SL_Scheduler
 from tensorflow import keras
 import tensorflow as tf
+from task_scheduling.learning.features import param_features, encode_discrete_features
 tf.enable_eager_execution()  # Set tf to eager execution --> avoids error in SL_policy line 61
+# plt.style.use(['science', 'ieee']) # Used for plotting style ensures plots are visible in black and white
+# plt.figure()
+# plt.plot(np.arange(9))
+# plt.xlabel('hello')
+# plt.ylabel('B\&B')
+# plt.savefig('abc.pdf')
+# plt.show()
 
-
-def generate_data(create_data_flag=False, n_gen=None, n_tasks=None, n_track=None, n_ch=None):
+def generate_data(create_data_flag=False, n_gen=None, n_tasks=None, n_track=None, n_ch=None, setup_type=None):
 
     # create_data_flag = True
 
@@ -33,7 +41,10 @@ def generate_data(create_data_flag=False, n_gen=None, n_tasks=None, n_track=None
         # n_tasks = 4  # Number of tasks to process at each iteration
         # n_track = 10
         # ch_avail = np.zeros(n_ch, dtype=np.float)
-        tasks_full = task_gens.FlexDAR(n_track=n_track, rng=100).tasks_full
+        if setup_type == 'FlexDARlike':
+            tasks_full = task_gens.FlexDARlike(n_track=n_track, rng=100).tasks_full
+        else:
+            tasks_full = task_gens.FlexDAR(n_track=n_track, rng=100).tasks_full
 
         # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
         # ch_avail = [0, 0]
@@ -63,7 +74,7 @@ def generate_data(create_data_flag=False, n_gen=None, n_tasks=None, n_track=None
         #
         # env = env_cls(problem_gen, **env_params)
 
-        filename = 'FlexDAR_' + 'ch' + str(len(ch_avail)) + 't' + str(n_tasks) + '_track' + str(n_track) + \
+        filename = setup_type + '_' + 'ch' + str(len(ch_avail)) + 't' + str(n_tasks) + '_track' + str(n_track) + \
                    '_' + str(n_gen)
         list(problem_gen(n_gen=n_gen, save=True, file=filename))
 
@@ -72,7 +83,8 @@ def generate_data(create_data_flag=False, n_gen=None, n_tasks=None, n_track=None
 
 plot_hist_flag = False
 train_RL_flag = True
-train_SL_flag = False
+train_SL_flag = True
+setup_type = 'FlexDARlike'  # Option 1: FlexDAR or FlexDARlike
 
 n_gen = 100
 n_train = np.array(n_gen*0.9, dtype=int)
@@ -84,7 +96,10 @@ n_tasks = 5  # Number of tasks to process at each iteration
 n_track = 10
 # n_track_eval = 10
 # ch_avail = np.zeros(2, dtype=np.float)
-tasks_full = task_gens.FlexDAR(n_track=n_track, rng=100).tasks_full
+if setup_type == 'FlexDARlike':
+    tasks_full = task_gens.FlexDARlike(n_track=n_track, rng=100).tasks_full
+else:
+    tasks_full = task_gens.FlexDAR(n_track=n_track, rng=100).tasks_full
 
 # ch_avail = list(ch_gens.UniformIID((0, 0))(2))
 n_ch = 1
@@ -94,7 +109,7 @@ ch_avail = [0 ] *n_ch
 
 # Problem Generator
 # Use separate datasets for training and evaluation. Let Training dataset repeat for training.
-filename_train = 'FlexDAR_' + 'ch' + str(len(ch_avail)) + 't' + str(n_tasks) + '_track' + str(n_track) + '_' + str \
+filename_train = setup_type + '_' + 'ch' + str(len(ch_avail)) + 't' + str(n_tasks) + '_track' + str(n_track) + '_' + str \
     (n_gen)
 # Eval with 0 tracks for now
 # filename_eval = 'FlexDAR_' + 'ch' + str(len(ch_avail)) + 't' + str(n_tasks) + '_track' + str(n_track_eval) + '_' + str \
@@ -104,7 +119,7 @@ filepath_train = './data/schedules/' + filename_train
 if os.path.isfile(filepath_train):
     problem_gen = problem_gens.Dataset.load(file=filename_train, shuffle=False, rng=None, repeat=True)
 else:
-    generate_data(create_data_flag=True, n_gen=n_gen, n_tasks=n_tasks, n_track=n_track, n_ch=n_ch)
+    generate_data(create_data_flag=True, n_gen=n_gen, n_tasks=n_tasks, n_track=n_track, n_ch=n_ch, setup_type=setup_type)
     problem_gen = problem_gens.Dataset.load(file=filename_train, shuffle=False, rng=None, repeat=True)
 
 # if os.path.isfile(filepath_eval):
@@ -145,19 +160,20 @@ if plot_hist_flag:
         # df.plot.hist(column=jj, bins=100, title=df.columns[jj], ax=jj)
         df.hist(column=col, bins=100)
 
+# time_shift = False
+# features = param_features(problem_gen, time_shift)
 
 
-features = np.array([('duration', _get_param('duration'), problem_gen.task_gen.param_lims['duration']),
+features = np.array([('duration', _get_param('duration'), spaces.Box(0, 0.05, shape=(), dtype=np.float)),
                      # ('t_release', get_param('t_release'),
                      #  (0., problem_gen.task_gen.param_lims['t_release'][1])),
-                     ('slope', _get_param('slope'), problem_gen.task_gen.param_lims['slope']),
-                     ('t_drop', _get_param('t_drop'), (0., problem_gen.task_gen.param_lims['t_drop'][1])),
+                     ('slope', _get_param('slope'), spaces.Box(0, 1, shape=(), dtype=np.float)),
+                     ('t_drop', _get_param('t_drop'), spaces.Box(0, 6, shape=(), dtype=np.float)),
                      ('offset', lambda tasks_, ch_avail_: [task.t_release - np.min(ch_avail_) for task in tasks_],
-                      (0., problem_gen.task_gen.param_lims['t_release'][1])),
+                      spaces.Box(-5, 0, shape=(), dtype=np.float)),
                      # ('l_drop', get_param('l_drop'), (0., problem_gen.task_gen.param_lims['l_drop'][1])),
                      ],
-                    dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
-
+                    dtype=[('name', '<U16'), ('func', object), ('space', object)])
 
 
 # features = np.array([('duration', make_attr_feature('duration'), problem_gen.task_gen.param_lims['duration']),
@@ -244,7 +260,7 @@ algorithms = np.array([
     # if train_RL_flag:
         ('DQN Agent', dqn_agent, 1),
     # if train_SL_flag:
-    #     ('DNN Policy', policy_model, 1),
+        ('DNN Policy', policy_model, 1),
 ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
 
 # l_ex_iter, t_run_iter, l_ex_mean, t_run_mean, l_ex_mean_norm = evaluate_algorithms(algorithms, problem_gen,
@@ -262,9 +278,9 @@ scatter_loss_runtime_stats(t_run_mean, l_ex_mean, ax=None, ax_kwargs=None)
 
 ##############################################################
 # Evaluate Scheduler in context of Radar Queue
-solve=False
+solve=True
 if solve:
-    _opt = np.array([('B&B Optimal', branch_bound, 1)], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
+    _opt = np.array([('BB Optimal', branch_bound, 1)], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
     algorithms = np.concatenate((_opt, algorithms))
 
 
@@ -326,17 +342,19 @@ for count, alg in enumerate(algorithms):
     plt.plot(job_unique, mean_revisit_time_job_type[name], label=name)
     plt.xlabel('Job Type')
     plt.ylabel('Mean Revisit Time')
+    plt.title('Mean Revisit Time vs. Job Type')
     plt.grid(True)
     plt.legend()
-    plt.show()
+    # plt.show()
 
     plt.figure(201)
     plt.plot(job_unique, Penalty[name], label=name)
     plt.ylabel('Penalty')
     plt.xlabel('Job Type')
+    plt.title('Penalty vs. Job Type')
     plt.grid(True)
     plt.legend()
-    plt.show()
+    # plt.show()
 
     plt.figure(100+count)
     plt.grid
@@ -350,7 +368,7 @@ for count, alg in enumerate(algorithms):
             plt.plot(x, y, color_scheme_bound[0], label='UB')
         else:
             plt.plot(x, y, color_scheme_bound[0])
-        plt.text(x[0], y[0], 'Upper-Bound: '+job_unique[ii])
+        plt.text(x[0], y[0], 'Upper Bound: '+job_unique[ii])
         if ii == 0:
             plt.plot(mean_revisit_time[name][job_type_index[name][ii][0]], y, color_scheme[0][ii], marker="o", linestyle='None', label=job_unique[ii])
         else:
@@ -362,9 +380,8 @@ for count, alg in enumerate(algorithms):
     plt.ylabel('Sorted Job ID')
     plt.xlabel('Revisit Rate')
     plt.grid(True)
-    plt.show()
     plt.legend()
-    plt.title(name + '\n Penalty = ' + str(np.sum(Penalty[name])) )
+    plt.title(name + '\n Penalty = ' + str(np.sum(Penalty[name])))
 
 
 
@@ -411,6 +428,29 @@ for count, alg in enumerate(algorithms):
                 Utility[ii,jj] = np.sum(temp)
                 Penalty[ii,jj] = -np.sum(temp[temp<0])
 
+if train_RL_flag:
+    plt.figure(1)
+    plt.savefig('./Figures/' + filename_train + '_RL_TRAIN.eps', format='eps', dpi=600)
+
+plt.figure(200)
+plt.savefig('./Figures/' + filename_train + '_Mean_Revisit_Time.eps', format='eps', dpi=600)
+
+plt.figure(201)
+plt.savefig('./Figures/' + filename_train + '_Penalty.eps', format='eps', dpi=600)
+# plt.figure('tra')
+
+for count, alg in enumerate(algorithms):
+    plt.figure(100+count)
+    plt.savefig('./Figures/' + filename_train + alg[0] + '.eps', format='eps', dpi=600)
+
+if train_SL_flag:
+    plt.figure(num='training history')
+    plt.savefig('./Figures/' + filename_train + '_training_history.eps', format='eps', dpi=600)
+
+
+plt.show()
+
+a = 1
 
 
 # for task in problem_gen.queue:
