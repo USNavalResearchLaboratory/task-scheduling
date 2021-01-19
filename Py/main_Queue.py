@@ -86,9 +86,9 @@ train_RL_flag = True
 train_SL_flag = True
 setup_type = 'FlexDARlike'  # Option 1: FlexDAR or FlexDARlike
 
-n_gen = 100
+n_gen = 1000
 n_train = np.array(n_gen*0.9, dtype=int)
-n_eval = n_gen - n_train - 1
+n_eval = n_gen - n_train
 # n_train = 10000
 # n_eval = 200
 
@@ -117,10 +117,10 @@ filename_train = setup_type + '_' + 'ch' + str(len(ch_avail)) + 't' + str(n_task
 filepath_train = './data/schedules/' + filename_train
 # filepath_eval = './data/schedules/' + filename_eval
 if os.path.isfile(filepath_train):
-    problem_gen = problem_gens.Dataset.load(file=filename_train, shuffle=False, rng=None, repeat=True)
+    problem_gen = problem_gens.Dataset.load(file=filename_train, shuffle=False, rng=None, repeat=False)
 else:
     generate_data(create_data_flag=True, n_gen=n_gen, n_tasks=n_tasks, n_track=n_track, n_ch=n_ch, setup_type=setup_type)
-    problem_gen = problem_gens.Dataset.load(file=filename_train, shuffle=False, rng=None, repeat=True)
+    problem_gen = problem_gens.Dataset.load(file=filename_train, shuffle=False, rng=None, repeat=False)
 
 # if os.path.isfile(filepath_eval):
 #     problem_gen_eval = problem_gens.Dataset.load(file=filename_eval, shuffle=False, rng=None)
@@ -231,6 +231,10 @@ if train_RL_flag:
 
 # Train SL Approach
 if train_SL_flag:
+    if train_RL_flag:  # Reload problem generator
+        problem_gen = problem_gens.Dataset.load(file=filename_train, shuffle=False, rng=None, repeat=False)
+
+
     env_cls_SL = envs.SeqTasking
 
     # layers = None
@@ -238,16 +242,22 @@ if train_SL_flag:
     layers = [
               # keras.layers.Conv1D(filters=4, kernel_size=3, padding='same', activation='relu',input_shape=input_shape[1:]),
               keras.layers.Dense(20, activation='relu'),
+              keras.layers.Dropout(0.2),
               keras.layers.Dense(10, activation='relu'),
               # keras.layers.Dense(30, activation='relu'),
-              # keras.layers.Dropout(0.2),
+              keras.layers.Dropout(0.2),
               # keras.layers.Dense(100, activation='relu'),
               ]
     weight_func_ = None
 
+    n_batch_train = np.array(n_train*0.7, dtype=int)
+    n_batch_val = n_train - n_batch_train-1
+    batch_size = np.gcd(n_batch_val, n_batch_train)
+
     policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls_SL, env_params, layers=layers, compile_params=None,
-                                               n_batch_train=35, n_batch_val=10, batch_size=20, weight_func=weight_func_,
-                                               fit_params={'epochs': 300}, do_tensorboard=False, plot_history=True,
+                                               n_batch_train=n_batch_train, n_batch_val=n_batch_val,
+                                               batch_size=batch_size, weight_func=weight_func_,
+                                               fit_params={'epochs': 1000}, do_tensorboard=False, plot_history=True,
                                                save=False, save_path=None)
 
 
@@ -258,9 +268,9 @@ algorithms = np.array([
     ('ERT', earliest_release, 1),
     # ('MCTS', partial(algs_base.mcts, n_mc=100, verbose=False), 5),
     # if train_RL_flag:
-        ('DQN Agent', dqn_agent, 1),
+        ('DQN_Agent', dqn_agent, 1),
     # if train_SL_flag:
-        ('DNN Policy', policy_model, 1),
+        ('DNN_Policy', policy_model, 1),
 ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
 
 # l_ex_iter, t_run_iter, l_ex_mean, t_run_mean, l_ex_mean_norm = evaluate_algorithms(algorithms, problem_gen,
@@ -431,21 +441,30 @@ for count, alg in enumerate(algorithms):
 if train_RL_flag:
     plt.figure(1)
     plt.savefig('./Figures/' + filename_train + '_RL_TRAIN.eps', format='eps', dpi=600)
+    plt.savefig('./Figures/' + filename_train + '_RL_TRAIN.pdf', format='pdf', dpi=600)
+
 
 plt.figure(200)
 plt.savefig('./Figures/' + filename_train + '_Mean_Revisit_Time.eps', format='eps', dpi=600)
+plt.savefig('./Figures/' + filename_train + '_Mean_Revisit_Time.pdf', format='pdf', dpi=600)
+
 
 plt.figure(201)
 plt.savefig('./Figures/' + filename_train + '_Penalty.eps', format='eps', dpi=600)
+plt.savefig('./Figures/' + filename_train + '_Penalty.pdf', format='pdf', dpi=600)
+
 # plt.figure('tra')
 
 for count, alg in enumerate(algorithms):
     plt.figure(100+count)
     plt.savefig('./Figures/' + filename_train + alg[0] + '.eps', format='eps', dpi=600)
+    plt.savefig('./Figures/' + filename_train + alg[0] + '.pdf', format='pdf', dpi=600)
+
 
 if train_SL_flag:
     plt.figure(num='training history')
     plt.savefig('./Figures/' + filename_train + '_training_history.eps', format='eps', dpi=600)
+    plt.savefig('./Figures/' + filename_train + '_training_history.pdf', format='pdf', dpi=600)
 
 
 plt.show()

@@ -110,7 +110,7 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
     """
 
     if solve:
-        _opt = np.array([('B&B Optimal', None, 1)], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
+        _opt = np.array([('BB Optimal', None, 1)], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
         algorithms = np.concatenate((_opt, algorithms))
 
     _args_iter = {'object': [tuple([np.nan] * alg['n_iter'] for alg in algorithms)] * n_gen,
@@ -140,7 +140,7 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
                     print(f'    Iteration: {iter_ + 1}/{n_iter}', end='\r')
 
                 # Run algorithm
-                if name == 'B&B Optimal':
+                if name == 'BB Optimal':
                     t_ex, ch_ex, t_run = solution_opt
                 else:
                     t_ex, ch_ex, t_run = timing_wrapper(func)(tasks, ch_avail)
@@ -181,7 +181,7 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
             print(f"{name:<35}{l_ex_mean[name].mean():<8.2f}{t_run_mean[name].mean():<10.6f}")
 
     if solve:   # relative to B&B
-        l_ex_mean_opt = l_ex_mean['B&B Optimal'].copy()
+        l_ex_mean_opt = l_ex_mean['BB Optimal'].copy()
 
         l_ex_mean_norm = l_ex_mean.copy()
         for name in algorithms['name']:

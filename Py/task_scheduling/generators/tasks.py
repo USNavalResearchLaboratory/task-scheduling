@@ -339,8 +339,8 @@ class Dataset(Fixed):
 
 
 class FlexDAR(Base):
-    def __init__(self, n_track=0, param_lims=None, rng=None):
-        super().__init__(cls_task=task_types.ReluDropRadar, param_lims=None, rng=None)
+    def __init__(self, n_track=0, param_spaces=None, rng=None):
+        super().__init__(cls_task=task_types.ReluDropRadar, param_spaces=None, rng=None)
 
         self.n_track = n_track
         tasks_full = []
@@ -503,3 +503,58 @@ class FlexDAR(Base):
     # for task in
     #     yield task
 
+class FlexDARlike(Base):
+    def __init__(self, n_track=0, param_spaces=None, rng=None):
+
+        # self.targets = [{'duration': .040, 't_revisit': 2.5},   # horizon search
+        #                 {'duration': .040, 't_revisit': 5.0},   # above horizon search
+        #                 {'duration': .030, 't_revisit': 5.0},   # above horizon search
+        #                 {'duration': .020, 't_revisit': 5.0},  # above horizon search
+        #                 {'duration': .010, 't_revisit': 5.0},  # above horizon search
+        #                 {'duration': .020, 't_revisit': 1.0},   # high priority track
+        #                 {'duration': .020, 't_revisit': 2.0},   # med priority track
+        #                 {'duration': .020, 't_revisit': 4.0},   # low priority track
+        #                 ]
+        # t_release_lim = 50
+        # durations, t_revisits = map(np.array, zip(*[target.values() for target in self.targets]))
+        # Currently use continuous spaces, need to change
+        param_spaces = {'duration': spaces.Box(0, 5, shape=(), dtype=np.float),
+                        't_release': spaces.Box(0, 50, shape=(), dtype=np.float),
+                        'slope': spaces.Box(0, 1, shape=(), dtype=np.float),
+                        't_drop': spaces.Box(0, 6, shape=(), dtype=np.float),
+                        'l_drop': DiscreteSet([300.])
+                        }
+
+
+        super().__init__(cls_task=task_types.ReluDropRadar, param_spaces=param_spaces, rng=None)
+
+        self.n_track = n_track
+        tasks_full = []
+
+        # Search tasks
+        n_beams_per_row = np.array([30, 20, 20, 10, 10, 10, 10, 10])
+        t_dwells = np.array([40, 40, 30, 20, 20, 20, 20, 10]) * 1e-3
+        dwell_types = ['HS', *('AHS' for _ in range(7))]
+        for n_beams, t_dwell, dwell_type in zip(n_beams_per_row, t_dwells, dwell_types):
+            tasks_full.extend([self.cls_task.search(t_dwell, dwell_type) for _ in range(n_beams)])
+
+        # Track tasks
+        for slant_range, range_rate in zip(self.rng.uniform(0, 200, n_track), self.rng.uniform(-343, 343, n_track)):
+            # tasks_full.append(self.cls_task.track_from_kinematics(slant_range, range_rate))
+            # Current classmethod called "from_kinematics"
+            tasks_full.append(self.cls_task.from_kinematics_notional(slant_range, range_rate))
+
+        self.tasks_full = tasks_full
+
+    def __call__(self, rng=None):
+
+        n_track = self.n_track
+        tasks = []
+        return tasks
+
+
+        def summary(self):  # TODO: Fix this
+
+            df = pd.DataFrame({name: [getattr(task, name) for task in self.tasks]
+                               for name in self._cls_task.param_names})
+            print(df)

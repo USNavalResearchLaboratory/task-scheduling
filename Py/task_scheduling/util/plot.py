@@ -149,11 +149,11 @@ def scatter_loss_runtime_stats(t_run, l_ex, ax=None, ax_kwargs=None):
 
         x_mean = np.mean(t_run[name])
         y_mean = np.mean(l_ex[name])
-        ax.scatter(x_mean, y_mean, label=name + '_mean', color=color, marker='*', s=500)
+        ax.scatter(x_mean, y_mean, label=name + '_mean', color=color, marker='*', s=400)
 
-        x_median = np.median(t_run[name])
-        y_median = np.median(l_ex[name])
-        ax.scatter(x_median, y_median, label=name + '_median', color=color, marker='d', s=500)
+        # x_median = np.median(t_run[name])
+        # y_median = np.median(l_ex[name])
+        # ax.scatter(x_median, y_median, label=name + '_median', color=color, marker='d', s=400)
 
         # x_std = np.std(t_run[name])
         # y_std = np.std(l_ex[name])
