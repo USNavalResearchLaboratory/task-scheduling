@@ -113,6 +113,16 @@ class SupervisedLearningScheduler:
         d_train = self.env.data_gen_numpy(n_batch_train * batch_size, weight_func=weight_func, verbose=True)
 
         x_train, y_train = d_train[:2]
+
+        # Modify to include CNN. Need to reshape x_train and x_val
+        new_shape = np.append(x_train.shape, 1)
+        x_train = np.reshape(x_train, new_shape)
+
+        x_val, y_val = d_val[:2]
+        new_shape = np.append(x_val.shape, 1)
+        x_val = np.reshape(x_val, new_shape)
+        d_val = (x_val, y_val)
+
         if callable(weight_func):
             sample_weight = d_train[2]
         else:
@@ -213,16 +223,19 @@ class SupervisedLearningScheduler:
 
         # Create model
         if layers is None:
-            layers = [keras.layers.Dense(60, activation='relu'),
+            layers = [keras.layers.Flatten(input_shape=env.observation_space.shape),
+                      keras.layers.Dense(60, activation='relu'),
                       keras.layers.Dense(60, activation='relu'),
                       # keras.layers.Dense(30, activation='relu'),
                       # keras.layers.Dropout(0.2),
                       # keras.layers.Dense(100, activation='relu'),
                       ]
 
-        model = keras.Sequential([keras.layers.Flatten(input_shape=env.observation_space.shape),
+        model = keras.Sequential([
+                                  # keras.layers.Flatten(input_shape=env.observation_space.shape),
                                   *layers,
                                   keras.layers.Dense(env.action_space.n, activation='softmax')])
+        model.summary()
 
         if compile_params is None:
             compile_params = {'optimizer': 'rmsprop',

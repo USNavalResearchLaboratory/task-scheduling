@@ -22,7 +22,8 @@ from task_scheduling.learning.SL_policy import SupervisedLearningScheduler as SL
 from tensorflow import keras
 import tensorflow as tf
 from task_scheduling.learning.features import param_features, encode_discrete_features
-tf.enable_eager_execution()  # Set tf to eager execution --> avoids error in SL_policy line 61
+# tf.enable_eager_execution()  # Set tf to eager execution --> avoids error in SL_policy line 61
+tf.compat.v1.enable_eager_execution()
 # plt.style.use(['science', 'ieee']) # Used for plotting style ensures plots are visible in black and white
 # plt.figure()
 # plt.plot(np.arange(9))
@@ -82,11 +83,11 @@ def generate_data(create_data_flag=False, n_gen=None, n_tasks=None, n_track=None
 
 
 plot_hist_flag = False
-train_RL_flag = True
+train_RL_flag = False
 train_SL_flag = True
 setup_type = 'FlexDARlike'  # Option 1: FlexDAR or FlexDARlike
 
-n_gen = 1000
+n_gen = 100
 n_train = np.array(n_gen*0.9, dtype=int)
 n_eval = n_gen - n_train
 # n_train = 10000
@@ -238,21 +239,26 @@ if train_SL_flag:
     env_cls_SL = envs.SeqTasking
 
     # layers = None
-    input_shape = (None, 20)
+    n_features = len(features)
+    input_shape = (n_tasks, n_features, 1)
     layers = [
               # keras.layers.Conv1D(filters=4, kernel_size=3, padding='same', activation='relu',input_shape=input_shape[1:]),
-              keras.layers.Dense(20, activation='relu'),
+              keras.layers.Conv2D(filters=64, kernel_size=3, padding='same', activation='relu', input_shape=input_shape),
+              keras.layers.Flatten(),
+              keras.layers.Dense(30, activation='relu'),
               keras.layers.Dropout(0.2),
-              keras.layers.Dense(10, activation='relu'),
+              keras.layers.Dense(30, activation='relu'),
               # keras.layers.Dense(30, activation='relu'),
               keras.layers.Dropout(0.2),
               # keras.layers.Dense(100, activation='relu'),
               ]
     weight_func_ = None
 
-    n_batch_train = np.array(n_train*0.7, dtype=int)
-    n_batch_val = n_train - n_batch_train-1
-    batch_size = np.gcd(n_batch_val, n_batch_train)
+    n_train_SL = np.array(n_train*0.7, dtype=int)
+    n_val_SL = n_train - n_train_SL
+    batch_size = np.gcd(n_train_SL, n_val_SL)
+    n_batch_train = np.array(n_train_SL/batch_size, dtype=int)
+    n_batch_val = np.array(n_val_SL/batch_size, dtype=int)
 
     policy_model = SL_Scheduler.train_from_gen(problem_gen, env_cls_SL, env_params, layers=layers, compile_params=None,
                                                n_batch_train=n_batch_train, n_batch_val=n_batch_val,
@@ -268,7 +274,7 @@ algorithms = np.array([
     ('ERT', earliest_release, 1),
     # ('MCTS', partial(algs_base.mcts, n_mc=100, verbose=False), 5),
     # if train_RL_flag:
-        ('DQN_Agent', dqn_agent, 1),
+    #     ('DQN_Agent', dqn_agent, 1),
     # if train_SL_flag:
         ('DNN_Policy', policy_model, 1),
 ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
