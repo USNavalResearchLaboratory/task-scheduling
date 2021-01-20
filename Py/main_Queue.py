@@ -87,7 +87,7 @@ train_RL_flag = False
 train_SL_flag = True
 setup_type = 'FlexDARlike'  # Option 1: FlexDAR or FlexDARlike
 
-n_gen = 100
+n_gen = 100000
 n_train = np.array(n_gen*0.9, dtype=int)
 n_eval = n_gen - n_train
 # n_train = 10000
@@ -243,11 +243,14 @@ if train_SL_flag:
     input_shape = (n_tasks, n_features, 1)
     layers = [
               # keras.layers.Conv1D(filters=4, kernel_size=3, padding='same', activation='relu',input_shape=input_shape[1:]),
-              keras.layers.Conv2D(filters=64, kernel_size=3, padding='same', activation='relu', input_shape=input_shape),
+              keras.layers.Conv2D(filters=128, kernel_size=2, padding='same', activation='relu', input_shape=input_shape),
+              keras.layers.Conv2D(filters=64, kernel_size=2, padding='same', activation='relu', input_shape=input_shape),
+              keras.layers.Conv2D(filters=32, kernel_size=2, padding='same', activation='relu', input_shape=input_shape),
               keras.layers.Flatten(),
-              keras.layers.Dense(30, activation='relu'),
+              keras.layers.Dense(512, activation='relu'),
               keras.layers.Dropout(0.2),
-              keras.layers.Dense(30, activation='relu'),
+              keras.layers.Dense(256, activation='relu'),
+              keras.layers.Dense(128, activation='relu'),
               # keras.layers.Dense(30, activation='relu'),
               keras.layers.Dropout(0.2),
               # keras.layers.Dense(100, activation='relu'),
