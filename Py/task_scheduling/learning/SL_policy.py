@@ -56,6 +56,7 @@ class SupervisedLearningScheduler:
         # ensure_valid = False    # TODO: trained models may naturally avoid invalid actions!!
 
         obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)
+
         input_shape = self.model.get_input_shape_at(0)
         if not len(obs.shape) == (len(input_shape)-1):
             new_shape = np.append(obs.shape, 1)
@@ -147,14 +148,17 @@ class SupervisedLearningScheduler:
 
         x_train, y_train = d_train[:2]
 
+
         # Modify to include CNN. Need to reshape x_train and x_val
-        new_shape = np.append(x_train.shape, 1)
-        x_train = np.reshape(x_train, new_shape)
+        # new_shape = np.append(x_train.shape, 1)
+        # x_train = np.reshape(x_train, new_shape)
+        x_train = x_train[..., np.newaxis]
 
         x_val, y_val = d_val[:2]
-        new_shape = np.append(x_val.shape, 1)
-        x_val = np.reshape(x_val, new_shape)
-        d_val = (x_val, y_val)
+        # new_shape = np.append(x_val.shape, 1)
+        # x_val = np.reshape(x_val, new_shape)
+        d_val = (x_val[..., np.newaxis], y_val)
+
 
         if callable(weight_func):
             sample_weight = d_train[2]
@@ -258,19 +262,20 @@ class SupervisedLearningScheduler:
 
         # Create model
         if layers is None:
-            layers = [keras.layers.Flatten(input_shape=env.observation_space.shape),
-                      keras.layers.Dense(60, activation='relu'),
-                      keras.layers.Dense(60, activation='relu'),
-                      # keras.layers.Dense(30, activation='relu'),
-                      # keras.layers.Dropout(0.2),
-                      # keras.layers.Dense(100, activation='relu'),
-                      ]
+            layers = [
+                keras.layers.Flatten(input_shape=env.observation_space.shape),
+                keras.layers.Dense(60, activation='relu'),
+                keras.layers.Dense(60, activation='relu'),
+                # keras.layers.Dense(30, activation='relu'),
+                # keras.layers.Dropout(0.2),
+                # keras.layers.Dense(100, activation='relu'),
+            ]
 
         model = keras.Sequential([
-                                  # keras.layers.Flatten(input_shape=env.observation_space.shape),
-                                  *layers,
-                                  keras.layers.Dense(env.action_space.n, activation='softmax')])
-        model.summary()
+            # keras.layers.Flatten(input_shape=env.observation_space.shape),
+            *layers,
+            keras.layers.Dense(env.action_space.n, activation='softmax')
+        ])
 
         if compile_params is None:
             compile_params = {'optimizer': 'rmsprop',

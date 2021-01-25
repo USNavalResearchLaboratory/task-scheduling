@@ -13,18 +13,27 @@ from task_scheduling.learning import environments as envs
 from task_scheduling.learning.features import param_features, encode_discrete_features
 
 
+# n_tasks = 8
+# n_ch = 1
+# t_r_maxes = [0, .018, .036]
+# for t_r_max in t_r_maxes:
+#     problem_gen = problem_gens.Random.search_track(n_tasks, n_ch, t_release_lim=(0., t_r_max), ch_avail_lim=(0., 0.))
+#     filename = f"new/search_track_c{n_ch}t{n_tasks}_release_{t_r_max*1e3:.0f}"
+#     list(problem_gen(n_gen=1000, solve=True, verbose=True, save=True, file=filename, rng=None))
+
+
 #%%
 
 # NOTE: ensure train/test separation for loaded data, use iter_mode='once'
 # NOTE: to train multiple schedulers on same loaded data, use problem_gen.restart(shuffle=False)
 
-# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=4, n_ch=1, rng=None)
-problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=None)
+problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=4, n_ch=1, rng=None)
+# problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=None)
+# problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), ch_avail_lim=(0., 0.))
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=16, n_ch=1, rng=None)
 # problem_gen = problem_gens.Dataset.load('relu_c1t4_1000', shuffle=True, repeat=False, rng=None)
-# problem_gen = problem_gens.Dataset.load('search_track_c1t8_1000', shuffle=True, repeat=False, rng=None)
-# problem_gen = problem_gens.Random.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.01))
+# problem_gen = problem_gens.Dataset.load('new/radar_lim_36', shuffle=True, repeat=False, rng=None)
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2))
 
 
@@ -95,8 +104,8 @@ algorithms = np.array([
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
 
-l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=20, solve=True, verbose=1, plotting=1,
-                                            save=True, file=None)
+# l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=50, solve=True, verbose=1, plotting=1,
+#                                             save=(not isinstance(problem_gen, problem_gens.Dataset)), file=None)
 
 
 # algorithms = np.array([
