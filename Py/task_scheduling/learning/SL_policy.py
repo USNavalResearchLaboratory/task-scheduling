@@ -64,7 +64,24 @@ class SupervisedLearningScheduler:
 
         done = False
         while not done:
-            prob = self.model(obs[np.newaxis]).numpy().squeeze(0)
+            if tf.executing_eagerly():
+                prob = self.model(obs[np.newaxis]).numpy().squeeze(0)
+            else:
+                a = 1 # TODO fix this problem. Actually run in eager execution, but getting other erros.
+                # a_tensor = tf.constant([[1, 2, 3], [4, 5, 6]])
+                # print(a_tensor)
+                # an_array = a_tensor.eval(session=tf.compat.v1.Session())
+                #
+                # prob = self.model(obs[np.newaxis])
+                # print(prob)
+                # abc = prob.eval(session=tf.compat.v1.Session())
+                #
+                # # prob.eval(session=tf.compat.v1.Session())
+                # sess = tf.Session()
+                # with sess.as_default():
+                #     # A = tf.constant([1, 2, 3]).eval()
+                #     prob.eval(sess)
+
             if ensure_valid:
                 prob = self.env.mask_probability(prob)
             action = prob.argmax()
@@ -101,12 +118,22 @@ class SupervisedLearningScheduler:
             plt.figure(num='training history', clear=True, figsize=(10, 4.8))
             plt.subplot(1, 2, 1)
             plt.plot(history.epoch, history.history['loss'], label='training')
-            plt.plot(history.epoch, history.history['val_loss'], label='validation')
+
+            if fit_params['validation_freq'] == 1:
+                plt.plot(history.epoch, history.history['val_loss'], label='validation')
+            else:
+                val_epochs = np.arange(0, len(history.epoch), fit_params['validation_freq'] )
+                plt.plot(val_epochs, history.history['val_loss'], label='validation')
+
             plt.legend()
             plt.gca().set(xlabel='epoch', ylabel='loss')
             plt.subplot(1, 2, 2)
             plt.plot(history.epoch, history.history[acc_str], label='training')
-            plt.plot(history.epoch, history.history['val_' + acc_str], label='validation')
+            if fit_params['validation_freq'] == 1:
+                plt.plot(history.epoch, history.history['val_' + acc_str], label='validation')
+            else:
+                plt.plot(val_epochs, history.history['val_' + acc_str], label='validation')
+
             plt.legend()
             plt.gca().set(xlabel='epoch', ylabel='accuracy')
 
@@ -152,6 +179,8 @@ class SupervisedLearningScheduler:
         fit_params.update({'validation_data': d_val,
                            # 'batch_size': None,   # generator Dataset
                            'batch_size': batch_size * self.env.steps_per_episode,
+                           # 'steps_per_epoch': n_batch_train,
+                           'validation_freq': 2,
                            'shuffle': False,
                            'sample_weight': sample_weight,
                            'callbacks': [keras.callbacks.EarlyStopping(patience=60, monitor='val_loss', min_delta=0.)]
@@ -246,7 +275,9 @@ class SupervisedLearningScheduler:
         if compile_params is None:
             compile_params = {'optimizer': 'rmsprop',
                               'loss': 'sparse_categorical_crossentropy',
-                              'metrics': ['accuracy']
+                              'metrics': ['accuracy'],
+                              'experimental_run_tf_function': False,
+                              # 'run_eagerly': True,
                               }
         model.compile(**compile_params)
 

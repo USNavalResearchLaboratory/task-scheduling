@@ -23,12 +23,16 @@ from tensorflow import keras
 import tensorflow as tf
 print(tf.__version__)
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
+from numba import cuda
+device = cuda.get_current_device()
+device.reset()
+
 
 
 from task_scheduling.learning.features import param_features, encode_discrete_features
 # tf.enable_eager_execution()  # Set tf to eager execution --> avoids error in SL_policy line 61
-tf.compat.v1.enable_eager_execution()
-tf.config.experimental_run_functions_eagerly(True)
+# tf.compat.v1.enable_eager_execution()
+# tf.config.experimental_run_functions_eagerly(True)
 # tf.compat.v1.disable_eager_execution()
 # plt.style.use(['science', 'ieee']) # Used for plotting style ensures plots are visible in black and white
 # plt.figure()
@@ -93,7 +97,7 @@ train_RL_flag = False
 train_SL_flag = True
 setup_type = 'FlexDARlike'  # Option 1: FlexDAR or FlexDARlike
 
-n_gen = 100
+n_gen = 1000
 n_train = np.array(n_gen*0.9, dtype=int)
 n_eval = n_gen - n_train
 # n_train = 10000
@@ -328,7 +332,7 @@ job_type_index = {}
 for name, func, n_iter in algorithms:
 
     problem_gen = problem_gens.QueueFlexDAR(n_tasks, tasks_full, ch_avail, record_revisit=True, scheduler=func)
-    A = list(problem_gen(n_gen=1000))
+    A = list(problem_gen(n_gen=n_gen))
 
     mean_revisit_time[name] = np.array([np.mean(np.diff(task.revisit_times)) for task in problem_gen.queue])
 
