@@ -42,6 +42,8 @@ from task_scheduling.learning.features import param_features, encode_discrete_fe
 # plt.savefig('abc.pdf')
 # plt.show()
 
+
+
 def generate_data(create_data_flag=False, n_gen=None, n_tasks=None, n_track=None, n_ch=None, setup_type=None):
 
     # create_data_flag = True
@@ -209,16 +211,16 @@ features = np.array([('duration', _get_param('duration'), spaces.Box(0, 0.05, sh
 #                      ],
 #                     dtype=[('name', '<U16'), ('func', object), ('lims', np.float, 2)])
 
+env_cls = envs.StepTasking
 # env_cls = envs.SeqTasking
-env_cls = envs.SeqTasking
 
 env_params = {'features': features,
               'sort_func': None,
               'time_shift': False,
-              'masking': False,
-              'action_type': 'int',
+              'masking': True,
+              'action_type': 'any',
               # 'action_type': 'any',
-              # 'seq_encoding': 'one-hot',
+              'seq_encoding': 'one-hot',
               }
 
 env = env_cls(problem_gen, **env_params)
@@ -246,11 +248,13 @@ if train_SL_flag:
         problem_gen = problem_gens.Dataset.load(file=filename_train, shuffle=False, rng=None, repeat=False)
 
 
-    env_cls_SL = envs.SeqTasking
+    env_cls_SL = envs.StepTasking
 
     # layers = None
     n_features = len(features)
-    input_shape = (n_tasks, n_features, 1)
+    # input_shape = (n_tasks, env.observa
+    input_shape = env.observation_space.shape + (1,)
+    # input_shape = (n_tasks, n_features, 1)
     layers = [
               # keras.layers.Conv1D(filters=4, kernel_size=3, padding='same', activation='relu',input_shape=input_shape[1:]),
               keras.layers.Conv2D(filters=128, kernel_size=2, padding='same', activation='relu', input_shape=input_shape),

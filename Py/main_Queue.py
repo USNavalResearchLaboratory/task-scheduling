@@ -328,7 +328,7 @@ job_type_index = {}
 for name, func, n_iter in algorithms:
 
     problem_gen = problem_gens.QueueFlexDAR(n_tasks, tasks_full, ch_avail, record_revisit=True, scheduler=func)
-    A = list(problem_gen(n_gen=10))
+    A = list(problem_gen(n_gen=1000))
 
     mean_revisit_time[name] = np.array([np.mean(np.diff(task.revisit_times)) for task in problem_gen.queue])
 
