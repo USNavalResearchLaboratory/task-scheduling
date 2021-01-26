@@ -15,7 +15,7 @@ def check_valid(tasks, t_ex, ch_ex, tol=1e-12):
 
     Parameters
     ----------
-    tasks : list of task_scheduling.tasks.Generic
+    tasks : list of task_scheduling.tasks.Base
     t_ex : ndarray
         Task execution times.
     ch_ex : ndarray
@@ -53,7 +53,7 @@ def eval_loss(tasks, t_ex):
 
     Parameters
     ----------
-    tasks : task_scheduling.tasks.Generic
+    tasks : task_scheduling.tasks.Base
     t_ex : Iterable of float
         Task execution times.
 

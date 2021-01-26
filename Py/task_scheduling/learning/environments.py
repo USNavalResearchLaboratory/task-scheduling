@@ -138,7 +138,7 @@ class BaseTasking(ABC, Env):
 
         Parameters
         ----------
-        tasks : Iterable of tasks.Generic, optional
+        tasks : Iterable of task_scheduling.tasks.Base, optional
             Optional task set for non-random reset.
         ch_avail : Iterable of float, optional
             Optional initial channel availabilities for non-random reset.

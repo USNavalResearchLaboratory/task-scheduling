@@ -8,7 +8,7 @@ def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
 
     Parameters
     ----------
-    tasks : list of task_scheduling.tasks.Generic
+    tasks : list of task_scheduling.tasks.Base
     t_plot : ndarray
         Loss evaluation times.
     ax : matplotlib.axes.Axes, optional
@@ -57,7 +57,7 @@ def plot_schedule(tasks, t_ex, ch_ex, l_ex=None, name=None, ax=None, ax_kwargs=N
 
     Parameters
     ----------
-    tasks : list of Generic
+    tasks : list of task_scheduling.tasks.Base
     t_ex : ndarray
         Task execution times. NaN for unscheduled.
     ch_ex : ndarray

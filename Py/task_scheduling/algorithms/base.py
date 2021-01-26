@@ -15,7 +15,7 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : Iterable of task_scheduling.tasks.Generic
+    tasks : Iterable of task_scheduling.tasks.Base
     ch_avail : Iterable of float
         Channel availability times.
     verbose : bool
@@ -65,7 +65,7 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : Iterable of task_scheduling.tasks.Generic
+    tasks : Iterable of task_scheduling.tasks.Base
     ch_avail : Iterable of float
         Channel availability times.
     verbose : bool
@@ -125,7 +125,7 @@ def mcts_orig(tasks, ch_avail, n_mc, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : Iterable of task_scheduling.tasks.Generic
+    tasks : Iterable of task_scheduling.tasks.Base
     ch_avail : Iterable of float
         Channel availability times.
     n_mc : int or Iterable of int
@@ -174,7 +174,7 @@ def mcts(tasks, ch_avail, n_mc, verbose=False):
 
     Parameters
     ----------
-    tasks : Iterable of task_scheduling.tasks.Generic
+    tasks : Iterable of task_scheduling.tasks.Base
     ch_avail : Iterable of float
         Channel availability times.
     n_mc : int
@@ -221,7 +221,7 @@ def random_sequencer(tasks, ch_avail, rng=None):
 
     Parameters
     ----------
-    tasks : Iterable of task_scheduling.tasks.Generic
+    tasks : Iterable of task_scheduling.tasks.Base
     ch_avail : Iterable of float
         Channel availability times.
     rng
@@ -247,7 +247,7 @@ def earliest_release(tasks, ch_avail, do_swap=False):
 
     Parameters
     ----------
-    tasks : Iterable of task_scheduling.tasks.Generic
+    tasks : Iterable of task_scheduling.tasks.Base
     ch_avail : Iterable of float
         Channel availability times.
     do_swap : bool
@@ -277,7 +277,7 @@ def earliest_drop(tasks, ch_avail, do_swap=False):
 
     Parameters
     ----------
-    tasks : Iterable of task_scheduling.tasks.Generic
+    tasks : Iterable of task_scheduling.tasks.Base
     ch_avail : Iterable of float
         Channel availability times.
     do_swap : bool
@@ -307,7 +307,7 @@ def earliest_drop(tasks, ch_avail, do_swap=False):
 #
 #     Parameters
 #     ----------
-#     tasks : Iterable of task_scheduling.tasks.Generic
+#     tasks : Iterable of task_scheduling.tasks.Base
 #     ch_avail : Iterable of float
 #         Channel availability times.
 #

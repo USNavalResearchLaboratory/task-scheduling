@@ -736,7 +736,7 @@ def branch_bound2(tasks: list, ch_avail: list, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : list of Generic
+    tasks : list of Base
     ch_avail : list of float
         Channel availability times.
     verbose : bool

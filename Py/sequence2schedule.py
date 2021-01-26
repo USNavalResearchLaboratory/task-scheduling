@@ -11,7 +11,7 @@ def FlexDARMultiChannelSequenceScheduler(T: list, tasks: list, ch_avail: list, R
        Parameters
        ----------
        T :  Sequence of tasks to place onto timeline
-       tasks : list of Generic
+       tasks : list of Base
        ch_avail : list of float
            Channel availability times.
        RP : Resource Period to schedule onto

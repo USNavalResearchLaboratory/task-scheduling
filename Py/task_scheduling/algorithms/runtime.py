@@ -9,7 +9,7 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 
     Parameters
     ----------
-    tasks : list of tasks.Generic
+    tasks : list of tasks.Base
     ch_avail : list of float
         Channel availability times.
     runtimes : list of float
@@ -71,7 +71,7 @@ def mcts(tasks: list, ch_avail: list, runtimes: list, verbose=False):
 
     Parameters
     ----------
-    tasks : list of tasks.Generic
+    tasks : list of tasks.Base
     ch_avail : list of float
         Channel availability times.
     runtimes : list of float
@@ -125,7 +125,7 @@ def mcts(tasks: list, ch_avail: list, runtimes: list, verbose=False):
 #
 #     Parameters
 #     ----------
-#     tasks : list of tasks.Generic
+#     tasks : list of task_scheduling.tasks.Base
 #     ch_avail : list of float
 #         Channel availability times.
 #     n_mc : int or list of int

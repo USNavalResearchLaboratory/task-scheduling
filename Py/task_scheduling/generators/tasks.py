@@ -226,7 +226,7 @@ class Fixed(Base, ABC):
 
         Parameters
         ----------
-        tasks : Sequence of tasks.Generic
+        tasks : Sequence of task_scheduling.tasks.Base
         param_spaces : dict, optional
             Maps parameter name strings to gym.spaces.Space objects
         rng : int or RandomState or Generator, optional
