@@ -266,16 +266,23 @@ class SupervisedLearningScheduler:
                 keras.layers.Flatten(),     # input_shape=env.observation_space.shape
                 keras.layers.Dense(60, activation='relu'),
                 keras.layers.Dense(30, activation='relu'),
-                # keras.layers.Dense(30, activation='relu'),
                 # keras.layers.Dropout(0.2),
-                # keras.layers.Dense(100, activation='relu'),
             ]
 
-        model = keras.Sequential([
-            # keras.Input(shape=env.observation_space.shape),
-            *layers,
-            keras.layers.Dense(env.action_space.n, activation='softmax')
-        ])
+        model = keras.Sequential()
+        model.add(keras.Input(shape=env.observation_space.shape))
+        for layer in layers:    # add user-defined layers
+            model.add(layer)
+        if len(model.output_shape) > 2:     # flatten to 1-D for softmax output layer
+            model.add(keras.layers.Flatten())
+        model.add(keras.layers.Dense(env.action_space.n, activation='softmax'))
+
+        # model = keras.Sequential([
+        #     keras.Input(shape=env.observation_space.shape),
+        #     *layers,
+        #     keras.layers.Flatten(),
+        #     keras.layers.Dense(env.action_space.n, activation='softmax')
+        # ])
 
         if compile_params is None:
             compile_params = {'optimizer': 'rmsprop',
@@ -286,6 +293,7 @@ class SupervisedLearningScheduler:
                               }
         model.compile(**compile_params)
 
+        # Create and train scheduler
         scheduler = cls(model, env)
         scheduler.learn(n_batch_train, n_batch_val, batch_size, weight_func, fit_params, do_tensorboard, plot_history)
         if save:

@@ -2,8 +2,7 @@ from functools import partial
 
 import numpy as np
 from matplotlib import pyplot as plt
-# from tensorflow import keras
-from tensorflow.keras import layers
+from tensorflow import keras
 
 from task_scheduling.util.generic import runtime_wrapper
 from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime
@@ -68,16 +67,19 @@ env_params = {'features': features,
               }
 
 # layers_ = None
-layers_ = [layers.Flatten(),
-           layers.Dense(30, activation='relu'),
-           # layers.Dropout(0.2),
-           ]
+# layers = [keras.layers.Flatten(),
+#           keras.layers.Dense(30, activation='relu'),
+#           # keras.layers.Dropout(0.2),
+#           ]
 
-# layers_ = [layers.Conv2D(12, kernel_size=(3, problem_gen.n_tasks + len(problem_gen.task_gen.cls_task.param_names)))]
+# n_features = len(problem_gen.task_gen.cls_task.param_names) if features is None else len(features)
+# obs_shape = (problem_gen.n_tasks, problem_gen.n_tasks + n_features)
+layers = [keras.layers.Conv1D(12, kernel_size=2, activation='relu'),
+          ]
 
 
 SL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
-           'layers': layers_,
+           'layers': layers,
            'n_batch_train': 35, 'n_batch_val': 10, 'batch_size': 20,
            'weight_func': weight_func_,
            'fit_params': {'epochs': 100},
