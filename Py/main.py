@@ -72,10 +72,11 @@ env_params = {'features': features,
 #           # keras.layers.Dropout(0.2),
 #           ]
 
-# n_features = len(problem_gen.task_gen.cls_task.param_names) if features is None else len(features)
-# obs_shape = (problem_gen.n_tasks, problem_gen.n_tasks + n_features)
-layers = [keras.layers.Conv1D(12, kernel_size=2, activation='relu'),
-          ]
+# layers = [keras.layers.Conv1D(12, kernel_size=2, activation='relu'),
+#           keras.layers.Conv1D(6, kernel_size=3, activation='relu')]
+
+layers = [keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
+          keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu')]
 
 
 SL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
