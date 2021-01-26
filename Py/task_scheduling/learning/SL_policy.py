@@ -56,16 +56,18 @@ class SupervisedLearningScheduler:
         # ensure_valid = False    # TODO: trained models may naturally avoid invalid actions!!
 
         obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)
-
         input_shape = self.model.get_input_shape_at(0)
-        if not len(obs.shape) == (len(input_shape)-1):
-            new_shape = np.append(obs.shape, 1)
-            obs = np.reshape(obs, new_shape)
-        obs = np.float32(obs)  # Tensorflow doesn't like Float 64 as input
 
         done = False
         while not done:
             if tf.executing_eagerly():
+                # Ensure correct shape on each pass.
+                if obs.shape != input_shape:
+                    # if obs.shape == 2:
+                    #     obs = obs[np.newaxis, ..., np.newaxis]
+                    # if obs.shape == 3:
+                    obs = obs[..., np.newaxis]
+                obs = np.float32(obs)  # Tensorflow doesn't like Float 64 as input
                 prob = self.model(obs[np.newaxis]).numpy().squeeze(0)
             else:
                 a = 1 # TODO fix this problem. Actually run in eager execution, but getting other erros.

@@ -99,7 +99,7 @@ train_RL_flag = False
 train_SL_flag = True
 setup_type = 'FlexDARlike'  # Option 1: FlexDAR or FlexDARlike
 
-n_gen = 1000
+n_gen = 100
 n_train = np.array(n_gen*0.9, dtype=int)
 n_eval = n_gen - n_train
 # n_train = 10000
@@ -306,8 +306,12 @@ l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=n_eva
                                             verbose=2, plotting=1, save=False, file=None)
 
 l_ex_mean, t_run_mean = map(iter_to_mean, (l_ex_iter, t_run_iter))
-scatter_loss_runtime_stats(t_run_mean, l_ex_mean, ax=None, ax_kwargs=None)
 
+_, ax_results = plt.subplots(num='Results_Average', clear=True)
+scatter_loss_runtime_stats(t_run_mean, l_ex_mean, ax=ax_results, ax_kwargs={'title': f'Avg. Performance, {problem_gen.n_tasks} tasks'})
+# scatter_loss_runtime_stats(t_run_mean, l_ex_mean, ax=None, ax_kwargs=None)
+plt.savefig('./Figures/' + filename_train + '_Average_Results.eps', format='eps', dpi=600)
+plt.savefig('./Figures/' + filename_train + '_Average_Results.pdf', format='pdf', dpi=600)
 
 
 ##############################################################
