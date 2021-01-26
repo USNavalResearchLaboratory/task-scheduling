@@ -1,5 +1,7 @@
 """Task objects."""
 
+from abc import ABC, abstractmethod
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -23,9 +25,9 @@ def summarize_tasks(tasks):
     print(df)
 
 
-class Generic:
+class Base(ABC):
     """
-    Generic task objects.
+    Base task objects.
 
     Parameters
     ----------
@@ -33,19 +35,14 @@ class Generic:
         Time duration of the task.
     t_release : float
         Earliest time the task may be scheduled.
-    loss_func : function, optional
-        Maps execution time to scheduling loss.
 
     """
 
-    param_names = ('duration', 't_release', 'loss_func')
+    param_names = ('duration', 't_release')
 
-    def __init__(self, duration, t_release, loss_func=None):
+    def __init__(self, duration, t_release):
         self.duration = np.float(duration)
         self.t_release = np.float(t_release)
-
-        if callable(loss_func):
-            self.loss_func = loss_func
 
     def __repr__(self):
         params_str = ", ".join([f"{name}: {getattr(self, name):.2f}" for name in ("duration", "t_release")])
@@ -53,13 +50,14 @@ class Generic:
         return f"{self.__class__.__name__}({params_str})"
         # return f"{self.__class__.__name__}(duration: {self.duration:.2f}, release time: {self.t_release:.2f})"
 
+    @abstractmethod
     def __call__(self, t):
         """Loss function versus time."""
-        return self.loss_func(t)
+        raise NotImplementedError
 
     def __eq__(self, other):
-        if isinstance(other, Generic):
-            return self.params == other.params and self.loss_func == other.loss_func
+        if isinstance(other, self.__class__):
+            return self.params == other.params
         else:
             return NotImplemented
 
@@ -119,7 +117,41 @@ class Generic:
         return plot_data
 
 
-class ReluDrop(Generic):
+class Generic(Base):
+    """
+    Generic task objects.
+
+    Parameters
+    ----------
+    duration : float
+        Time duration of the task.
+    t_release : float
+        Earliest time the task may be scheduled.
+    loss_func : function, optional
+        Maps execution time to scheduling loss.
+
+    """
+
+    param_names = ('duration', 't_release', 'loss_func')
+
+    def __init__(self, duration, t_release, loss_func=None):
+        super().__init__(duration, t_release)
+
+        if callable(loss_func):
+            self.loss_func = loss_func
+
+    def __call__(self, t):
+        """Loss function versus time."""
+        return self.loss_func(t)
+
+    # def __eq__(self, other):
+    #     if isinstance(other, Generic):
+    #         return self.params == other.params and self.loss_func == other.loss_func
+    #     else:
+    #         return NotImplemented
+
+
+class ReluDrop(Base):
     """
     Tasks with a rectified linear loss function task and a constant drop penalty.
 
@@ -158,11 +190,11 @@ class ReluDrop(Generic):
         else:
             return loss.squeeze(axis=0)
 
-    def __eq__(self, other):
-        if isinstance(other, ReluDrop):
-            return self.params == other.params
-        else:
-            return NotImplemented
+    # def __eq__(self, other):
+    #     if isinstance(other, ReluDrop):
+    #         return self.params == other.params
+    #     else:
+    #         return NotImplemented
 
     @property
     def slope(self):

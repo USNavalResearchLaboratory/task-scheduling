@@ -88,7 +88,7 @@ class ReinforcementLearningScheduler:
 
         Parameters
         ----------
-        tasks : Iterable of tasks.Generic
+        tasks : Iterable of task_scheduling.tasks.Base
         ch_avail : Iterable of float
             Channel availability times.
 

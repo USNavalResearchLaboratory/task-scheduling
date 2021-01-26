@@ -40,7 +40,7 @@ class SupervisedLearningScheduler:
 
         Parameters
         ----------
-        tasks : Iterable of tasks.Generic
+        tasks : Iterable of task_scheduling.tasks.Base
         ch_avail : Iterable of float
             Channel availability times.
 
@@ -56,35 +56,34 @@ class SupervisedLearningScheduler:
         # ensure_valid = False    # TODO: trained models may naturally avoid invalid actions!!
 
         obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)
-        input_shape = self.model.get_input_shape_at(0)
+
+        # input_shape = self.model.get_input_shape_at(0)
+        # if not len(obs.shape) == (len(input_shape)-1):
+        #     new_shape = np.append(obs.shape, 1)
+        #     obs = np.reshape(obs, new_shape)
+        # obs = np.float32(obs)  # Tensorflow doesn't like Float 64 as input
 
         done = False
         while not done:
-            if tf.executing_eagerly():
-                # Ensure correct shape on each pass.
-                if obs.shape != input_shape:
-                    # if obs.shape == 2:
-                    #     obs = obs[np.newaxis, ..., np.newaxis]
-                    # if obs.shape == 3:
-                    obs = obs[..., np.newaxis]
-                obs = np.float32(obs)  # Tensorflow doesn't like Float 64 as input
-                prob = self.model(obs[np.newaxis]).numpy().squeeze(0)
-            else:
-                a = 1 # TODO fix this problem. Actually run in eager execution, but getting other erros.
-                # a_tensor = tf.constant([[1, 2, 3], [4, 5, 6]])
-                # print(a_tensor)
-                # an_array = a_tensor.eval(session=tf.compat.v1.Session())
-                #
-                # prob = self.model(obs[np.newaxis])
-                # print(prob)
-                # abc = prob.eval(session=tf.compat.v1.Session())
-                #
-                # # prob.eval(session=tf.compat.v1.Session())
-                # sess = tf.Session()
-                # with sess.as_default():
-                #     # A = tf.constant([1, 2, 3]).eval()
-                #     prob.eval(sess)
+            # if tf.executing_eagerly():
+            #     prob = self.model(obs[np.newaxis]).numpy().squeeze(0)
+            # else:
+            #     a = 1 # TODO fix this problem. Actually run in eager execution, but getting other erros.
+            #     # a_tensor = tf.constant([[1, 2, 3], [4, 5, 6]])
+            #     # print(a_tensor)
+            #     # an_array = a_tensor.eval(session=tf.compat.v1.Session())
+            #     #
+            #     # prob = self.model(obs[np.newaxis])
+            #     # print(prob)
+            #     # abc = prob.eval(session=tf.compat.v1.Session())
+            #     #
+            #     # # prob.eval(session=tf.compat.v1.Session())
+            #     # sess = tf.Session()
+            #     # with sess.as_default():
+            #     #     # A = tf.constant([1, 2, 3]).eval()
+            #     #     prob.eval(sess)
 
+            prob = self.model(obs[np.newaxis]).numpy().squeeze(0)
             if ensure_valid:
                 prob = self.env.mask_probability(prob)
             action = prob.argmax()
@@ -112,30 +111,29 @@ class SupervisedLearningScheduler:
         # history = model.fit(d_train, **fit_params)      # generator Dataset
         history = self.model.fit(x, y, **fit_params)  # NumPy data
 
-        if tf.version.VERSION[0] == '1':
-            acc_str = 'acc'
-        else:
-            acc_str = 'accuracy'
-
+        acc_str = 'acc' if tf.version.VERSION[0] == '1' else 'accuracy'
         if plot_history:
             plt.figure(num='training history', clear=True, figsize=(10, 4.8))
             plt.subplot(1, 2, 1)
             plt.plot(history.epoch, history.history['loss'], label='training')
+            plt.plot(history.epoch, history.history['val_loss'], label='validation')
 
-            if fit_params['validation_freq'] == 1:
-                plt.plot(history.epoch, history.history['val_loss'], label='validation')
-            else:
-                val_epochs = np.arange(0, len(history.epoch), fit_params['validation_freq'] )
-                plt.plot(val_epochs, history.history['val_loss'], label='validation')
+            # if fit_params['validation_freq'] == 1:
+            #     plt.plot(history.epoch, history.history['val_loss'], label='validation')
+            # else:
+            #     val_epochs = np.arange(0, len(history.epoch), fit_params['validation_freq'] )
+            #     plt.plot(val_epochs, history.history['val_loss'], label='validation')
 
             plt.legend()
             plt.gca().set(xlabel='epoch', ylabel='loss')
             plt.subplot(1, 2, 2)
             plt.plot(history.epoch, history.history[acc_str], label='training')
-            if fit_params['validation_freq'] == 1:
-                plt.plot(history.epoch, history.history['val_' + acc_str], label='validation')
-            else:
-                plt.plot(val_epochs, history.history['val_' + acc_str], label='validation')
+            plt.plot(history.epoch, history.history['val_' + acc_str], label='validation')
+
+            # if fit_params['validation_freq'] == 1:
+            #     plt.plot(history.epoch, history.history['val_' + acc_str], label='validation')
+            # else:
+            #     plt.plot(val_epochs, history.history['val_' + acc_str], label='validation')
 
             plt.legend()
             plt.gca().set(xlabel='epoch', ylabel='accuracy')
@@ -151,15 +149,15 @@ class SupervisedLearningScheduler:
         x_train, y_train = d_train[:2]
 
 
-        # Modify to include CNN. Need to reshape x_train and x_val
-        # new_shape = np.append(x_train.shape, 1)
-        # x_train = np.reshape(x_train, new_shape)
-        x_train = x_train[..., np.newaxis]
-
-        x_val, y_val = d_val[:2]
-        # new_shape = np.append(x_val.shape, 1)
-        # x_val = np.reshape(x_val, new_shape)
-        d_val = (x_val[..., np.newaxis], y_val)
+        # # Modify to include CNN. Need to reshape x_train and x_val
+        # # new_shape = np.append(x_train.shape, 1)
+        # # x_train = np.reshape(x_train, new_shape)
+        # x_train = x_train[..., np.newaxis]
+        #
+        # x_val, y_val = d_val[:2]
+        # # new_shape = np.append(x_val.shape, 1)
+        # # x_val = np.reshape(x_val, new_shape)
+        # d_val = (x_val[..., np.newaxis], y_val)
 
 
         if callable(weight_func):
@@ -186,7 +184,7 @@ class SupervisedLearningScheduler:
                            # 'batch_size': None,   # generator Dataset
                            'batch_size': batch_size * self.env.steps_per_episode,
                            # 'steps_per_epoch': n_batch_train,
-                           'validation_freq': 2,
+                           # 'validation_freq': 2,
                            'shuffle': False,
                            'sample_weight': sample_weight,
                            'callbacks': [keras.callbacks.EarlyStopping(patience=60, monitor='val_loss', min_delta=0.)]
@@ -265,29 +263,37 @@ class SupervisedLearningScheduler:
         # Create model
         if layers is None:
             layers = [
-                keras.layers.Flatten(input_shape=env.observation_space.shape),
+                keras.layers.Flatten(),     # input_shape=env.observation_space.shape
                 keras.layers.Dense(60, activation='relu'),
-                keras.layers.Dense(60, activation='relu'),
-                # keras.layers.Dense(30, activation='relu'),
+                keras.layers.Dense(30, activation='relu'),
                 # keras.layers.Dropout(0.2),
-                # keras.layers.Dense(100, activation='relu'),
             ]
 
-        model = keras.Sequential([
-            # keras.layers.Flatten(input_shape=env.observation_space.shape),
-            *layers,
-            keras.layers.Dense(env.action_space.n, activation='softmax')
-        ])
+        model = keras.Sequential()
+        model.add(keras.Input(shape=env.observation_space.shape))
+        for layer in layers:    # add user-defined layers
+            model.add(layer)
+        if len(model.output_shape) > 2:     # flatten to 1-D for softmax output layer
+            model.add(keras.layers.Flatten())
+        model.add(keras.layers.Dense(env.action_space.n, activation='softmax'))
+
+        # model = keras.Sequential([
+        #     keras.Input(shape=env.observation_space.shape),
+        #     *layers,
+        #     keras.layers.Flatten(),
+        #     keras.layers.Dense(env.action_space.n, activation='softmax')
+        # ])
 
         if compile_params is None:
             compile_params = {'optimizer': 'rmsprop',
                               'loss': 'sparse_categorical_crossentropy',
                               'metrics': ['accuracy'],
-                              'experimental_run_tf_function': False,
+                              # 'experimental_run_tf_function': False,
                               # 'run_eagerly': True,
                               }
         model.compile(**compile_params)
 
+        # Create and train scheduler
         scheduler = cls(model, env)
         scheduler.learn(n_batch_train, n_batch_val, batch_size, weight_func, fit_params, do_tensorboard, plot_history)
         if save:
