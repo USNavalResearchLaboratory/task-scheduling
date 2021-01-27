@@ -3,7 +3,7 @@ import numpy as np
 import task_scheduling
 from task_scheduling.generators import (tasks as task_gens, channel_availabilities as ch_gens,
                                         scheduling_problems as problem_gens)
-from task_scheduling.algorithms import base as algs_base
+from task_scheduling.algorithms import free as algs_base
 from task_scheduling import util
 
 
