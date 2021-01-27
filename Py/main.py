@@ -32,7 +32,7 @@ from task_scheduling.learning.features import param_features, encode_discrete_fe
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), ch_avail_lim=(0., 0.))
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=16, n_ch=1, rng=None)
-problem_gen = problem_gens.Dataset.load('new/relu_c1t8_1000', shuffle=True, repeat=False, rng=None)
+problem_gen = problem_gens.Dataset.load('relu_c1t8_1000', shuffle=True, repeat=False, rng=None)
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2))
 
 
