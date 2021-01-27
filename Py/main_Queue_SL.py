@@ -255,20 +255,30 @@ if train_SL_flag:
     # input_shape = (n_tasks, env.observa
     input_shape = env.observation_space.shape + (1,)
     # input_shape = (n_tasks, n_features, 1)
-    layers = [
-              # keras.layers.Conv1D(filters=4, kernel_size=3, padding='same', activation='relu',input_shape=input_shape[1:]),
-              keras.layers.Conv2D(filters=128, kernel_size=2, padding='same', activation='relu', input_shape=input_shape),
-              keras.layers.Conv2D(filters=64, kernel_size=2, padding='same', activation='relu', input_shape=input_shape),
-              keras.layers.Conv2D(filters=32, kernel_size=2, padding='same', activation='relu', input_shape=input_shape),
+
+    layers = [keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
+              keras.layers.Conv2D(filters=16, kernel_size=(2, 2), padding='same', activation='relu'),
               keras.layers.Flatten(),
               keras.layers.Dense(512, activation='relu'),
               # keras.layers.Dropout(0.2),
               keras.layers.Dense(256, activation='relu'),
               keras.layers.Dense(128, activation='relu'),
-              # keras.layers.Dense(30, activation='relu'),
-              # keras.layers.Dropout(0.2),
-              # keras.layers.Dense(100, activation='relu'),
               ]
+
+    # layers = [
+    #           # keras.layers.Conv1D(filters=4, kernel_size=3, padding='same', activation='relu',input_shape=input_shape[1:]),
+    #           keras.layers.Conv2D(filters=128, kernel_size=2, padding='same', activation='relu', input_shape=input_shape),
+    #           keras.layers.Conv2D(filters=64, kernel_size=2, padding='same', activation='relu', input_shape=input_shape),
+    #           keras.layers.Conv2D(filters=32, kernel_size=2, padding='same', activation='relu', input_shape=input_shape),
+    #           keras.layers.Flatten(),
+    #           keras.layers.Dense(512, activation='relu'),
+    #           # keras.layers.Dropout(0.2),
+    #           keras.layers.Dense(256, activation='relu'),
+    #           keras.layers.Dense(128, activation='relu'),
+    #           # keras.layers.Dense(30, activation='relu'),
+    #           # keras.layers.Dropout(0.2),
+    #           # keras.layers.Dense(100, activation='relu'),
+    #           ]
     # layers = None
     weight_func_ = None
 
