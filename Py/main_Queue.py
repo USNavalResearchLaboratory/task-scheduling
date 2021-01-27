@@ -10,7 +10,7 @@ from gym import spaces
 import task_scheduling
 from task_scheduling.generators import (tasks as task_gens, channel_availabilities as ch_gens,
                                         scheduling_problems as problem_gens)
-from task_scheduling.algorithms.base import earliest_release, branch_bound
+from task_scheduling.algorithms.free import earliest_release, branch_bound
 from task_scheduling.learning import environments as envs
 from task_scheduling.tree_search import TreeNodeShift
 # from task_scheduling.learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler

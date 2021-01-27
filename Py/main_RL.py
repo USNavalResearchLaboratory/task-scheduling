@@ -9,8 +9,8 @@ from task_scheduling.util.generic import runtime_wrapper
 from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime
 from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.tree_search import TreeNodeShift
-from task_scheduling.algorithms import base as algs_base
-from task_scheduling.algorithms import runtime as algs_timed
+from task_scheduling.algorithms import free as algs_base
+from task_scheduling.algorithms import limit as algs_timed
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.SL_policy import SupervisedLearningScheduler as SL_Scheduler
 from task_scheduling.learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler
@@ -34,7 +34,7 @@ problem_gen = problem_gens.Queue.search_track(n_tasks=4, n_ch=1, rng=None, ch_av
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=3, n_ch=1, rng=None)
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
-# problem_gen = problem_gens.Dataset.load('relu_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
+# problem_gen = problem_gens.Dataset.load('continuous_relu_c1t8', iter_mode='once', shuffle_mode='once', rng=None)
 # problem_gen = problem_gens.Random.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.01))
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2))
 # problem_gen = problem_gens.Dataset.load('search_track_c1t8_1000', iter_mode='once', shuffle_mode='once', rng=None)
@@ -112,7 +112,7 @@ l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=100, 
 #     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
 #     # ('Random', runtime_wrapper(algs_base.random_sequencer), 20),
 #     ('ERT', runtime_wrapper(algs_base.earliest_release), 1),
-#     ('MCTS', partial(algs_timed.mcts, verbose=False), 5),
+#     ('MCTS', partial(algs_limit.mcts, verbose=False), 5),
 #     ('DQN Agent', runtime_wrapper(dqn_agent), 5),
 #     # ('DNN Policy', runtime_wrapper(policy_model), 5),
 # ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])

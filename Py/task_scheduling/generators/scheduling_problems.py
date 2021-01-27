@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 
 import task_scheduling.tasks
-from task_scheduling.algorithms.base import branch_bound, earliest_release
+from task_scheduling.algorithms.free import branch_bound, earliest_release
 from task_scheduling.util.generic import RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
 
@@ -186,12 +186,12 @@ class Random(Base):
         return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
     @classmethod
-    def continuous_relu_drop(cls, n_tasks, n_ch, rng=None, ch_avail_lim=(0., 0.), **relu_lims):
+    def continuous_relu_drop(cls, n_tasks, n_ch, ch_avail_lim=(0., 0.), rng=None, **relu_lims):
         task_gen = task_gens.ContinuousUniformIID.relu_drop(**relu_lims)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
     @classmethod
-    def discrete_relu_drop(cls, n_tasks, n_ch, rng=None, ch_avail_lim=(0., 0.), **relu_vals):
+    def discrete_relu_drop(cls, n_tasks, n_ch, ch_avail_lim=(0., 0.), rng=None, **relu_vals):
         task_gen = task_gens.DiscreteIID.relu_drop_uniform(**relu_vals)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
@@ -314,7 +314,7 @@ class Dataset(Base):
 
         # self.problems = deque(problems)
         # self.solutions = deque(solutions) if solutions is not None else None
-        self.problems = deque()
+        self.problems = deque()     # TODO: single deque?
         self.solutions = deque()
         self.add_problems(problems, solutions)
 
@@ -322,6 +322,8 @@ class Dataset(Base):
             self.shuffle()
 
         self.repeat = repeat
+
+    n_problems = property(lambda self: len(self.problems))
 
     def add_problems(self, problems, solutions=None):
         self.problems.extendleft(problems)
@@ -367,7 +369,7 @@ class Dataset(Base):
         else:   # use B&B solver
             solution = super()._gen_solution(problem, verbose)
             if self.repeat:     # store result
-                self.solutions[0] = solution
+                self.solutions[0] = solution        # at index 0 after `appendleft` in `_gen_problem`
             return solution
 
 
