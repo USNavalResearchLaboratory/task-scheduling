@@ -3,8 +3,16 @@ from functools import wraps
 from math import factorial
 from numbers import Integral
 from time import perf_counter
+from pathlib import Path
 
 import numpy as np
+
+
+_cwd = Path.cwd()
+data_path = _cwd / 'data' / 'schedules'
+log_path = _cwd / 'logs'
+model_path = _cwd / 'models'
+agent_path = _cwd / 'agents'
 
 
 SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])

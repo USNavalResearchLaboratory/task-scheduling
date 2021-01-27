@@ -7,20 +7,18 @@ from time import strftime
 from typing import Iterable
 from functools import partial
 import dill
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 import task_scheduling.tasks
 from task_scheduling.algorithms.free import branch_bound, earliest_release
-from task_scheduling.util.generic import RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
+from task_scheduling.util.generic import (RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution,
+                                          data_path)
 
 np.set_printoptions(precision=2)
 pd.options.display.float_format = '{:,.2f}'.format      # TODO: global??
-
-data_path = Path.cwd() / 'data' / 'schedules'
 
 
 class Base(RandomGeneratorMixin, ABC):

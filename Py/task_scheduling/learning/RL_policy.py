@@ -1,6 +1,5 @@
 import time
 from collections import namedtuple
-from pathlib import Path
 import dill
 
 import numpy as np
@@ -11,12 +10,9 @@ from stable_baselines import DQN, PPO2, A2C
 # from stable_baselines.common.vec_env import DummyVecEnv
 
 from task_scheduling.learning import environments as envs
+from task_scheduling.util.generic import log_path, agent_path
 
 np.set_printoptions(precision=2)
-
-pkg_path = Path.cwd()
-log_path = pkg_path / 'logs'
-agent_path = pkg_path / 'agents'
 
 
 # class DummyVecTaskingEnv(DummyVecEnv):
