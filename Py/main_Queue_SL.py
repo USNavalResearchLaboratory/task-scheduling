@@ -255,15 +255,22 @@ if train_SL_flag:
     # input_shape = (n_tasks, env.observa
     input_shape = env.observation_space.shape + (1,)
     # input_shape = (n_tasks, n_features, 1)
+    target_shape = env.observation_space.shape + (1, )
 
-    layers = [keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
+    layers = [keras.layers.Reshape(target_shape),
               keras.layers.Conv2D(filters=16, kernel_size=(2, 2), padding='same', activation='relu'),
+              # keras.Input(shape=(None, 16)),
               keras.layers.Flatten(),
+              # tf.keras.layers.GlobalMaxPooling1D(),
               keras.layers.Dense(512, activation='relu'),
               # keras.layers.Dropout(0.2),
               keras.layers.Dense(256, activation='relu'),
               keras.layers.Dense(128, activation='relu'),
               ]
+
+    # layers = [keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
+    #           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu')]
+
 
     # layers = [
     #           # keras.layers.Conv1D(filters=4, kernel_size=3, padding='same', activation='relu',input_shape=input_shape[1:]),
@@ -296,7 +303,7 @@ if train_SL_flag:
 
 
 
-algorithms = np.array([
+Yeahalgorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
     # ('Random', algs_base.random_sequencer, 20),
     ('ERT', earliest_release, 1),
