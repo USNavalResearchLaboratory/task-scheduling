@@ -12,13 +12,11 @@ import webbrowser
 import gym
 
 from task_scheduling.learning import environments as envs
+from task_scheduling.util.generic import log_path, model_path
 
 np.set_printoptions(precision=2)
 plt.style.use('seaborn')
 
-pkg_path = Path.cwd()
-log_path = pkg_path / 'logs'
-model_path = pkg_path / 'models'
 
 # TODO: make loss func for full seq targets?
 # TODO: make custom output layers to avoid illegal actions?
@@ -107,27 +105,24 @@ class SupervisedLearningScheduler:
 
         acc_str = 'acc' if tf.version.VERSION[0] == '1' else 'accuracy'
         if plot_history:
+            epoch = history.epoch
+            if 'validation_freq' in fit_params:
+                val_freq = fit_params['validation_freq']
+                val_epoch = epoch[val_freq - 1:: val_freq]
+            else:
+                val_epoch = epoch
+            hist_dict = history.history
+
             plt.figure(num='training history', clear=True, figsize=(10, 4.8))
             plt.subplot(1, 2, 1)
-            plt.plot(history.epoch, history.history['loss'], label='training')
-            plt.plot(history.epoch, history.history['val_loss'], label='validation')
-
-            # if fit_params['validation_freq'] == 1:
-            #     plt.plot(history.epoch, history.history['val_loss'], label='validation')
-            # else:
-            #     val_epochs = np.arange(0, len(history.epoch), fit_params['validation_freq'] )
-            #     plt.plot(val_epochs, history.history['val_loss'], label='validation')
+            plt.plot(epoch, hist_dict['loss'], label='training')
+            plt.plot(val_epoch, hist_dict['val_loss'], label='validation')
 
             plt.legend()
             plt.gca().set(xlabel='epoch', ylabel='loss')
             plt.subplot(1, 2, 2)
-            plt.plot(history.epoch, history.history[acc_str], label='training')
-            plt.plot(history.epoch, history.history['val_' + acc_str], label='validation')
-
-            # if fit_params['validation_freq'] == 1:
-            #     plt.plot(history.epoch, history.history['val_' + acc_str], label='validation')
-            # else:
-            #     plt.plot(val_epochs, history.history['val_' + acc_str], label='validation')
+            plt.plot(epoch, hist_dict[acc_str], label='training')
+            plt.plot(val_epoch, hist_dict['val_' + acc_str], label='validation')
 
             plt.legend()
             plt.gca().set(xlabel='epoch', ylabel='accuracy')
@@ -141,18 +136,6 @@ class SupervisedLearningScheduler:
         d_train = self.env.data_gen_numpy(n_batch_train * batch_size, weight_func=weight_func, verbose=True)
 
         x_train, y_train = d_train[:2]
-
-
-        # # Modify to include CNN. Need to reshape x_train and x_val
-        # # new_shape = np.append(x_train.shape, 1)
-        # # x_train = np.reshape(x_train, new_shape)
-        # x_train = x_train[..., np.newaxis]
-        #
-        # x_val, y_val = d_val[:2]
-        # # new_shape = np.append(x_val.shape, 1)
-        # # x_val = np.reshape(x_val, new_shape)
-        # d_val = (x_val[..., np.newaxis], y_val)
-
 
         if callable(weight_func):
             sample_weight = d_train[2]
@@ -175,19 +158,18 @@ class SupervisedLearningScheduler:
         if fit_params is None:
             fit_params = {}
         fit_params.update({'validation_data': d_val,
+                           # 'validation_freq': 1,
                            # 'batch_size': None,   # generator Dataset
                            'batch_size': batch_size * self.env.steps_per_episode,
-                           # 'steps_per_epoch': n_batch_train,
-                           # 'validation_freq': 2,
                            'shuffle': False,
                            'sample_weight': sample_weight,
                            'callbacks': [keras.callbacks.EarlyStopping(patience=60, monitor='val_loss', min_delta=0.)]
                            })
 
-        self.fit(x_train, y_train, do_tensorboard, plot_history, **fit_params)
         # self.fit(*d_train, do_tensorboard, plot_history, **fit_params)
+        self.fit(x_train, y_train, do_tensorboard, plot_history, **fit_params)
 
-    def save(self, save_path):
+    def save(self, save_path=None):
         if save_path is None:
             save_path = f"temp/{time.strftime('%Y-%m-%d_%H-%M-%S')}"
 
@@ -270,13 +252,6 @@ class SupervisedLearningScheduler:
         if len(model.output_shape) > 2:     # flatten to 1-D for softmax output layer
             model.add(keras.layers.Flatten())
         model.add(keras.layers.Dense(env.action_space.n, activation='softmax'))
-
-        # model = keras.Sequential([
-        #     keras.Input(shape=env.observation_space.shape),
-        #     *layers,
-        #     keras.layers.Flatten(),
-        #     keras.layers.Dense(env.action_space.n, activation='softmax')
-        # ])
 
         if compile_params is None:
             compile_params = {'optimizer': 'rmsprop',

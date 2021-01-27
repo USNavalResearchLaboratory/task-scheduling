@@ -77,6 +77,7 @@ env_params = {'features': features,
 layers_ = None
 layers = [keras.layers.Flatten(),
           keras.layers.Dense(30, activation='relu'),
+          # keras.layers.Dense(10, activation='relu'),
           # keras.layers.Dropout(0.2),
           ]
 
@@ -94,7 +95,7 @@ SL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_par
            'layers': layers,
            'n_batch_train': 35, 'n_batch_val': 10, 'batch_size': 20,
            'weight_func': weight_func_,
-           'fit_params': {'epochs': 400},
+           'fit_params': {'epochs': 500},
            'plot_history': True,
            'save': False, 'save_path': None}
 policy_model = learning.SL_policy.SupervisedLearningScheduler.train_from_gen(**SL_args)
@@ -118,8 +119,8 @@ algorithms = np.array([
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
 
-# l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=50, solve=True, verbose=1, plotting=1,
-#                                             save=(not isinstance(problem_gen, problem_gens.Dataset)), file=None)
+l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=100, solve=True, verbose=1, plotting=1,
+                                            save=(not isinstance(problem_gen, problem_gens.Dataset)), file=None)
 
 
 # algorithms = np.array([
