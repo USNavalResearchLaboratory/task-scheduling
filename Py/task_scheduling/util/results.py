@@ -172,13 +172,21 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
         _, ax_results = plt.subplots(num='Results', clear=True)
         scatter_loss_runtime(t_run_mean, l_ex_mean,
                              ax=ax_results,
-                             ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'})
+                             # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
+                             )
+
+    # if verbose >= 1:
+    #     print('\nAvg. Performance\n' + 16*'-')
+    #     print(f"{'Algorithm:':<35}{'Loss:':<8}{'Runtime (s):':<10}")
+    #     for name in algorithms['name']:
+    #         print(f"{name:<35}{l_ex_mean[name].mean():<8.2f}{t_run_mean[name].mean():<10.6f}")
 
     if verbose >= 1:
         print('\nAvg. Performance\n' + 16*'-')
-        print(f"{'Algorithm:':<35}{'Loss:':<8}{'Runtime (s):':<10}")
+        print(f"{'Algorithm':<35}| {'Loss':<8}| {'Runtime (s)':<10}")
+        print(f"{'---------':<35}| {'----':<8}| {'-----------':<10}")
         for name in algorithms['name']:
-            print(f"{name:<35}{l_ex_mean[name].mean():<8.2f}{t_run_mean[name].mean():<10.6f}")
+            print(f"{name:<35}| {l_ex_mean[name].mean():<8.2f}| {t_run_mean[name].mean():<10.6f}")
 
     if solve:   # relative to B&B
         l_ex_mean_opt = l_ex_mean['BB Optimal'].copy()
@@ -192,8 +200,8 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
             _, ax_results_norm = plt.subplots(num='Results (Normalized)', clear=True)
             scatter_loss_runtime(t_run_mean, l_ex_mean_norm,
                                  ax=ax_results_norm,
-                                 ax_kwargs={'title': f'Relative performance, {problem_gen.n_tasks} tasks',
-                                            'ylabel': 'Excess Loss (Normalized)',
+                                 ax_kwargs={'ylabel': 'Excess Loss (Normalized)',
+                                            # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
                                             }
                                  )
 
@@ -213,6 +221,7 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
                          dtype=[(alg['name'], np.float) for alg in algorithms])
 
     l_ex_opt = np.full(n_gen, np.nan)
+    t_run_opt = np.full(n_gen, np.nan)  # TODO: use in plots
 
     # Generate scheduling problems
     for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose >= 1, save, file)):
@@ -220,6 +229,7 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
             (tasks, ch_avail), (t_ex, ch_ex, t_run) = out_gen
             check_valid(tasks, t_ex, ch_ex)
             l_ex_opt[i_gen] = eval_loss(tasks, t_ex)
+            t_run_opt[i_gen] = t_run
         else:
             tasks, ch_avail = out_gen
 
@@ -258,7 +268,9 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
     if plotting >= 1:
         _, ax_results = plt.subplots(num='Results', clear=True)
         plot_loss_runtime(runtimes, l_ex_mean, do_std=True,
-                          ax=ax_results, ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'})
+                          ax=ax_results,
+                          # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
+                          )
 
     if solve:   # relative to B&B
         l_ex_mean_norm = l_ex_mean.copy()
@@ -270,7 +282,9 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
             _, ax_results_norm = plt.subplots(num='Results (Normalized)', clear=True)
             plot_loss_runtime(runtimes, l_ex_mean_norm, do_std=True,
                               ax=ax_results_norm,
-                              ax_kwargs={'title': f'Relative performance, {problem_gen.n_tasks} tasks',
-                                         'ylabel': 'Excess Loss (Normalized)'})
+                              ax_kwargs={'ylabel': 'Excess Loss (Normalized)',
+                                         # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
+                                         }
+                              )
 
     return l_ex_iter, l_ex_opt
