@@ -35,6 +35,8 @@ from task_scheduling.learning.features import param_features, encode_discrete_fe
 # NOTE: ensure train/test separation for loaded data, use iter_mode='once'
 # NOTE: to train multiple schedulers on same loaded data, use problem_gen.restart(shuffle=False)
 
+# FIXME: use seeding for comparison results!!
+
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), ch_avail_lim=(0., 0.))
@@ -52,8 +54,8 @@ features = None
 # features = param_features(problem_gen, time_shift)
 # features = encode_discrete_features(problem_gen)
 
-# sort_func = None
-sort_func = 't_release'
+sort_func = None
+# sort_func = 't_release'
 # def sort_func(task):
 #     return task.t_release
 

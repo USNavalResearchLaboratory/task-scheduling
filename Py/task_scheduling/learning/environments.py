@@ -91,6 +91,16 @@ class BaseTasking(ABC, Env):
             _status = f'{len(self.node.seq)}/{self.n_tasks} Tasks Scheduled'
         return f"{self.__class__.__name__}({_status})"
 
+    # def summary(self):
+    #     """Print a string listing task parameters."""
+    #     cls_str = self.__class__.__name__
+    #
+    #     params = ()
+    #     param_str = [f"- {name}: {val}" for name, val in self.params.items()]
+    #     str_out = '\n'.join([cls_str] + param_str)
+    #     print(str_out)
+    #     return str_out
+
     @property
     def sorted_index(self):
         """Indices for task re-ordering for environment state."""

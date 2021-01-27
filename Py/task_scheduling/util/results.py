@@ -182,7 +182,7 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
     #         print(f"{name:<35}{l_ex_mean[name].mean():<8.2f}{t_run_mean[name].mean():<10.6f}")
 
     if verbose >= 1:
-        print('\nAvg. Performance\n' + 16*'-')
+        print('\nAvg. Performance:')
         print(f"{'Algorithm':<35}| {'Loss':<8}| {'Runtime (s)':<10}")
         print(f"{'---------':<35}| {'----':<8}| {'-----------':<10}")
         for name in algorithms['name']:

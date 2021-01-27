@@ -68,9 +68,12 @@ class Base(ABC):
     def summary(self):
         """Print a string listing task parameters."""
         cls_str = self.__class__.__name__
-        param_str = [f"{name}: {val}" for name, val in self.params.items()]
 
-        print('\n'.join([cls_str, '-' * len(cls_str)] + param_str))
+        param_str = [f"- {name}: {val}" for name, val in self.params.items()]
+        str_out = '\n'.join([cls_str] + param_str)
+
+        print(str_out)
+        return str_out
 
     # def feature_gen(self, *funcs):
     #     """Generate features from input functions. Defaults to the parametric representation."""

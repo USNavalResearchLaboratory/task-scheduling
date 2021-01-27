@@ -50,6 +50,13 @@ class Base(RandomGeneratorMixin, ABC):
         """Yield tasks."""
         raise NotImplementedError
 
+    # def summary(self):  # FIXME
+    #
+    #     df = pd.DataFrame({name: [getattr(task, name) for task in self.tasks]
+    #                        for name in self.cls_task.param_names})
+    #     print(df)
+    #     return df
+
 
 class BaseIID(Base, ABC):
     """Base class for generation of independently and identically distributed random task objects."""
