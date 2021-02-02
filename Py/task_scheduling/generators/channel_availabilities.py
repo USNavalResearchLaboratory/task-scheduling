@@ -48,6 +48,9 @@ class UniformIID(BaseIID):
         else:
             return NotImplemented
 
+    def summary(self):
+        print(f"Channel: UniformIID{self.lims}")
+
 
 class Deterministic(Base):
     def __init__(self, ch_avail):

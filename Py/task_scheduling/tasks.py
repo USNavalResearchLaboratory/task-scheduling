@@ -10,6 +10,8 @@ np.set_printoptions(precision=2)
 plt.style.use('seaborn')
 
 
+#%% Task utilities
+
 def check_task_types(tasks):
     cls_task = tasks[0].__class__
     if all(isinstance(task, cls_task) for task in tasks[1:]):
@@ -18,12 +20,19 @@ def check_task_types(tasks):
         raise TypeError("All tasks must be of the same type.")
 
 
-def summarize_tasks(tasks):
-    cls_task = check_task_types(tasks)
-    df = pd.DataFrame({name: [getattr(task, name) for task in tasks]
-                       for name in cls_task.param_names})
-    print(df)
+def tasks_to_dataframe(tasks):
+    return pd.DataFrame([task.to_series() for task in tasks])
 
+
+def summarize_tasks(tasks, **tabulate_kwargs):
+    """Create and print a Pandas DataFrame detailing tasks."""
+    tabulate_kwargs_ = {'tablefmt': 'github', 'floatfmt': '.3f'}
+    tabulate_kwargs_.update(tabulate_kwargs)
+    print(tasks_to_dataframe(tasks).to_markdown(**tabulate_kwargs_))
+    # print(tasks_to_dataframe(tasks).to_markdown(tablefmt='github', floatfmt='.3f'))
+
+
+#%% Task objects
 
 class Base(ABC):
     """
@@ -65,15 +74,21 @@ class Base(ABC):
     def params(self):
         return {name: getattr(self, name) for name in self.param_names}
 
+    def to_series(self, **kwargs):
+        return pd.Series(self.params, **kwargs)
+
     def summary(self):
         """Print a string listing task parameters."""
-        cls_str = self.__class__.__name__
+        print(self.to_series(name='value').to_markdown(tablefmt='github', floatfmt='.3f'))
+        # summarize_tasks([self], index=False)
 
-        param_str = [f"- {name}: {val}" for name, val in self.params.items()]
-        str_out = '\n'.join([cls_str] + param_str)
-
-        print(str_out)
-        return str_out
+        # cls_str = self.__class__.__name__
+        #
+        # param_str = [f"- {name}: {val}" for name, val in self.params.items()]
+        # str_out = '\n'.join([cls_str] + param_str)
+        #
+        # print(str_out)
+        # return str_out
 
     # def feature_gen(self, *funcs):
     #     """Generate features from input functions. Defaults to the parametric representation."""

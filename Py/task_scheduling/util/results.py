@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from task_scheduling.util.generic import timing_wrapper
 from task_scheduling.util.plot import plot_task_losses, plot_schedule, scatter_loss_runtime, plot_loss_runtime
@@ -175,18 +176,12 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
                              # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
                              )
 
-    # if verbose >= 1:
-    #     print('\nAvg. Performance\n' + 16*'-')
-    #     print(f"{'Algorithm:':<35}{'Loss:':<8}{'Runtime (s):':<10}")
-    #     for name in algorithms['name']:
-    #         print(f"{name:<35}{l_ex_mean[name].mean():<8.2f}{t_run_mean[name].mean():<10.6f}")
-
     if verbose >= 1:
+        _data = [[l_ex_mean[name].mean(), t_run_mean[name].mean()] for name in algorithms['name']]
+        df = pd.DataFrame(_data, index=pd.CategoricalIndex(algorithms['name']), columns=['Loss', 'Runtime'])
+
         print('\nAvg. Performance:')
-        print(f"{'Algorithm':<35}| {'Loss':<8}| {'Runtime (s)':<10}")
-        print(f"{'---------':<35}| {'----':<8}| {'-----------':<10}")
-        for name in algorithms['name']:
-            print(f"{name:<35}| {l_ex_mean[name].mean():<8.2f}| {t_run_mean[name].mean():<10.6f}")
+        print(df.to_markdown(tablefmt='github', floatfmt='.3f'))
 
     if solve:   # relative to B&B
         l_ex_mean_opt = l_ex_mean['BB Optimal'].copy()

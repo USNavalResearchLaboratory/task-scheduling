@@ -60,7 +60,7 @@ class SupervisedLearningScheduler:
             # if tf.executing_eagerly():
             #     prob = self.model(obs[np.newaxis]).numpy().squeeze(0)
             # else:
-            #     a = 1 # TODO fix this problem. Actually run in eager execution, but getting other erros.
+            #     a = 1 # TODO fix this problem. Actually run in eager execution, but getting other errors.
             #     # a_tensor = tf.constant([[1, 2, 3], [4, 5, 6]])
             #     # print(a_tensor)
             #     # an_array = a_tensor.eval(session=tf.compat.v1.Session())
@@ -83,6 +83,11 @@ class SupervisedLearningScheduler:
             obs, reward, done, info = self.env.step(action)
 
         return self.env.node.t_ex, self.env.node.ch_ex
+
+    def summary(self, print_gen=False):
+        self.env.summary(print_gen)
+        print('')
+        self.model.summary()
 
     def fit(self, x, y=None, do_tensorboard=False, plot_history=False, **fit_params):
 

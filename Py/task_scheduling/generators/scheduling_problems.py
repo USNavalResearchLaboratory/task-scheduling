@@ -168,6 +168,15 @@ class Base(RandomGeneratorMixin, ABC):
         else:
             return NotImplemented
 
+    def summary(self):
+        cls_str = self.__class__.__name__
+        print(f"{cls_str}")
+        print(f"{'=' * len(cls_str)}")
+        print(f"{self.n_ch} channels, {self.n_tasks} tasks")
+
+        self.ch_avail_gen.summary()
+        self.task_gen.summary()
+
 
 class Random(Base):
     """Randomly generated scheduling problems."""

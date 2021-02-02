@@ -12,7 +12,7 @@ from task_scheduling import learning
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.features import param_features, encode_discrete_features
 
-# n_tasks = 12
+# n_tasks = 8
 # n_ch = 1
 #
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks, n_ch, ch_avail_lim=(0., 0.))
@@ -23,7 +23,7 @@ from task_scheduling.learning.features import param_features, encode_discrete_fe
 # filename = f"discrete_relu_c{n_ch}t{n_tasks}"
 # list(problem_gen(n_gen=1000, solve=True, verbose=True, save=True, file=filename, rng=None))
 #
-# t_r_maxes = [0]  # [0, .018, .036]
+# t_r_maxes = [0, .018, .036]
 # for t_r_max in t_r_maxes:
 #     problem_gen = problem_gens.Random.search_track(n_tasks, n_ch, t_release_lim=(0., t_r_max), ch_avail_lim=(0., 0.))
 #     filename = f"search_track_c{n_ch}t{n_tasks}_release_{t_r_max*1e3:.0f}"

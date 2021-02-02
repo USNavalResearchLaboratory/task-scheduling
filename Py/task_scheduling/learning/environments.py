@@ -55,13 +55,16 @@ class BaseTasking(ABC, Env):
         # Set sorting method
         if callable(sort_func):
             self.sort_func = sort_func
+            self._sort_func_str = 'Custom'
         elif isinstance(sort_func, str):
             def _sort_func(task):
                 return getattr(task, sort_func)
 
             self.sort_func = _sort_func
+            self._sort_func_str = sort_func
         else:
             self.sort_func = None
+            self._sort_func_str = None
 
         self.masking = masking
 
@@ -91,15 +94,16 @@ class BaseTasking(ABC, Env):
             _status = f'{len(self.node.seq)}/{self.n_tasks} Tasks Scheduled'
         return f"{self.__class__.__name__}({_status})"
 
-    # def summary(self):
-    #     """Print a string listing task parameters."""
-    #     cls_str = self.__class__.__name__
-    #
-    #     params = ()
-    #     param_str = [f"- {name}: {val}" for name, val in self.params.items()]
-    #     str_out = '\n'.join([cls_str] + param_str)
-    #     print(str_out)
-    #     return str_out
+    def summary(self, print_gen=False):      # FIXME
+        cls_str = self.__class__.__name__
+        print(f"{cls_str}")
+        print(f"{'=' * len(cls_str)}")
+        if print_gen:
+            self.problem_gen.summary()
+        print(f"Features: {self.features['name'].tolist()}")
+        print(f"Sorting: {self._sort_func_str}")
+        print(f"Task shifting: {isinstance(self.node, tree_search.TreeNodeShift)}")
+        print(f"Masking: {self.masking}")
 
     @property
     def sorted_index(self):
@@ -351,6 +355,10 @@ class SeqTasking(BaseTasking):
                                                              shape=(self.n_tasks, len(self.features)))
         self.action_space = self._action_space_map(self.n_tasks)
 
+    def summary(self, print_gen=False):
+        super().summary(print_gen)
+        print(f"Action type: {self.action_type}")
+
     @property
     def state(self):
         """Complete state."""
@@ -442,6 +450,7 @@ class StepTasking(BaseTasking):
             env_copy = deepcopy(self)       # FIXME: hacked - find better way!
             env_copy.reset()
             self.len_seq_encode = len(env_copy.seq_encoding(0))
+            self._seq_encode_str = 'Custom'
         elif isinstance(seq_encoding, str):     # simple string specification for supported encoders
             if seq_encoding == 'binary':
                 def _seq_encoding(env, n):
@@ -456,6 +465,7 @@ class StepTasking(BaseTasking):
                     return out
 
                 self.len_seq_encode = self.n_tasks
+                self._seq_encode_str = seq_encoding
             else:
                 raise ValueError("Unsupported sequence encoder string.")
 
@@ -475,6 +485,11 @@ class StepTasking(BaseTasking):
             self.action_space = spaces_tasking.DiscreteSet(set(range(self.n_tasks)))
         else:
             self.action_space = Discrete(self.n_tasks)
+
+    def summary(self, print_gen=False):
+        super().summary(print_gen)
+        print(f"Valid actions: {self.do_valid_actions}")
+        print(f"Sequence encoding: {self._seq_encode_str}")
 
     @property
     def state(self):

@@ -50,12 +50,10 @@ class Base(RandomGeneratorMixin, ABC):
         """Yield tasks."""
         raise NotImplementedError
 
-    # def summary(self):  # FIXME
-    #
-    #     df = pd.DataFrame({name: [getattr(task, name) for task in self.tasks]
-    #                        for name in self.cls_task.param_names})
-    #     print(df)
-    #     return df
+    def summary(self):
+        cls_str = self.__class__.__name__
+        print(f"{cls_str}")
+        print(f"{'=' * len(cls_str)}")
 
 
 class BaseIID(Base, ABC):
@@ -126,6 +124,13 @@ class ContinuousUniformIID(BaseIID):
         else:
             return NotImplemented
 
+    def summary(self):
+        super().summary()
+        print(f"Task class: {self.cls_task.__name__}")
+        df = pd.DataFrame({name: self.param_lims[name] for name in self.cls_task.param_names},
+                          index=pd.CategoricalIndex(['low', 'high']))
+        print(df.to_markdown(tablefmt='github', floatfmt='.3f'))
+
     @classmethod
     def relu_drop(cls, duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
                   t_drop_lim=(6, 12), l_drop_lim=(35, 50), rng=None):
@@ -169,6 +174,20 @@ class DiscreteIID(BaseIID):
         else:
             return NotImplemented
 
+    def summary(self):
+        super().summary()
+        print(f"Task class: {self.cls_task.__name__}")
+        for name in self.cls_task.param_names:
+            print(f"\n{name}:")
+            # s = pd.Series(self.param_probs[name], name='Pr')
+            s = pd.DataFrame(self.param_probs[name], index=pd.CategoricalIndex(['Pr']))
+            print(s.to_markdown(tablefmt='github', floatfmt='.3f', index=False))
+
+
+        # df = pd.DataFrame({name: self.param_lims[name] for name in self.cls_task.param_names},
+        #                   index=pd.CategoricalIndex(['low', 'high']))
+        # print(df.to_markdown(tablefmt='github', floatfmt='.3f'))
+
     @classmethod
     def relu_drop_uniform(cls, duration_vals=(3, 6), t_release_vals=(0, 4), slope_vals=(0.5, 2), t_drop_vals=(6, 12),
                           l_drop_vals=(35, 50), rng=None):
@@ -186,16 +205,16 @@ class DiscreteIID(BaseIID):
 class SearchTrackIID(BaseIID):
     """Search and Track tasks based on 2020 TSRS paper."""
 
-    def __init__(self, probs=None, t_release_lim=(0., .018), rng=None):
-        self.targets = [{'duration': .036, 't_revisit': 2.5},   # horizon search
-                        {'duration': .036, 't_revisit': 5.0},   # above horizon search
-                        {'duration': .018, 't_revisit': 5.0},   # above horizon search
-                        {'duration': .018, 't_revisit': 1.0},   # high priority track
-                        {'duration': .018, 't_revisit': 2.0},   # med priority track
-                        {'duration': .018, 't_revisit': 4.0},   # low priority track
-                        ]
+    targets = {'HS': {'duration': .036, 't_revisit': 2.5},
+               'AHS': {'duration': .036, 't_revisit': 5.0},
+               'AHS_short': {'duration': .018, 't_revisit': 5.0},
+               'Trk_hi': {'duration': .018, 't_revisit': 1.0},
+               'Trk_med': {'duration': .018, 't_revisit': 2.0},
+               'Trk_low': {'duration': .018, 't_revisit': 4.0},
+               }
 
-        durations, t_revisits = map(np.array, zip(*[target.values() for target in self.targets]))
+    def __init__(self, probs=None, t_release_lim=(0., .018), rng=None):
+        durations, t_revisits = map(np.array, zip(*[target.values() for target in self.targets.values()]))
         param_spaces = {'duration': DiscreteSet(durations),
                         't_release': spaces.Box(*t_release_lim, shape=(), dtype=np.float),
                         'slope': DiscreteSet(1 / t_revisits),
@@ -212,11 +231,11 @@ class SearchTrackIID(BaseIID):
         else:
             self.probs = probs
 
-        self.t_release_lim = t_release_lim
+        self.t_release_lim = tuple(t_release_lim)
 
     def _param_gen(self, rng):
         """Randomly generate task parameters."""
-        duration, t_revisit = rng.choice(self.targets, p=self.probs).values()
+        duration, t_revisit = rng.choice(list(self.targets.values()), p=self.probs).values()
         params = {'duration': duration,
                   't_release': rng.uniform(*self.t_release_lim),
                   'slope': 1 / t_revisit,
@@ -224,6 +243,18 @@ class SearchTrackIID(BaseIID):
                   'l_drop': 300.
                   }
         return params
+
+    def __eq__(self, other):
+        if isinstance(other, SearchTrackIID):
+            return self.probs == other.probs and self.t_release_lim == other.t_release_lim
+        else:
+            return NotImplemented
+
+    def summary(self):
+        super().summary()
+        print(f'Release time limits: {self.t_release_lim}')
+        df = pd.Series(dict(zip(self.targets.keys(), self.probs)), name='Pr')
+        print(df.to_markdown(tablefmt='github', floatfmt='.3f'))
 
 
 class Fixed(Base, ABC):

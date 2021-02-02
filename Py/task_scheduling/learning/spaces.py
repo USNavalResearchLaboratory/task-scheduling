@@ -33,6 +33,8 @@ def get_space_lims(space):
 
 
 def stack(spaces, axis=0):
+    """Join a sequence of spaces along a new axis, 'upcasting' to superset spaces when required."""
+
     if len(spaces) == 1:
         return spaces[0]
 
@@ -47,6 +49,8 @@ def stack(spaces, axis=0):
 
 
 def concatenate(spaces, axis=0):
+    """Join a sequence of spaces along an existing axis, 'upcasting' to superset spaces when required."""
+
     if len(spaces) == 1:
         return spaces[0]
 

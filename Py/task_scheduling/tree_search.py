@@ -2,6 +2,7 @@ from copy import deepcopy
 from numbers import Integral
 
 import numpy as np
+import pandas as pd
 
 from task_scheduling.util.generic import RandomGeneratorMixin
 
@@ -49,7 +50,8 @@ class TreeNode(RandomGeneratorMixin):
         self._seq_rem = set(range(self.n_tasks))
 
         self._t_ex = np.full(self.n_tasks, np.nan)
-        self._ch_ex = np.full(self.n_tasks, np.nan, dtype=np.int)
+        # self._ch_ex = np.full(self.n_tasks, np.nan, dtype=np.int)
+        self._ch_ex = np.full(self.n_tasks, -1)
 
         self._l_ex = 0.  # incurred loss
 
@@ -61,10 +63,14 @@ class TreeNode(RandomGeneratorMixin):
 
     def summary(self):
         """Print a string describing important node attributes."""
-        str_out = f'TreeNode\n- sequence: {self.seq}\n- execution times: {self.t_ex}' \
-                  f'\n- execution channels: {self.ch_ex}\n- loss incurred: {self.l_ex:.2f}'
-        print(str_out)
-        return str_out
+        keys = ('seq', 't_ex', 'ch_ex', 'l_ex')
+        df = pd.Series({key: getattr(self, key) for key in keys})
+        print(df.to_markdown(tablefmt='github', floatfmt='.3f'))
+
+        # str_out = f'TreeNode\n- sequence: {self.seq}\n- execution times: {self.t_ex}' \
+        #           f'\n- execution channels: {self.ch_ex}\n- loss incurred: {self.l_ex:.2f}'
+        # print(str_out)
+        # return str_out
 
     tasks = property(lambda self: self._tasks)
     ch_avail = property(lambda self: self._ch_avail)
