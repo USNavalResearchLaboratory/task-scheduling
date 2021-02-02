@@ -29,6 +29,10 @@ from task_scheduling.learning.features import param_features, encode_discrete_fe
 #     filename = f"search_track_c{n_ch}t{n_tasks}_release_{t_r_max*1e3:.0f}"
 #     list(problem_gen(n_gen=1000, solve=True, verbose=True, save=True, file=filename, rng=None))
 
+g = problem_gens.Random.continuous_relu_drop(4, 1)
+list(g(5, save=True, file='yeee'))
+
+
 
 #%%
 
@@ -37,13 +41,13 @@ from task_scheduling.learning.features import param_features, encode_discrete_fe
 
 # FIXME: use seeding for comparison results!!
 
-# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
+problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), ch_avail_lim=(0., 0.))
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=16, n_ch=1, rng=None)
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2))
-problem_gen = problem_gens.Dataset.load('continuous_relu_c1t12', shuffle=True, repeat=False, rng=None)
+# problem_gen = problem_gens.Dataset.load('continuous_relu_c1t12', shuffle=True, repeat=False, rng=None)
 # problem_gen = problem_gens.Dataset.load('discrete_relu_c1t12', shuffle=True, repeat=False, rng=None)
 # problem_gen = problem_gens.Dataset.load('search_track_c1t8_release_36', shuffle=True, repeat=False, rng=None)
 
@@ -101,7 +105,7 @@ SL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_par
            'fit_params': {'epochs': 500},
            'plot_history': True,
            'save': False, 'save_path': None}
-policy_model = learning.SL_policy.SupervisedLearningScheduler.train_from_gen(**SL_args)
+# policy_model = learning.SL_policy.SupervisedLearningScheduler.train_from_gen(**SL_args)
 # policy_model = SL_Scheduler.load('temp/2020-10-28_14-56-42')
 
 
@@ -118,12 +122,13 @@ algorithms = np.array([
     ('Random', algs.free.random_sequencer, 20),
     ('ERT', algs.free.earliest_release, 1),
     ('MCTS', partial(algs.free.mcts, n_mc=60, verbose=False), 5),
-    ('DNN Policy', policy_model, 5),
+    # ('DNN Policy', policy_model, 5),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
 
-l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=40, solve=True, verbose=1, plotting=1,
-                                            save=(not isinstance(problem_gen, problem_gens.Dataset)), file=None)
+save_ = not isinstance(problem_gen, problem_gens.Dataset)
+l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=10, solve=True, verbose=2, plotting=1,
+                                            save=save_, file=None)
 
 
 # algorithms = np.array([

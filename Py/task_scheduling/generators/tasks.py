@@ -183,7 +183,6 @@ class DiscreteIID(BaseIID):
             s = pd.DataFrame(self.param_probs[name], index=pd.CategoricalIndex(['Pr']))
             print(s.to_markdown(tablefmt='github', floatfmt='.3f', index=False))
 
-
         # df = pd.DataFrame({name: self.param_lims[name] for name in self.cls_task.param_names},
         #                   index=pd.CategoricalIndex(['low', 'high']))
         # print(df.to_markdown(tablefmt='github', floatfmt='.3f'))
@@ -227,9 +226,10 @@ class SearchTrackIID(BaseIID):
         if probs is None:
             # n = np.array([28, 43, 49,  1,  1,  1])
             # t_r = np.array([2.5, 5., 5., 1., 2., 4.])
-            self.probs = np.array([0.36, 0.27, 0.31, 0.03, 0.02, 0.01])  # proportionate to (# beams) / (revisit rate)
+            # self.probs = np.array([0.36, 0.27, 0.31, 0.03, 0.02, 0.01])  # proportionate to (# beams) / (revisit rate)
+            self.probs = [0.36, 0.27, 0.31, 0.03, 0.02, 0.01]
         else:
-            self.probs = probs
+            self.probs = list(probs)
 
         self.t_release_lim = tuple(t_release_lim)
 

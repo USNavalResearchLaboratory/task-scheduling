@@ -126,7 +126,7 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
     t_run_mean = np.array(**_args_mean)
 
     # Generate scheduling problems
-    for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose >= 1, save, file)):
+    for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose, save, file)):
         if solve:
             (tasks, ch_avail), solution_opt = out_gen
         else:
@@ -190,7 +190,6 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
         for name in algorithms['name']:
             l_ex_mean_norm[name] -= l_ex_mean_opt
             l_ex_mean_norm[name] /= l_ex_mean_opt
-
         if plotting >= 1:
             _, ax_results_norm = plt.subplots(num='Results (Normalized)', clear=True)
             scatter_loss_runtime(t_run_mean, l_ex_mean_norm,

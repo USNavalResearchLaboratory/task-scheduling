@@ -48,7 +48,7 @@ class Base(RandomGeneratorMixin, ABC):
         self.task_gen = task_gen
         self.ch_avail_gen = ch_avail_gen
 
-    def __call__(self, n_gen, solve=False, verbose=False, save=False, file=None, rng=None):
+    def __call__(self, n_gen, solve=False, verbose=0, save=False, file=None, rng=None):
         """
         Call problem generator.
 
@@ -58,8 +58,9 @@ class Base(RandomGeneratorMixin, ABC):
             Number of scheduling problems to generate.
         solve : bool, optional
             Enables generation of Branch & Bound optimal solutions.
-        verbose : bool, optional
-            Enables print-out of optimal scheduler progress.
+        verbose : int, optional
+            Progress print-out level. '0' is silent, '1' prints iteration number,
+            '2' prints solver progress.
         save : bool, optional
             Enables serialization of generated problems/solutions.
         file : str, optional
@@ -76,30 +77,40 @@ class Base(RandomGeneratorMixin, ABC):
 
         """
 
-        save_dict = {'problems': [], 'solutions': [] if solve else None,
-                     'task_gen': self.task_gen, 'ch_avail_gen': self.ch_avail_gen}
+        # save_dict = {'problems': [], 'solutions': [] if solve else None,
+        #              'task_gen': self.task_gen, 'ch_avail_gen': self.ch_avail_gen}
+        # if save:
+        #     save_dict = {'problems': [], 'task_gen': self.task_gen, 'ch_avail_gen': self.ch_avail_gen}
+        #     if solve:
+        #         save_dict['solutions'] = []
+
+        problems = []
+        solutions = [] if solve else None
 
         # Generate tasks and find optimal schedules
         rng = self._get_rng(rng)
         for i_gen in range(n_gen):
-            if verbose:
-                print(f'Scheduling Problem: {i_gen + 1}/{n_gen}', end='\n')
+            if verbose >= 1:
+                end = '\r' if verbose == 1 else '\n'
+                print(f'Scheduling Problem: {i_gen + 1}/{n_gen}', end=end)
 
             problem = self._gen_problem(rng)
             if save:
-                save_dict['problems'].append(problem)
+                # save_dict['problems'].append(problem)
+                problems.append(problem)
 
             if solve:
-                solution = self._gen_solution(problem, verbose)
+                solution = self._gen_solution(problem, verbose >= 2)
                 if save:
-                    save_dict['solutions'].append(solution)
+                    # save_dict['solutions'].append(solution)
+                    solutions.append(solution)
 
                 yield problem, solution
             else:
                 yield problem
 
         if save:
-            self.save(save_dict, file)
+            self.save(problems, solutions, file)
 
     @abstractmethod
     def _gen_problem(self, rng):
@@ -111,19 +122,26 @@ class Base(RandomGeneratorMixin, ABC):
         t_ex, ch_ex, t_run = timing_wrapper(partial(branch_bound, verbose=verbose))(*problem)
         return SchedulingSolution(t_ex, ch_ex, t_run)
 
-    @staticmethod
-    def save(save_dict, file=None):
+    def save(self, problems, solutions=None, file=None):
         """
         Serialize scheduling problems/solutions.
 
         Parameters
         ----------
-        save_dict: dict
-            Serialized dict with keys 'problems', 'solutions', 'task_gen', and 'ch_avail_gen'.
+        problems : Iterable of SchedulingProblem
+            Named tuple with fields 'tasks' and 'ch_avail'.
+        solutions : Iterable of SchedulingSolution
+            Named tuple with fields 't_ex', 'ch_ex', and 't_run'.
         file : str, optional
             File location relative to data/schedules/
 
         """
+
+        save_dict = {'n_tasks': self.n_tasks, 'n_ch': self.n_ch,
+                     'task_gen': self.task_gen, 'ch_avail_gen': self.ch_avail_gen,
+                     'problems': problems}
+        if solutions is not None:
+            save_dict['solutions'] = solutions
 
         if file is None:
             file = f"temp/{strftime('%Y-%m-%d_%H-%M-%S')}"
@@ -134,28 +152,38 @@ class Base(RandomGeneratorMixin, ABC):
                 load_dict = dill.load(fid)
 
             # Check equivalence of generators
-            conditions = [load_dict['task_gen'] == save_dict['task_gen'],
-                          load_dict['ch_avail_gen'] == save_dict['ch_avail_gen'],
-                          len(load_dict['problems'][0].tasks) == len(save_dict['problems'][0].tasks),
-                          len(load_dict['problems'][0].ch_avail) == len(save_dict['problems'][0].ch_avail),
-                          ]
+            conditions = [load_dict['n_tasks'] == save_dict['n_tasks'],
+                          load_dict['n_ch'] == save_dict['n_ch'],
+                          load_dict['task_gen'] == save_dict['task_gen'],
+                          load_dict['ch_avail_gen'] == save_dict['ch_avail_gen']]
 
             if all(conditions):     # Append loaded problems and solutions
                 print('File already exists. Appending existing data.')
 
-                if 'solutions' in save_dict.keys():     # FIXME: check!!
-                    try:
+                save_dict['problems'] += load_dict['problems']
+
+                if 'solutions' in save_dict.keys():
+                    if 'solutions' in load_dict.keys():
                         save_dict['solutions'] += load_dict['solutions']
-                        save_dict['problems'] += load_dict['problems']
-                    except KeyError:
-                        pass    # Skip if new data has solutions and loaded data does not
-                else:
-                    save_dict['problems'] += load_dict['problems']
+                    else:
+                        save_dict['solutions'] += [None for __ in range(len(load_dict['problems']))]
+                elif 'solutions' in load_dict.keys():
+                    save_dict['solutions'] = [None for __ in range(len(save_dict['problems']))] + load_dict['solutions']
+
+                # if 'solutions' in save_dict.keys():     # FIXME: check!!
+                #     try:
+                #         save_dict['solutions'] += load_dict['solutions']
+                #         save_dict['problems'] += load_dict['problems']
+                #     except KeyError:
+                #         pass    # Skip if new data has solutions and loaded data does not
+                # else:
+                #     save_dict['problems'] += load_dict['problems']
 
         except FileNotFoundError:
             file_path.parent.mkdir(exist_ok=True)
 
-        with data_path.joinpath(file).open(mode='wb') as fid:
+        # with data_path.joinpath(file).open(mode='wb') as fid:
+        with file_path.open(mode='wb') as fid:
             dill.dump(save_dict, fid)  # save schedules
 
     def __eq__(self, other):
@@ -174,8 +202,10 @@ class Base(RandomGeneratorMixin, ABC):
         print(f"{'=' * len(cls_str)}")
         print(f"{self.n_ch} channels, {self.n_tasks} tasks")
 
-        self.ch_avail_gen.summary()
-        self.task_gen.summary()
+        if self.ch_avail_gen is not None:
+            self.ch_avail_gen.summary()
+        if self.task_gen is not None:
+            self.task_gen.summary()
 
 
 class Random(Base):
@@ -313,10 +343,14 @@ class PermutedTasks(FixedTasks):
 
 
 class Dataset(Base):
-    def __init__(self, problems, solutions=None, shuffle=False, repeat=False, task_gen=None, ch_avail_gen=None,
-                 rng=None):
+    def __init__(self, problems, solutions=None, shuffle=False, repeat=False, n_tasks=None, n_ch=None,
+                 task_gen=None, ch_avail_gen=None, rng=None):
 
-        n_tasks, n_ch = len(problems[0].tasks), len(problems[0].ch_avail)
+        if n_tasks is None:
+            n_tasks = len(problems[0].tasks)
+        if n_ch is None:
+            n_ch = len(problems[0].ch_avail)
+
         super().__init__(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
         # self.problems = deque(problems)
@@ -378,6 +412,10 @@ class Dataset(Base):
             if self.repeat:     # store result
                 self.solutions[0] = solution        # at index 0 after `appendleft` in `_gen_problem`
             return solution
+
+    def summary(self):
+        super().summary()
+        print(f"Number of problems: {self.n_problems}")
 
 
 
