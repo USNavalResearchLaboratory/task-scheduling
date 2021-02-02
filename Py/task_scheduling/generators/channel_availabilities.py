@@ -48,8 +48,8 @@ class UniformIID(BaseIID):
         else:
             return NotImplemented
 
-    def summary(self):
-        print(f"Channel: UniformIID{self.lims}")
+    def summary(self, file=None):
+        print(f"Channel: UniformIID{self.lims}", file=file)
 
 
 class Deterministic(Base):

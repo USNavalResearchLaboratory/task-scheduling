@@ -9,9 +9,11 @@ agents/temp/
 models/temp/
 data/schedules/temp/
 data/schedules/_deprecated/
+images/temp
 
 /radar_scheduling/
 /myscript.cprof
 /radar.zip
 /Taylor/RL/Q_old/
 /FlexDARscheduler/__init__.py
+

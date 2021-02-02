@@ -48,7 +48,7 @@ class Base(RandomGeneratorMixin, ABC):
         self.task_gen = task_gen
         self.ch_avail_gen = ch_avail_gen
 
-    def __call__(self, n_gen, solve=False, verbose=0, save=False, file=None, rng=None):
+    def __call__(self, n_gen, solve=False, verbose=0, save=False, file_save=None, file_log=None, rng=None):
         """
         Call problem generator.
 
@@ -62,7 +62,7 @@ class Base(RandomGeneratorMixin, ABC):
             Progress print-out level. '0' is silent, '1' prints iteration number, '2' prints solver progress.
         save : bool, optional
             Enables serialization of generated problems/solutions.
-        file : str, optional
+        file_save : path-like, optional
             File location relative to data/schedules/
         rng : int or RandomState or Generator, optional
             NumPy random number generator or seed. Instance RNG if None.
@@ -84,7 +84,7 @@ class Base(RandomGeneratorMixin, ABC):
         for i_gen in range(n_gen):
             if verbose >= 1:
                 end = '\r' if verbose == 1 else '\n'
-                print(f'Scheduling Problem: {i_gen + 1}/{n_gen}', end=end)
+                print(f'Scheduling Problem: {i_gen + 1}/{n_gen}', end=end, file=file_log)
 
             problem = self._gen_problem(rng)
             if save:
@@ -100,7 +100,7 @@ class Base(RandomGeneratorMixin, ABC):
                 yield problem
 
         if save:
-            self._save(problems, solutions, file)
+            self._save(problems, solutions, file_save)
 
     @abstractmethod
     def _gen_problem(self, rng):
@@ -176,16 +176,16 @@ class Base(RandomGeneratorMixin, ABC):
         else:
             return NotImplemented
 
-    def summary(self):
+    def summary(self, file=None):
         cls_str = self.__class__.__name__
-        print(f"{cls_str}")
-        print(f"{'=' * len(cls_str)}")
-        print(f"{self.n_ch} channels, {self.n_tasks} tasks")
+
+        str_ = f"\n\n{cls_str}\n---\n{self.n_ch} channels, {self.n_tasks} tasks\n"
+        print(str_, file=file)
 
         if self.ch_avail_gen is not None:
-            self.ch_avail_gen.summary()
+            self.ch_avail_gen.summary(file)
         if self.task_gen is not None:
-            self.task_gen.summary()
+            self.task_gen.summary(file)
 
 
 class Random(Base):

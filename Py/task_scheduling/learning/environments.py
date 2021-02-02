@@ -94,16 +94,16 @@ class BaseTasking(ABC, Env):
             _status = f'{len(self.node.seq)}/{self.n_tasks} Tasks Scheduled'
         return f"{self.__class__.__name__}({_status})"
 
-    def summary(self, print_gen=False):      # FIXME
+    def summary(self, file=None):
         cls_str = self.__class__.__name__
-        print(f"{cls_str}")
-        print(f"{'=' * len(cls_str)}")
-        if print_gen:
-            self.problem_gen.summary()
-        print(f"Features: {self.features['name'].tolist()}")
-        print(f"Sorting: {self._sort_func_str}")
-        print(f"Task shifting: {isinstance(self.node, tree_search.TreeNodeShift)}")
-        print(f"Masking: {self.masking}")
+        str_ = f"\n\n{cls_str}\n---\n\n"
+        str_ += f"Features: {self.features['name'].tolist()}\n"
+        str_ += f"Sorting: {self._sort_func_str}\n"
+        str_ += f"Task shifting: {isinstance(self.node, tree_search.TreeNodeShift)}\n"
+        str_ += f"Masking: {self.masking}\n"
+        print(str_, file=file, end='')
+        # if print_gen:
+        #     self.problem_gen.summary(file)
 
     @property
     def sorted_index(self):
@@ -355,9 +355,9 @@ class SeqTasking(BaseTasking):
                                                              shape=(self.n_tasks, len(self.features)))
         self.action_space = self._action_space_map(self.n_tasks)
 
-    def summary(self, print_gen=False):
-        super().summary(print_gen)
-        print(f"Action type: {self.action_type}")
+    def summary(self, file=None):
+        super().summary(file)
+        print(f"Action type: {self.action_type}", file=file)
 
     @property
     def state(self):
@@ -486,10 +486,10 @@ class StepTasking(BaseTasking):
         else:
             self.action_space = Discrete(self.n_tasks)
 
-    def summary(self, print_gen=False):
-        super().summary(print_gen)
-        print(f"Valid actions: {self.do_valid_actions}")
-        print(f"Sequence encoding: {self._seq_encode_str}")
+    def summary(self, file=None):
+        super().summary(file)
+        print(f"Valid actions: {self.do_valid_actions}", file=file)
+        print(f"Sequence encoding: {self._seq_encode_str}", file=file)
 
     @property
     def state(self):

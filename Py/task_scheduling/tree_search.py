@@ -61,11 +61,11 @@ class TreeNode(RandomGeneratorMixin):
     def __repr__(self):
         return f"TreeNode(sequence: {self.seq}, loss incurred:{self.l_ex:.3f})"
 
-    def summary(self):
+    def summary(self, file=None):
         """Print a string describing important node attributes."""
         keys = ('seq', 't_ex', 'ch_ex', 'l_ex')
         df = pd.Series({key: getattr(self, key) for key in keys})
-        print(df.to_markdown(tablefmt='github', floatfmt='.3f'))
+        print(df.to_markdown(tablefmt='github', floatfmt='.3f'), file=file)
 
         # str_out = f'TreeNode\n- sequence: {self.seq}\n- execution times: {self.t_ex}' \
         #           f'\n- execution channels: {self.ch_ex}\n- loss incurred: {self.l_ex:.2f}'

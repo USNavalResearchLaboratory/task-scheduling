@@ -1,7 +1,7 @@
 import shutil
-from pathlib import Path
 import time
 import dill
+from functools import partial
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -84,10 +84,11 @@ class SupervisedLearningScheduler:
 
         return self.env.node.t_ex, self.env.node.ch_ex
 
-    def summary(self, print_gen=False):
-        self.env.summary(print_gen)
-        print('')
-        self.model.summary()
+    def summary(self, file=None):
+        self.env.summary(file)
+        print('', file=file)
+        print_fn = partial(print, file=file)
+        self.model.summary(print_fn=print_fn)
 
     def fit(self, x, y=None, do_tensorboard=False, plot_history=False, **fit_params):
 

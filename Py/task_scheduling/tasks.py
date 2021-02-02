@@ -24,11 +24,11 @@ def tasks_to_dataframe(tasks):
     return pd.DataFrame([task.to_series() for task in tasks])
 
 
-def summarize_tasks(tasks, **tabulate_kwargs):
+def summarize_tasks(tasks, file=None, **tabulate_kwargs):
     """Create and print a Pandas DataFrame detailing tasks."""
     tabulate_kwargs_ = {'tablefmt': 'github', 'floatfmt': '.3f'}
     tabulate_kwargs_.update(tabulate_kwargs)
-    print(tasks_to_dataframe(tasks).to_markdown(**tabulate_kwargs_))
+    print(tasks_to_dataframe(tasks).to_markdown(**tabulate_kwargs_), file=file)
     # print(tasks_to_dataframe(tasks).to_markdown(tablefmt='github', floatfmt='.3f'))
 
 
@@ -77,9 +77,9 @@ class Base(ABC):
     def to_series(self, **kwargs):
         return pd.Series(self.params, **kwargs)
 
-    def summary(self):
+    def summary(self, file=None):
         """Print a string listing task parameters."""
-        print(self.to_series(name='value').to_markdown(tablefmt='github', floatfmt='.3f'))
+        print(self.to_series(name='value').to_markdown(tablefmt='github', floatfmt='.3f'), file=file)
         # summarize_tasks([self], index=False)
 
         # cls_str = self.__class__.__name__

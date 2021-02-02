@@ -11,6 +11,7 @@ import numpy as np
 _cwd = Path.cwd()
 data_path = _cwd / 'data' / 'schedules'
 log_path = _cwd / 'logs'
+image_path = _cwd / 'images'
 model_path = _cwd / 'models'
 agent_path = _cwd / 'agents'
 
