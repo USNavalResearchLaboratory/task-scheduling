@@ -92,8 +92,8 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
     solve : bool, optional
         Enables generation of Branch & Bound optimal solutions.
     verbose : int, optional
-        Progress print-out level. '0' is silent, '1' prints average results,
-        '2' prints for every problem, '3' prints for every iteration.
+        Progress print-out level. '0' is silent, '1' prints average results, '2' prints for every problem,
+        '3' prints for every iteration.
     plotting : int, optional
         Plotting level. '0' plots nothing, '1' plots average results, '2' plots for every problem.
     save : bool, optional
@@ -218,7 +218,7 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
     t_run_opt = np.full(n_gen, np.nan)  # TODO: use in plots
 
     # Generate scheduling problems
-    for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose >= 1, save, file)):
+    for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose, save, file)):
         if solve:
             (tasks, ch_avail), (t_ex, ch_ex, t_run) = out_gen
             check_valid(tasks, t_ex, ch_ex)

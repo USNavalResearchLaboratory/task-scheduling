@@ -59,8 +59,7 @@ class Base(RandomGeneratorMixin, ABC):
         solve : bool, optional
             Enables generation of Branch & Bound optimal solutions.
         verbose : int, optional
-            Progress print-out level. '0' is silent, '1' prints iteration number,
-            '2' prints solver progress.
+            Progress print-out level. '0' is silent, '1' prints iteration number, '2' prints solver progress.
         save : bool, optional
             Enables serialization of generated problems/solutions.
         file : str, optional
@@ -77,13 +76,6 @@ class Base(RandomGeneratorMixin, ABC):
 
         """
 
-        # save_dict = {'problems': [], 'solutions': [] if solve else None,
-        #              'task_gen': self.task_gen, 'ch_avail_gen': self.ch_avail_gen}
-        # if save:
-        #     save_dict = {'problems': [], 'task_gen': self.task_gen, 'ch_avail_gen': self.ch_avail_gen}
-        #     if solve:
-        #         save_dict['solutions'] = []
-
         problems = []
         solutions = [] if solve else None
 
@@ -96,13 +88,11 @@ class Base(RandomGeneratorMixin, ABC):
 
             problem = self._gen_problem(rng)
             if save:
-                # save_dict['problems'].append(problem)
                 problems.append(problem)
 
             if solve:
                 solution = self._gen_solution(problem, verbose >= 2)
                 if save:
-                    # save_dict['solutions'].append(solution)
                     solutions.append(solution)
 
                 yield problem, solution
@@ -110,7 +100,7 @@ class Base(RandomGeneratorMixin, ABC):
                 yield problem
 
         if save:
-            self.save(problems, solutions, file)
+            self._save(problems, solutions, file)
 
     @abstractmethod
     def _gen_problem(self, rng):
@@ -122,7 +112,7 @@ class Base(RandomGeneratorMixin, ABC):
         t_ex, ch_ex, t_run = timing_wrapper(partial(branch_bound, verbose=verbose))(*problem)
         return SchedulingSolution(t_ex, ch_ex, t_run)
 
-    def save(self, problems, solutions=None, file=None):
+    def _save(self, problems, solutions=None, file=None):
         """
         Serialize scheduling problems/solutions.
 
@@ -170,19 +160,9 @@ class Base(RandomGeneratorMixin, ABC):
                 elif 'solutions' in load_dict.keys():
                     save_dict['solutions'] = [None for __ in range(len(save_dict['problems']))] + load_dict['solutions']
 
-                # if 'solutions' in save_dict.keys():     # FIXME: check!!
-                #     try:
-                #         save_dict['solutions'] += load_dict['solutions']
-                #         save_dict['problems'] += load_dict['problems']
-                #     except KeyError:
-                #         pass    # Skip if new data has solutions and loaded data does not
-                # else:
-                #     save_dict['problems'] += load_dict['problems']
-
         except FileNotFoundError:
             file_path.parent.mkdir(exist_ok=True)
 
-        # with data_path.joinpath(file).open(mode='wb') as fid:
         with file_path.open(mode='wb') as fid:
             dill.dump(save_dict, fid)  # save schedules
 
