@@ -96,7 +96,7 @@ def plot_schedule(tasks, t_ex, ch_ex, l_ex=None, name=None, ax=None, ax_kwargs=N
     if isinstance(name, str):
         _temp.append(name)
     if l_ex is not None:
-        _temp.append(f'Loss = {l_ex:.2f}')
+        _temp.append(f'Loss = {l_ex:.3f}')
     title = ', '.join(_temp)
     if len(title) > 0:
         ax.set_title(title)

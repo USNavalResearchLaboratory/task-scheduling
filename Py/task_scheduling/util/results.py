@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from task_scheduling.util.generic import timing_wrapper, image_path
+from task_scheduling.util.generic import timing_wrapper
 from task_scheduling.util.plot import plot_task_losses, plot_schedule, scatter_loss_runtime, plot_loss_runtime
 
 # logging.basicConfig(level=logging.INFO,       # TODO: logging?
@@ -77,8 +77,8 @@ def iter_to_mean(array):
                     dtype=[(name, np.float) for name in array.dtype.names])
 
 
-def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0, save=False,
-                        file_save=None, file_log=None):
+def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0, data_path=None,
+                        log_path=None, rng=None):
     """
     Compare scheduling algorithms for numerous sets of tasks and channel availabilities.
 
@@ -97,11 +97,12 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
         '3' prints for every iteration.
     plotting : int, optional
         Plotting level. '0' plots nothing, '1' plots average results, '2' plots for every problem.
-    save : bool, optional
-        Enables serialization of generated problems/solutions.
-    file_save : path-like, optional
-        File location relative to data/schedules/
-    file_log : path-like, optional
+    data_path : PathLike, optional
+        File path for saving data.
+    log_path : PathLike, optional
+        File path for logging of algorithm performance.
+    rng : int or RandomState or Generator, optional
+        NumPy random number generator or seed. Instance RNG if None.
 
     Returns
     -------
@@ -128,11 +129,11 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
     t_run_mean = np.array(**_args_mean)
 
     # Generate scheduling problems
-    if file_log is not None:
-        file_log = open(file_log, 'a')
+    if log_path is not None:
+        log_path = open(log_path, 'a')
 
-    file_log_gen = file_log if verbose >= 2 else None
-    for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose, save, file_save, file_log_gen)):
+    # file_log_gen = file_log if verbose >= 2 else None
+    for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose, data_path, rng)):
         if solve:
             (tasks, ch_avail), solution_opt = out_gen
         else:
@@ -141,10 +142,10 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
 
         for name, func, n_iter in algorithms:
             if verbose >= 2:
-                print(f'  {name}', end='\n', file=file_log)
+                print(f'  {name}', end='\n')
             for iter_ in range(n_iter):      # perform new algorithm runs
                 if verbose >= 3:
-                    print(f'    Iteration: {iter_ + 1}/{n_iter}', end='\r', file=file_log)
+                    print(f'    Iteration: {iter_ + 1}/{n_iter}', end='\r')
 
                 # Run algorithm
                 if name == 'BB Optimal':
@@ -166,8 +167,8 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
             t_run_mean[name][i_gen] = t_run_iter[name][i_gen].mean()
 
             if verbose >= 2:
-                print(f"    Avg. Loss: {l_ex_mean[name][i_gen]:.2f}"
-                      f"\n    Avg. Runtime: {t_run_mean[name][i_gen]:.2f} (s)", file=file_log)
+                print(f"    Avg. Loss: {l_ex_mean[name][i_gen]:.3f}"
+                      f"\n    Avg. Runtime: {t_run_mean[name][i_gen]:.3f} (s)")
 
         if plotting >= 2:
             _, ax_gen = plt.subplots(2, 1, num=f'Scheduling Problem: {i_gen + 1}', clear=True)
@@ -186,7 +187,7 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
         _data = [[l_ex_mean[name].mean(), t_run_mean[name].mean()] for name in algorithms['name']]
         df = pd.DataFrame(_data, index=pd.CategoricalIndex(algorithms['name']), columns=['Loss', 'Runtime'])
 
-        print('\n' + df.to_markdown(tablefmt='github', floatfmt='.3f'), file=file_log)
+        print('\n' + df.to_markdown(tablefmt='github', floatfmt='.3f'), file=log_path)
 
     if solve:   # relative to B&B
         l_ex_mean_opt = l_ex_mean['BB Optimal'].copy()
@@ -204,17 +205,14 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
                                             }
                                  )
 
-            fig_results_norm.savefig(image_path.joinpath(file_save))
-            print(f"\n![](../images/{file_save}.png)\n", file=file_log)
-
-    if file_log is not None:
-        file_log.close()
+    if log_path is not None:
+        log_path.close()
 
     return l_ex_iter, t_run_iter
 
 
 def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0,
-                                save=False, file=None):
+                                save_path=None, rng=None):
 
     # if solve:
     #     _opt = np.array([('B&B Optimal', None, 1)], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
@@ -229,7 +227,7 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
     t_run_opt = np.full(n_gen, np.nan)  # TODO: use in plots
 
     # Generate scheduling problems
-    for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose, save, file)):
+    for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose, save_path, rng)):
         if solve:
             (tasks, ch_avail), (t_ex, ch_ex, t_run) = out_gen
             check_valid(tasks, t_ex, ch_ex)

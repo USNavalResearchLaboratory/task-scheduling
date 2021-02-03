@@ -94,14 +94,17 @@ class BaseTasking(ABC, Env):
             _status = f'{len(self.node.seq)}/{self.n_tasks} Tasks Scheduled'
         return f"{self.__class__.__name__}({_status})"
 
-    def summary(self, file=None):
+    def _base_summary(self):
         cls_str = self.__class__.__name__
-        str_ = f"\n\n{cls_str}\n---\n\n"
-        str_ += f"Features: {self.features['name'].tolist()}\n"
-        str_ += f"Sorting: {self._sort_func_str}\n"
-        str_ += f"Task shifting: {isinstance(self.node, tree_search.TreeNodeShift)}\n"
-        str_ += f"Masking: {self.masking}\n"
-        print(str_, file=file, end='')
+        str_ = f"{cls_str}\n---\n"
+        str_ += f"\n- Features: {self.features['name'].tolist()}"
+        str_ += f"\n- Sorting: {self._sort_func_str}"
+        str_ += f"\n- Task shifting: {isinstance(self.node, tree_search.TreeNodeShift)}"
+        str_ += f"\n- Masking: {self.masking}"
+        return str_
+
+    def summary(self, file=None):
+        print(self._base_summary(), file=file, end='\n\n')
         # if print_gen:
         #     self.problem_gen.summary(file)
 
@@ -356,8 +359,10 @@ class SeqTasking(BaseTasking):
         self.action_space = self._action_space_map(self.n_tasks)
 
     def summary(self, file=None):
-        super().summary(file)
-        print(f"Action type: {self.action_type}", file=file)
+        # super().summary(file)
+        str_ = self._base_summary()
+        str_ += f"\n- Action type: {self.action_type}"
+        print(str_, file=file, end='\n\n')
 
     @property
     def state(self):
@@ -487,9 +492,11 @@ class StepTasking(BaseTasking):
             self.action_space = Discrete(self.n_tasks)
 
     def summary(self, file=None):
-        super().summary(file)
-        print(f"Valid actions: {self.do_valid_actions}", file=file)
-        print(f"Sequence encoding: {self._seq_encode_str}", file=file)
+        # super().summary(file)
+        str_ = self._base_summary()
+        str_ += f"\n- Valid actions: {self.do_valid_actions}"
+        str_ += f"\n- Sequence encoding: {self._seq_encode_str}"
+        print(str_, file=file, end='\n\n')
 
     @property
     def state(self):

@@ -52,7 +52,7 @@ class Base(RandomGeneratorMixin, ABC):
 
     def summary(self, file=None):
         cls_str = self.__class__.__name__
-        print(f"\n\n{cls_str}\n---", file=file)
+        print(f"{cls_str}\n---", file=file)
 
 
 class BaseIID(Base, ABC):
@@ -128,8 +128,9 @@ class ContinuousUniformIID(BaseIID):
 
         df = pd.DataFrame({name: self.param_lims[name] for name in self.cls_task.param_names},
                           index=pd.CategoricalIndex(['low', 'high']))
+        df_str = df.to_markdown(tablefmt='github', floatfmt='.3f')
 
-        str_ = f"Task class: `{self.cls_task.__name__}`\n\n" + df.to_markdown(tablefmt='github', floatfmt='.3f')
+        str_ = f"Task class: {self.cls_task.__name__}\n\n{df_str}\n"
         print(str_, file=file)
 
     @classmethod
@@ -178,14 +179,14 @@ class DiscreteIID(BaseIID):
     def summary(self, file=None):
         super().summary(file)
 
-        str_ = f"Task class: `{self.cls_task.__name__}`\n\n"
+        str_ = f"Task class: {self.cls_task.__name__}\n\n"
         for name in self.cls_task.param_names:
             # s = pd.Series(self.param_probs[name], name='Pr')
             # s = pd.DataFrame(self.param_probs[name], index=pd.CategoricalIndex(['Pr']))
             s = pd.DataFrame({name: self.param_probs[name].keys(), 'Pr': self.param_probs[name].values()})
             str_ += s.to_markdown(tablefmt='github', floatfmt='.3f', index=False) + "\n\n"
 
-        print(str_, file=file)
+        print(str_, file=file, end='')
 
         # print(f"Task class: {self.cls_task.__name__}")
         # for name in self.cls_task.param_names:
@@ -263,9 +264,10 @@ class SearchTrackIID(BaseIID):
 
     def summary(self, file=None):
         super().summary(file)
-        str_ = f'Release time limits: `{self.t_release_lim}`\n\n'
+        str_ = f'Release time limits: {self.t_release_lim}'
         df = pd.Series(dict(zip(self.targets.keys(), self.probs)), name='Pr')
-        print(str_ + df.to_markdown(tablefmt='github', floatfmt='.3f'), file=file)
+        df_str = df.to_markdown(tablefmt='github', floatfmt='.3f')
+        print(f"{str_}\n\n{df_str}\n", file=file)
 
 
 class Fixed(Base, ABC):

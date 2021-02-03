@@ -7,8 +7,8 @@ logs/
 # Temporary agents and models
 agents/temp/
 models/temp/
-data/schedules/temp/
-data/schedules/_deprecated/
+data/temp/
+data/_deprecated/
 images/temp
 
 /radar_scheduling/

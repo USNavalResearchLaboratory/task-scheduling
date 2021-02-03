@@ -54,10 +54,10 @@ class Base(ABC):
         self.t_release = np.float(t_release)
 
     def __repr__(self):
-        params_str = ", ".join([f"{name}: {getattr(self, name):.2f}" for name in ("duration", "t_release")])
-        # params_str = ", ".join([f"{name}: {getattr(self, name):.2f}" for name in self.param_names])
+        params_str = ", ".join([f"{name}: {getattr(self, name):.3f}" for name in ("duration", "t_release")])
+        # params_str = ", ".join([f"{name}: {getattr(self, name):.3f}" for name in self.param_names])
         return f"{self.__class__.__name__}({params_str})"
-        # return f"{self.__class__.__name__}(duration: {self.duration:.2f}, release time: {self.t_release:.2f})"
+        # return f"{self.__class__.__name__}(duration: {self.duration:.3f}, release time: {self.t_release:.3f})"
 
     @abstractmethod
     def __call__(self, t):

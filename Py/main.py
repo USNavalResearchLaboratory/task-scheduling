@@ -1,11 +1,12 @@
 from functools import partial
 from time import strftime
+from pathlib import Path
 
 import numpy as np
 from matplotlib import pyplot as plt
 from tensorflow import keras
 
-from task_scheduling.util.generic import runtime_wrapper, data_path
+from task_scheduling.util.generic import runtime_wrapper, data_path as util_data_path, image_path as util_image_path
 from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime
 from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling import algorithms as algs
@@ -13,22 +14,25 @@ from task_scheduling import learning
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.features import param_features, encode_discrete_features
 
+time_str = strftime('%Y-%m-%d_%H-%M-%S')
+
+
 # n_tasks = 8
 # n_ch = 1
 #
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks, n_ch, ch_avail_lim=(0., 0.))
 # filename = f"continuous_relu_c{n_ch}t{n_tasks}"
-# list(problem_gen(n_gen=1000, solve=True, verbose=True, save=True, file_save=filename, rng=None))
+# list(problem_gen(n_gen=1000, solve=True, verbose=True, save_path=filename, rng=None))
 #
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks, n_ch, ch_avail_lim=(0., 0.))
 # filename = f"discrete_relu_c{n_ch}t{n_tasks}"
-# list(problem_gen(n_gen=1000, solve=True, verbose=True, save=True, file_save=filename, rng=None))
+# list(problem_gen(n_gen=1000, solve=True, verbose=True, save_path=filename, rng=None))
 
 # t_r_maxes = [0, .018, .036]
 # for t_r_max in t_r_maxes:
 #     problem_gen = problem_gens.Random.search_track(n_tasks, n_ch, t_release_lim=(0., t_r_max), ch_avail_lim=(0., 0.))
 #     filename = f"search_track_c{n_ch}t{n_tasks}_release_{t_r_max*1e3:.0f}"
-#     list(problem_gen(n_gen=1000, solve=True, verbose=True, save=True, file_save=filename, rng=None))
+#     list(problem_gen(n_gen=1000, solve=True, verbose=True, save_path=filename, rng=None))
 
 
 #%%
@@ -102,7 +106,7 @@ SL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_par
            'fit_params': {'epochs': 100},
            'plot_history': True,
            'save': False, 'save_path': None}
-policy_model = learning.SL_policy.SupervisedLearningScheduler.train_from_gen(**SL_args)
+# policy_model = learning.SL_policy.SupervisedLearningScheduler.train_from_gen(**SL_args)
 # policy_model = SL_Scheduler.load('temp/2020-10-28_14-56-42')
 
 
@@ -119,27 +123,38 @@ algorithms = np.array([
     ('Random', algs.free.random_sequencer, 20),
     ('ERT', algs.free.earliest_release, 1),
     ('MCTS', partial(algs.free.mcts, n_mc=60, verbose=False), 5),
-    ('DNN Policy', policy_model, 5),
+    # ('DNN Policy', policy_model, 5),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
 
-# file_log = None
-# file_log = 'logs/test.md'
-file_log = 'docs/PGR_results.md'
 
-# file_save = None
-# file_save = f"temp/{strftime('%Y-%m-%d_%H-%M-%S')}"
-file_save = 'temp/dat_result'
-# file_save = data_path.joinpath(f"temp/{strftime('%Y-%m-%d_%H-%M-%S')}")
+problem_gens.Base.temp_path = util_data_path / 'temp'    # set a path for saving temp data
+
+data_path = None
+# data_path = util_data_path / 'temp' / 'dat_result'
+
+# log_path = None
+log_path = 'docs/PGR_results.md'
 
 
-with open(file_log, 'a') as fid:
+with open(log_path, 'a') as fid:
+    print(f"# {time_str}\n\nProblem gen: ", end='', file=fid)
     problem_gen.summary(fid)
-    policy_model.summary(fid)
+    # policy_model.summary(fid)
+    print('Results\n---', file=fid)
 
 save_ = not isinstance(problem_gen, problem_gens.Dataset)
 l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=10, solve=True, verbose=1, plotting=1,
-                                            save=save_, file_save=file_save, file_log=file_log)
+                                            data_path=data_path, log_path=log_path)
+
+
+image_path = f'images/temp/{time_str}'
+plt.figure('Results (Normalized)').savefig(image_path)
+with open(log_path, 'a') as fid:
+    # str_ = image_path.resolve().as_posix().replace('.png', '')
+    print(f"\n![](../{image_path}.png)\n", file=fid)
+
+# TODO: save training image?
 
 
 # algorithms = np.array([

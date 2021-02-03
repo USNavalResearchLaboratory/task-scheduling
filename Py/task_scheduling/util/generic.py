@@ -9,7 +9,7 @@ import numpy as np
 
 
 _cwd = Path.cwd()
-data_path = _cwd / 'data' / 'schedules'
+data_path = _cwd / 'data'
 log_path = _cwd / 'logs'
 image_path = _cwd / 'images'
 model_path = _cwd / 'models'

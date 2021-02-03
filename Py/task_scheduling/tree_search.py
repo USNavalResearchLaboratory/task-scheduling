@@ -68,7 +68,7 @@ class TreeNode(RandomGeneratorMixin):
         print(df.to_markdown(tablefmt='github', floatfmt='.3f'), file=file)
 
         # str_out = f'TreeNode\n- sequence: {self.seq}\n- execution times: {self.t_ex}' \
-        #           f'\n- execution channels: {self.ch_ex}\n- loss incurred: {self.l_ex:.2f}'
+        #           f'\n- execution channels: {self.ch_ex}\n- loss incurred: {self.l_ex:.3f}'
         # print(str_out)
         # return str_out
 

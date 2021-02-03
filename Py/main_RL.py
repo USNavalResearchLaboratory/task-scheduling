@@ -103,10 +103,10 @@ algorithms = np.array([
     # ('DNN Policy', policy_model, 5),
 ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
 
-l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=100, solve=True,
-                                            verbose=2, plotting=1, save=True, file_save=None)
+l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=100, solve=True, verbose=2, plotting=1,
+                                            data_path=None)
 # l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=10, solve=True,
-#                                             verbose=2, plotting=1, save=True, file_save=None)
+#                                             verbose=2, plotting=1, save=True, save_path=None)
 
 # algorithms = np.array([
 #     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),

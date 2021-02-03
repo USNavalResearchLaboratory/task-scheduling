@@ -85,10 +85,12 @@ class SupervisedLearningScheduler:
         return self.env.node.t_ex, self.env.node.ch_ex
 
     def summary(self, file=None):
+        print('Env: ', end='', file=file)
         self.env.summary(file)
-        print('', file=file)
+        print('Model \n---\n```', file=file)
         print_fn = partial(print, file=file)
         self.model.summary(print_fn=print_fn)
+        print('```', file=file)
 
     def fit(self, x, y=None, do_tensorboard=False, plot_history=False, **fit_params):
 

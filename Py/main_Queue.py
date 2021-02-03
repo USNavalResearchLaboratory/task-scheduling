@@ -292,10 +292,10 @@ algorithms = np.array([
 # l_ex_iter, t_run_iter, l_ex_mean, t_run_mean, l_ex_mean_norm = evaluate_algorithms(algorithms, problem_gen,
 #                                                                                    n_gen=n_eval, solve=True,
 #                                                                                    verbose=2, plotting=1,
-#                                                                                    save=False, file_save=None)
+#                                                                                    save=False, save_path=None)
 
-l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=n_eval, solve=True,
-                                            verbose=2, plotting=1, save=False, file_save=None)
+l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=n_eval, solve=True, verbose=2, plotting=1,
+                                            data_path=None)
 
 l_ex_mean, t_run_mean = map(iter_to_mean, (l_ex_iter, t_run_iter))
 scatter_loss_runtime_stats(t_run_mean, l_ex_mean, ax=None, ax_kwargs=None)

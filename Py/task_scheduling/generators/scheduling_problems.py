@@ -7,6 +7,7 @@ from time import strftime
 from typing import Iterable
 from functools import partial
 import dill
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -14,14 +15,17 @@ import pandas as pd
 import task_scheduling.tasks
 from task_scheduling.algorithms.free import branch_bound, earliest_release
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
-from task_scheduling.util.generic import (RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution,
-                                          data_path)
+from task_scheduling.util.generic import RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution
 
 np.set_printoptions(precision=2)
-pd.options.display.float_format = '{:,.2f}'.format      # TODO: global??
+pd.options.display.float_format = '{:,.3f}'.format      # TODO: global??
 
 
 class Base(RandomGeneratorMixin, ABC):
+
+    temp_path = None
+    # temp_path = data_path / 'temp'      # TODO
+
     def __init__(self, n_tasks, n_ch, task_gen, ch_avail_gen, rng=None):
         """
         Base class for scheduling problem generators.
@@ -48,7 +52,7 @@ class Base(RandomGeneratorMixin, ABC):
         self.task_gen = task_gen
         self.ch_avail_gen = ch_avail_gen
 
-    def __call__(self, n_gen, solve=False, verbose=0, save=False, file_save=None, file_log=None, rng=None):
+    def __call__(self, n_gen, solve=False, verbose=0, save_path=None, rng=None):
         """
         Call problem generator.
 
@@ -60,10 +64,8 @@ class Base(RandomGeneratorMixin, ABC):
             Enables generation of Branch & Bound optimal solutions.
         verbose : int, optional
             Progress print-out level. '0' is silent, '1' prints iteration number, '2' prints solver progress.
-        save : bool, optional
-            Enables serialization of generated problems/solutions.
-        file_save : path-like, optional
-            File location relative to data/schedules/
+        save_path : PathLike, optional
+            File path for saving data.
         rng : int or RandomState or Generator, optional
             NumPy random number generator or seed. Instance RNG if None.
 
@@ -79,12 +81,17 @@ class Base(RandomGeneratorMixin, ABC):
         problems = []
         solutions = [] if solve else None
 
+        if save_path is None and self.temp_path is not None:
+            save_path = Path(self.temp_path) / strftime('%Y-%m-%d_%H-%M-%S')
+
+        save = save_path is not None
+
         # Generate tasks and find optimal schedules
         rng = self._get_rng(rng)
         for i_gen in range(n_gen):
             if verbose >= 1:
                 end = '\r' if verbose == 1 else '\n'
-                print(f'Scheduling Problem: {i_gen + 1}/{n_gen}', end=end, file=file_log)
+                print(f'Scheduling Problem: {i_gen + 1}/{n_gen}', end=end)
 
             problem = self._gen_problem(rng)
             if save:
@@ -100,7 +107,7 @@ class Base(RandomGeneratorMixin, ABC):
                 yield problem
 
         if save:
-            self._save(problems, solutions, file_save)
+            self._save(problems, solutions, save_path)
 
     @abstractmethod
     def _gen_problem(self, rng):
@@ -112,7 +119,7 @@ class Base(RandomGeneratorMixin, ABC):
         t_ex, ch_ex, t_run = timing_wrapper(partial(branch_bound, verbose=verbose))(*problem)
         return SchedulingSolution(t_ex, ch_ex, t_run)
 
-    def _save(self, problems, solutions=None, file=None):
+    def _save(self, problems, solutions=None, file_path=None):
         """
         Serialize scheduling problems/solutions.
 
@@ -122,7 +129,7 @@ class Base(RandomGeneratorMixin, ABC):
             Named tuple with fields 'tasks' and 'ch_avail'.
         solutions : Iterable of SchedulingSolution
             Named tuple with fields 't_ex', 'ch_ex', and 't_run'.
-        file : str, optional
+        file_path : PathLike, optional
             File location relative to data/schedules/
 
         """
@@ -133,9 +140,7 @@ class Base(RandomGeneratorMixin, ABC):
         if solutions is not None:
             save_dict['solutions'] = solutions
 
-        if file is None:
-            file = f"temp/{strftime('%Y-%m-%d_%H-%M-%S')}"
-        file_path = data_path.joinpath(file)
+        file_path = Path(file_path)
 
         try:    # search for existing file
             with file_path.open(mode='rb') as fid:
@@ -179,7 +184,7 @@ class Base(RandomGeneratorMixin, ABC):
     def summary(self, file=None):
         cls_str = self.__class__.__name__
 
-        str_ = f"\n\n{cls_str}\n---\n{self.n_ch} channels, {self.n_tasks} tasks\n"
+        str_ = f"{cls_str}\n---\n{self.n_ch} channels, {self.n_tasks} tasks\n"
         print(str_, file=file)
 
         if self.ch_avail_gen is not None:
@@ -354,11 +359,11 @@ class Dataset(Base):
         self.solutions.extendleft(solutions)
 
     @classmethod
-    def load(cls, file, shuffle=False, repeat=False, rng=None):
+    def load(cls, file_path, shuffle=False, repeat=False, rng=None):
         """Load problems/solutions from memory."""
 
         # TODO: loads entire data set into memory - need iterative read/yield for large data sets
-        with data_path.joinpath(file).open(mode='rb') as fid:
+        with Path(file_path).open(mode='rb') as fid:
             dict_gen = dill.load(fid)
 
         return cls(**dict_gen, shuffle=shuffle, repeat=repeat, rng=rng)
