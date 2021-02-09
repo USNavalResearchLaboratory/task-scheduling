@@ -173,7 +173,7 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
 
     # Results
     if plotting >= 1:
-        fig_results, ax_results = plt.subplots(num='Results', clear=True)
+        __, ax_results = plt.subplots(num='Results', clear=True)
         scatter_loss_runtime(t_run_mean, l_ex_mean,
                              ax=ax_results,
                              # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
@@ -197,7 +197,7 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
             l_ex_mean_norm[name] -= l_ex_mean_opt
             l_ex_mean_norm[name] /= l_ex_mean_opt
         if plotting >= 1:
-            fig_results_norm, ax_results_norm = plt.subplots(num='Results (Normalized)', clear=True)
+            __, ax_results_norm = plt.subplots(num='Results (Normalized)', clear=True)
             scatter_loss_runtime(t_run_mean, l_ex_mean_norm,
                                  ax=ax_results_norm,
                                  ax_kwargs={'ylabel': 'Excess Loss (Normalized)',
@@ -212,7 +212,7 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
                                 save_path=None, rng=None):
 
     # if solve:
-    #     _opt = np.array([('B&B Optimal', None, 1)], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', int)])
+    #     _opt = np.array([('B&B Optimal', None, 1)], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
     #     algorithms = np.concatenate((_opt, algorithms))
 
     l_ex_iter = np.array([[tuple([np.nan] * alg['n_iter'] for alg in algorithms)] * n_gen] * len(runtimes),

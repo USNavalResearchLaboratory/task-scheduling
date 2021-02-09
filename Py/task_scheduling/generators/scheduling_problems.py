@@ -372,7 +372,7 @@ class Dataset(Base):
     def shuffle(self, rng=None):
         rng = self._get_rng(rng)
 
-        _temp = np.array(list(zip(self.problems, self.solutions)), dtype=np.object)
+        _temp = np.array(list(zip(self.problems, self.solutions)), dtype=object)
         _p, _s = zip(*rng.permutation(_temp).tolist())
         self.problems, self.solutions = deque(_p), deque(_s)
 

@@ -68,3 +68,6 @@ class Deterministic(Base):
     def from_uniform(cls, n_ch, lims=(0., 0.), rng=None):
         ch_avail_gen = UniformIID(lims, rng=rng)
         return cls(ch_avail=list(ch_avail_gen(n_ch)))
+
+    def summary(self, file=None):
+        print(f"Channel: Deterministic{self.ch_avail}\n", file=file)
