@@ -129,10 +129,6 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
     t_run_mean = np.array(**_args_mean)
 
     # Generate scheduling problems
-    if log_path is not None:
-        log_path = open(log_path, 'a')
-
-    # file_log_gen = file_log if verbose >= 2 else None
     for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose, data_path, rng)):
         if solve:
             (tasks, ch_avail), solution_opt = out_gen
@@ -187,7 +183,11 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
         _data = [[l_ex_mean[name].mean(), t_run_mean[name].mean()] for name in algorithms['name']]
         df = pd.DataFrame(_data, index=pd.CategoricalIndex(algorithms['name']), columns=['Loss', 'Runtime'])
 
-        print('\n' + df.to_markdown(tablefmt='github', floatfmt='.3f'), file=log_path)
+        if log_path is None:
+            print('\n' + df.to_markdown(tablefmt='github', floatfmt='.3f'))
+        else:
+            with open(log_path, 'a') as fid:
+                print('\n' + df.to_markdown(tablefmt='github', floatfmt='.3f'), file=fid)
 
     if solve:   # relative to B&B
         l_ex_mean_opt = l_ex_mean['BB Optimal'].copy()
@@ -204,9 +204,6 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
                                             # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
                                             }
                                  )
-
-    if log_path is not None:
-        log_path.close()
 
     return l_ex_iter, t_run_iter
 

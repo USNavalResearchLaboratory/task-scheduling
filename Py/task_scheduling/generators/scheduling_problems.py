@@ -24,7 +24,7 @@ pd.options.display.float_format = '{:,.3f}'.format      # TODO: global??
 class Base(RandomGeneratorMixin, ABC):
 
     temp_path = None
-    # temp_path = data_path / 'temp'      # TODO
+    # temp_path = data_path / 'temp'
 
     def __init__(self, n_tasks, n_ch, task_gen, ch_avail_gen, rng=None):
         """
@@ -184,7 +184,8 @@ class Base(RandomGeneratorMixin, ABC):
     def summary(self, file=None):
         cls_str = self.__class__.__name__
 
-        str_ = f"{cls_str}\n---\n{self.n_ch} channels, {self.n_tasks} tasks\n"
+        plural_ = 's' if self.n_ch > 1 else ''
+        str_ = f"{cls_str}\n---\n{self.n_ch} channel{plural_}, {self.n_tasks} tasks\n"
         print(str_, file=file)
 
         if self.ch_avail_gen is not None:
@@ -398,9 +399,9 @@ class Dataset(Base):
                 self.solutions[0] = solution        # at index 0 after `appendleft` in `_gen_problem`
             return solution
 
-    def summary(self):
-        super().summary()
-        print(f"Number of problems: {self.n_problems}")
+    def summary(self, file=None):
+        super().summary(file)
+        print(f"Number of problems: {self.n_problems}\n", file=file)
 
 
 

@@ -48,9 +48,9 @@ time_str = strftime('%Y-%m-%d_%H-%M-%S')
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=16, n_ch=1, rng=None)
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2))
-problem_gen = problem_gens.Dataset.load('continuous_relu_c1t8', shuffle=True, repeat=False, rng=100)
-# problem_gen = problem_gens.Dataset.load('discrete_relu_c1t12', shuffle=True, repeat=False, rng=100)
-# problem_gen = problem_gens.Dataset.load('search_track_c1t8_release_36', shuffle=True, repeat=False, rng=100)
+problem_gen = problem_gens.Dataset.load('data/continuous_relu_c1t12', shuffle=True, repeat=False, rng=100)
+# problem_gen = problem_gens.Dataset.load('data/discrete_relu_c1t12', shuffle=True, repeat=False, rng=100)
+# problem_gen = problem_gens.Dataset.load('data/search_track_c1t8_release_36', shuffle=True, repeat=False, rng=100)
 
 
 # Algorithms
@@ -106,7 +106,7 @@ SL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_par
            'fit_params': {'epochs': 100},
            'plot_history': True,
            'save': False, 'save_path': None}
-policy_model = learning.SL_policy.SupervisedLearningScheduler.train_from_gen(**SL_args)
+# policy_model = learning.SL_policy.SupervisedLearningScheduler.train_from_gen(**SL_args)
 # policy_model = SL_Scheduler.load('temp/2020-10-28_14-56-42')
 
 
@@ -123,18 +123,19 @@ algorithms = np.array([
     ('Random', algs.free.random_sequencer, 20),
     ('ERT', algs.free.earliest_release, 1),
     ('MCTS', partial(algs.free.mcts, n_mc=60, verbose=False), 5),
-    ('DNN', policy_model, 5),
+    # ('DNN', policy_model, 5),
     # ('DQN Agent', dqn_agent, 5),
-], dtype=[('name', '<U16'), ('func', object), ('n_iter', np.int32)])
+], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
 
 
-problem_gens.Base.temp_path = 'data/temp/'    # set a path for saving temp data
+if not isinstance(problem_gen, problem_gens.Dataset):
+    problem_gens.Base.temp_path = 'data/temp/'    # set a temp path for saving new data
 
 data_path = None
 # data_path = util_data_path / 'temp' / 'dat_result'
 
 # log_path = None
-log_path = 'docs/PGR_results.md'
+log_path = 'docs/temp/PGR_results.md'
 
 image_path = f'images/temp/{time_str}'
 
@@ -143,21 +144,20 @@ with open(log_path, 'a') as fid:
     print(f"# {time_str}\n\nProblem gen: ", end='', file=fid)
     problem_gen.summary(fid)
     if 'DNN' in algorithms['name']:
-        policy_model.summary(fid)
+        # policy_model.summary(fid)
         train_path = image_path + '_train'
         plt.figure('training history').savefig(train_path)
-        print(f"\n![](../{train_path}.png)\n", file=fid)
+        print(f"\n![](../../{train_path}.png)\n", file=fid)
     print('Results\n---', file=fid)
 
-save_ = not isinstance(problem_gen, problem_gens.Dataset)
-l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=10, solve=True, verbose=1, plotting=1,
+l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=100, solve=True, verbose=1, plotting=1,
                                             data_path=data_path, log_path=log_path)
 
 
 plt.figure('Results (Normalized)').savefig(image_path)
 with open(log_path, 'a') as fid:
     # str_ = image_path.resolve().as_posix().replace('.png', '')
-    print(f"\n![](../{image_path}.png)\n", file=fid)
+    print(f"\n![](../../{image_path}.png)\n", file=fid)
 
 # algorithms = np.array([
 #     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
@@ -166,7 +166,7 @@ with open(log_path, 'a') as fid:
 #     ('MCTS', partial(algs.limit.mcts, verbose=False), 5),
 #     ('DNN Policy', runtime_wrapper(policy_model), 5),
 #     # ('DQN Agent', dqn_agent, 5),
-# ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
+# ], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', int)])
 #
 # runtimes = np.logspace(-2, -1, 20, endpoint=False)
 # evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=40, solve=True, verbose=2, plotting=1,

@@ -10,6 +10,7 @@ models/temp/
 data/temp/
 data/_deprecated/
 images/temp
+docs/temp
 
 /radar_scheduling/
 /myscript.cprof
