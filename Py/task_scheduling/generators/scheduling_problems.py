@@ -418,8 +418,8 @@ class QueueFlexDAR(Base):
 
         self.queue = deque()
         self.add_tasks(tasks_full)
-        self.ch_avail = np.array(ch_avail, dtype=np.float)
-        self.clock = np.array(0, dtype=np.float)
+        self.ch_avail = np.array(ch_avail, dtype=float)
+        self.clock = np.array(0, dtype=float)
         self.RP = RP
         self.record_revisit = record_revisit
         self.scheduler = scheduler

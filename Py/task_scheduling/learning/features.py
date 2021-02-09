@@ -33,7 +33,7 @@ def _shift_space(space):
     else:
         raise NotImplementedError
 
-    return Box(0., high, shape=(), dtype=np.float)
+    return Box(0., high, shape=(), dtype=float)
 
 
 def param_features(problem_gen, time_shift=False):

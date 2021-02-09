@@ -279,7 +279,7 @@ class BaseTasking(ABC, Env):
 
             x_set = np.empty((steps_total, *self.observation_space.shape), dtype=self.observation_space.dtype)
             y_set = np.empty((steps_total, *self.action_space.shape), dtype=self.action_space.dtype)
-            w_set = np.empty(steps_total, dtype=np.float)
+            w_set = np.empty(steps_total, dtype=float)
 
             for i_gen in range(batch_size):
                 if verbose:
@@ -321,9 +321,9 @@ class BaseTasking(ABC, Env):
         if actions.ndim == 1:
             actions.shape = (steps_total, 1)
 
-        rewards = np.zeros(steps_total, dtype=np.float)
-        episode_returns = np.zeros(n_gen, dtype=np.float)
-        episode_starts = np.full(steps_total, False, dtype=np.bool)
+        rewards = np.zeros(steps_total, dtype=float)
+        episode_returns = np.zeros(n_gen, dtype=float)
+        episode_starts = np.full(steps_total, False, dtype=bool)
         episode_starts[np.arange(0, steps_total, self.steps_per_episode)] = True
 
         numpy_dict = {
@@ -464,7 +464,7 @@ class StepTasking(BaseTasking):
                 self.len_seq_encode = 1
             elif seq_encoding == 'one-hot':
                 def _seq_encoding(env, n):
-                    out = np.zeros(env.n_tasks, dtype=np.int)
+                    out = np.zeros(env.n_tasks, dtype=int)
                     if n in env.node.seq:
                         out[env.node.seq.index(n)] = 1
                     return out
@@ -531,7 +531,7 @@ class StepTasking(BaseTasking):
 
         x_set = np.empty((self.steps_per_episode, *self.observation_space.shape), dtype=self.observation_space.dtype)
         y_set = np.empty((self.steps_per_episode, *self.action_space.shape), dtype=self.action_space.dtype)
-        w_set = np.ones(self.steps_per_episode, dtype=np.float)
+        w_set = np.ones(self.steps_per_episode, dtype=float)
 
         for idx, n in enumerate(seq):
             n = self.sorted_index_inv[n]

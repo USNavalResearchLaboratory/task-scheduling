@@ -50,8 +50,8 @@ class Base(ABC):
     param_names = ('duration', 't_release')
 
     def __init__(self, duration, t_release):
-        self.duration = np.float(duration)
-        self.t_release = np.float(t_release)
+        self.duration = float(duration)
+        self.t_release = float(t_release)
 
     def __repr__(self):
         params_str = ", ".join([f"{name}: {getattr(self, name):.3f}" for name in ("duration", "t_release")])
@@ -192,9 +192,9 @@ class ReluDrop(Base):
 
     def __init__(self, duration, t_release, slope, t_drop, l_drop):
         super().__init__(duration, t_release)
-        self._slope = np.float(slope)
-        self._t_drop = np.float(t_drop)
-        self._l_drop = np.float(l_drop)
+        self._slope = float(slope)
+        self._t_drop = float(t_drop)
+        self._l_drop = float(l_drop)
 
     def __call__(self, t):
         """Loss function versus time."""

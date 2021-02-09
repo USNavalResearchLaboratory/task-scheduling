@@ -40,7 +40,7 @@ class Base(RandomGeneratorMixin, ABC):
         self.cls_task = cls_task
 
         if param_spaces is None:
-            self.param_spaces = {name: spaces.Box(-np.inf, np.inf, shape=(), dtype=np.float)
+            self.param_spaces = {name: spaces.Box(-np.inf, np.inf, shape=(), dtype=float)
                                  for name in self.cls_task.param_names}
         else:
             self.param_spaces = param_spaces
@@ -103,7 +103,7 @@ class ContinuousUniformIID(BaseIID):
     """Generates I.I.D. tasks with independently uniform continuous parameters."""
 
     def __init__(self, cls_task, param_lims, rng=None):
-        param_spaces = {name: spaces.Box(*param_lims[name], shape=(), dtype=np.float)
+        param_spaces = {name: spaces.Box(*param_lims[name], shape=(), dtype=float)
                         for name in cls_task.param_names}
         super().__init__(cls_task, param_spaces, rng)
 
@@ -227,7 +227,7 @@ class SearchTrackIID(BaseIID):
     def __init__(self, probs=None, t_release_lim=(0., .018), rng=None):
         durations, t_revisits = map(np.array, zip(*[target.values() for target in self.targets.values()]))
         param_spaces = {'duration': DiscreteSet(durations),
-                        't_release': spaces.Box(*t_release_lim, shape=(), dtype=np.float),
+                        't_release': spaces.Box(*t_release_lim, shape=(), dtype=float),
                         'slope': DiscreteSet(1 / t_revisits),
                         't_drop': DiscreteSet(t_revisits + 0.1),
                         'l_drop': DiscreteSet([300.])
@@ -569,10 +569,10 @@ class FlexDARlike(Base):
         # t_release_lim = 50
         # durations, t_revisits = map(np.array, zip(*[target.values() for target in self.targets]))
         # Currently use continuous spaces, need to change
-        param_spaces = {'duration': spaces.Box(0, 5, shape=(), dtype=np.float),
-                        't_release': spaces.Box(0, 50, shape=(), dtype=np.float),
-                        'slope': spaces.Box(0, 1, shape=(), dtype=np.float),
-                        't_drop': spaces.Box(0, 6, shape=(), dtype=np.float),
+        param_spaces = {'duration': spaces.Box(0, 5, shape=(), dtype=float),
+                        't_release': spaces.Box(0, 50, shape=(), dtype=float),
+                        'slope': spaces.Box(0, 1, shape=(), dtype=float),
+                        't_drop': spaces.Box(0, 6, shape=(), dtype=float),
                         'l_drop': DiscreteSet([300.])
                         }
 

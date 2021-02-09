@@ -17,8 +17,8 @@ from task_scheduling.learning.features import param_features, encode_discrete_fe
 time_str = strftime('%Y-%m-%d_%H-%M-%S')
 
 #%%
-n_tasks = 8
-n_ch = 1
+# n_tasks = 8
+# n_ch = 1
 
 # for n_ch, n_tasks in product([1, 2], [4, 8, 12]):
 #
@@ -30,25 +30,25 @@ n_ch = 1
 #     filename = f"data/discrete_relu_c{n_ch}t{n_tasks}"
 #     list(problem_gen(n_gen=1000, solve=True, verbose=True, save_path=filename, rng=None))
 
-t_r_maxes = [0, .018, .036]
-# for t_r_max in t_r_maxes:
-for n_ch, n_tasks, t_r_max in product([2], [4, 8], t_r_maxes):
-    problem_gen = problem_gens.Random.search_track(n_tasks, n_ch, t_release_lim=(0., t_r_max), ch_avail_lim=(0., 0.))
-    filename = f"data/search_track_c{n_ch}t{n_tasks}_release_{t_r_max*1e3:.0f}"
-    list(problem_gen(n_gen=1000, solve=True, verbose=True, save_path=filename, rng=None))
+# t_r_maxes = [0, .018, .036]
+# # for t_r_max in t_r_maxes:
+# for n_ch, n_tasks, t_r_max in product([2], [4, 8], t_r_maxes):
+#     problem_gen = problem_gens.Random.search_track(n_tasks, n_ch, t_release_lim=(0., t_r_max), ch_avail_lim=(0., 0.))
+#     filename = f"data/search_track_c{n_ch}t{n_tasks}_release_{t_r_max*1e3:.0f}"
+#     list(problem_gen(n_gen=1000, solve=True, verbose=True, save_path=filename, rng=None))
 
 
 #%%
 
 # TODO: split method for Dataset, allow train repeatability while preserving train/test? Use repeat=False
 
-problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=4, n_ch=1, rng=None)
+# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=4, n_ch=1, rng=None)
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), ch_avail_lim=(0., 0.))
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=16, n_ch=1, rng=None)
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2))
-# problem_gen = problem_gens.Dataset.load('continuous_relu_c1t8', shuffle=True, repeat=False, rng=100)
+problem_gen = problem_gens.Dataset.load('continuous_relu_c1t8', shuffle=True, repeat=False, rng=100)
 # problem_gen = problem_gens.Dataset.load('discrete_relu_c1t12', shuffle=True, repeat=False, rng=100)
 # problem_gen = problem_gens.Dataset.load('search_track_c1t8_release_36', shuffle=True, repeat=False, rng=100)
 
@@ -125,7 +125,7 @@ algorithms = np.array([
     ('MCTS', partial(algs.free.mcts, n_mc=60, verbose=False), 5),
     ('DNN', policy_model, 5),
     # ('DQN Agent', dqn_agent, 5),
-], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
+], dtype=[('name', '<U16'), ('func', object), ('n_iter', np.int32)])
 
 
 problem_gens.Base.temp_path = 'data/temp/'    # set a path for saving temp data

@@ -54,7 +54,7 @@ def eval_loss(tasks, t_ex):
 
     Parameters
     ----------
-    tasks : task_scheduling.tasks.Base
+    tasks : Iterable of task_scheduling.tasks.Base
     t_ex : Iterable of float
         Task execution times.
 
@@ -74,7 +74,7 @@ def eval_loss(tasks, t_ex):
 
 def iter_to_mean(array):
     return np.array([tuple(map(np.mean, item)) for item in array],
-                    dtype=[(name, np.float) for name in array.dtype.names])
+                    dtype=[(name, float) for name in array.dtype.names])
 
 
 def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0, data_path=None,
@@ -114,13 +114,13 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
     """
 
     if solve:
-        _opt = np.array([('BB Optimal', None, 1)], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
+        _opt = np.array([('BB Optimal', None, 1)], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
         algorithms = np.concatenate((_opt, algorithms))
 
     _args_iter = {'object': [tuple([np.nan] * alg['n_iter'] for alg in algorithms)] * n_gen,
-                  'dtype': [(alg['name'], np.float, (alg['n_iter'],)) for alg in algorithms]}
+                  'dtype': [(alg['name'], float, (alg['n_iter'],)) for alg in algorithms]}
     _args_mean = {'object': [(np.nan,) * len(algorithms)] * n_gen,
-                  'dtype': [(alg['name'], np.float) for alg in algorithms]}
+                  'dtype': [(alg['name'], float) for alg in algorithms]}
 
     l_ex_iter = np.array(**_args_iter)
     l_ex_mean = np.array(**_args_mean)
@@ -215,13 +215,13 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
                                 save_path=None, rng=None):
 
     # if solve:
-    #     _opt = np.array([('B&B Optimal', None, 1)], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', np.int)])
+    #     _opt = np.array([('B&B Optimal', None, 1)], dtype=[('name', '<U16'), ('func', np.object), ('n_iter', int)])
     #     algorithms = np.concatenate((_opt, algorithms))
 
     l_ex_iter = np.array([[tuple([np.nan] * alg['n_iter'] for alg in algorithms)] * n_gen] * len(runtimes),
-                         dtype=[(alg['name'], np.float, (alg['n_iter'],)) for alg in algorithms])
+                         dtype=[(alg['name'], float, (alg['n_iter'],)) for alg in algorithms])
     l_ex_mean = np.array([[(np.nan,) * len(algorithms)] * n_gen] * len(runtimes),
-                         dtype=[(alg['name'], np.float) for alg in algorithms])
+                         dtype=[(alg['name'], float) for alg in algorithms])
 
     l_ex_opt = np.full(n_gen, np.nan)
     t_run_opt = np.full(n_gen, np.nan)  # TODO: use in plots

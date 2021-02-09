@@ -41,7 +41,7 @@ class TreeNode(RandomGeneratorMixin):
         super().__init__(rng)
 
         self._tasks = deepcopy(tasks)
-        self._ch_avail = np.array(ch_avail, dtype=np.float)
+        self._ch_avail = np.array(ch_avail, dtype=float)
 
         if min(self._ch_avail) < 0.:
             raise ValueError("Initial channel availabilities must be non-negative.")
@@ -50,7 +50,7 @@ class TreeNode(RandomGeneratorMixin):
         self._seq_rem = set(range(self.n_tasks))
 
         self._t_ex = np.full(self.n_tasks, np.nan)
-        # self._ch_ex = np.full(self.n_tasks, np.nan, dtype=np.int)
+        # self._ch_ex = np.full(self.n_tasks, np.nan, dtype=int)
         self._ch_ex = np.full(self.n_tasks, -1)
 
         self._l_ex = 0.  # incurred loss

@@ -45,7 +45,7 @@ def stack(spaces, axis=0):
         if axis == -1:
             axis = -2
         lims = np.stack([get_space_lims(space) for space in spaces], axis=axis)
-        return Box(lims[..., 0], lims[..., 1], dtype=np.float)
+        return Box(lims[..., 0], lims[..., 1], dtype=float)
 
 
 def concatenate(spaces, axis=0):
@@ -61,7 +61,7 @@ def concatenate(spaces, axis=0):
         if axis == -1:
             axis = -2
         lims = np.concatenate([get_space_lims(space) for space in spaces], axis=axis)
-        return Box(lims[..., 0], lims[..., 1], dtype=np.float)
+        return Box(lims[..., 0], lims[..., 1], dtype=float)
 
 
 # def as_box(space):
@@ -94,7 +94,7 @@ class Permutation(Space):
 
     def __init__(self, n):
         self.n = n      # sequence length
-        super().__init__(shape=(self.n,), dtype=np.int)
+        super().__init__(shape=(self.n,), dtype=int)
 
     def sample(self):
         return self.np_random.permutation(self.n)
