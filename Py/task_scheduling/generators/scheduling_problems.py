@@ -363,6 +363,8 @@ class Dataset(Base):
         return cls(**dict_gen, shuffle=shuffle, repeat=repeat, rng=rng)
 
     def add_problems(self, problems, solutions=None):
+        """Add problems and solutions to the data set."""
+
         self.problems.extendleft(problems)
 
         if solutions is None:
@@ -372,7 +374,7 @@ class Dataset(Base):
 
         self.solutions.extendleft(solutions)
 
-    def slice_dataset(self, n, shuffle=False, repeat=False, rng=None):
+    def pop_dataset(self, n, shuffle=False, repeat=False, rng=None):
         """Create a new Dataset from elements of own queue."""
 
         problems = [self.problems.pop() for __ in range(n)]
@@ -381,6 +383,8 @@ class Dataset(Base):
                        rng)
 
     def shuffle(self, rng=None):
+        """Shuffle problems and solutions in-place."""
+
         rng = self._get_rng(rng)
 
         _temp = np.array(list(zip(self.problems, self.solutions)), dtype=object)

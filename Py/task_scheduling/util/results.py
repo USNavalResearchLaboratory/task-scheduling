@@ -182,12 +182,12 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
     if verbose >= 1:
         _data = [[l_ex_mean[name].mean(), t_run_mean[name].mean()] for name in algorithms['name']]
         df = pd.DataFrame(_data, index=pd.CategoricalIndex(algorithms['name']), columns=['Loss', 'Runtime'])
+        df_str = '\n' + df.to_markdown(tablefmt='github', floatfmt='.3f')
 
-        if log_path is None:
-            print('\n' + df.to_markdown(tablefmt='github', floatfmt='.3f'))
-        else:
+        print(df_str)
+        if log_path is not None:
             with open(log_path, 'a') as fid:
-                print('\n' + df.to_markdown(tablefmt='github', floatfmt='.3f'), file=fid)
+                print(df_str, file=fid)
 
     if solve:   # relative to B&B
         l_ex_mean_opt = l_ex_mean['BB Optimal'].copy()
