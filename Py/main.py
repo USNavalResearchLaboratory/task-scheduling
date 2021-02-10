@@ -12,6 +12,9 @@ from task_scheduling import learning
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.features import param_features, encode_discrete_features
 
+plt.style.use('seaborn')
+# plt.rc('axes', grid=True)
+
 time_str = strftime('%Y-%m-%d_%H-%M-%S')
 
 
@@ -25,8 +28,8 @@ time_str = strftime('%Y-%m-%d_%H-%M-%S')
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2))
-problem_gen = problem_gens.Dataset.load('data/continuous_relu_c1t12', shuffle=True, repeat=False, rng=None)
-# problem_gen = problem_gens.Dataset.load('data/discrete_relu_c1t12', shuffle=True, repeat=False, rng=None)
+# problem_gen = problem_gens.Dataset.load('data/continuous_relu_c1t8', shuffle=True, repeat=False, rng=None)
+problem_gen = problem_gens.Dataset.load('data/discrete_relu_c1t8', shuffle=True, repeat=False, rng=None)
 # problem_gen = problem_gens.Dataset.load('data/search_track_c1t8_release_0', shuffle=True, repeat=False, rng=None)
 
 
@@ -73,14 +76,14 @@ layers = [keras.layers.Flatten(),
 #           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu')]
 
 
-# weight_func_ = None
-def weight_func_(env):
-    return 1 - len(env.node.seq) / env.n_tasks
+weight_func_ = None
+# def weight_func_(env):
+#     return 1 - len(env.node.seq) / env.n_tasks
 
 
 SL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
            'layers': layers,
-           'n_batch_train': 35, 'n_batch_val': 10, 'batch_size': 20,
+           'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
            'weight_func': weight_func_,
            'fit_params': {'epochs': 500},
            'plot_history': True,

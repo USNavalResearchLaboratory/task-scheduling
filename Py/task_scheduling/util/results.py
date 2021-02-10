@@ -193,13 +193,22 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
         l_ex_mean_opt = l_ex_mean['BB Optimal'].copy()
 
         l_ex_mean_norm = l_ex_mean.copy()
-        for name in algorithms['name']:
+        names = algorithms['name']
+        for name in names:
             l_ex_mean_norm[name] -= l_ex_mean_opt
             l_ex_mean_norm[name] /= l_ex_mean_opt
         if plotting >= 1:
             __, ax_results_norm = plt.subplots(num='Results (Normalized)', clear=True)
             scatter_loss_runtime(t_run_mean, l_ex_mean_norm,
                                  ax=ax_results_norm,
+                                 ax_kwargs={'ylabel': 'Excess Loss (Normalized)',
+                                            # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
+                                            }
+                                 )
+
+            __, ax_results_norm_no_bb = plt.subplots(num='Results (Normalized), no BB', clear=True)
+            scatter_loss_runtime(t_run_mean[names[1:]], l_ex_mean_norm[names[1:]],
+                                 ax=ax_results_norm_no_bb,
                                  ax_kwargs={'ylabel': 'Excess Loss (Normalized)',
                                             # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
                                             }

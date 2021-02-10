@@ -46,7 +46,6 @@ def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
     ax.set(xlabel='t', ylabel='Loss')
     ax.set_xlim(*x_lim)
     ax.set_ylim(*y_lim)
-    ax.grid(True)
     ax.legend()
     ax.set(**ax_kwargs)
 
@@ -89,7 +88,7 @@ def plot_schedule(tasks, t_ex, ch_ex, l_ex=None, name=None, ax=None, ax_kwargs=N
     x_lim = min(t_ex), max(t_ex[n] + task.duration for n, task in enumerate(tasks))
     ax.set(xlim=x_lim, ylim=(-.5, n_ch - 1 + .5), xlabel='t',
            yticks=list(range(n_ch)), ylabel='Channel')
-    ax.grid(True)
+
     # ax.legend()
 
     _temp = []
@@ -127,10 +126,13 @@ def scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
         ax_kwargs = {}
 
     for name in t_run.dtype.names:
-        ax.scatter(t_run[name], l_ex[name], label=name)
+        if name == 'BB Optimal':
+            kwargs = {'c': 'k'}
+        else:
+            kwargs = {}
+        ax.scatter(t_run[name], l_ex[name], label=name, **kwargs)
 
     ax.set(xlabel='Runtime (s)', ylabel='Loss')
-    ax.grid(True)
     ax.legend()
     ax.set(**ax_kwargs)
 
@@ -160,7 +162,6 @@ def scatter_loss_runtime_stats(t_run, l_ex, ax=None, ax_kwargs=None):
         # ax.errorbar(x_mean, y_mean, xerr=x_std, yerr=y_std, color=color, capsize=2)
 
     ax.set(xlabel='Runtime (s)', ylabel='Loss')
-    ax.grid(True)
     ax.legend()
     ax.set(**ax_kwargs)
 
@@ -202,6 +203,5 @@ def plot_loss_runtime(t_run, l_ex, do_std=False, ax=None, ax_kwargs=None):
         #     ax.plot(t_run, l_mean, label=name)
 
     ax.set(xlabel='Runtime (s)', ylabel='Loss')
-    ax.grid(True)
     ax.legend()
     ax.set(**ax_kwargs)

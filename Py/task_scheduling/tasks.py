@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 np.set_printoptions(precision=2)
-plt.style.use('seaborn')
 
 
 #%% Task utilities
@@ -127,7 +126,6 @@ class Base(ABC):
             _, ax = plt.subplots()
 
             ax.set(xlabel='t', ylabel='Loss')
-            plt.grid(True)
             plt.title(self.__repr__())
 
         plot_data = ax.plot(t_plot, self(t_plot), label=self.__repr__())
