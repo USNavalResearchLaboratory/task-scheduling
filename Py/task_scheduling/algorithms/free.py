@@ -98,14 +98,15 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
         # Branch
         for node_new in node.branch(do_permute=True):
             # Bound
-            if len(node_new.seq) == len(tasks):
-                # Append any complete solutions, use for training NN. Can decipher what's good/bad based on final costs
-                node_stats.append(node_new)
+
+            # if len(node_new.seq) == len(tasks):
+            #     # Append any complete solutions, use for training NN. Can decipher what's good/bad based on final costs
+            #     node_stats.append(node_new)
 
             if node_new.l_lo < l_best:  # New node is not dominated
                 if node_new.l_up < l_best:
                     node_best = node_new.roll_out(inplace=False)  # roll-out a new best node
-                    # NodeStats.append(node_best)
+                    node_stats.append(node_best)
                     l_best = node_best.l_ex
                     stack = [s for s in stack if s.l_lo < l_best]  # Cut Dominated Nodes
 
@@ -117,6 +118,7 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
             print(f'# Remaining Nodes = {len(stack)}, Loss < {l_best:.3f}', end='\r')
 
     node_stats.pop(0)    # Remove First Initialization stage
+    node_stats.pop(0)
     return node_best.t_ex, node_best.ch_ex, node_stats
 
 

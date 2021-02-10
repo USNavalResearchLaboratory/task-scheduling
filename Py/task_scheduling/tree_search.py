@@ -1,5 +1,6 @@
 from copy import deepcopy
 from numbers import Integral
+from collections import deque
 
 import numpy as np
 import pandas as pd
@@ -328,6 +329,30 @@ class TreeNodeBound(TreeNode):
         # # Roll-out if bounds converge     # TODO: move or delete?
         # if len(self._seq_rem) > 0 and self._l_lo == self._l_up:
         #     self.roll_out()
+
+    def branch_bound(self, inplace=True):
+
+        stack = deque([self])  # initialize stack
+        node_best = stack[0].roll_out(inplace=False)  # roll-out initial solution
+
+        # Iterate
+        while len(stack) > 0:
+            node = stack.pop()  # extract node
+
+            # Branch
+            for node_new in node.branch(do_permute=True):
+                # Bound
+                if node_new.l_lo < node_best.l_ex:  # new node is not dominated
+                    if node_new.l_up < node_best.l_ex:
+                        node_best = node_new.roll_out(inplace=False)  # roll-out a new best node
+                        stack = [s for s in stack if s.l_lo < node_best.l_ex]  # cut dominated nodes
+
+                    stack.append(node_new)  # add new node to stack, LIFO
+
+        if inplace:
+            self.seq = node_best.seq
+        else:
+            return node_best
 
 
 class TreeNodeShift(TreeNode):
