@@ -211,14 +211,14 @@ class TreeNode(RandomGeneratorMixin):
             node_new.seq_append(n, check_valid=False)
             yield node_new
 
-    def roll_out(self, do_copy=False, rng=None):
+    def roll_out(self, inplace=True, rng=None):
         """
         Generates/updates node with a randomly completed sequence.
 
         Parameters
         ----------
-        do_copy : bool
-            Enables return of a new TreeNode object. Otherwise, updates in-place.
+        inplace : bool, optional
+            Update node in-place or return a new TreeNode object.
         rng : int or RandomState or Generator, optional
             NumPy random number generator or seed. Instance RNG if None.
 
@@ -232,12 +232,12 @@ class TreeNode(RandomGeneratorMixin):
         rng = self._get_rng(rng)
         seq_ext = rng.permutation(list(self._seq_rem)).tolist()
 
-        if do_copy:
+        if inplace:
+            self.seq_extend(seq_ext, check_valid=False)
+        else:
             node_new = deepcopy(self)  # new TreeNode object
             node_new.seq_extend(seq_ext, check_valid=False)
             return node_new
-        else:
-            self.seq_extend(seq_ext, check_valid=False)
 
     def check_swaps(self):
         """Try adjacent task swapping, overwrite node if loss drops."""

@@ -35,7 +35,7 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
     # TODO: different search strategies? pre-sort?
 
     stack = deque([TreeNodeBound(tasks, ch_avail, rng=rng)])        # initialize stack
-    node_best = stack[0].roll_out(do_copy=True)  # roll-out initial solution
+    node_best = stack[0].roll_out(inplace=False)  # roll-out initial solution
 
     # Iterate
     while len(stack) > 0:
@@ -46,7 +46,7 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
             # Bound
             if node_new.l_lo < node_best.l_ex:  # new node is not dominated
                 if node_new.l_up < node_best.l_ex:
-                    node_best = node_new.roll_out(do_copy=True)  # roll-out a new best node
+                    node_best = node_new.roll_out(inplace=False)  # roll-out a new best node
                     stack = [s for s in stack if s.l_lo < node_best.l_ex]  # cut dominated nodes
 
                 stack.append(node_new)  # add new node to stack, LIFO
@@ -86,7 +86,7 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
     node_stats = [TreeNodeBound(tasks, ch_avail, rng=rng)]
     # NodeStats = []
 
-    node_best = stack[0].roll_out(do_copy=True)  # roll-out initial solution
+    node_best = stack[0].roll_out(inplace=False)  # roll-out initial solution
     l_best = node_best.l_ex
     node_stats.append(node_best)
 
@@ -103,7 +103,7 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
 
             if node_new.l_lo < l_best:  # New node is not dominated
                 if node_new.l_up < l_best:
-                    node_best = node_new.roll_out(do_copy=True)  # roll-out a new best node
+                    node_best = node_new.roll_out(inplace=False)  # roll-out a new best node
                     # NodeStats.append(node_best)
                     l_best = node_best.l_ex
                     stack = [s for s in stack if s.l_lo < l_best]  # Cut Dominated Nodes
@@ -145,7 +145,7 @@ def mcts_orig(tasks, ch_avail, n_mc, verbose=False, rng=None):
     """
 
     node = TreeNode(tasks, ch_avail, rng=rng)
-    node_best = node.roll_out(do_copy=True)
+    node_best = node.roll_out(inplace=False)
 
     n_tasks = len(tasks)
     if isinstance(n_mc, Integral):
@@ -157,7 +157,7 @@ def mcts_orig(tasks, ch_avail, n_mc, verbose=False, rng=None):
 
         # Perform Roll-outs
         for _ in range(n_mc[n]):
-            node_mc = node.roll_out(do_copy=True)
+            node_mc = node.roll_out(inplace=False)
 
             if node_mc.l_ex < node_best.l_ex:  # Update best node
                 node_best = node_mc

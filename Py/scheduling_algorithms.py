@@ -770,7 +770,7 @@ def branch_bound2(tasks: list, ch_avail: list, verbose=False, rng=None):
                 if all(ExecutionTimeOffsetFlag >= 0):  # Execution times need to be increasing, otherwise there is a better schedule out there: KW
                     # Add Active Schedule Check
                     if node_new.l_up < l_best:
-                        node_best = node_new.roll_out(do_copy=True)  # roll-out a new best node
+                        node_best = node_new.roll_out(inplace=False)  # roll-out a new best node
                         l_best = node_best.l_ex
                         stack = [s for s in stack if s.l_lo < l_best]  # Cut Dominated Nodes
 

@@ -31,7 +31,7 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
     t_run = perf_counter()
 
     stack = [TreeNodeBound(tasks, ch_avail, rng=rng)]  # initialize stack
-    node_best = stack[0].roll_out(do_copy=True)  # roll-out initial solution
+    node_best = stack[0].roll_out(inplace=False)  # roll-out initial solution
 
     # Iterate
     i_time = 0
@@ -44,7 +44,7 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
             # Bound
             if node_new.l_lo < node_best.l_ex:  # new node is not dominated
                 if node_new.l_up < node_best.l_ex:
-                    node_best = node_new.roll_out(do_copy=True)  # roll-out a new best node
+                    node_best = node_new.roll_out(inplace=False)  # roll-out a new best node
                     stack = [s for s in stack if s.l_lo < node_best.l_ex]  # cut dominated nodes
 
                 stack.append(node_new)  # add new node to stack, LIFO
