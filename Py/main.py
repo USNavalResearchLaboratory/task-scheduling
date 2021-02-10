@@ -20,6 +20,9 @@ time_str = strftime('%Y-%m-%d_%H-%M-%S')
 
 #%%
 
+# seed = None
+seed = 100
+
 # TODO: split method for Dataset, allow train repeatability while preserving train/test? Use repeat=False
 
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=4, n_ch=1, rng=None)
@@ -28,9 +31,9 @@ time_str = strftime('%Y-%m-%d_%H-%M-%S')
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=None)
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2))
-# problem_gen = problem_gens.Dataset.load('data/continuous_relu_c1t8', shuffle=True, repeat=False, rng=None)
-problem_gen = problem_gens.Dataset.load('data/discrete_relu_c1t8', shuffle=True, repeat=False, rng=None)
-# problem_gen = problem_gens.Dataset.load('data/search_track_c1t8_release_0', shuffle=True, repeat=False, rng=None)
+# problem_gen = problem_gens.Dataset.load('data/continuous_relu_c1t8', shuffle=True, repeat=False, rng=seed)
+problem_gen = problem_gens.Dataset.load('data/discrete_relu_c1t8', shuffle=True, repeat=False, rng=seed)
+# problem_gen = problem_gens.Dataset.load('data/search_track_c1t8_release_0', shuffle=True, repeat=False, rng=seed)
 
 
 # Algorithms
@@ -39,16 +42,16 @@ features = None
 # features = param_features(problem_gen, time_shift)
 # features = encode_discrete_features(problem_gen)
 
-# sort_func = None
-sort_func = 't_release'
+sort_func = None
+# sort_func = 't_release'
 # def sort_func(task):
 #     return task.t_release
 
-# time_shift = False
-time_shift = True
+time_shift = False
+# time_shift = True
 
-# masking = False
-masking = True
+masking = False
+# masking = True
 
 # env_cls = envs.SeqTasking
 env_cls = envs.StepTasking
@@ -102,43 +105,45 @@ policy_model = learning.SL_policy.SupervisedLearningScheduler.train_from_gen(**S
 
 algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
-    ('Random', algs.free.random_sequencer, 20),
+    ('Random', partial(algs.free.random_sequencer, rng=seed), 20),
     ('ERT', algs.free.earliest_release, 1),
-    ('MCTS', partial(algs.free.mcts, n_mc=60, verbose=False), 5),
+    ('MCTS', partial(algs.free.mcts, n_mc=50, rng=seed), 5),
     ('DNN', policy_model, 5),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
 
 
+#%%
 if not isinstance(problem_gen, problem_gens.Dataset):
     problem_gens.Base.temp_path = 'data/temp/'    # set a temp path for saving new data
 
 data_path = None
 
 # log_path = None
-log_path = 'docs/temp/PGR_results.md'
+# log_path = 'docs/temp/PGR_results.md'
+log_path = 'docs/discrete_relu_c1t8.md'
 
 image_path = f'images/temp/{time_str}'
 
 
 with open(log_path, 'a') as fid:
     print(f"# {time_str}\n", file=fid)
-    print(f"Problem gen: ", end='', file=fid)
-    problem_gen.summary(fid)
+    # print(f"Problem gen: ", end='', file=fid)
+    # problem_gen.summary(fid)
     if 'DNN' in algorithms['name']:
         policy_model.summary(fid)
         train_path = image_path + '_train'
-        plt.figure('training history').savefig(train_path)
-        print(f"\n![](../../{train_path}.png)\n", file=fid)
+        plt.figure('Training history').savefig(train_path)
+        print(f"\n![](../{train_path}.png)\n", file=fid)
     print('Results\n---', file=fid)
 
 l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=100, solve=True, verbose=1, plotting=1,
                                             data_path=data_path, log_path=log_path)
 
-plt.figure('Results (Normalized)').savefig(image_path)
+plt.figure('Results (Normalized, BB excluded)').savefig(image_path)
 with open(log_path, 'a') as fid:
     # str_ = image_path.resolve().as_posix().replace('.png', '')
-    print(f"\n![](../../{image_path}.png)\n", file=fid)
+    print(f"\n![](../{image_path}.png)\n", file=fid)
 
 
 # algorithms = np.array([

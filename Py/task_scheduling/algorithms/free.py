@@ -20,8 +20,8 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
         Channel availability times.
     verbose : bool
         Enables printing of algorithm state information.
-    rng
-        NumPy random number generator or seed. Default Generator if None.
+    rng : int or RandomState or Generator, optional
+        NumPy random number generator or seed. Instance RNG if None.
 
     Returns
     -------
@@ -70,8 +70,8 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
         Channel availability times.
     verbose : bool
         Enables printing of algorithm state information.
-    rng
-        NumPy random number generator or seed. Default Generator if None.
+    rng : int or RandomState or Generator, optional
+        NumPy random number generator or seed. Instance RNG if None.
 
     Returns
     -------
@@ -132,8 +132,8 @@ def mcts_orig(tasks, ch_avail, n_mc, verbose=False, rng=None):
         Number of Monte Carlo roll-outs per task.
     verbose : bool
         Enables printing of algorithm state information.
-    rng
-        NumPy random number generator or seed. Default Generator if None.
+    rng : int or RandomState or Generator, optional
+        NumPy random number generator or seed. Instance RNG if None.
 
     Returns
     -------
@@ -148,8 +148,8 @@ def mcts_orig(tasks, ch_avail, n_mc, verbose=False, rng=None):
     node_best = node.roll_out(do_copy=True)
 
     n_tasks = len(tasks)
-    if isinstance(n_mc, (Integral, np.integer)):
-        n_mc = n_tasks * [n_mc]
+    if isinstance(n_mc, Integral):
+        n_mc = n_tasks * [int(n_mc)]
 
     for n in range(n_tasks):
         if verbose:
@@ -168,7 +168,7 @@ def mcts_orig(tasks, ch_avail, n_mc, verbose=False, rng=None):
     return node_best.t_ex, node_best.ch_ex
 
 
-def mcts(tasks, ch_avail, n_mc, verbose=False):
+def mcts(tasks, ch_avail, n_mc, verbose=False, rng=None):
     """
     Monte Carlo tree search algorithm.
 
@@ -181,6 +181,8 @@ def mcts(tasks, ch_avail, n_mc, verbose=False):
         Number of roll-outs performed.
     verbose : bool
         Enables printing of algorithm state information.
+    rng : int or RandomState or Generator, optional
+        NumPy random number generator or seed. Instance RNG if None.
 
     Returns
     -------
@@ -194,7 +196,7 @@ def mcts(tasks, ch_avail, n_mc, verbose=False):
     # TODO: add exploration/exploitation input control.
 
     l_up = TreeNodeBound(tasks, ch_avail).l_up
-    tree = SearchNode(n_tasks=len(tasks), seq=[], l_up=l_up)
+    tree = SearchNode(n_tasks=len(tasks), seq=[], l_up=l_up, rng=rng)
 
     node_best = None
 
@@ -224,8 +226,8 @@ def random_sequencer(tasks, ch_avail, rng=None):
     tasks : Iterable of task_scheduling.tasks.Base
     ch_avail : Iterable of float
         Channel availability times.
-    rng
-        NumPy random number generator or seed. Default Generator if None.
+    rng : int or RandomState or Generator, optional
+        NumPy random number generator or seed. Instance RNG if None.
 
     Returns
     -------

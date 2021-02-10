@@ -352,13 +352,6 @@ class Dataset(Base):
 
     n_problems = property(lambda self: len(self.problems))
 
-    def add_problems(self, problems, solutions=None):
-        self.problems.extendleft(problems)
-
-        if solutions is None:
-            solutions = [None for __ in range(len(problems))]
-        self.solutions.extendleft(solutions)
-
     @classmethod
     def load(cls, file_path, shuffle=False, repeat=False, rng=None):
         """Load problems/solutions from memory."""
@@ -368,6 +361,24 @@ class Dataset(Base):
             dict_gen = dill.load(fid)
 
         return cls(**dict_gen, shuffle=shuffle, repeat=repeat, rng=rng)
+
+    def add_problems(self, problems, solutions=None):
+        self.problems.extendleft(problems)
+
+        if solutions is None:
+            solutions = [None for __ in range(len(problems))]
+        elif len(solutions) != len(problems):
+            raise ValueError("Number of solutions must equal the number of problems.")
+
+        self.solutions.extendleft(solutions)
+
+    def slice_dataset(self, n, shuffle=False, repeat=False, rng=None):
+        """Create a new Dataset from elements of own queue."""
+
+        problems = [self.problems.pop() for __ in range(n)]
+        solutions = [self.solutions.pop() for __ in range(n)]
+        return Dataset(problems, solutions, shuffle, repeat, self.n_tasks, self.n_ch, self.task_gen, self.ch_avail_gen,
+                       rng)
 
     def shuffle(self, rng=None):
         rng = self._get_rng(rng)

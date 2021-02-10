@@ -120,7 +120,7 @@ class SupervisedLearningScheduler:
                 val_epoch = epoch
             hist_dict = history.history
 
-            plt.figure(num='training history', clear=True, figsize=(10, 4.8))
+            plt.figure(num='Training history', clear=True, figsize=(10, 4.8))
             plt.subplot(1, 2, 1)
             plt.plot(epoch, hist_dict['loss'], label='training')
             plt.plot(val_epoch, hist_dict['val_loss'], label='validation')

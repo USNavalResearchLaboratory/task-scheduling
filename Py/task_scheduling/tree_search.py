@@ -112,7 +112,7 @@ class TreeNode(RandomGeneratorMixin):
     #
     #     """
     #
-    #     if isinstance(seq_ext, (Integral, np.integer)):
+    #     if isinstance(seq_ext, Integral):
     #         seq_ext = [seq_ext]
     #     if len(seq_ext) == 0:
     #         return
@@ -142,7 +142,7 @@ class TreeNode(RandomGeneratorMixin):
 
         """
 
-        if isinstance(seq_ext, (Integral, np.integer)):
+        if isinstance(seq_ext, Integral):
             self.seq_append(seq_ext, check_valid)
         else:
             if check_valid:
@@ -161,7 +161,7 @@ class TreeNode(RandomGeneratorMixin):
 
         Parameters
         ----------
-        n : int
+        n : Integral
             Index referencing self.tasks.
         check_valid : bool
             Perform check of index validity.
@@ -423,7 +423,7 @@ class SearchNode(RandomGeneratorMixin):
 
         """
 
-        if isinstance(item, (Integral, np.integer)):
+        if isinstance(item, Integral):
             return self._children[item]
         else:
             node = self
@@ -455,9 +455,10 @@ class SearchNode(RandomGeneratorMixin):
         # TODO: add epsilon-greedy selector?
 
         w = {n: node.weight for (n, node) in self._children.items()}
-        w.update({n: -10 for n in self._seq_unk})   # FIXME: value? random permute?
+        w.update({n: -10 for n in self._seq_unk})   # FIXME: value?
+        w = dict(self.rng.permutation(list(w.items())))     # permute elements to randomly break ties
 
-        n = min(w, key=w.__getitem__)
+        n = int(min(w, key=w.__getitem__))
         if n not in self._children:
             self._children[n] = SearchNode(self.n_tasks, self._seq + [n], self.l_up, self.rng)
             self._seq_unk.remove(n)
@@ -517,5 +518,3 @@ class SearchNode(RandomGeneratorMixin):
         for n in seq_rem:
             node = node[n]
             node.update_stats(loss)
-
-

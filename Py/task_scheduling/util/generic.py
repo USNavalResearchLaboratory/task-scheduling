@@ -57,7 +57,7 @@ class RandomGeneratorMixin:
         """
         if rng is None:
             return np.random.default_rng()
-        elif isinstance(rng, (Integral, np.integer)):
+        elif isinstance(rng, Integral):
             return np.random.default_rng(rng)
         elif isinstance(rng, np.random.Generator) or isinstance(rng, np.random.RandomState):
             return rng

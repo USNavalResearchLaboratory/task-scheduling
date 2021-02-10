@@ -206,7 +206,7 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
                                             }
                                  )
 
-            __, ax_results_norm_no_bb = plt.subplots(num='Results (Normalized), no BB', clear=True)
+            __, ax_results_norm_no_bb = plt.subplots(num='Results (Normalized, BB excluded)', clear=True)
             scatter_loss_runtime(t_run_mean[names[1:]], l_ex_mean_norm[names[1:]],
                                  ax=ax_results_norm_no_bb,
                                  ax_kwargs={'ylabel': 'Excess Loss (Normalized)',
