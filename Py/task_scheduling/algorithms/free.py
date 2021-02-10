@@ -79,7 +79,8 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
         Task execution times.
     ch_ex : ndarray
         Task execution channels.
-
+    node_stats : List of TreeNode
+        More nodes.
     """
 
     stack = [TreeNodeBound(tasks, ch_avail, rng=rng)]  # Initialize Stack
