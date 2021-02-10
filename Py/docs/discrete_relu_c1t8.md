@@ -37,3 +37,60 @@ Number of problems: 1000
 
 ---
 
+Core results, seed=100
+---
+
+|            |   Excess Loss (%) |    Loss |   Runtime (s) |
+|------------|-------------------|---------|---------------|
+| BB Optimal |             0.000 | 149.385 |         0.337 |
+| Random     |             0.684 | 245.975 |         0.000 |
+| ERT        |             0.650 | 242.445 |         0.000 |
+| MCTS       |             0.107 | 163.750 |         0.019 |
+
+![](../images/temp/2021-02-10_15-32-55.png)
+
+---
+
+# 2021-02-10_15-43-09
+
+Env: StepTasking
+---
+
+- Features: ['duration', 't_release', 'slope', 't_drop', 'l_drop']
+- Sorting: None
+- Task shifting: False
+- Masking: False
+- Valid actions: False
+- Sequence encoding: one-hot
+
+Model 
+---
+```
+Model: "sequential_1"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+flatten_1 (Flatten)          (None, 104)               0         
+_________________________________________________________________
+dense_2 (Dense)              (None, 30)                3150      
+_________________________________________________________________
+dense_3 (Dense)              (None, 8)                 248       
+=================================================================
+Total params: 3,398
+Trainable params: 3,398
+Non-trainable params: 0
+_________________________________________________________________
+```
+
+![](../images/temp/2021-02-10_15-43-09_train.png)
+
+Results
+---
+
+|            |   Excess Loss (%) |    Loss |   Runtime (s) |
+|------------|-------------------|---------|---------------|
+| BB Optimal |             0.000 | 149.385 |         0.337 |
+| DNN        |             0.446 | 213.255 |         0.008 |
+
+![](../images/temp/2021-02-10_15-43-09.png)
+
