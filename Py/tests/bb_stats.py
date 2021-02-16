@@ -10,8 +10,8 @@ from task_scheduling.util.results import eval_loss
 np.set_printoptions(precision=3)
 
 
-seed = None
-# seed = 12348
+# seed = None
+seed = 12348
 
 rng = np.random.default_rng(seed)
 

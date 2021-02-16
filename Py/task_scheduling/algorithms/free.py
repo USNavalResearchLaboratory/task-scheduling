@@ -84,8 +84,8 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
             if node_new.l_lo < node_best.l_ex:  # New node is not dominated
                 if node_new.l_up < node_best.l_ex:
                     node_best = node_new.roll_out(inplace=False)  # roll-out a new best node
-                    if len(node_new.seq) == len(tasks)-1:
-                        node_stats.append(node_best)  # Don't append here needs to be a complete sequence. Line above is
+                    # if len(node_new.seq) == len(tasks) - 1:
+                    #     node_stats.append(node_best)  # Don't append here needs to be a complete sequence. Line above is
                     # random draw to finish sequence, can have better solutions
                     stack = [s for s in stack if s.l_lo < node_best.l_ex]  # Cut Dominated Nodes
 
@@ -97,8 +97,8 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
             print(f'# Remaining Nodes = {len(stack)}, Loss < {node_best.l_ex:.3f}', end='\r')
 
     # node_stats.pop(0)    # Remove First Initialization stage
-    if len(node_stats) == 0:  # If by chance initial roll-out is best append it...
-        node_stats.append(node_best)
+    # if len(node_stats) == 0:  # If by chance initial roll-out is best append it...
+    #     node_stats.append(node_best)
     # node_stats.pop(0)
 
     return node_best.t_ex, node_best.ch_ex, node_stats
