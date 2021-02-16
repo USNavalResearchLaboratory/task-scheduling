@@ -10,7 +10,6 @@ from tensorboard import program
 import webbrowser
 import os
 
-# from util.generic.RandomGeneratorMixin import check_rng
 from util.generic import RandomGeneratorMixin
 
 from generators import tasks as task_gens
@@ -303,7 +302,8 @@ def main():
     # task_gen = PermuteTaskGenerator(task_gen(n_tasks))
     # task_gen = DeterministicTaskGenerator(task_gen(n_tasks))
 
-    def ch_avail_gen(n_ch, rng=RandomGeneratorMixin.check_rng(None)):  # channel availability time generator
+    def ch_avail_gen(n_ch, rng=None):  # channel availability time generator
+        rng = np.random.default_rng(rng)
         return rng.uniform(6, 6, n_ch)
 
     features = np.array([('duration', lambda self: self.duration, task_gen.duration_lim),

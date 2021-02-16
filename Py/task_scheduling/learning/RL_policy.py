@@ -12,7 +12,7 @@ from stable_baselines import DQN, PPO2, A2C
 from task_scheduling.learning import environments as envs
 from task_scheduling.util.generic import log_path, agent_path
 
-np.set_printoptions(precision=2)
+# np.set_printoptions(precision=2)
 
 
 # class DummyVecTaskingEnv(DummyVecEnv):

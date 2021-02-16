@@ -1,13 +1,14 @@
 from copy import deepcopy
 from numbers import Integral
 from collections import deque
+from math import factorial
 
 import numpy as np
 import pandas as pd
 
 from task_scheduling.util.generic import RandomGeneratorMixin
 
-np.set_printoptions(precision=2)
+# np.set_printoptions(precision=2)
 
 # TODO: modify classes and algorithms to efficiently handle repeated tasks!?
 
@@ -61,6 +62,12 @@ class TreeNode(RandomGeneratorMixin):
 
     def __repr__(self):
         return f"TreeNode(sequence: {self.seq}, loss incurred:{self.l_ex:.3f})"
+
+    def __eq__(self, other):
+        if isinstance(other, TreeNode):
+            return (self.tasks, self.ch_avail, self.seq) == (other.tasks, other.ch_avail, other.seq)
+        else:
+            return NotImplemented
 
     def summary(self, file=None):
         """Print a string describing important node attributes."""
@@ -326,11 +333,7 @@ class TreeNodeBound(TreeNode):
             self._l_lo += self._tasks[n](max(self._tasks[n].t_release, min(self._ch_avail)))
             self._l_up += self._tasks[n](t_ex_max)
 
-        # # Roll-out if bounds converge     # TODO: move or delete?
-        # if len(self._seq_rem) > 0 and self._l_lo == self._l_up:
-        #     self.roll_out()
-
-    def branch_bound(self, inplace=True):
+    def branch_bound(self, inplace=True, verbose=False):
 
         stack = deque([self])  # initialize stack
         node_best = stack[0].roll_out(inplace=False)  # roll-out initial solution
@@ -348,6 +351,11 @@ class TreeNodeBound(TreeNode):
                         stack = [s for s in stack if s.l_lo < node_best.l_ex]  # cut dominated nodes
 
                     stack.append(node_new)  # add new node to stack, LIFO
+
+            if verbose:
+                progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(self.n_tasks)
+                print(f'Search progress: {progress:.3f}, Loss < {node_best.l_ex:.3f}', end='\r')
+                # print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.l_ex:.3f}', end='\r')
 
         if inplace:
             self.seq = node_best.seq

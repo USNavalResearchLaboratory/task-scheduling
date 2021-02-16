@@ -13,7 +13,7 @@ from task_scheduling import tasks as task_types
 from task_scheduling.util.generic import RandomGeneratorMixin
 from task_scheduling.learning.spaces import DiscreteSet
 
-np.set_printoptions(precision=2)
+# np.set_printoptions(precision=2)
 
 
 # TODO: more generic Base class for heterogeneous task types?

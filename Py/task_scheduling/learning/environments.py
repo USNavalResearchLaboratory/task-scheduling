@@ -14,7 +14,7 @@ from task_scheduling.learning.features import param_features
 from task_scheduling.util.plot import plot_task_losses
 from task_scheduling.util.generic import seq2num, num2seq
 
-np.set_printoptions(precision=2)
+# np.set_printoptions(precision=2)
 
 
 # Gym Environments

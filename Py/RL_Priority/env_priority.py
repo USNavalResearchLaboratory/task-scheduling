@@ -6,7 +6,7 @@ import math
 # from SL_policy_Discrete import load_policy, wrap_policy
 from tree_search import branch_bound, random_sequencer, earliest_release
 from functools import partial
-# from util.generic import algorithm_repr, check_rng
+# from util.generic import algorithm_repr
 from util.plot import plot_task_losses, plot_schedule, plot_loss_runtime, scatter_loss_runtime
 from util.results import check_valid, eval_loss
 from more_itertools import locate

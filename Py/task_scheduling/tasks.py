@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
-np.set_printoptions(precision=2)
+# np.set_printoptions(precision=2)
 
 
 #%% Task utilities

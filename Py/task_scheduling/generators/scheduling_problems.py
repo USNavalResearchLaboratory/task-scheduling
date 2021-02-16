@@ -17,8 +17,8 @@ from task_scheduling.algorithms.free import branch_bound, earliest_release
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
 from task_scheduling.util.generic import RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution
 
-np.set_printoptions(precision=2)
-pd.options.display.float_format = '{:,.3f}'.format      # TODO: global??
+# np.set_printoptions(precision=2)
+# pd.options.display.float_format = '{:,.3f}'.format      # TODO: global??
 
 
 class Base(RandomGeneratorMixin, ABC):

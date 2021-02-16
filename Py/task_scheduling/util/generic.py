@@ -32,16 +32,16 @@ class RandomGeneratorMixin:
 
     @rng.setter
     def rng(self, val):
-        self._rng = self.check_rng(val)
+        self._rng = self.make_rng(val)
 
     def _get_rng(self, rng=None):
         if rng is None:
-            return self._rng
+            return self.rng
         else:
-            return self.check_rng(rng)
+            return self.make_rng(rng)
 
     @staticmethod
-    def check_rng(rng):
+    def make_rng(rng):
         """
         Return a random number generator.
 

@@ -34,28 +34,7 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
 
     # TODO: different search strategies? pre-sort?
 
-    stack = deque([TreeNodeBound(tasks, ch_avail, rng=rng)])        # initialize stack
-    node_best = stack[0].roll_out(inplace=False)  # roll-out initial solution
-
-    # Iterate
-    while len(stack) > 0:
-        node = stack.pop()  # extract node
-
-        # Branch
-        for node_new in node.branch(do_permute=True):
-            # Bound
-            if node_new.l_lo < node_best.l_ex:  # new node is not dominated
-                if node_new.l_up < node_best.l_ex:
-                    node_best = node_new.roll_out(inplace=False)  # roll-out a new best node
-                    stack = [s for s in stack if s.l_lo < node_best.l_ex]  # cut dominated nodes
-
-                stack.append(node_new)  # add new node to stack, LIFO
-
-        if verbose:
-            # progress = 1 - sum(math.factorial(len(node.seq_rem)) for node in stack) / math.factorial(len(tasks))
-            # print(f'Search progress: {100*progress:.1f}% - Loss < {node_best.l_ex:.3f}', end='\r')
-            print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.l_ex:.3f}', end='\r')
-
+    node_best = TreeNodeBound(tasks, ch_avail, rng=rng).branch_bound(inplace=False, verbose=verbose)
     return node_best.t_ex, node_best.ch_ex  # optimal
 
 
@@ -84,11 +63,10 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
     """
 
     stack = [TreeNodeBound(tasks, ch_avail, rng=rng)]  # Initialize Stack
-    node_stats = [TreeNodeBound(tasks, ch_avail, rng=rng)]
-    # NodeStats = []
+    # node_stats = [TreeNodeBound(tasks, ch_avail, rng=rng)]
+    node_stats = []
 
     node_best = stack[0].roll_out(inplace=False)  # roll-out initial solution
-    l_best = node_best.l_ex
     # node_stats.append(node_best)
 
     # Iterate
@@ -99,29 +77,30 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
         for node_new in node.branch(do_permute=True):
             # Bound
 
-            if len(node_new.seq) == len(tasks):  # Append any complete solutions, use for training NN. Can decipher what's good/bad based on final costs
+            if len(node_new.seq) == len(tasks):
+                # Append any complete solutions, use for training NN. Can decipher what's good/bad based on final costs
                 node_stats.append(node_new)
 
-            if node_new.l_lo < l_best:  # New node is not dominated
-                if node_new.l_up < l_best:
+            if node_new.l_lo < node_best.l_ex:  # New node is not dominated
+                if node_new.l_up < node_best.l_ex:
                     node_best = node_new.roll_out(inplace=False)  # roll-out a new best node
                     if len(node_new.seq) == len(tasks)-1:
                         node_stats.append(node_best)  # Don't append here needs to be a complete sequence. Line above is
                     # random draw to finish sequence, can have better solutions
-                    l_best = node_best.l_ex
-                    stack = [s for s in stack if s.l_lo < l_best]  # Cut Dominated Nodes
+                    stack = [s for s in stack if s.l_lo < node_best.l_ex]  # Cut Dominated Nodes
 
                 stack.append(node_new)  # Add New Node to Stack, LIFO
 
         if verbose:
             # progress = 1 - sum(math.factorial(len(node.seq_rem)) for node in stack) / math.factorial(len(tasks))
             # print(f'Search progress: {100*progress:.1f}% - Loss < {l_best:.3f}', end='\r')
-            print(f'# Remaining Nodes = {len(stack)}, Loss < {l_best:.3f}', end='\r')
+            print(f'# Remaining Nodes = {len(stack)}, Loss < {node_best.l_ex:.3f}', end='\r')
 
-    node_stats.pop(0)    # Remove First Initialization stage
+    # node_stats.pop(0)    # Remove First Initialization stage
     if len(node_stats) == 0:  # If by chance initial roll-out is best append it...
         node_stats.append(node_best)
     # node_stats.pop(0)
+
     return node_best.t_ex, node_best.ch_ex, node_stats
 
 

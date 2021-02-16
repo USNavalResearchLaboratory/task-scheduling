@@ -3,6 +3,7 @@ from time import strftime
 from copy import deepcopy
 
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from tensorflow import keras
 
@@ -17,6 +18,9 @@ plt.style.use('seaborn')
 # plt.rc('axes', grid=True)
 
 time_str = strftime('%Y-%m-%d_%H-%M-%S')
+
+np.set_printoptions(precision=3)
+pd.options.display.float_format = '{:,.3f}'.format      # TODO: global??
 
 
 #%% Define scheduling problem and algorithms
