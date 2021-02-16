@@ -28,45 +28,37 @@ for i_mc, (tasks, ch_avail) in enumerate(problem_gen(n_mc)):
     t_ex, __, node_stats = branch_bound_with_stats(tasks, ch_avail, rng=rng)
     node_opt = TreeNode(tasks, ch_avail, seq=np.argsort(t_ex))
 
-    # assert node_opt in node_stats       # FIXME: optimal node not guaranteed to be in `node_stats`
+    # FIXME: optimal node not guaranteed to be in `node_stats`
+    # assert node_opt in node_stats
     if node_opt not in node_stats:
         node_stats.append(node_opt)
 
-    # FIXME: elements of `node_stats` are not unique
     nodes = np.array([(node.seq, node.l_ex, -1) for node in node_stats],
                      dtype=[('seq', int, (n_tasks,)), ('l_ex', float), ('start', int)])
+
+    # FIXME: elements of `node_stats` are not unique
     __, idx_unique = np.unique(nodes['seq'], axis=0, return_index=True)
     nodes = nodes[idx_unique]
     node_stats = [node_stats[i] for i in idx_unique]
 
-
-    nodes['start'][node_stats.index(node_opt)] = 0
+    # Determine partial sequences for each node
+    nodes['start'][node_stats.index(node_opt)] = 0      # optimal solution start index
     for n in range(1, n_tasks):
-        idx = np.flatnonzero(nodes['start'] == -1)
-        # nodes_ = nodes[idx]
+        idx = np.flatnonzero(nodes['start'] == -1)      # currently undetermined nodes
 
-        temp = nodes['seq'][:, :n]
-        for sp in np.unique(temp, axis=0):
-            i = np.flatnonzero(np.all(temp == sp, axis=1))
-            i_min = i[np.argmin(nodes['l_ex'][i])]
+        seqs = nodes['seq'][:, :n]
+        for seq in np.unique(seqs, axis=0):
+            i = np.flatnonzero(np.all(seqs == seq, axis=1))     # matching partial sequences
+            i_min = i[np.argmin(nodes['l_ex'][i])]              # lowest loss of candidates
             if i_min in idx:
-                nodes['start'][i_min] = n
+                nodes['start'][i_min] = n       # if undetermined, set the start index
 
-    # print(nodes)
-
+    # Assess partial solutions
     for node in nodes:
         seq_partial = node['seq'][:node['start']]
         node_solve = TreeNodeBound(tasks, ch_avail, seq=seq_partial, rng=None).branch_bound(inplace=False)
 
-
-        # print(TreeNode(tasks, ch_avail, seq=seq).l_ex)
-        # print(TreeNode(tasks, ch_avail, seq=seq_opt_sub).l_ex)
-
-        # if not np.isclose(TreeNode(tasks, ch_avail, seq=seq).l_ex, TreeNode(tasks, ch_avail, seq=seq_opt_sub).l_ex):
-        #     t_ex, ch_ex, node_stats = branch_bound_with_stats(tasks, ch_avail, rng=seed)
-
         assert np.isclose(node['l_ex'], node_solve.l_ex)
-        # assert seq == seq_opt_sub
 
 
     # idx = 1
