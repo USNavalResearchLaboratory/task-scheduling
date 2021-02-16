@@ -10,12 +10,12 @@ from task_scheduling.util.results import eval_loss
 np.set_printoptions(precision=3)
 
 
-# seed = None
-seed = 12345
+seed = None
+# seed = 12348
 
 rng = np.random.default_rng(seed)
 
-n_tasks = 4
+n_tasks = 8
 n_ch = 1
 
 problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks, n_ch, ch_avail_lim=(0., 0.), rng=rng)
@@ -41,25 +41,44 @@ for i_mc, (tasks, ch_avail) in enumerate(problem_gen(n_mc)):
 
 
     nodes['start'][node_stats.index(node_opt)] = 0
-    idx = 1
-    while np.any(nodes['start'] == -1):
-        temp = nodes['seq'][:, :idx]
+    for n in range(1, n_tasks):
+        idx = np.flatnonzero(nodes['start'] == -1)
+        # nodes_ = nodes[idx]
+
+        temp = nodes['seq'][:, :n]
         for sp in np.unique(temp, axis=0):
-            idx = np.flatnonzero(np.all(temp == sp, axis=1))
+            i = np.flatnonzero(np.all(temp == sp, axis=1))
+            i_min = i[np.argmin(nodes['l_ex'][i])]
+            if i_min in idx:
+                nodes['start'][i_min] = n
 
-        idx += 1
+    # print(nodes)
+
+    for node in nodes:
+        seq_partial = node['seq'][:node['start']]
+        node_solve = TreeNodeBound(tasks, ch_avail, seq=seq_partial, rng=None).branch_bound(inplace=False)
 
 
-    idx = 1
-    while len(node_stats) > 0:
-        nodes = np.array([(node.seq, node.l_ex) for node in node_stats],
-                         dtype=[('seq', int, (n_tasks,)), ('l_ex', float)])
+        # print(TreeNode(tasks, ch_avail, seq=seq).l_ex)
+        # print(TreeNode(tasks, ch_avail, seq=seq_opt_sub).l_ex)
 
-        temp = nodes['seq'][:, :idx]
-        for sp in np.unique(temp, axis=0):
-            idx = np.flatnonzero(np.all(temp == sp, axis=1))
+        # if not np.isclose(TreeNode(tasks, ch_avail, seq=seq).l_ex, TreeNode(tasks, ch_avail, seq=seq_opt_sub).l_ex):
+        #     t_ex, ch_ex, node_stats = branch_bound_with_stats(tasks, ch_avail, rng=seed)
 
-        idx += 1
+        assert np.isclose(node['l_ex'], node_solve.l_ex)
+        # assert seq == seq_opt_sub
+
+
+    # idx = 1
+    # while len(node_stats) > 0:
+    #     nodes = np.array([(node.seq, node.l_ex) for node in node_stats],
+    #                      dtype=[('seq', int, (n_tasks,)), ('l_ex', float)])
+    #
+    #     temp = nodes['seq'][:, :idx]
+    #     for sp in np.unique(temp, axis=0):
+    #         idx = np.flatnonzero(np.all(temp == sp, axis=1))
+    #
+    #     idx += 1
 
     # nodes = np.array([(node.seq, node.l_ex) for node in node_stats], dtype=[('seq', int, (n_tasks,)), ('l_ex', float)])
     # nodes = np.unique(nodes, axis=0)
