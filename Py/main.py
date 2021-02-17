@@ -13,6 +13,7 @@ from task_scheduling import algorithms as algs
 from task_scheduling import learning
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.features import param_features, encode_discrete_features
+from tests import seq_num_encoding
 
 plt.style.use('seaborn')
 # plt.rc('axes', grid=True)
@@ -20,7 +21,7 @@ plt.style.use('seaborn')
 time_str = strftime('%Y-%m-%d_%H-%M-%S')
 
 np.set_printoptions(precision=3)
-pd.options.display.float_format = '{:,.3f}'.format      # TODO: global??
+pd.options.display.float_format = '{:,.3f}'.format
 
 
 #%% Define scheduling problem and algorithms
@@ -58,16 +59,20 @@ features = None
 # features = param_features(problem_gen, time_shift)
 # features = encode_discrete_features(problem_gen)
 
-sort_func = None
-# sort_func = 't_release'
+# sort_func = None
+sort_func = 't_release'
+# sort_func = 'duration'
 # def sort_func(task):
 #     return task.t_release
 
-time_shift = False
-# time_shift = True
+# time_shift = False
+time_shift = True
 
-masking = False
-# masking = True
+# masking = False
+masking = True
+
+# seq_encoding = None
+seq_encoding = 'one-hot'
 
 # env_cls = envs.SeqTasking
 env_cls = envs.StepTasking
@@ -78,7 +83,7 @@ env_params = {'features': features,
               'masking': masking,
               # 'action_type': 'int',
               'action_type': 'any',
-              'seq_encoding': 'one-hot',
+              'seq_encoding': seq_encoding,
               }
 
 # layers = None

@@ -436,7 +436,7 @@ class StepTasking(BaseTasking):
     """
 
     def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='valid',
-                 seq_encoding='one-hot'):
+                 seq_encoding=None):
 
         super().__init__(problem_gen, features, sort_func, time_shift, masking)
 
@@ -449,13 +449,9 @@ class StepTasking(BaseTasking):
             raise ValueError("Action type must be 'valid' or 'any'.")
 
         # Set sequence encoder method
-        if callable(seq_encoding):
-            self.seq_encoding = MethodType(seq_encoding, self)
-
-            env_copy = deepcopy(self)       # FIXME: hacked - find better way!
-            env_copy.reset()
-            self.len_seq_encode = len(env_copy.seq_encoding(0))
-            self._seq_encode_str = 'Custom'
+        if seq_encoding is None:
+            self.seq_encoding = MethodType(lambda env, n: [], self)
+            self.len_seq_encode = 0
         elif isinstance(seq_encoding, str):     # simple string specification for supported encoders
             if seq_encoding == 'binary':
                 def _seq_encoding(env, n):
@@ -470,13 +466,21 @@ class StepTasking(BaseTasking):
                     return out
 
                 self.len_seq_encode = self.n_tasks
-                self._seq_encode_str = seq_encoding
             else:
                 raise ValueError("Unsupported sequence encoder string.")
 
             self.seq_encoding = MethodType(_seq_encoding, self)
+
+        elif callable(seq_encoding):
+            self.seq_encoding = MethodType(seq_encoding, self)
+
+            env_copy = deepcopy(self)       # FIXME: hacked - find better way!
+            env_copy.reset()
+            self.len_seq_encode = len(env_copy.seq_encoding(0))
         else:
             raise TypeError("Permutation encoding input must be callable or str.")
+
+        self._seq_encode_str = seq_encoding
 
         self.steps_per_episode = self.n_tasks
 
