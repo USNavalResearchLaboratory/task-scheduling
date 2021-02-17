@@ -5,6 +5,7 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+import tensorflow as tf
 from tensorflow import keras
 
 from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime
@@ -23,34 +24,39 @@ time_str = strftime('%Y-%m-%d_%H-%M-%S')
 np.set_printoptions(precision=3)
 pd.options.display.float_format = '{:,.3f}'.format
 
+for device in tf.config.experimental.list_physical_devices('GPU'):
+    tf.config.experimental.set_memory_growth(device, True)      # TODO: compatibility issue workaround
+
+# seed = None
+seed = 12345
+
+rng = np.random.default_rng(seed)
+
+# tf.random.set_seed(seed)
 
 #%% Define scheduling problem and algorithms
 
-# seed = None
-seed = 100
-
 n_gen = 100
 
-# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=4, n_ch=1, rng=seed)
-# problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=None)
-# problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
-# problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
-# problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
-# problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2), rng=seed)
-# problem_gen = problem_gens.Dataset.load('data/continuous_relu_c1t8', shuffle=True, repeat=False, rng=seed)
-problem_gen = problem_gens.Dataset.load('data/discrete_relu_c1t8', shuffle=True, repeat=False, rng=seed)
-# problem_gen = problem_gens.Dataset.load('data/search_track_c1t8_release_0', shuffle=True, repeat=False, rng=seed)
+# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=4, n_ch=1, rng=rng)
+# problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=rng)
+# problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=rng)
+# problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=rng)
+# problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=rng)
+# problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2), rng=rng)
+# problem_gen = problem_gens.Dataset.load('data/continuous_relu_c1t8', shuffle=True, repeat=False, rng=rng)
+problem_gen = problem_gens.Dataset.load('data/discrete_relu_c1t8', shuffle=True, repeat=False, rng=rng)
+# problem_gen = problem_gens.Dataset.load('data/search_track_c1t8_release_0', shuffle=True, repeat=False, rng=rng)
 
 
 if isinstance(problem_gen, problem_gens.Dataset):
     # Pop evaluation problems for new dataset generator
-    _temp = problem_gen.pop_dataset(n_gen, shuffle=True, repeat=False, rng=seed)
+    _temp = problem_gen.pop_dataset(n_gen, shuffle=True, repeat=False, rng=rng)
     problem_gen_train = problem_gen
     problem_gen = _temp
 else:
-    # Copy, re-seed random generator
+    # Copy random generator
     problem_gen_train = deepcopy(problem_gen)
-    problem_gen_train.rng = seed
 
 
 # Algorithms
@@ -61,7 +67,6 @@ features = None
 
 # sort_func = None
 sort_func = 't_release'
-# sort_func = 'duration'
 # def sort_func(task):
 #     return task.t_release
 
@@ -86,15 +91,19 @@ env_params = {'features': features,
               'seq_encoding': seq_encoding,
               }
 
-# layers = None
-layers = [keras.layers.Flatten(),
-          keras.layers.Dense(30, activation='relu'),
-          # keras.layers.Dense(30, activation='relu'),
-          # keras.layers.Dropout(0.2),
-          ]
+# TODO: add seeded layer initializers for repeatability
 
-# layers = [keras.layers.Conv1D(30, kernel_size=2, activation='relu'),
+# layers = None
+# layers = [keras.layers.Flatten(),
+#           keras.layers.Dense(30, activation='relu'),
+#           # keras.layers.Dense(10, activation='relu'),
+#           # keras.layers.Dropout(0.2),
 #           ]
+
+layers = [keras.layers.Conv1D(50, kernel_size=2, activation='relu'),
+          # keras.layers.Conv1D(20, kernel_size=2, activation='relu'),
+          keras.layers.Dense(20, activation='relu'),
+          ]
 
 # layers = [keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
 #           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu')]
@@ -126,9 +135,9 @@ policy_model = learning.SL_policy.SupervisedLearningScheduler.train_from_gen(**S
 
 algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
-    # ('Random', partial(algs.free.random_sequencer, rng=seed), 20),
-    # ('ERT', algs.free.earliest_release, 1),
-    # ('MCTS', partial(algs.free.mcts, n_mc=50, rng=seed), 5),
+    ('Random', partial(algs.free.random_sequencer, rng=rng), 20),
+    ('ERT', algs.free.earliest_release, 1),
+    ('MCTS', partial(algs.free.mcts, n_mc=50, rng=rng), 5),
     ('DNN', policy_model, 5),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
