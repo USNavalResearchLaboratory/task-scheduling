@@ -62,9 +62,135 @@ Non-learning results
 | BB Optimal |             0.000 | 150.115 |         0.374 |
 | Random     |             0.674 | 244.300 |         0.000 |
 | ERT        |             0.658 | 243.560 |         0.000 |
-| MCTS       |             0.113 | 166.180 |         0.020 |
+| MCTS       |             0.113 | 166.180 |         0.021 |
 
-![](../images/temp/2021-02-22_11-26-25.png)
+![](../images/temp/2021-02-22_14-14-48.png)
 
 ---
+
+# 2021-02-22_14-36-35
+
+Env: StepTasking
+---
+
+- Features: ['duration', 't_release', 'slope', 't_drop', 'l_drop']
+- Sorting: None
+- Task shifting: False
+- Masking: False
+- Valid actions: False
+- Sequence encoding: one-hot
+
+Model 
+---
+```
+Model: "sequential"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+flatten (Flatten)            (None, 104)               0         
+_________________________________________________________________
+dense (Dense)                (None, 30)                3150      
+_________________________________________________________________
+dense_1 (Dense)              (None, 8)                 248       
+=================================================================
+Total params: 3,398
+Trainable params: 3,398
+Non-trainable params: 0
+_________________________________________________________________
+```
+
+![](../images/temp/2021-02-22_14-36-35_train.png)
+
+Results
+---
+
+|            |   Excess Loss (%) |    Loss |   Runtime (s) |
+|------------|-------------------|---------|---------------|
+| BB Optimal |             0.000 | 150.115 |         0.374 |
+| NN         |             0.435 | 210.780 |         0.008 |
+
+# 2021-02-22_14-37-31
+
+Env: StepTasking
+---
+
+- Features: ['duration', 't_release', 'slope', 't_drop', 'l_drop']
+- Sorting: t_release
+- Task shifting: True
+- Masking: True
+- Valid actions: False
+- Sequence encoding: one-hot
+
+Model 
+---
+```
+Model: "sequential"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+flatten (Flatten)            (None, 104)               0         
+_________________________________________________________________
+dense (Dense)                (None, 30)                3150      
+_________________________________________________________________
+dense_1 (Dense)              (None, 8)                 248       
+=================================================================
+Total params: 3,398
+Trainable params: 3,398
+Non-trainable params: 0
+_________________________________________________________________
+```
+
+![](../images/temp/2021-02-22_14-37-31_train.png)
+
+Results
+---
+
+|            |   Excess Loss (%) |    Loss |   Runtime (s) |
+|------------|-------------------|---------|---------------|
+| BB Optimal |             0.000 | 150.115 |         0.374 |
+| NN         |             0.085 | 162.350 |         0.009 |
+
+
+# 2021-02-22_14-38-49
+
+Env: StepTasking
+---
+
+- Features: ['duration', 't_release', 'slope', 't_drop', 'l_drop']
+- Sorting: t_release
+- Task shifting: True
+- Masking: True
+- Valid actions: False
+- Sequence encoding: one-hot
+
+Model 
+---
+```
+Model: "sequential"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+conv1d (Conv1D)              (None, 7, 50)             1350      
+_________________________________________________________________
+conv1d_1 (Conv1D)            (None, 6, 20)             2020      
+_________________________________________________________________
+flatten (Flatten)            (None, 120)               0         
+_________________________________________________________________
+dense (Dense)                (None, 8)                 968       
+=================================================================
+Total params: 4,338
+Trainable params: 4,338
+Non-trainable params: 0
+_________________________________________________________________
+```
+
+![](../images/temp/2021-02-22_14-38-49_train.png)
+
+Results
+---
+
+|            |   Excess Loss (%) |    Loss |   Runtime (s) |
+|------------|-------------------|---------|---------------|
+| BB Optimal |             0.000 | 150.115 |         0.374 |
+| NN         |             0.066 | 159.620 |         0.015 |
 

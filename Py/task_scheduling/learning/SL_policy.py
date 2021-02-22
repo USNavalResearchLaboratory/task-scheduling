@@ -231,6 +231,8 @@ class SupervisedLearningScheduler:
             If True, the network and environment are serialized.
         save_path : str, optional
             String representation of sub-directory to save to.
+        seed : int, optional
+            Seed for TensorFlow RNG.
 
         Returns
         -------
@@ -244,12 +246,6 @@ class SupervisedLearningScheduler:
         # Create model
         if layers is None:
             layers = []
-            # layers = [
-            #     keras.layers.Flatten(),  # input_shape=env.observation_space.shape
-            #     keras.layers.Dense(60, activation='relu'),
-            #     keras.layers.Dense(30, activation='relu'),
-            #     # keras.layers.Dropout(0.2),
-            # ]
 
         model = keras.Sequential()
         model.add(keras.Input(shape=env.observation_space.shape))
@@ -258,14 +254,12 @@ class SupervisedLearningScheduler:
         if len(model.output_shape) > 2:  # flatten to 1-D for softmax output layer
             model.add(keras.layers.Flatten())
         model.add(keras.layers.Dense(env.action_space.n, activation='softmax',
-                                     kernel_initializer=keras.initializers.GlorotUniform(seed)))
+                  kernel_initializer=keras.initializers.GlorotUniform(seed)))
 
         if compile_params is None:
             compile_params = {'optimizer': 'rmsprop',
                               'loss': 'sparse_categorical_crossentropy',
                               'metrics': ['accuracy'],
-                              # 'experimental_run_tf_function': False,
-                              # 'run_eagerly': True,
                               }
         model.compile(**compile_params)
 

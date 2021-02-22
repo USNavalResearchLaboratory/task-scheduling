@@ -93,19 +93,20 @@ env_params = {'features': features,
               'rng': seed,
               }
 
-# TODO: add seeded layer initializers for repeatability
+
+_weight_init = keras.initializers.GlorotUniform(seed)
 
 # layers = None
-layers = [keras.layers.Flatten(),
-          keras.layers.Dense(30, activation='relu', kernel_initializer=keras.initializers.GlorotUniform(seed)),
-          # keras.layers.Dense(10, activation='relu'),
-          # keras.layers.Dropout(0.2),
-          ]
 
-# layers = [keras.layers.Conv1D(50, kernel_size=2, activation='relu'),
-#           # keras.layers.Conv1D(20, kernel_size=2, activation='relu'),
-#           keras.layers.Dense(20, activation='relu'),
+# layers = [keras.layers.Flatten(),
+#           keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init),
+#           # keras.layers.Dropout(0.2),
 #           ]
+
+layers = [keras.layers.Conv1D(50, kernel_size=2, activation='relu'),
+          keras.layers.Conv1D(20, kernel_size=2, activation='relu'),
+          # keras.layers.Dense(20, activation='relu'),
+          ]
 
 # layers = [keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
 #           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu')]
@@ -123,7 +124,8 @@ SL_args = {'problem_gen': problem_gen_train, 'env_cls': env_cls, 'env_params': e
            'fit_params': {'epochs': 500},
            'plot_history': True,
            'save': False, 'save_path': None,
-           'seed': seed}
+           'seed': seed,
+           }
 policy_model = learning.SL_policy.SupervisedLearningScheduler.train_from_gen(**SL_args)
 # policy_model = SL_Scheduler.load('temp/2020-10-28_14-56-42')
 
@@ -138,10 +140,10 @@ policy_model = learning.SL_policy.SupervisedLearningScheduler.train_from_gen(**S
 
 algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
-    # ('Random', partial(algs.free.random_sequencer, rng=seed), 20),
+    # ('Random', partial(algs.free.random_sequencer, rng=seed), 10),
     # ('ERT', algs.free.earliest_release, 1),
-    # ('MCTS', partial(algs.free.mcts, n_mc=50, rng=seed), 5),
-    ('NN', policy_model, 5),
+    # ('MCTS', partial(algs.free.mcts, n_mc=50, rng=seed), 10),
+    ('NN', policy_model, 1),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
 
@@ -160,15 +162,15 @@ image_path = f'images/temp/{time_str}'
 
 
 with open(log_path, 'a') as fid:
-    print(f"# {time_str}\n", file=fid)
+    print(f"\n# {time_str}\n", file=fid)
     # print(f"Problem gen: ", end='', file=fid)
     # problem_gen.summary(fid)
-    if 'DNN' in algorithms['name']:
-        # policy_model.summary(fid)
+    if 'NN' in algorithms['name']:
+        policy_model.summary(fid)
         train_path = image_path + '_train'
         plt.figure('Training history').savefig(train_path)
         print(f"\n![](../{train_path}.png)\n", file=fid)
-    print('Results\n---', file=fid)
+    print('Results\n---\n', file=fid)
 
 l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
                                             data_path=None, log_path=log_path, rng=seed)
@@ -177,7 +179,7 @@ l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solv
 # plt.figure('Results (Normalized, BB excluded)').savefig(image_path)
 # with open(log_path, 'a') as fid:
 #     # str_ = image_path.resolve().as_posix().replace('.png', '')
-#     print(f"\n![](../{image_path}.png)\n", file=fid)
+#     print(f"![](../{image_path}.png)\n", file=fid)
 
 
 # algorithms = np.array([

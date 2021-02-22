@@ -210,7 +210,7 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
                      for name in algorithms['name']]
             df = pd.DataFrame(_data, index=pd.CategoricalIndex(algorithms['name']),
                               columns=['Excess Loss (%)', 'Loss', 'Runtime (s)'])
-            df_str = '\n' + df.to_markdown(tablefmt='github', floatfmt='.3f')
+            df_str = df.to_markdown(tablefmt='github', floatfmt='.3f') + '\n'
 
             print(df_str)
             if log_path is not None:
