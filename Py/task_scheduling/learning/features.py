@@ -1,8 +1,9 @@
 import numpy as np
 from gym.spaces import Discrete, MultiDiscrete, Box
 
-from task_scheduling.tasks import ReluDrop
 from task_scheduling.learning.spaces import DiscreteSet
+from task_scheduling.tasks import ReluDrop
+
 
 # TODO: built feature library, create registry for easy access?
 

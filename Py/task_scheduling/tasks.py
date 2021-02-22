@@ -2,14 +2,15 @@
 
 from abc import ABC, abstractmethod
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+
 
 # np.set_printoptions(precision=2)
 
 
-#%% Task utilities
+# %% Task utilities
 
 def check_task_types(tasks):
     cls_task = tasks[0].__class__
@@ -31,7 +32,7 @@ def summarize_tasks(tasks, file=None, **tabulate_kwargs):
     # print(tasks_to_dataframe(tasks).to_markdown(tablefmt='github', floatfmt='.3f'))
 
 
-#%% Task objects
+# %% Task objects
 
 class Base(ABC):
     """
@@ -196,7 +197,7 @@ class ReluDrop(Base):
 
     def __call__(self, t):
         """Loss function versus time."""
-        t = np.asarray(t)[np.newaxis] - self.t_release      # relative time
+        t = np.asarray(t)[np.newaxis] - self.t_release  # relative time
 
         loss = self.slope * t
         loss[t < -1e-9] = np.nan
@@ -274,7 +275,7 @@ class ReluDrop(Base):
             self.l_drop = self.l_drop - loss_inc
             return loss_inc
         else:
-            return 0.   # No loss incurred
+            return 0.  # No loss incurred
 
     @property
     def plot_lim(self):
@@ -282,7 +283,7 @@ class ReluDrop(Base):
         return self.t_release, self.t_release + self.t_drop + 1
 
 
-#%% Radar tasks
+# %% Radar tasks
 
 class ReluDropRadar(ReluDrop):
     # param_names = ('duration', 't_release', 'slope', 't_drop', 'l_drop', 't_dwell', 't_revisit')
@@ -365,9 +366,6 @@ class ReluDropRadar(ReluDrop):
     #         return 'track_med'
     #     elif cls.t_revisit == 1:
     #         return 'track_high'
-
-
-
 
 # class ReluDropSearch(ReluDrop):
 #     # param_names = ('duration', 't_release', 'slope', 't_drop', 'l_drop', 't_revisit', 'dwell_type')

@@ -1,16 +1,17 @@
 import time
 from collections import namedtuple
+
 import dill
-
-import numpy as np
-
+from stable_baselines import DQN, PPO2, A2C
 from stable_baselines.bench import Monitor
 from stable_baselines.results_plotter import plot_results
-from stable_baselines import DQN, PPO2, A2C
-# from stable_baselines.common.vec_env import DummyVecEnv
 
 from task_scheduling.learning import environments as envs
 from task_scheduling.util.generic import log_path, agent_path
+
+
+# from stable_baselines.common.vec_env import DummyVecEnv
+
 
 # np.set_printoptions(precision=2)
 
@@ -26,13 +27,14 @@ from task_scheduling.util.generic import log_path, agent_path
 # Agents
 class RandomAgent:
     """Uniformly random action selector."""
+
     def __init__(self, env):
         self.env = env
 
     def predict(self, obs):
         action_space = self.env.action_space
         # action_space = self.env.infer_action_space(obs)
-        return action_space.sample(), None       # randomly selected action
+        return action_space.sample(), None  # randomly selected action
 
     def learn(self, *args, **kwargs):
         pass
@@ -98,7 +100,7 @@ class ReinforcementLearningScheduler:
 
         ensure_valid = isinstance(self.env, envs.StepTasking) and not self.env.do_valid_actions
 
-        obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)    # kwargs required for wrapped Monitor environment
+        obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)  # kwargs required for wrapped Monitor environment
         done = False
         while not done:
             # action, _states = self.model.predict(obs)
@@ -139,7 +141,7 @@ class ReinforcementLearningScheduler:
         self.model.save(str(save_path))
 
         with save_path.parent.joinpath(save_path.stem + '_env').open(mode='wb') as fid:
-            env_ = self.env.env     # extract base env from Monitor
+            env_ = self.env.env  # extract base env from Monitor
             dill.dump(env_, fid)  # save environment
 
     @classmethod

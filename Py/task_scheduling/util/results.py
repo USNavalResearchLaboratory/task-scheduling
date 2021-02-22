@@ -1,9 +1,10 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 from task_scheduling.util.generic import timing_wrapper
 from task_scheduling.util.plot import plot_task_losses, plot_schedule, scatter_loss_runtime, plot_loss_runtime
+
 
 # logging.basicConfig(level=logging.INFO,       # TODO: logging?
 #                     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -139,7 +140,7 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
         for name, func, n_iter in algorithms:
             if verbose >= 2:
                 print(f'  {name}', end='\n')
-            for iter_ in range(n_iter):      # perform new algorithm runs
+            for iter_ in range(n_iter):  # perform new algorithm runs
                 if verbose >= 3:
                     print(f'    Iteration: {iter_ + 1}/{n_iter}', end='\r')
 
@@ -179,7 +180,7 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
                              # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
                              )
 
-    if solve:   # relative to B&B
+    if solve:  # relative to B&B
         l_ex_mean_opt = l_ex_mean['BB Optimal'].copy()
 
         l_ex_mean_norm = l_ex_mean.copy()
@@ -232,7 +233,6 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
 
 def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0,
                                 save_path=None, rng=None):
-
     # if solve:
     #     _opt = np.array([('B&B Optimal', None, 1)], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
     #     algorithms = np.concatenate((_opt, algorithms))
@@ -259,7 +259,7 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
             # if verbose >= 2:
             #     print(f'  {name}', end='\n')
 
-            for iter_ in range(n_iter):      # perform new algorithm runs
+            for iter_ in range(n_iter):  # perform new algorithm runs
                 if verbose >= 2:
                     # print(f'    Iteration: {iter_ + 1}/{n_iter}', end='\r')
                     print(f'  {name}: Iteration: {iter_ + 1}/{n_iter}', end='\r')
@@ -267,7 +267,7 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
                 # Evaluate schedule
                 for i_time, solution in enumerate(func(tasks, ch_avail, runtimes)):
                     if solution is None:
-                        continue    # TODO
+                        continue  # TODO
 
                     t_ex, ch_ex = solution
 
@@ -294,7 +294,7 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
                           # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
                           )
 
-    if solve:   # relative to B&B
+    if solve:  # relative to B&B
         l_ex_mean_norm = l_ex_mean.copy()
         for name in algorithms['name']:
             l_ex_mean_norm[name] -= l_ex_opt

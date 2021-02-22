@@ -1,18 +1,19 @@
 import shutil
 import time
-import dill
+import webbrowser
 from functools import partial
 
-import numpy as np
-import matplotlib.pyplot as plt
-import tensorflow as tf
-from tensorflow import keras
-from tensorboard import program
-import webbrowser
+import dill
 import gym
+import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
+from tensorboard import program
+from tensorflow import keras
 
 from task_scheduling.learning import environments as envs
 from task_scheduling.util.generic import log_path, model_path
+
 
 # np.set_printoptions(precision=2)
 
@@ -246,7 +247,7 @@ class SupervisedLearningScheduler:
         # Create model
         if layers is None:
             layers = [
-                keras.layers.Flatten(),     # input_shape=env.observation_space.shape
+                keras.layers.Flatten(),  # input_shape=env.observation_space.shape
                 keras.layers.Dense(60, activation='relu'),
                 keras.layers.Dense(30, activation='relu'),
                 # keras.layers.Dropout(0.2),
@@ -254,9 +255,9 @@ class SupervisedLearningScheduler:
 
         model = keras.Sequential()
         model.add(keras.Input(shape=env.observation_space.shape))
-        for layer in layers:    # add user-defined layers
+        for layer in layers:  # add user-defined layers
             model.add(layer)
-        if len(model.output_shape) > 2:     # flatten to 1-D for softmax output layer
+        if len(model.output_shape) > 2:  # flatten to 1-D for softmax output layer
             model.add(keras.layers.Flatten())
         model.add(keras.layers.Dense(env.action_space.n, activation='softmax'))
 

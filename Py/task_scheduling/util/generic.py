@@ -2,11 +2,10 @@ from collections import namedtuple
 from functools import wraps
 from math import factorial
 from numbers import Integral
-from time import perf_counter
 from pathlib import Path
+from time import perf_counter
 
 import numpy as np
-
 
 _cwd = Path.cwd()
 data_path = _cwd / 'data'
@@ -15,10 +14,11 @@ image_path = _cwd / 'images'
 model_path = _cwd / 'models'
 agent_path = _cwd / 'agents'
 
-
 SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
 SchedulingProblemFlexDAR = namedtuple('SchedulingProblem', ['tasks', 'ch_avail', 'clock'])
 SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
+
+
 # TODO: use for algorithms and wraps?
 
 
@@ -92,7 +92,7 @@ def runtime_wrapper(scheduler):
     return new_scheduler
 
 
-def sort_wrapper(scheduler, sort_func):     # TODO: use for basic algorithms?
+def sort_wrapper(scheduler, sort_func):  # TODO: use for basic algorithms?
     if isinstance(sort_func, str):
         attr_str = sort_func
 
@@ -173,5 +173,3 @@ def num2seq(num, length, check_input=True):
         seq.append(n)
 
     return tuple(seq)
-
-

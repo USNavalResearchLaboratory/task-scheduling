@@ -1,5 +1,5 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):

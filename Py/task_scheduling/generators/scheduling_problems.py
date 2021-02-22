@@ -1,14 +1,14 @@
 """Generator objects for complete tasking problems with optimal solutions."""
 
 from abc import ABC, abstractmethod
-from copy import deepcopy
 from collections import deque
+from copy import deepcopy
+from functools import partial
+from pathlib import Path
 from time import strftime
 from typing import Iterable
-from functools import partial
-import dill
-from pathlib import Path
 
+import dill
 import numpy as np
 import pandas as pd
 
@@ -17,13 +17,14 @@ from task_scheduling.algorithms.free import branch_bound, earliest_release
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
 from task_scheduling.util.generic import RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution
 
+
 # np.set_printoptions(precision=2)
 # pd.options.display.float_format = '{:,.3f}'.format      # TODO: global??
 
 
 class Base(RandomGeneratorMixin, ABC):
-
     temp_path = None
+
     # temp_path = data_path / 'temp'
 
     def __init__(self, n_tasks, n_ch, task_gen, ch_avail_gen, rng=None):
@@ -142,7 +143,7 @@ class Base(RandomGeneratorMixin, ABC):
 
         file_path = Path(file_path)
 
-        try:    # search for existing file
+        try:  # search for existing file
             with file_path.open(mode='rb') as fid:
                 load_dict = dill.load(fid)
 
@@ -152,7 +153,7 @@ class Base(RandomGeneratorMixin, ABC):
                           load_dict['task_gen'] == save_dict['task_gen'],
                           load_dict['ch_avail_gen'] == save_dict['ch_avail_gen']]
 
-            if all(conditions):     # Append loaded problems and solutions
+            if all(conditions):  # Append loaded problems and solutions
                 print('File already exists. Appending existing data.')
 
                 save_dict['problems'] += load_dict['problems']
@@ -196,6 +197,7 @@ class Base(RandomGeneratorMixin, ABC):
 
 class Random(Base):
     """Randomly generated scheduling problems."""
+
     def _gen_problem(self, rng):
         """Return a single scheduling problem (and optional solution)."""
         tasks = list(self.task_gen(self.n_tasks, rng=rng))
@@ -341,7 +343,7 @@ class Dataset(Base):
 
         # self.problems = deque(problems)
         # self.solutions = deque(solutions) if solutions is not None else None
-        self.problems = deque()     # TODO: single deque?
+        self.problems = deque()  # TODO: single deque?
         self.solutions = deque()
         self.add_problems(problems, solutions)
 
@@ -408,10 +410,10 @@ class Dataset(Base):
     def _gen_solution(self, problem, verbose=False):
         if self._solution_i is not None:
             return self._solution_i
-        else:   # use B&B solver
+        else:  # use B&B solver
             solution = super()._gen_solution(problem, verbose)
-            if self.repeat:     # store result
-                self.solutions[0] = solution        # at index 0 after `appendleft` in `_gen_problem`
+            if self.repeat:  # store result
+                self.solutions[0] = solution  # at index 0 after `appendleft` in `_gen_problem`
             return solution
 
     def summary(self, file=None):
@@ -419,13 +421,9 @@ class Dataset(Base):
         print(f"Number of problems: {self.n_problems}\n", file=file)
 
 
-
-
-
-
-
 class QueueFlexDAR(Base):
-    def __init__(self, n_tasks, tasks_full, ch_avail, RP=0.04, clock=0, scheduler=earliest_release, record_revisit=True):
+    def __init__(self, n_tasks, tasks_full, ch_avail, RP=0.04, clock=0, scheduler=earliest_release,
+                 record_revisit=True):
 
         self._cls_task = task_scheduling.tasks.check_task_types(tasks_full)
 
@@ -463,13 +461,14 @@ class QueueFlexDAR(Base):
 
         # TODO: add prioritization?
 
-        return SchedulingProblem(tasks, ch_avail_input.copy())  # SchedulingProblemFlexDAR(tasks, self.ch_avail.copy(), self.clock.copy())
+        return SchedulingProblem(tasks,
+                                 ch_avail_input.copy())  # SchedulingProblemFlexDAR(tasks, self.ch_avail.copy(), self.clock.copy())
 
     def add_tasks(self, tasks):
         if isinstance(tasks, Iterable):
             self.queue.extendleft(tasks)
         else:
-            self.queue.appendleft(tasks)    # for single tasks
+            self.queue.appendleft(tasks)  # for single tasks
 
     def update(self, tasks, t_ex, ch_ex):
         for task, t_ex_i, ch_ex_i in zip(tasks, t_ex, ch_ex):
@@ -517,7 +516,7 @@ class QueueFlexDAR(Base):
         # Evaluate tasks at current time
         # clock = 1 # For debugging
         priority = np.array([task(self.clock) for task in self.queue])
-        index = np.argsort(-1*priority, kind='mergesort')  # -1 used to reverse order
+        index = np.argsort(-1 * priority, kind='mergesort')  # -1 used to reverse order
         tasks = []
         tasks_sorted = []
         for task in self.queue:

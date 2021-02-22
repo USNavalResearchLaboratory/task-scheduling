@@ -1,10 +1,9 @@
-from collections import deque
-from copy import deepcopy
 from numbers import Integral
 
 import numpy as np
 
 from task_scheduling.tree_search import TreeNodeBound, TreeNode, SearchNode
+
 
 # from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
@@ -190,8 +189,8 @@ def mcts(tasks, ch_avail, n_mc, verbose=False, rng=None):
         if verbose:
             print(f'Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_min}', end='\r')
 
-        seq = tree.simulate()   # roll-out a complete sequence
-        node = TreeNode(tasks, ch_avail, seq)    # evaluate execution times and channels, total loss
+        seq = tree.simulate()  # roll-out a complete sequence
+        node = TreeNode(tasks, ch_avail, seq)  # evaluate execution times and channels, total loss
 
         loss = node.l_ex
         tree.backup(seq, loss)  # update search tree from leaf sequence to root
@@ -314,7 +313,6 @@ def earliest_drop(tasks, ch_avail, do_swap=False):
 
 
 def ert_alg_kw(tasks, ch_avail, do_swap=False):
-
     seq = list(np.argsort([task.t_release for task in tasks]))
     node = TreeNode(tasks, ch_avail, seq)
 

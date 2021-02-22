@@ -105,8 +105,8 @@ def mcts(tasks: list, ch_avail: list, runtimes: list, verbose=False):
         if verbose:
             print(f'Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_min}', end='\r')
 
-        seq = tree.simulate()   # roll-out a complete sequence
-        node = TreeNode(tasks, ch_avail, seq)    # evaluate execution times and channels, total loss
+        seq = tree.simulate()  # roll-out a complete sequence
+        node = TreeNode(tasks, ch_avail, seq)  # evaluate execution times and channels, total loss
 
         loss = node.l_ex
         tree.backup(seq, loss)  # update search tree from leaf sequence to root
@@ -117,7 +117,6 @@ def mcts(tasks: list, ch_avail: list, runtimes: list, verbose=False):
         if perf_counter() - t_run >= runtimes[i_time]:
             yield node_best.t_ex, node_best.ch_ex
             i_time += 1
-
 
 # def mcts_orig(tasks: list, ch_avail: list, max_runtime=float('inf'), n_mc=None, verbose=False, rng=None):
 #     """

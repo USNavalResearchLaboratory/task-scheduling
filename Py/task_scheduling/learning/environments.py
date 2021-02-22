@@ -1,18 +1,19 @@
-from copy import deepcopy
-from types import MethodType
-from math import factorial
 from abc import ABC, abstractmethod
+from copy import deepcopy
+from math import factorial
+from types import MethodType
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from gym import Env
 from gym.spaces import Discrete, MultiDiscrete
 
 from task_scheduling import tree_search
 from task_scheduling.learning import spaces as spaces_tasking
 from task_scheduling.learning.features import param_features
-from task_scheduling.util.plot import plot_task_losses
 from task_scheduling.util.generic import seq2num, num2seq
+from task_scheduling.util.plot import plot_task_losses
+
 
 # np.set_printoptions(precision=2)
 
@@ -113,7 +114,7 @@ class BaseTasking(ABC, Env):
         """Indices for task re-ordering for environment state."""
         if callable(self.sort_func):
             values = np.array([self.sort_func(task) for task in self.tasks])
-            values[self.node.seq] = np.inf     # scheduled tasks to the end
+            values[self.node.seq] = np.inf  # scheduled tasks to the end
             return np.argsort(values)
         else:
             return np.arange(self.n_tasks)
@@ -129,9 +130,9 @@ class BaseTasking(ABC, Env):
 
         state_tasks = np.array([func(self.tasks, self.ch_avail) for func in self.features['func']]).transpose()
         if self.masking:
-            state_tasks[self.node.seq] = 0.     # zero out state rows for scheduled tasks
+            state_tasks[self.node.seq] = 0.  # zero out state rows for scheduled tasks
 
-        return state_tasks[self.sorted_index]       # sort individual task states
+        return state_tasks[self.sorted_index]  # sort individual task states
 
     @property
     @abstractmethod
@@ -176,8 +177,8 @@ class BaseTasking(ABC, Env):
         if persist:
             tasks, ch_avail = self.tasks, self.ch_avail
         else:
-            if tasks is None or ch_avail is None:   # generate new scheduling problem
-                if solve:   # TODO: next()? Pass a generator, not a callable??
+            if tasks is None or ch_avail is None:  # generate new scheduling problem
+                if solve:  # TODO: next()? Pass a generator, not a callable??
                     ((tasks, ch_avail), self.solution), = self.problem_gen(1, solve=solve, rng=rng)
                 else:
                     (tasks, ch_avail), = self.problem_gen(1, solve=solve)
@@ -221,7 +222,7 @@ class BaseTasking(ABC, Env):
         self.node.seq_extend(action)  # updates sequence, loss, task parameters, etc.
 
         reward, self.loss_agg = self.loss_agg - self.node.l_ex, self.node.l_ex
-        done = len(self.node.seq_rem) == 0      # sequence is complete
+        done = len(self.node.seq_rem) == 0  # sequence is complete
 
         self._update_spaces()
 
@@ -310,7 +311,7 @@ class BaseTasking(ABC, Env):
     def data_gen_numpy(self, n_gen, weight_func=None, verbose=False):
         """Generate state-action data as NumPy arrays."""
         data, = self.data_gen(n_batch=1, batch_size=n_gen, weight_func=weight_func, verbose=verbose)
-        return data     # TODO: save dataset to save on Env computation time?
+        return data  # TODO: save dataset to save on Env computation time?
 
     def data_gen_baselines(self, n_gen):
         steps_total = n_gen * self.steps_per_episode
@@ -334,7 +335,7 @@ class BaseTasking(ABC, Env):
             'episode_starts': episode_starts
         }
 
-        return numpy_dict   # used to instantiate ExpertDataset object via `traj_data` arg
+        return numpy_dict  # used to instantiate ExpertDataset object via `traj_data` arg
 
 
 class SeqTasking(BaseTasking):
@@ -343,7 +344,7 @@ class SeqTasking(BaseTasking):
     def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='seq'):
         super().__init__(problem_gen, features, sort_func, time_shift, masking)
 
-        self.action_type = action_type      # 'seq' for sequences, 'int' for integers
+        self.action_type = action_type  # 'seq' for sequences, 'int' for integers
         if self.action_type == 'seq':
             self._action_space_map = lambda n: spaces_tasking.Permutation(n)
         elif self.action_type == 'int':
@@ -381,7 +382,7 @@ class SeqTasking(BaseTasking):
         if self.action_type == 'seq':
             pass
         elif self.action_type == 'int':
-            action = list(num2seq(action, self.n_tasks))        # decode integer to sequence
+            action = list(num2seq(action, self.n_tasks))  # decode integer to sequence
         else:
             raise ValueError
 
@@ -405,7 +406,7 @@ class SeqTasking(BaseTasking):
         else:
             w = 1.
 
-        super().step(seq)        # invoke super method to avoid unnecessary encode-decode process
+        super().step(seq)  # invoke super method to avoid unnecessary encode-decode process
 
         return np.array([x]), np.array([y]), np.array([w])
 
@@ -452,7 +453,7 @@ class StepTasking(BaseTasking):
         if seq_encoding is None:
             self.seq_encoding = MethodType(lambda env, n: [], self)
             self.len_seq_encode = 0
-        elif isinstance(seq_encoding, str):     # simple string specification for supported encoders
+        elif isinstance(seq_encoding, str):  # simple string specification for supported encoders
             if seq_encoding == 'binary':
                 def _seq_encoding(env, n):
                     return [1] if n in env.node.seq else [0]
@@ -474,7 +475,7 @@ class StepTasking(BaseTasking):
         elif callable(seq_encoding):
             self.seq_encoding = MethodType(seq_encoding, self)
 
-            env_copy = deepcopy(self)       # FIXME: hacked - find better way!
+            env_copy = deepcopy(self)  # FIXME: hacked - find better way!
             env_copy.reset()
             self.len_seq_encode = len(env_copy.seq_encoding(0))
         else:

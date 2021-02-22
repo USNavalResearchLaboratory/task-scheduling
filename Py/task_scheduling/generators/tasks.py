@@ -1,17 +1,18 @@
 """Generator objects for tasks."""
 
-from types import MethodType
-from typing import Iterable
 from abc import ABC, abstractmethod
 from collections import deque
+from types import MethodType
+from typing import Iterable
 
 import numpy as np
 import pandas as pd
 from gym import spaces
 
 from task_scheduling import tasks as task_types
-from task_scheduling.util.generic import RandomGeneratorMixin
 from task_scheduling.learning.spaces import DiscreteSet
+from task_scheduling.util.generic import RandomGeneratorMixin
+
 
 # np.set_printoptions(precision=2)
 
@@ -362,7 +363,7 @@ class Dataset(Fixed):
         if isinstance(tasks, Iterable):
             self.tasks.extendleft(tasks)
         else:
-            self.tasks.appendleft(tasks)    # for single tasks
+            self.tasks.appendleft(tasks)  # for single tasks
 
     def shuffle(self, rng=None):
         rng = self._get_rng(rng)
@@ -378,15 +379,6 @@ class Dataset(Fixed):
                 self.tasks.appendleft(task)
 
             yield task
-
-
-
-
-
-
-
-
-
 
 
 class FlexDAR(Base):
@@ -410,7 +402,6 @@ class FlexDAR(Base):
             tasks_full.append(self.cls_task.from_kinematics(slant_range, range_rate))
 
         self.tasks_full = tasks_full
-
 
         # # Generate Search Tasks
         # SearchParams = TaskParameters()
@@ -499,8 +490,9 @@ class FlexDAR(Base):
         cnt = 0  # Make 0-based, saves a lot of trouble later when indexing into python zero-based vectors
         for ii in range(Nsearch):
             # job.append(0, self.cls_task(SearchParams.JobDuration[ii], SearchParams.JobSlope[ii], SearchParams.DropTime[ii], SearchParams.DropTimeFixed[ii], SearchParams.DropCost[ii]))
-            tasks.append(self.cls_task(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii],
-                                SearchParams.DropCost[ii]))
+            tasks.append(
+                self.cls_task(SearchParams.JobDuration[ii], 0, SearchParams.JobSlope[ii], SearchParams.DropTime[ii],
+                              SearchParams.DropCost[ii]))
             tasks[ii].Id = cnt  # Numeric Identifier for each job
             cnt = cnt + 1
             if tasks[ii].slope == 0.4:
@@ -515,8 +507,9 @@ class FlexDAR(Base):
 
         for ii in range(n_track):
             # job.append(self.cls_task(0, TrackParams.JobDuration[ii], TrackParams.JobSlope[ii], TrackParams.DropTime[ii], TrackParams.DropTimeFixed[ii], TrackParams.DropCost[ii]))
-            tasks.append(self.cls_task(TrackParams.JobDuration[ii], 0, TrackParams.JobSlope[ii], TrackParams.DropTime[ii],
-                                TrackParams.DropCost[ii]))
+            tasks.append(
+                self.cls_task(TrackParams.JobDuration[ii], 0, TrackParams.JobSlope[ii], TrackParams.DropTime[ii],
+                              TrackParams.DropCost[ii]))
             tasks[cnt].Id = cnt  # Numeric Identifier for each job
             if tasks[cnt].slope == 0.25:
                 tasks[cnt].Type = 'Tlow'  # Low Priority Track
@@ -554,6 +547,7 @@ class FlexDAR(Base):
     # for task in
     #     yield task
 
+
 class FlexDARlike(Base):
     def __init__(self, n_track=0, param_spaces=None, rng=None):
 
@@ -575,7 +569,6 @@ class FlexDARlike(Base):
                         't_drop': spaces.Box(0, 6, shape=(), dtype=float),
                         'l_drop': DiscreteSet([300.])
                         }
-
 
         super().__init__(cls_task=task_types.ReluDropRadar, param_spaces=param_spaces, rng=None)
 
@@ -602,7 +595,6 @@ class FlexDARlike(Base):
         n_track = self.n_track
         tasks = []
         return tasks
-
 
         def summary(self):  # TODO: Fix this
 

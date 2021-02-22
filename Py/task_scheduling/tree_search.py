@@ -1,12 +1,13 @@
-from copy import deepcopy
-from numbers import Integral
 from collections import deque
+from copy import deepcopy
 from math import factorial
+from numbers import Integral
 
 import numpy as np
 import pandas as pd
 
 from task_scheduling.util.generic import RandomGeneratorMixin
+
 
 # np.set_printoptions(precision=2)
 
@@ -181,15 +182,15 @@ class TreeNode(RandomGeneratorMixin):
 
         self._seq.append(n)
         self._seq_rem.remove(n)
-        self._update_ex(n, self.ch_min)     # assign task to channel with earliest availability
+        self._update_ex(n, self.ch_min)  # assign task to channel with earliest availability
 
     def _update_ex(self, n, ch):
         self._ch_ex[n] = ch
 
         self._t_ex[n] = max(self._tasks[n].t_release, self._ch_avail[ch])
-        self._l_ex += self._tasks[n](self._t_ex[n])     # add task execution loss
+        self._l_ex += self._tasks[n](self._t_ex[n])  # add task execution loss
 
-        self._ch_avail[ch] = self._t_ex[n] + self._tasks[n].duration    # new channel availability
+        self._ch_avail[ch] = self._t_ex[n] + self._tasks[n].duration  # new channel availability
 
     def branch(self, do_permute=True, rng=None):
         """
@@ -258,7 +259,7 @@ class TreeNode(RandomGeneratorMixin):
             seq_swap[i:i + 2] = seq_swap[i:i + 2][::-1]
             node_swap = TreeNode(self._tasks, self._ch_avail, seq_swap)
             if node_swap.l_ex < self.l_ex:
-                self = node_swap            # TODO: improper?
+                self = node_swap  # TODO: improper?
 
 
 class TreeNodeBound(TreeNode):
@@ -333,21 +334,41 @@ class TreeNodeBound(TreeNode):
             self._l_lo += self._tasks[n](max(self._tasks[n].t_release, min(self._ch_avail)))
             self._l_up += self._tasks[n](t_ex_max)
 
-    def branch_bound(self, inplace=True, verbose=False):
+    def branch_bound(self, inplace=True, verbose=False, rng=None):
+        """
+        Complete node sequence optimally using Branch-and-Bound algorithm.
+
+        Parameters
+        ----------
+        inplace : bool, optional
+            If True, self.seq is completed. Otherwise, a new node object is returned.
+        verbose : bool, optional
+            Enables printing of algorithm state information.
+        rng : int or RandomState or Generator, optional
+            NumPy random number generator or seed. Instance RNG if None.
+
+        Returns
+        -------
+        TreeNodeBound, optional
+            Only if `inplace` is False.
+
+        """
+
+        rng = self._get_rng(rng)
 
         stack = deque([self])  # initialize stack
-        node_best = stack[0].roll_out(inplace=False)  # roll-out initial solution
+        node_best = stack[0].roll_out(inplace=False, rng=rng)  # roll-out initial solution
 
         # Iterate
         while len(stack) > 0:
             node = stack.pop()  # extract node
 
             # Branch
-            for node_new in node.branch(do_permute=True):
+            for node_new in node.branch(do_permute=True, rng=rng):
                 # Bound
                 if node_new.l_lo < node_best.l_ex:  # new node is not dominated
                     if node_new.l_up < node_best.l_ex:
-                        node_best = node_new.roll_out(inplace=False)  # roll-out a new best node
+                        node_best = node_new.roll_out(inplace=False, rng=rng)  # roll-out a new best node
                         stack = [s for s in stack if s.l_lo < node_best.l_ex]  # cut dominated nodes
 
                     stack.append(node_new)  # add new node to stack, LIFO
@@ -368,7 +389,7 @@ class TreeNodeShift(TreeNode):
         self.t_origin = 0.
         super().__init__(tasks, ch_avail, seq, rng)
 
-        self.shift_origin()     # performs initial shift when initialized with empty sequence
+        self.shift_origin()  # performs initial shift when initialized with empty sequence
 
     def __repr__(self):
         return f"TreeNodeShift(sequence: {self.seq}, loss incurred:{self.l_ex:.3f})"
@@ -377,8 +398,8 @@ class TreeNodeShift(TreeNode):
         self._ch_ex[n] = ch
 
         t_ex_rel = max(self._tasks[n].t_release, self._ch_avail[ch])  # relative to time origin
-        self._t_ex[n] = self.t_origin + t_ex_rel    # absolute time
-        self._l_ex += self._tasks[n](t_ex_rel)      # add task execution loss
+        self._t_ex[n] = self.t_origin + t_ex_rel  # absolute time
+        self._l_ex += self._tasks[n](t_ex_rel)  # add task execution loss
 
         self._ch_avail[ch] = t_ex_rel + self._tasks[n].duration  # relative to time origin
         self.shift_origin()
@@ -396,7 +417,7 @@ class TreeNodeShift(TreeNode):
         for n, task in enumerate(self._tasks):
             loss_inc = task.shift_origin(ch_avail_min)  # re-parameterize task, return any incurred loss
             if n in self._seq_rem:
-                self._l_ex += loss_inc      # add loss incurred due to origin shift for any unscheduled tasks
+                self._l_ex += loss_inc  # add loss incurred due to origin shift for any unscheduled tasks
 
 
 class SearchNode(RandomGeneratorMixin):
@@ -435,7 +456,7 @@ class SearchNode(RandomGeneratorMixin):
         self._l_min = float('inf')  # FIXME: min? ordered statistic?
         self._children = {}
 
-        self._seq_unk = set(range(self.n_tasks)) - set(self._seq)     # set of unexplored task indices
+        self._seq_unk = set(range(self.n_tasks)) - set(self._seq)  # set of unexplored task indices
 
     def __repr__(self):
         return f"SearchNode(seq={self._seq}, children={list(self._children.keys())}, " \
@@ -471,7 +492,7 @@ class SearchNode(RandomGeneratorMixin):
 
     @property
     def weight(self):
-        return self._l_avg - 10 / (self._n_visits + 1)       # FIXME: placeholder. Need real metric and user control.
+        return self._l_avg - 10 / (self._n_visits + 1)  # FIXME: placeholder. Need real metric and user control.
         # return np.random.random()
 
     def select_child(self):
@@ -488,8 +509,8 @@ class SearchNode(RandomGeneratorMixin):
         # TODO: add epsilon-greedy selector?
 
         w = {n: node.weight for (n, node) in self._children.items()}
-        w.update({n: -10 for n in self._seq_unk})   # FIXME: value?
-        w = dict(self.rng.permutation(list(w.items())))     # permute elements to randomly break ties
+        w.update({n: -10 for n in self._seq_unk})  # FIXME: value?
+        w = dict(self.rng.permutation(list(w.items())))  # permute elements to randomly break ties
 
         n = int(min(w, key=w.__getitem__))
         if n not in self._children:

@@ -93,7 +93,7 @@ class Permutation(Space):
     """Gym Space for index sequences."""
 
     def __init__(self, n):
-        self.n = n      # sequence length
+        self.n = n  # sequence length
         super().__init__(shape=(self.n,), dtype=int)
 
     def sample(self):
@@ -119,7 +119,7 @@ class DiscreteSet(Space):
     """Gym Space for discrete, non-integral elements."""
 
     def __init__(self, elements):
-        self.elements = np.unique(np.array(list(elements)).flatten())   # sorted, flattened
+        self.elements = np.unique(np.array(list(elements)).flatten())  # sorted, flattened
         super().__init__(shape=(), dtype=self.elements.dtype)
 
     def sample(self):
