@@ -5,6 +5,7 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+
 import tensorflow as tf
 from tensorflow import keras
 
@@ -19,18 +20,20 @@ from tests import seq_num_encoding
 plt.style.use('seaborn')
 # plt.rc('axes', grid=True)
 
-time_str = strftime('%Y-%m-%d_%H-%M-%S')
-
 np.set_printoptions(precision=3)
 pd.options.display.float_format = '{:,.3f}'.format
 
 for device in tf.config.experimental.list_physical_devices('GPU'):
     tf.config.experimental.set_memory_growth(device, True)      # TODO: compatibility issue workaround
 
+time_str = strftime('%Y-%m-%d_%H-%M-%S')
+
+
 # seed = None
 seed = 12345
 
 # tf.random.set_seed(seed)
+
 
 #%% Define scheduling problem and algorithms
 
@@ -87,6 +90,7 @@ env_params = {'features': features,
               # 'action_type': 'int',
               'action_type': 'any',
               'seq_encoding': seq_encoding,
+              'rng': seed,
               }
 
 # TODO: add seeded layer initializers for repeatability
@@ -134,9 +138,9 @@ policy_model = learning.SL_policy.SupervisedLearningScheduler.train_from_gen(**S
 
 algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
-    ('Random', partial(algs.free.random_sequencer, rng=seed), 20),
-    ('ERT', algs.free.earliest_release, 1),
-    ('MCTS', partial(algs.free.mcts, n_mc=50, rng=seed), 5),
+    # ('Random', partial(algs.free.random_sequencer, rng=seed), 20),
+    # ('ERT', algs.free.earliest_release, 1),
+    # ('MCTS', partial(algs.free.mcts, n_mc=50, rng=seed), 5),
     ('NN', policy_model, 5),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
@@ -167,13 +171,13 @@ with open(log_path, 'a') as fid:
     print('Results\n---', file=fid)
 
 l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
-                                            data_path=None, log_path=log_path)
+                                            data_path=None, log_path=log_path, rng=seed)
 
-# plt.figure('Results (Normalized)').savefig(image_path)
-plt.figure('Results (Normalized, BB excluded)').savefig(image_path)
-with open(log_path, 'a') as fid:
-    # str_ = image_path.resolve().as_posix().replace('.png', '')
-    print(f"\n![](../{image_path}.png)\n", file=fid)
+# # plt.figure('Results (Normalized)').savefig(image_path)
+# plt.figure('Results (Normalized, BB excluded)').savefig(image_path)
+# with open(log_path, 'a') as fid:
+#     # str_ = image_path.resolve().as_posix().replace('.png', '')
+#     print(f"\n![](../{image_path}.png)\n", file=fid)
 
 
 # algorithms = np.array([

@@ -37,7 +37,7 @@ class BaseTasking(Env, RandomGeneratorMixin, ABC):
         masking : bool, optional
             If True, features are zeroed out for scheduled tasks.
         rng : int or RandomState or Generator, optional
-                Random number generator seed or object.
+            Random number generator seed or object.
 
         """
 
@@ -349,8 +349,10 @@ class BaseTasking(Env, RandomGeneratorMixin, ABC):
 class SeqTasking(BaseTasking):
     """Tasking environment with single action of a complete task index sequence."""
 
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='seq'):
-        super().__init__(problem_gen, features, sort_func, time_shift, masking)
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='seq',
+                 rng=None):
+
+        super().__init__(problem_gen, features, sort_func, time_shift, masking, rng)
 
         self.action_type = action_type  # 'seq' for sequences, 'int' for integers
         if self.action_type == 'seq':
@@ -441,13 +443,15 @@ class StepTasking(BaseTasking):
     seq_encoding : function or str, optional
         Method that returns a 1-D encoded sequence representation for a given task index 'n'. Assumes that the
         encoded array sums to one for scheduled tasks and to zero for unscheduled tasks.
+    rng : int or RandomState or Generator, optional
+        Random number generator seed or object.
 
     """
 
     def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='valid',
-                 seq_encoding=None):
+                 seq_encoding=None, rng=None):
 
-        super().__init__(problem_gen, features, sort_func, time_shift, masking)
+        super().__init__(problem_gen, features, sort_func, time_shift, masking, rng)
 
         # Action types
         if action_type == 'valid':
