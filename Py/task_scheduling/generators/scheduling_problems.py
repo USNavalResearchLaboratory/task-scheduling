@@ -18,10 +18,6 @@ from task_scheduling.generators import tasks as task_gens, channel_availabilitie
 from task_scheduling.util.generic import RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution
 
 
-# np.set_printoptions(precision=2)
-# pd.options.display.float_format = '{:,.3f}'.format      # TODO: global??
-
-
 class Base(RandomGeneratorMixin, ABC):
     temp_path = None
 

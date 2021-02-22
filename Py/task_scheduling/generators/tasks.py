@@ -14,9 +14,6 @@ from task_scheduling.learning.spaces import DiscreteSet
 from task_scheduling.util.generic import RandomGeneratorMixin
 
 
-# np.set_printoptions(precision=2)
-
-
 # TODO: more generic Base class for heterogeneous task types?
 # TODO: use `space` RNG method instead of using the `rng` attribute?
 

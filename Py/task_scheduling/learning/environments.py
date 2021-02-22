@@ -11,36 +11,38 @@ from gym.spaces import Discrete, MultiDiscrete
 from task_scheduling import tree_search
 from task_scheduling.learning import spaces as spaces_tasking
 from task_scheduling.learning.features import param_features
-from task_scheduling.util.generic import seq2num, num2seq
+from task_scheduling.util.generic import seq2num, num2seq, RandomGeneratorMixin
 from task_scheduling.util.plot import plot_task_losses
 
 
-# np.set_printoptions(precision=2)
-
-
 # Gym Environments
-class BaseTasking(ABC, Env):
-    """
-    Base environment for task scheduling.
-
-    Parameters
-    ----------
-    problem_gen : generators.scheduling_problems.Base
-        Scheduling problem generation object.
-    features : ndarray, optional
-        Structured numpy array of features with fields 'name', 'func', and 'lims'.
-    sort_func : function or str, optional
-        Method that returns a sorting value for re-indexing given a task index 'n'.
-    time_shift : bool, optional
-        Enables task re-parameterization after sequence updates.
-    masking : bool, optional
-        If True, features are zeroed out for scheduled tasks.
-
-    """
+class BaseTasking(Env, RandomGeneratorMixin, ABC):
 
     # FIXME: add normalization option for RL learners!? Or just use gym.Wrappers?
 
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False):
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, rng=None):
+        """
+        Base environment for task scheduling.
+
+        Parameters
+        ----------
+        problem_gen : generators.scheduling_problems.Base
+            Scheduling problem generation object.
+        features : ndarray, optional
+            Structured numpy array of features with fields 'name', 'func', and 'lims'.
+        sort_func : function or str, optional
+            Method that returns a sorting value for re-indexing given a task index 'n'.
+        time_shift : bool, optional
+            Enables task re-parameterization after sequence updates.
+        masking : bool, optional
+            If True, features are zeroed out for scheduled tasks.
+        rng : int or RandomState or Generator, optional
+                Random number generator seed or object.
+
+        """
+
+        super().__init__(rng)
+
         self.problem_gen = problem_gen
         self.solution = None
 
@@ -174,6 +176,8 @@ class BaseTasking(ABC, Env):
 
         """
 
+        rng = self._get_rng(rng)
+
         if persist:
             tasks, ch_avail = self.tasks, self.ch_avail
         else:
@@ -181,7 +185,7 @@ class BaseTasking(ABC, Env):
                 if solve:  # TODO: next()? Pass a generator, not a callable??
                     ((tasks, ch_avail), self.solution), = self.problem_gen(1, solve=solve, rng=rng)
                 else:
-                    (tasks, ch_avail), = self.problem_gen(1, solve=solve)
+                    (tasks, ch_avail), = self.problem_gen(1, solve=solve, rng=rng)
                     self.solution = None
             elif len(tasks) != self.n_tasks:
                 raise ValueError(f"Input 'tasks' must be None or a list of {self.n_tasks} tasks")
@@ -246,7 +250,7 @@ class BaseTasking(ABC, Env):
         else:
             return cls(problem_gen, **env_params)
 
-    def data_gen(self, n_batch, batch_size=1, weight_func=None, verbose=False):
+    def data_gen(self, n_batch, batch_size=1, weight_func=None, verbose=False, rng=None):
         """
         Generate state-action data for learner training and evaluation.
 
@@ -260,6 +264,8 @@ class BaseTasking(ABC, Env):
             Function mapping environment object to a training weight.
         verbose : bool, optional
             Enables print-out progress information.
+        rng : int or RandomState or Generator, optional
+            NumPy random number generator or seed. Instance RNG if None.
 
         Yields
         ------
@@ -271,6 +277,8 @@ class BaseTasking(ABC, Env):
             Sample weights.
 
         """
+
+        rng = self._get_rng(rng)
 
         for i_batch in range(n_batch):
             if verbose:
@@ -286,7 +294,7 @@ class BaseTasking(ABC, Env):
                 if verbose:
                     print(f'  Problem: {i_gen + 1}/{batch_size}', end='\r')
 
-                self.reset(solve=True)  # generates new scheduling problem
+                self.reset(solve=True, rng=rng)  # generates new scheduling problem
 
                 # Optimal schedule
                 t_ex, ch_ex = self.solution.t_ex, self.solution.ch_ex

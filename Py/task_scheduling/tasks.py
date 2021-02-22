@@ -7,9 +7,6 @@ import numpy as np
 import pandas as pd
 
 
-# np.set_printoptions(precision=2)
-
-
 # %% Task utilities
 
 def check_task_types(tasks):

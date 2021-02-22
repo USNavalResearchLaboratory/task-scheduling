@@ -13,9 +13,6 @@ from task_scheduling.util.generic import log_path, agent_path
 # from stable_baselines.common.vec_env import DummyVecEnv
 
 
-# np.set_printoptions(precision=2)
-
-
 # class DummyVecTaskingEnv(DummyVecEnv):
 #     def reset(self, *args, **kwargs):
 #         for env_idx in range(self.num_envs):

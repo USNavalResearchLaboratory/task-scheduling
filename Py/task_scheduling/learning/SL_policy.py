@@ -15,9 +15,6 @@ from task_scheduling.learning import environments as envs
 from task_scheduling.util.generic import log_path, model_path
 
 
-# np.set_printoptions(precision=2)
-
-
 # TODO: make loss func for full seq targets?
 # TODO: make custom output layers to avoid illegal actions?
 
@@ -200,7 +197,7 @@ class SupervisedLearningScheduler:
     @classmethod
     def train_from_gen(cls, problem_gen, env_cls=envs.StepTasking, env_params=None, layers=None, compile_params=None,
                        n_batch_train=1, n_batch_val=1, batch_size=1, weight_func=None, fit_params=None,
-                       do_tensorboard=False, plot_history=False, save=False, save_path=None):
+                       do_tensorboard=False, plot_history=False, save=False, save_path=None, seed=None):
         """
         Create and train a supervised learning scheduler.
 
@@ -246,12 +243,13 @@ class SupervisedLearningScheduler:
 
         # Create model
         if layers is None:
-            layers = [
-                keras.layers.Flatten(),  # input_shape=env.observation_space.shape
-                keras.layers.Dense(60, activation='relu'),
-                keras.layers.Dense(30, activation='relu'),
-                # keras.layers.Dropout(0.2),
-            ]
+            layers = []
+            # layers = [
+            #     keras.layers.Flatten(),  # input_shape=env.observation_space.shape
+            #     keras.layers.Dense(60, activation='relu'),
+            #     keras.layers.Dense(30, activation='relu'),
+            #     # keras.layers.Dropout(0.2),
+            # ]
 
         model = keras.Sequential()
         model.add(keras.Input(shape=env.observation_space.shape))
@@ -259,7 +257,8 @@ class SupervisedLearningScheduler:
             model.add(layer)
         if len(model.output_shape) > 2:  # flatten to 1-D for softmax output layer
             model.add(keras.layers.Flatten())
-        model.add(keras.layers.Dense(env.action_space.n, activation='softmax'))
+        model.add(keras.layers.Dense(env.action_space.n, activation='softmax',
+                                     kernel_initializer=keras.initializers.GlorotUniform(seed)))
 
         if compile_params is None:
             compile_params = {'optimizer': 'rmsprop',
