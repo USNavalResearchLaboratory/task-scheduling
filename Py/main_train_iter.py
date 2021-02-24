@@ -34,32 +34,23 @@ time_str = strftime('%Y-%m-%d_%H-%M-%S')
 # seed = None
 seed = 12345
 
+rng = np.random.default_rng(seed)
+
 # tf.random.set_seed(seed)
 
 
 #%% Define scheduling problem and algorithms
 
-n_mc = 10
 
-n_gen = 100
-
-# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
-# problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=seed)
-# problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
-# problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
-# problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
-# problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2), rng=seed)
-# problem_gen = problem_gens.Dataset.load('data/continuous_relu_c1t8', shuffle=True, repeat=False, rng=seed)
-problem_gen = problem_gens.Dataset.load('data/discrete_relu_c1t8', shuffle=True, repeat=False, rng=seed)
-# problem_gen = problem_gens.Dataset.load('data/search_track_c1t8_release_0', shuffle=True, repeat=False, rng=seed)
-
-
-# if isinstance(problem_gen, problem_gens.Dataset):
-#     # Pop evaluation problems for new dataset generator
-#     problem_gen, problem_gen_train = problem_gen.pop_dataset(n_gen, shuffle=True, repeat=False, rng=seed), problem_gen
-# else:
-#     problem_gen_train = deepcopy(problem_gen)  # copy random generator
-#     problem_gen_train.rng = problem_gen.rng  # share RNG, avoid train/test overlap
+# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=rng)
+problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=rng)
+# problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=rng)
+# problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=rng)
+# problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=rng)
+# problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2), rng=rng)
+# problem_gen = problem_gens.Dataset.load('data/continuous_relu_c1t8', shuffle=True, repeat=False, rng=rng)
+# problem_gen = problem_gens.Dataset.load('data/discrete_relu_c1t8', shuffle=True, repeat=False, rng=rng)
+# problem_gen = problem_gens.Dataset.load('data/search_track_c1t8_release_0', shuffle=True, repeat=False, rng=rng)
 
 
 # Algorithms
@@ -95,47 +86,39 @@ env_params = {'features': features,
               }
 
 
-_weight_init = keras.initializers.GlorotUniform(seed)
+env = env_cls.from_problem_gen(problem_gen, env_params)
 
-# layers = None
+
+_weight_init = 'glorot_uniform'
+# _weight_init = keras.initializers.GlorotUniform(seed)
 
 layers = [keras.layers.Flatten(),
           keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init),
           # keras.layers.Dropout(0.2),
           ]
 
-# layers = [keras.layers.Conv1D(50, kernel_size=2, activation='relu', kernel_initializer=_weight_init),
-#           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init),
-#           # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init),
-#           ]
+model = keras.Sequential([keras.Input(shape=env.observation_space.shape),
+                          *layers,
+                          keras.layers.Dense(env.action_space.n, activation='softmax', kernel_initializer=_weight_init)
+                          ])
+model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
-# layers = [keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
-#           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu', kernel_initializer=_weight_init)]
-
-
-weight_func_ = None
-# def weight_func_(env):
-#     return 1 - len(env.node.seq) / env.n_tasks
+policy_model = learning.SL_policy.SupervisedLearningScheduler(model, env)
 
 
-SL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
-           'layers': layers,
-           'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
-           'weight_func': weight_func_,
-           'fit_params': {'epochs': 500},
+SL_args = {'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 2,
+           'weight_func': None,
+           # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
+           'fit_params': {'epochs': 100},
            'plot_history': True,
-           'save': False, 'save_path': None,
-           'seed': seed,
            }
-policy_model = learning.SL_policy.SupervisedLearningScheduler.train_from_gen(**SL_args)
-# policy_model = SL_Scheduler.load('temp/2020-10-28_14-56-42')
 
 
 algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
-    ('Random', partial(algs.free.random_sequencer, rng=seed), 10),
+    ('Random', partial(algs.free.random_sequencer, rng=rng), 10),
     ('ERT', algs.free.earliest_release, 1),
-    ('MCTS', partial(algs.free.mcts, n_mc=50, rng=seed), 10),
+    ('MCTS', partial(algs.free.mcts, n_mc=50, rng=rng), 10),
     ('NN', policy_model, 1),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
@@ -143,49 +126,19 @@ algorithms = np.array([
 
 #%% Evaluate and record results
 
-if not isinstance(problem_gen, problem_gens.Dataset):
-    problem_gens.Base.temp_path = 'data/temp/'  # set a temp path for saving new data
+n_mc = 2
+for i_mc in range(n_mc):
 
+    # if isinstance(problem_gen, problem_gens.Dataset):
+    #     # Pop evaluation problems for new dataset generator
+    #     problem_gen, problem_gen_train = problem_gen.pop_dataset(n_gen, shuffle=True, repeat=False, rng=seed), problem_gen
+    # else:
+    #     problem_gen_train = deepcopy(problem_gen)  # copy random generator
+    #     problem_gen_train.rng = problem_gen.rng  # share RNG, avoid train/test overlap
 
-log_path = None
-# log_path = 'docs/temp/PGR_results.md'
-# log_path = 'docs/discrete_relu_c1t8.md'
+    # Train supervised learner
+    _idx = algorithms['name'].tolist().index('NN')
+    algorithms['func'][_idx].learn(**SL_args)
 
-# image_path = f'images/temp/{time_str}'
-
-
-# with open(log_path, 'a') as fid:
-#     print(f"\n# {time_str}\n", file=fid)
-#     # print(f"Problem gen: ", end='', file=fid)
-#     # problem_gen.summary(fid)
-#     if 'NN' in algorithms['name']:
-#         policy_model.summary(fid)
-#         train_path = image_path + '_train'
-#         plt.figure('Training history').savefig(train_path)
-#         print(f"\n![](../{train_path}.png)\n", file=fid)
-#     print('Results\n---\n', file=fid)
-
-l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
-                                            data_path=None, log_path=log_path, rng=seed)
-
-# # plt.figure('Results (Normalized)').savefig(image_path)
-# plt.figure('Results (Normalized, BB excluded)').savefig(image_path)
-# with open(log_path, 'a') as fid:
-#     # str_ = image_path.resolve().as_posix().replace('.png', '')
-#     print(f"![](../{image_path}.png)\n", file=fid)
-
-
-#%% Limited Runtime
-
-# algorithms = np.array([
-#     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
-#     ('Random', runtime_wrapper(algs.free.random_sequencer), 20),
-#     ('ERT', runtime_wrapper(algs.free.earliest_release), 1),
-#     ('MCTS', partial(algs.limit.mcts, verbose=False), 5),
-#     ('DNN Policy', runtime_wrapper(policy_model), 5),
-#     # ('DQN Agent', dqn_agent, 5),
-# ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
-#
-# runtimes = np.logspace(-2, -1, 20, endpoint=False)
-# evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=40, solve=True, verbose=2, plotting=1,
-#                             save=False, file=None)
+    l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=10, solve=True, verbose=1, plotting=1,
+                                                data_path=None, log_path=None)

@@ -79,7 +79,7 @@ def iter_to_mean(array):
 
 
 def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0, data_path=None,
-                        log_path=None, rng=None):
+                        log_path=None):
     """
     Compare scheduling algorithms for numerous sets of tasks and channel availabilities.
 
@@ -102,8 +102,6 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
         File path for saving data.
     log_path : PathLike, optional
         File path for logging of algorithm performance.
-    rng : int or RandomState or Generator, optional
-        NumPy random number generator or seed. Instance RNG if None.
 
     Returns
     -------
@@ -130,7 +128,7 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
     t_run_mean = np.array(**_args_mean)
 
     # Generate scheduling problems
-    for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose, data_path, rng)):
+    for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose, data_path)):
         if solve:
             (tasks, ch_avail), solution_opt = out_gen
         else:
@@ -232,7 +230,7 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
 
 
 def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0,
-                                save_path=None, rng=None):
+                                save_path=None):
     # if solve:
     #     _opt = np.array([('B&B Optimal', None, 1)], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
     #     algorithms = np.concatenate((_opt, algorithms))
@@ -246,7 +244,7 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
     t_run_opt = np.full(n_gen, np.nan)  # TODO: use in plots
 
     # Generate scheduling problems
-    for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose, save_path, rng)):
+    for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose, save_path)):
         if solve:
             (tasks, ch_avail), (t_ex, ch_ex, t_run) = out_gen
             check_valid(tasks, t_ex, ch_ex)

@@ -172,7 +172,7 @@ with open(log_path, 'a') as fid:
     print('Results\n---\n', file=fid)
 
 l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
-                                            data_path=None, log_path=log_path, rng=seed)
+                                            data_path=None, log_path=log_path)
 
 # plt.figure('Results (Normalized)').savefig(image_path)
 plt.figure('Results (Normalized, BB excluded)').savefig(image_path)
