@@ -41,7 +41,7 @@ class TreeNode(RandomGeneratorMixin):
     def __init__(self, tasks, ch_avail, seq=None, rng=None):
         super().__init__(rng)
 
-        self._tasks = deepcopy(tasks)
+        self._tasks = deepcopy(tasks)  # TODO: slow? add option for copy?
         self._ch_avail = np.array(ch_avail, dtype=float)
 
         if min(self._ch_avail) < 0.:
@@ -51,7 +51,6 @@ class TreeNode(RandomGeneratorMixin):
         self._seq_rem = set(range(self.n_tasks))
 
         self._t_ex = np.full(self.n_tasks, np.nan)
-        # self._ch_ex = np.full(self.n_tasks, np.nan, dtype=int)
         self._ch_ex = np.full(self.n_tasks, -1)
 
         self._l_ex = 0.  # incurred loss
@@ -239,12 +238,44 @@ class TreeNode(RandomGeneratorMixin):
         rng = self._get_rng(rng)
         seq_ext = rng.permutation(list(self._seq_rem)).tolist()
 
-        if inplace:
-            self.seq_extend(seq_ext, check_valid=False)
-        else:
-            node_new = deepcopy(self)  # new TreeNode object
-            node_new.seq_extend(seq_ext, check_valid=False)
-            return node_new
+        node = self._extend_util(seq_ext, inplace)
+
+        if not inplace:
+            return node
+
+        # if inplace:
+        #     self.seq_extend(seq_ext, check_valid=False)
+        # else:
+        #     node_new = deepcopy(self)  # new TreeNode object
+        #     node_new.seq_extend(seq_ext, check_valid=False)
+        #     return node_new
+
+    def _extend_util(self, seq_ext, inplace=True):
+        node = self
+        if not inplace:
+            node = deepcopy(node)
+
+        node.seq_extend(seq_ext, check_valid=False)
+
+        return node
+
+    def earliest_release(self, inplace=True, check_swaps=False):
+        return self._earliest_sorter('t_release', inplace, check_swaps)
+
+    def earliest_drop(self, inplace=True, check_swaps=False):
+        return self._earliest_sorter('t_drop', inplace, check_swaps)
+
+    def _earliest_sorter(self, name, inplace=True, check_swaps=False):
+        _dict = {n: getattr(self.tasks[n], name) for n in self.seq_rem}
+        seq_ext = sorted(self.seq_rem, key=_dict.__getitem__)
+
+        node = self._extend_util(seq_ext, inplace)
+
+        if check_swaps:
+            node.check_swaps()
+
+        if not inplace:
+            return node
 
     def check_swaps(self):
         """Try adjacent task swapping, overwrite node if loss drops."""
@@ -400,6 +431,7 @@ class TreeNodeShift(TreeNode):
         self._l_ex += self._tasks[n](t_ex_rel)  # add task execution loss
 
         self._ch_avail[ch] = t_ex_rel + self._tasks[n].duration  # relative to time origin
+
         self.shift_origin()
 
     def shift_origin(self):

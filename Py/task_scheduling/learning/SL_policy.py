@@ -254,7 +254,7 @@ class SupervisedLearningScheduler:
         if len(model.output_shape) > 2:  # flatten to 1-D for softmax output layer
             model.add(keras.layers.Flatten())
         model.add(keras.layers.Dense(env.action_space.n, activation='softmax',
-                  kernel_initializer=keras.initializers.GlorotUniform(seed)))
+                                     kernel_initializer=keras.initializers.GlorotUniform(seed)))
 
         if compile_params is None:
             compile_params = {'optimizer': 'rmsprop',

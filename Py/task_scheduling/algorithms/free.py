@@ -33,7 +33,9 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
 
     # TODO: different search strategies? pre-sort?
 
-    node_best = TreeNodeBound(tasks, ch_avail, rng=rng).branch_bound(inplace=False, verbose=verbose)
+    node = TreeNodeBound(tasks, ch_avail, rng=rng)
+    node_best = node.branch_bound(inplace=False, verbose=verbose)
+
     return node_best.t_ex, node_best.ch_ex  # optimal
 
 
@@ -177,6 +179,8 @@ def mcts(tasks, ch_avail, n_mc, verbose=False, rng=None):
 
     """
 
+    # TODO: as TreeNode method!?
+
     # TODO: add exploration/exploitation input control.
 
     l_up = TreeNodeBound(tasks, ch_avail).l_up
@@ -224,10 +228,11 @@ def random_sequencer(tasks, ch_avail, rng=None):
 
     node = TreeNode(tasks, ch_avail, rng=rng)
     node.roll_out()
+
     return node.t_ex, node.ch_ex
 
 
-def earliest_release(tasks, ch_avail, do_swap=False):
+def earliest_release(tasks, ch_avail, check_swaps=False):
     """
     Earliest Start Times Algorithm.
 
@@ -236,7 +241,7 @@ def earliest_release(tasks, ch_avail, do_swap=False):
     tasks : Iterable of task_scheduling.tasks.Base
     ch_avail : Iterable of float
         Channel availability times.
-    do_swap : bool
+    check_swaps : bool
         Enables task swapping
 
     Returns
@@ -248,16 +253,13 @@ def earliest_release(tasks, ch_avail, do_swap=False):
 
     """
 
-    seq = np.argsort([task.t_release for task in tasks])
-    node = TreeNode(tasks, ch_avail, seq)
-
-    if do_swap:
-        node.check_swaps()
+    node = TreeNode(tasks, ch_avail)
+    node.earliest_release(check_swaps=check_swaps)
 
     return node.t_ex, node.ch_ex
 
 
-def earliest_drop(tasks, ch_avail, do_swap=False):
+def earliest_drop(tasks, ch_avail, check_swaps=False):
     """
     Earliest Drop Times Algorithm.
 
@@ -266,7 +268,7 @@ def earliest_drop(tasks, ch_avail, do_swap=False):
     tasks : Iterable of task_scheduling.tasks.Base
     ch_avail : Iterable of float
         Channel availability times.
-    do_swap : bool
+    check_swaps : bool
         Enables task swapping.
 
     Returns
@@ -278,45 +280,7 @@ def earliest_drop(tasks, ch_avail, do_swap=False):
 
     """
 
-    seq = list(np.argsort([task.t_drop for task in tasks]))
-    node = TreeNode(tasks, ch_avail, seq)
-
-    if do_swap:
-        node.check_swaps()
+    node = TreeNode(tasks, ch_avail)
+    node.earliest_drop(check_swaps=check_swaps)
 
     return node.t_ex, node.ch_ex
-
-
-# def est_alg_kw(tasks, ch_avail):
-#     """
-#     Earliest Start Times Algorithm using FlexDAR scheduler function.
-#
-#     Parameters
-#     ----------
-#     tasks : Iterable of task_scheduling.tasks.Base
-#     ch_avail : Iterable of float
-#         Channel availability times.
-#
-#     Returns
-#     -------
-#     t_ex : ndarray
-#         Task execution times.
-#     ch_ex : ndarray
-#         Task execution channels.
-#
-#     """
-#
-#     seq = list(np.argsort([task.t_release for task in tasks]))  # Task Order
-#     t_ex, ch_ex = FlexDARMultiChannelSequenceScheduler(seq, tasks, deepcopy(ch_avail), RP=100)
-#
-#     return t_ex, ch_ex
-
-
-def ert_alg_kw(tasks, ch_avail, do_swap=False):
-    seq = list(np.argsort([task.t_release for task in tasks]))
-    node = TreeNode(tasks, ch_avail, seq)
-
-    if do_swap:
-        node.check_swaps()
-
-    return node.t_ex, node.ch_ex, node.seq

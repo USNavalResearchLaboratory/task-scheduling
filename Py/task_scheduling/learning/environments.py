@@ -176,17 +176,19 @@ class BaseTasking(Env, RandomGeneratorMixin, ABC):
 
         """
 
-        rng = self._get_rng(rng)
-
         if persist:
-            tasks, ch_avail = self.tasks, self.ch_avail
+            # tasks, ch_avail = self.tasks, self.ch_avail
+            raise NotImplementedError   # TODO: node objects cannot recover original task/ch_avail state!
         else:
             if tasks is None or ch_avail is None:  # generate new scheduling problem
+                rng = self._get_rng(rng)
+
                 if solve:  # TODO: next()? Pass a generator, not a callable??
                     ((tasks, ch_avail), self.solution), = self.problem_gen(1, solve=solve, rng=rng)
                 else:
                     (tasks, ch_avail), = self.problem_gen(1, solve=solve, rng=rng)
                     self.solution = None
+
             elif len(tasks) != self.n_tasks:
                 raise ValueError(f"Input 'tasks' must be None or a list of {self.n_tasks} tasks")
             elif len(ch_avail) != self.n_ch:
