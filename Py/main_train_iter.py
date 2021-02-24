@@ -39,6 +39,8 @@ seed = 12345
 
 #%% Define scheduling problem and algorithms
 
+n_mc = 10
+
 n_gen = 100
 
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
@@ -52,12 +54,12 @@ problem_gen = problem_gens.Dataset.load('data/discrete_relu_c1t8', shuffle=True,
 # problem_gen = problem_gens.Dataset.load('data/search_track_c1t8_release_0', shuffle=True, repeat=False, rng=seed)
 
 
-if isinstance(problem_gen, problem_gens.Dataset):
-    # Pop evaluation problems for new dataset generator
-    problem_gen, problem_gen_train = problem_gen.pop_dataset(n_gen, shuffle=True, repeat=False, rng=seed), problem_gen
-else:
-    problem_gen_train = deepcopy(problem_gen)  # copy random generator
-    problem_gen_train.rng = problem_gen.rng  # share RNG, avoid train/test overlap
+# if isinstance(problem_gen, problem_gens.Dataset):
+#     # Pop evaluation problems for new dataset generator
+#     problem_gen, problem_gen_train = problem_gen.pop_dataset(n_gen, shuffle=True, repeat=False, rng=seed), problem_gen
+# else:
+#     problem_gen_train = deepcopy(problem_gen)  # copy random generator
+#     problem_gen_train.rng = problem_gen.rng  # share RNG, avoid train/test overlap
 
 
 # Algorithms
@@ -116,7 +118,7 @@ weight_func_ = None
 #     return 1 - len(env.node.seq) / env.n_tasks
 
 
-SL_args = {'problem_gen': problem_gen_train, 'env_cls': env_cls, 'env_params': env_params,
+SL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
            'layers': layers,
            'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
            'weight_func': weight_func_,
@@ -127,14 +129,6 @@ SL_args = {'problem_gen': problem_gen_train, 'env_cls': env_cls, 'env_params': e
            }
 policy_model = learning.SL_policy.SupervisedLearningScheduler.train_from_gen(**SL_args)
 # policy_model = SL_Scheduler.load('temp/2020-10-28_14-56-42')
-
-
-# RL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
-#            'model_cls': 'DQN', 'model_params': {'verbose': 1, 'policy': 'MlpPolicy'},
-#            'n_episodes': 10000,
-#            'save': False, 'save_path': None}
-# dqn_agent = learning.RL_policy.ReinforcementLearningScheduler.train_from_gen(**RL_args)
-# dqn_agent = RL_Scheduler.load('temp/DQN_2020-10-28_15-44-00', env=None, model_cls='DQN')
 
 
 algorithms = np.array([
@@ -153,32 +147,32 @@ if not isinstance(problem_gen, problem_gens.Dataset):
     problem_gens.Base.temp_path = 'data/temp/'  # set a temp path for saving new data
 
 
-# log_path = None
+log_path = None
 # log_path = 'docs/temp/PGR_results.md'
-log_path = 'docs/discrete_relu_c1t8.md'
+# log_path = 'docs/discrete_relu_c1t8.md'
 
-image_path = f'images/temp/{time_str}'
+# image_path = f'images/temp/{time_str}'
 
 
-with open(log_path, 'a') as fid:
-    print(f"\n# {time_str}\n", file=fid)
-    # print(f"Problem gen: ", end='', file=fid)
-    # problem_gen.summary(fid)
-    if 'NN' in algorithms['name']:
-        policy_model.summary(fid)
-        train_path = image_path + '_train'
-        plt.figure('Training history').savefig(train_path)
-        print(f"\n![](../{train_path}.png)\n", file=fid)
-    print('Results\n---\n', file=fid)
+# with open(log_path, 'a') as fid:
+#     print(f"\n# {time_str}\n", file=fid)
+#     # print(f"Problem gen: ", end='', file=fid)
+#     # problem_gen.summary(fid)
+#     if 'NN' in algorithms['name']:
+#         policy_model.summary(fid)
+#         train_path = image_path + '_train'
+#         plt.figure('Training history').savefig(train_path)
+#         print(f"\n![](../{train_path}.png)\n", file=fid)
+#     print('Results\n---\n', file=fid)
 
 l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
                                             data_path=None, log_path=log_path, rng=seed)
 
-# plt.figure('Results (Normalized)').savefig(image_path)
-plt.figure('Results (Normalized, BB excluded)').savefig(image_path)
-with open(log_path, 'a') as fid:
-    # str_ = image_path.resolve().as_posix().replace('.png', '')
-    print(f"![](../{image_path}.png)\n", file=fid)
+# # plt.figure('Results (Normalized)').savefig(image_path)
+# plt.figure('Results (Normalized, BB excluded)').savefig(image_path)
+# with open(log_path, 'a') as fid:
+#     # str_ = image_path.resolve().as_posix().replace('.png', '')
+#     print(f"![](../{image_path}.png)\n", file=fid)
 
 
 #%% Limited Runtime

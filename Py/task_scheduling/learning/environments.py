@@ -16,11 +16,11 @@ from task_scheduling.util.plot import plot_task_losses
 
 
 # Gym Environments
-class BaseTasking(Env, RandomGeneratorMixin, ABC):
+class BaseTasking(Env, ABC):
 
     # FIXME: add normalization option for RL learners!? Or just use gym.Wrappers?
 
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, rng=None):
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False):
         """
         Base environment for task scheduling.
 
@@ -36,12 +36,8 @@ class BaseTasking(Env, RandomGeneratorMixin, ABC):
             Enables task re-parameterization after sequence updates.
         masking : bool, optional
             If True, features are zeroed out for scheduled tasks.
-        rng : int or RandomState or Generator, optional
-            Random number generator seed or object.
 
         """
-
-        super().__init__(rng)
 
         self.problem_gen = problem_gen
         self.solution = None
@@ -181,8 +177,6 @@ class BaseTasking(Env, RandomGeneratorMixin, ABC):
             raise NotImplementedError   # TODO: node objects cannot recover original task/ch_avail state!
         else:
             if tasks is None or ch_avail is None:  # generate new scheduling problem
-                rng = self._get_rng(rng)
-
                 if solve:  # TODO: next()? Pass a generator, not a callable??
                     ((tasks, ch_avail), self.solution), = self.problem_gen(1, solve=solve, rng=rng)
                 else:
@@ -280,8 +274,6 @@ class BaseTasking(Env, RandomGeneratorMixin, ABC):
 
         """
 
-        rng = self._get_rng(rng)
-
         for i_batch in range(n_batch):
             if verbose:
                 print(f'Batch: {i_batch + 1}/{n_batch}', end='\n')
@@ -351,10 +343,9 @@ class BaseTasking(Env, RandomGeneratorMixin, ABC):
 class SeqTasking(BaseTasking):
     """Tasking environment with single action of a complete task index sequence."""
 
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='seq',
-                 rng=None):
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='seq'):
 
-        super().__init__(problem_gen, features, sort_func, time_shift, masking, rng)
+        super().__init__(problem_gen, features, sort_func, time_shift, masking)
 
         self.action_type = action_type  # 'seq' for sequences, 'int' for integers
         if self.action_type == 'seq':
@@ -424,36 +415,33 @@ class SeqTasking(BaseTasking):
 
 
 class StepTasking(BaseTasking):
-    """
-    Tasking environment with actions of single task indices.
-
-    Parameters
-    ----------
-    problem_gen : generators.scheduling_problems.Base
-        Scheduling problem generation object.
-    features : ndarray, optional
-        Structured numpy array of features with fields 'name', 'func', and 'lims'.
-    sort_func : function or str, optional
-        Method that returns a sorting value for re-indexing given a task index 'n'.
-    time_shift : bool, optional
-        Enables task re-parameterization after sequence updates.
-    masking : bool, optional
-        If True, features are zeroed out for scheduled tasks.
-    action_type : str, optional
-        If 'valid', action type is `DiscreteSet` of valid indices; if 'any', action space is `Discrete` and
-        repeated actions are allowed (for experimental purposes only).
-    seq_encoding : function or str, optional
-        Method that returns a 1-D encoded sequence representation for a given task index 'n'. Assumes that the
-        encoded array sums to one for scheduled tasks and to zero for unscheduled tasks.
-    rng : int or RandomState or Generator, optional
-        Random number generator seed or object.
-
-    """
-
     def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='valid',
-                 seq_encoding=None, rng=None):
+                 seq_encoding=None):
+        """
+        Tasking environment with actions of single task indices.
 
-        super().__init__(problem_gen, features, sort_func, time_shift, masking, rng)
+        Parameters
+        ----------
+        problem_gen : generators.scheduling_problems.Base
+            Scheduling problem generation object.
+        features : ndarray, optional
+            Structured numpy array of features with fields 'name', 'func', and 'lims'.
+        sort_func : function or str, optional
+            Method that returns a sorting value for re-indexing given a task index 'n'.
+        time_shift : bool, optional
+            Enables task re-parameterization after sequence updates.
+        masking : bool, optional
+            If True, features are zeroed out for scheduled tasks.
+        action_type : str, optional
+            If 'valid', action type is `DiscreteSet` of valid indices; if 'any', action space is `Discrete` and
+            repeated actions are allowed (for experimental purposes only).
+        seq_encoding : function or str, optional
+            Method that returns a 1-D encoded sequence representation for a given task index 'n'. Assumes that the
+            encoded array sums to one for scheduled tasks and to zero for unscheduled tasks.
+
+        """
+
+        super().__init__(problem_gen, features, sort_func, time_shift, masking)
 
         # Action types
         if action_type == 'valid':
