@@ -17,6 +17,8 @@ from task_scheduling.learning import environments as envs
 from task_scheduling.learning.features import param_features, encode_discrete_features
 from tests import seq_num_encoding
 
+# TODO: reconsider init imports - dont want TF overhead if unneeded?
+
 plt.style.use('seaborn')
 # plt.rc('axes', grid=True)
 
@@ -39,25 +41,26 @@ seed = 12345
 
 n_gen = 100
 
-# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=4, n_ch=1, rng=rng)
-# problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=rng)
-# problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=rng)
-# problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=rng)
-# problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=rng)
-# problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2), rng=rng)
-# problem_gen = problem_gens.Dataset.load('data/continuous_relu_c1t8', shuffle=True, repeat=False, rng=rng)
-problem_gen = problem_gens.Dataset.load('data/discrete_relu_c1t8', shuffle=True, repeat=False, rng=seed)
-# problem_gen = problem_gens.Dataset.load('data/search_track_c1t8_release_0', shuffle=True, repeat=False, rng=rng)
+# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
+problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=seed)
+# problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
+# problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
+# problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
+# problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2), rng=seed)
+# problem_gen = problem_gens.Dataset.load('data/continuous_relu_c1t8', shuffle=True, repeat=False, rng=seed)
+# problem_gen = problem_gens.Dataset.load('data/discrete_relu_c1t8', shuffle=True, repeat=False, rng=seed)
+# problem_gen = problem_gens.Dataset.load('data/search_track_c1t8_release_0', shuffle=True, repeat=False, rng=seed)
 
 
 if isinstance(problem_gen, problem_gens.Dataset):
     # Pop evaluation problems for new dataset generator
-    _temp = problem_gen.pop_dataset(n_gen, shuffle=True, repeat=False, rng=seed)
-    problem_gen_train = problem_gen
-    problem_gen = _temp
+    problem_gen, problem_gen_train = problem_gen.pop_dataset(n_gen, shuffle=True, repeat=False, rng=seed), problem_gen
+    # _temp = problem_gen.pop_dataset(n_gen, shuffle=True, repeat=False, rng=seed)
+    # problem_gen_train = problem_gen
+    # problem_gen = _temp
 else:
-    # Copy random generator
-    problem_gen_train = deepcopy(problem_gen)
+    problem_gen_train = deepcopy(problem_gen)  # copy random generator
+    problem_gen_train.rng = problem_gen.rng  # share RNG, avoid train/test overlap
 
 
 # Algorithms
@@ -98,18 +101,18 @@ _weight_init = keras.initializers.GlorotUniform(seed)
 
 # layers = None
 
-# layers = [keras.layers.Flatten(),
-#           keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init),
-#           # keras.layers.Dropout(0.2),
-#           ]
-
-layers = [keras.layers.Conv1D(50, kernel_size=2, activation='relu'),
-          keras.layers.Conv1D(20, kernel_size=2, activation='relu'),
-          # keras.layers.Dense(20, activation='relu'),
+layers = [keras.layers.Flatten(),
+          keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init),
+          # keras.layers.Dropout(0.2),
           ]
 
+# layers = [keras.layers.Conv1D(50, kernel_size=2, activation='relu', kernel_initializer=_weight_init),
+#           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init),
+#           # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init),
+#           ]
+
 # layers = [keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
-#           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu')]
+#           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu', kernel_initializer=_weight_init)]
 
 
 weight_func_ = None
@@ -140,9 +143,9 @@ policy_model = learning.SL_policy.SupervisedLearningScheduler.train_from_gen(**S
 
 algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
-    # ('Random', partial(algs.free.random_sequencer, rng=seed), 10),
-    # ('ERT', algs.free.earliest_release, 1),
-    # ('MCTS', partial(algs.free.mcts, n_mc=50, rng=seed), 10),
+    ('Random', partial(algs.free.random_sequencer, rng=seed), 10),
+    ('ERT', algs.free.earliest_release, 1),
+    ('MCTS', partial(algs.free.mcts, n_mc=50, rng=seed), 10),
     ('NN', policy_model, 1),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
@@ -175,12 +178,14 @@ with open(log_path, 'a') as fid:
 l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
                                             data_path=None, log_path=log_path, rng=seed)
 
-# # plt.figure('Results (Normalized)').savefig(image_path)
-# plt.figure('Results (Normalized, BB excluded)').savefig(image_path)
-# with open(log_path, 'a') as fid:
-#     # str_ = image_path.resolve().as_posix().replace('.png', '')
-#     print(f"![](../{image_path}.png)\n", file=fid)
+# plt.figure('Results (Normalized)').savefig(image_path)
+plt.figure('Results (Normalized, BB excluded)').savefig(image_path)
+with open(log_path, 'a') as fid:
+    # str_ = image_path.resolve().as_posix().replace('.png', '')
+    print(f"![](../{image_path}.png)\n", file=fid)
 
+
+#%% Limited Runtime
 
 # algorithms = np.array([
 #     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
