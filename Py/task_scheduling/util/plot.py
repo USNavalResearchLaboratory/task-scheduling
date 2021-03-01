@@ -126,10 +126,10 @@ def scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
         ax_kwargs = {}
 
     for name in t_run.dtype.names:
+        kwargs = {}
         if name == 'BB Optimal':
-            kwargs = {'c': 'k'}
-        else:
-            kwargs = {}
+            kwargs.update(c='k')
+
         ax.scatter(t_run[name], l_ex[name], label=name, **kwargs)
 
     ax.set(xlabel='Runtime (s)', ylabel='Loss')

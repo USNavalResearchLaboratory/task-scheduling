@@ -360,6 +360,14 @@ class Dataset(Base):
 
         return cls(**dict_gen, shuffle=shuffle, repeat=repeat, rng=rng)
 
+    def pop_dataset(self, n, shuffle=False, repeat=False, rng=None):
+        """Create a new Dataset from elements of own queue."""
+
+        problems = [self.problems.pop() for __ in range(n)]
+        solutions = [self.solutions.pop() for __ in range(n)]
+        return Dataset(problems, solutions, shuffle, repeat, self.n_tasks, self.n_ch, self.task_gen, self.ch_avail_gen,
+                       rng)
+
     def add_problems(self, problems, solutions=None):
         """Add problems and solutions to the data set."""
 
@@ -371,14 +379,6 @@ class Dataset(Base):
             raise ValueError("Number of solutions must equal the number of problems.")
 
         self.solutions.extendleft(solutions)
-
-    def pop_dataset(self, n, shuffle=False, repeat=False, rng=None):
-        """Create a new Dataset from elements of own queue."""
-
-        problems = [self.problems.pop() for __ in range(n)]
-        solutions = [self.solutions.pop() for __ in range(n)]
-        return Dataset(problems, solutions, shuffle, repeat, self.n_tasks, self.n_ch, self.task_gen, self.ch_avail_gen,
-                       rng)
 
     def shuffle(self, rng=None):
         """Shuffle problems and solutions in-place."""

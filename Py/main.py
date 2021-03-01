@@ -26,10 +26,9 @@ np.set_printoptions(precision=3)
 pd.options.display.float_format = '{:,.3f}'.format
 
 for device in tf.config.experimental.list_physical_devices('GPU'):
-    tf.config.experimental.set_memory_growth(device, True)      # TODO: compatibility issue workaround
+    tf.config.experimental.set_memory_growth(device, True)  # TODO: compatibility issue workaround
 
 time_str = strftime('%Y-%m-%d_%H-%M-%S')
-
 
 # seed = None
 seed = 12345
@@ -37,7 +36,7 @@ seed = 12345
 # tf.random.set_seed(seed)
 
 
-#%% Define scheduling problem and algorithms
+# %% Define scheduling problem and algorithms
 
 n_gen = 100
 
@@ -52,12 +51,13 @@ problem_gen = problem_gens.Dataset.load('data/discrete_relu_c1t8', shuffle=True,
 # problem_gen = problem_gens.Dataset.load('data/search_track_c1t8_release_0', shuffle=True, repeat=False, rng=seed)
 
 
-if isinstance(problem_gen, problem_gens.Dataset):
-    # Pop evaluation problems for new dataset generator
-    problem_gen, problem_gen_train = problem_gen.pop_dataset(n_gen, shuffle=True, repeat=False, rng=seed), problem_gen
-else:
-    problem_gen_train = deepcopy(problem_gen)  # copy random generator
-    problem_gen_train.rng = problem_gen.rng  # share RNG, avoid train/test overlap
+# TODO: deprecate? Random gen RNG sharing defeats my original reproducibility purpose...
+# if isinstance(problem_gen, problem_gens.Dataset):
+#     # Pop evaluation problems for new dataset generator
+#     problem_gen, problem_gen_train = problem_gen.pop_dataset(n_gen, shuffle=True, repeat=False, rng=seed), problem_gen
+# else:
+#     problem_gen_train = deepcopy(problem_gen)  # copy random generator
+#     problem_gen_train.rng = problem_gen.rng  # share RNG, avoid train/test overlap
 
 
 # Algorithms
@@ -93,22 +93,24 @@ env_params = {'features': features,
               }
 
 
-_weight_init = keras.initializers.GlorotUniform(seed)
+def _weight_init():
+    return keras.initializers.GlorotUniform(seed)
+
 
 # layers = None
 
 layers = [keras.layers.Flatten(),
-          keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init),
+          keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
           # keras.layers.Dropout(0.2),
           ]
 
-# layers = [keras.layers.Conv1D(50, kernel_size=2, activation='relu', kernel_initializer=_weight_init),
-#           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init),
-#           # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init),
+# layers = [keras.layers.Conv1D(50, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+#           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+#           # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
 #           ]
 
 # layers = [keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
-#           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu', kernel_initializer=_weight_init)]
+#           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu', kernel_initializer=_weight_init())]
 
 
 weight_func_ = None
@@ -116,7 +118,7 @@ weight_func_ = None
 #     return 1 - len(env.node.seq) / env.n_tasks
 
 
-SL_args = {'problem_gen': problem_gen_train, 'env_cls': env_cls, 'env_params': env_params,
+SL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
            'layers': layers,
            'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
            'weight_func': weight_func_,
@@ -147,18 +149,16 @@ algorithms = np.array([
 ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
 
 
-#%% Evaluate and record results
+# %% Evaluate and record results
 
 if not isinstance(problem_gen, problem_gens.Dataset):
     problem_gens.Base.temp_path = 'data/temp/'  # set a temp path for saving new data
-
 
 # log_path = None
 # log_path = 'docs/temp/PGR_results.md'
 log_path = 'docs/discrete_relu_c1t8.md'
 
 image_path = f'images/temp/{time_str}'
-
 
 with open(log_path, 'a') as fid:
     print(f"\n# {time_str}\n", file=fid)
@@ -174,14 +174,13 @@ with open(log_path, 'a') as fid:
 l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
                                             data_path=None, log_path=log_path)
 
-# plt.figure('Results (Normalized)').savefig(image_path)
-plt.figure('Results (Normalized, BB excluded)').savefig(image_path)
+# plt.figure('Results (Relative)').savefig(image_path)
+plt.figure('Results (Relative, opt excluded)').savefig(image_path)
 with open(log_path, 'a') as fid:
     # str_ = image_path.resolve().as_posix().replace('.png', '')
     print(f"![](../{image_path}.png)\n", file=fid)
 
-
-#%% Limited Runtime
+# %% Limited Runtime
 
 # algorithms = np.array([
 #     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),

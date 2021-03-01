@@ -201,8 +201,14 @@ class ReinforcementLearningScheduler:
 
         """
 
-        env = env_cls.from_problem_gen(problem_gen, env_params)
+        # Create environment
+        if env_params is None:
+            env = env_cls(problem_gen)
+        else:
+            env = env_cls(problem_gen, **env_params)
+        # env = env_cls.from_problem_gen(problem_gen, env_params)
 
+        # Create model
         if model_params is None:
             model_params = {}
 
@@ -215,6 +221,7 @@ class ReinforcementLearningScheduler:
 
         model = model_cls(env=env, **model_params)
 
+        # Create and train scheduler
         scheduler = cls(model, env)
         scheduler.learn(n_episodes)
         if save:

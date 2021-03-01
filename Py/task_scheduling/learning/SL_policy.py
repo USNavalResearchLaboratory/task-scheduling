@@ -241,7 +241,11 @@ class SupervisedLearningScheduler:
         """
 
         # Create environment
-        env = env_cls.from_problem_gen(problem_gen, env_params)
+        if env_params is None:
+            env = env_cls(problem_gen)
+        else:
+            env = env_cls(problem_gen, **env_params)
+        # env = env_cls.from_problem_gen(problem_gen, env_params)
 
         # Create model
         if layers is None:

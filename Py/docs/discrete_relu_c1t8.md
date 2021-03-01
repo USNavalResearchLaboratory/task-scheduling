@@ -194,3 +194,155 @@ Results
 | BB Optimal |             0.000 | 150.115 |         0.374 |
 | NN         |             0.066 | 159.620 |         0.015 |
 
+
+# 2021-02-23_14-25-52
+
+Env: StepTasking
+---
+
+- Features: ['duration', 't_release', 'slope', 't_drop', 'l_drop']
+- Sorting: t_release
+- Task shifting: True
+- Masking: True
+- Valid actions: False
+- Sequence encoding: one-hot
+
+Model 
+---
+```
+Model: "sequential"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+conv1d (Conv1D)              (None, 7, 50)             1350      
+_________________________________________________________________
+conv1d_1 (Conv1D)            (None, 6, 20)             2020      
+_________________________________________________________________
+flatten (Flatten)            (None, 120)               0         
+_________________________________________________________________
+dense (Dense)                (None, 8)                 968       
+=================================================================
+Total params: 4,338
+Trainable params: 4,338
+Non-trainable params: 0
+_________________________________________________________________
+```
+
+![](../images/temp/2021-02-23_14-25-52_train.png)
+
+Results
+---
+
+|            |   Excess Loss (%) |    Loss |   Runtime (s) |
+|------------|-------------------|---------|---------------|
+| BB Optimal |             0.000 | 150.115 |         0.374 |
+| NN         |             0.042 | 156.135 |         0.015 |
+
+![](../images/temp/2021-02-23_14-25-52.png)
+
+
+# 2021-02-24_09-58-54
+
+Env: StepTasking
+---
+
+- Features: ['duration', 't_release', 'slope', 't_drop', 'l_drop']
+- Sorting: t_release
+- Task shifting: True
+- Masking: True
+- Valid actions: False
+- Sequence encoding: one-hot
+
+Model 
+---
+```
+Model: "sequential"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+conv1d (Conv1D)              (None, 7, 50)             1350      
+_________________________________________________________________
+conv1d_1 (Conv1D)            (None, 6, 20)             2020      
+_________________________________________________________________
+flatten (Flatten)            (None, 120)               0         
+_________________________________________________________________
+dense (Dense)                (None, 8)                 968       
+=================================================================
+Total params: 4,338
+Trainable params: 4,338
+Non-trainable params: 0
+_________________________________________________________________
+```
+
+![](../images/temp/2021-02-24_09-58-54_train.png)
+
+Results
+---
+
+|            |   Excess Loss (%) |    Loss |   Runtime (s) |
+|------------|-------------------|---------|---------------|
+| BB Optimal |             0.000 | 150.115 |         0.374 |
+| NN         |             0.063 | 159.295 |         0.016 |
+
+![](../images/temp/2021-02-24_09-58-54.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 2021-03-01_14-47-51
+
+Env: StepTasking
+---
+
+- Features: ['duration', 't_release', 'slope', 't_drop', 'l_drop']
+- Sorting: t_release
+- Task shifting: True
+- Masking: True
+- Valid actions: False
+- Sequence encoding: one-hot
+
+Model 
+---
+```
+Model: "sequential"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+flatten (Flatten)            (None, 104)               0         
+_________________________________________________________________
+dense (Dense)                (None, 30)                3150      
+_________________________________________________________________
+dense_1 (Dense)              (None, 8)                 248       
+=================================================================
+Total params: 3,398
+Trainable params: 3,398
+Non-trainable params: 0
+_________________________________________________________________
+```
+
+![](../images/temp/2021-03-01_14-47-51_train.png)
+
+Results
+---
+
+
+|            |    Loss |   Runtime |
+|------------|---------|-----------|
+| BB Optimal | 146.615 |     0.343 |
+| Random     | 250.785 |     0.000 |
+| ERT        | 243.510 |     0.000 |
+| MCTS       | 161.240 |     0.020 |
+| NN         | 159.480 |     0.009 |
+![](../images/temp/2021-03-01_14-47-51.png)
+

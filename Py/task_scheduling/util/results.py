@@ -179,52 +179,40 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
                              )
 
     if solve:  # relative to B&B
-        l_ex_mean_opt = l_ex_mean['BB Optimal'].copy()
-
-        l_ex_mean_norm = l_ex_mean.copy()
         names = algorithms['name']
+
+        l_ex_mean_opt = l_ex_mean['BB Optimal'].copy()
+        l_ex_mean_rel = l_ex_mean.copy()
         for name in names:
-            l_ex_mean_norm[name] -= l_ex_mean_opt
-            l_ex_mean_norm[name] /= l_ex_mean_opt
+            l_ex_mean_rel[name] -= l_ex_mean_opt
+            # l_ex_mean_rel[name] /= l_ex_mean_opt
+
         if plotting >= 1:
-            __, ax_results_norm = plt.subplots(num='Results (Normalized)', clear=True)
-            scatter_loss_runtime(t_run_mean, l_ex_mean_norm,
-                                 ax=ax_results_norm,
-                                 ax_kwargs={'ylabel': 'Excess Loss (Normalized)',
+            __, ax_results_rel = plt.subplots(num='Results (Relative)', clear=True)
+            scatter_loss_runtime(t_run_mean, l_ex_mean_rel,
+                                 ax=ax_results_rel,
+                                 ax_kwargs={'ylabel': 'Excess Loss',
                                             # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
                                             }
                                  )
 
-            __, ax_results_norm_no_bb = plt.subplots(num='Results (Normalized, BB excluded)', clear=True)
-            scatter_loss_runtime(t_run_mean[names[1:]], l_ex_mean_norm[names[1:]],
-                                 ax=ax_results_norm_no_bb,
-                                 ax_kwargs={'ylabel': 'Excess Loss (Normalized)',
+            __, ax_results_rel_no_bb = plt.subplots(num='Results (Relative, opt excluded)', clear=True)
+            scatter_loss_runtime(t_run_mean[names[1:]], l_ex_mean_rel[names[1:]],
+                                 ax=ax_results_rel_no_bb,
+                                 ax_kwargs={'ylabel': 'Excess Loss',
                                             # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
                                             }
                                  )
 
-        if verbose >= 1:
-            _data = [[l_ex_mean_norm[name].mean(), l_ex_mean[name].mean(), t_run_mean[name].mean()]
-                     for name in algorithms['name']]
-            df = pd.DataFrame(_data, index=pd.CategoricalIndex(algorithms['name']),
-                              columns=['Excess Loss (%)', 'Loss', 'Runtime (s)'])
-            df_str = df.to_markdown(tablefmt='github', floatfmt='.3f') + '\n'
+    if verbose >= 1:
+        _data = [[l_ex_mean[name].mean(), t_run_mean[name].mean()] for name in algorithms['name']]
+        df = pd.DataFrame(_data, index=pd.CategoricalIndex(algorithms['name']), columns=['Loss', 'Runtime'])
+        df_str = '\n' + df.to_markdown(tablefmt='github', floatfmt='.3f')
 
-            print(df_str)
-            if log_path is not None:
-                with open(log_path, 'a') as fid:
-                    print(df_str, file=fid)
-
-    else:
-        if verbose >= 1:
-            _data = [[l_ex_mean[name].mean(), t_run_mean[name].mean()] for name in algorithms['name']]
-            df = pd.DataFrame(_data, index=pd.CategoricalIndex(algorithms['name']), columns=['Loss', 'Runtime'])
-            df_str = '\n' + df.to_markdown(tablefmt='github', floatfmt='.3f')
-
-            print(df_str)
-            if log_path is not None:
-                with open(log_path, 'a') as fid:
-                    print(df_str, file=fid)
+        print(df_str)
+        if log_path is not None:
+            with open(log_path, 'a') as fid:
+                print(df_str, file=fid)
 
     return l_ex_iter, t_run_iter
 
@@ -293,16 +281,16 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
                           )
 
     if solve:  # relative to B&B
-        l_ex_mean_norm = l_ex_mean.copy()
+        l_ex_mean_rel = l_ex_mean.copy()
         for name in algorithms['name']:
-            l_ex_mean_norm[name] -= l_ex_opt
-            l_ex_mean_norm[name] /= l_ex_opt
+            l_ex_mean_rel[name] -= l_ex_opt
+            # l_ex_mean_rel[name] /= l_ex_opt
 
         if plotting >= 1:
-            _, ax_results_norm = plt.subplots(num='Results (Normalized)', clear=True)
-            plot_loss_runtime(runtimes, l_ex_mean_norm, do_std=True,
-                              ax=ax_results_norm,
-                              ax_kwargs={'ylabel': 'Excess Loss (Normalized)',
+            _, ax_results_rel = plt.subplots(num='Results (Relative)', clear=True)
+            plot_loss_runtime(runtimes, l_ex_mean_rel, do_std=True,
+                              ax=ax_results_rel,
+                              ax_kwargs={'ylabel': 'Excess Loss',
                                          # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
                                          }
                               )
