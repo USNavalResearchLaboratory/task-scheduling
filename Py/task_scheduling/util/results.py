@@ -79,7 +79,7 @@ def iter_to_mean(array):    # TODO: rework eval funcs, deprecate?
                     dtype=[(name, float) for name in array.dtype.names]).reshape(array.shape)
 
 
-def evaluate_dat(algorithms, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0):
+def evaluate_dat(algorithms, problem_gen, n_gen=1, n_mc=1, train_args=None, solve=False, verbose=0, plotting=0):
     """
     Compare scheduling algorithms for numerous sets of tasks and channel availabilities.
 
@@ -111,45 +111,72 @@ def evaluate_dat(algorithms, problem_gen, n_gen=1, solve=False, verbose=0, plott
         _opt = np.array([('BB Optimal', None, 1)], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
         algorithms = np.concatenate((_opt, algorithms))
 
-    _array_iter = np.array([tuple([np.nan] * alg['n_iter'] for alg in algorithms)] * n_gen,
+    _array_iter = np.array([[tuple([np.nan] * alg['n_iter'] for alg in algorithms)] * n_gen] * n_mc,
                            dtype=[(alg['name'], float, (alg['n_iter'],)) for alg in algorithms])
 
     l_ex_iter = _array_iter.copy()
     t_run_iter = _array_iter.copy()
 
-    # Generate scheduling problems
-    for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose)):
-        if solve:
-            (tasks, ch_avail), solution_opt = out_gen
+    if train_args is None:
+        train_args = {'n_batch_train': 0, 'n_batch_val': 0, 'batch_size': 0}
+
+    if isinstance(problem_gen, Dataset):
+        n_gen_train = (train_args['n_batch_train'] + train_args['n_batch_val']) * train_args['batch_size']
+        n_gen_total = n_gen + n_gen_train
+        if problem_gen.repeat:
+            if n_gen_total > problem_gen.n_problems:
+                raise ValueError("Dataset cannot generate enough unique problems.")
         else:
-            tasks, ch_avail = out_gen
-            solution_opt = None
+            if n_gen_total * n_mc > problem_gen.n_problems:
+                raise ValueError("Dataset cannot generate enough problems.")
 
-        for name, func, n_iter in algorithms:
-            for iter_ in range(n_iter):  # perform new algorithm runs
-                if verbose >= 2:
-                    print(f'  {name} ({iter_ + 1}/{n_iter})', end='\r')
+    reuse_data = isinstance(problem_gen, Dataset) and problem_gen.repeat
 
-                # Run algorithm
-                if name == 'BB Optimal':
-                    t_ex, ch_ex, t_run = solution_opt
-                else:
-                    t_ex, ch_ex, t_run = timing_wrapper(func)(tasks, ch_avail)
+    # Generate scheduling problems
+    for i_mc in range(n_mc):
+        print(f"MC iteration {i_mc + 1}/{n_mc}")
 
-                # Evaluate schedule
-                check_schedule(tasks, t_ex, ch_ex)
-                l_ex = evaluate_schedule(tasks, t_ex)
+        if reuse_data:
+            problem_gen.shuffle()  # random train/test split
 
-                l_ex_iter[name][i_gen, iter_] = l_ex
-                t_run_iter[name][i_gen, iter_] = t_run
+        # Reset/train supervised learner
+        for alg in algorithms:      # FIXME: ensure same data is used for each training op
+            if 'NN' in alg['name']:
+                reset_weights(alg['func'].model)
+                alg['func'].learn(**train_args)  # note: calls `problem_gen` via environment reset
 
-                if plotting >= 2:
-                    plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, name=name, ax=None)
+        for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose)):
+            if solve:
+                (tasks, ch_avail), solution_opt = out_gen
+            else:
+                tasks, ch_avail = out_gen
+                solution_opt = None
 
-        if plotting >= 1:
-            _, ax_gen = plt.subplots(2, 1, num=f'Scheduling Problem: {i_gen + 1}', clear=True)
-            plot_task_losses(tasks, ax=ax_gen[0])
-            scatter_loss_runtime(t_run_iter[i_gen], l_ex_iter[i_gen], ax=ax_gen[1])
+            for name, func, n_iter in algorithms:
+                for iter_ in range(n_iter):  # perform new algorithm runs
+                    if verbose >= 2:
+                        print(f'  {name} ({iter_ + 1}/{n_iter})', end='\r')
+
+                    # Run algorithm
+                    if name == 'BB Optimal':
+                        t_ex, ch_ex, t_run = solution_opt
+                    else:
+                        t_ex, ch_ex, t_run = timing_wrapper(func)(tasks, ch_avail)
+
+                    # Evaluate schedule
+                    check_schedule(tasks, t_ex, ch_ex)
+                    l_ex = evaluate_schedule(tasks, t_ex)
+
+                    l_ex_iter[name][i_mc, i_gen, iter_] = l_ex
+                    t_run_iter[name][i_mc, i_gen, iter_] = t_run
+
+                    if plotting >= 2:
+                        plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, name=name, ax=None)
+
+            if plotting >= 1:
+                _, ax_gen = plt.subplots(2, 1, num=f'Scheduling Problem: {i_gen + 1}', clear=True)
+                plot_task_losses(tasks, ax=ax_gen[0])
+                scatter_loss_runtime(t_run_iter[i_mc, i_gen], l_ex_iter[i_mc, i_gen], ax=ax_gen[1])
 
     return l_ex_iter, t_run_iter
 
@@ -186,7 +213,8 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
 
     # TODO: change default behavior?
 
-    l_ex_iter, t_run_iter = evaluate_dat(algorithms, problem_gen, n_gen, solve, verbose, plotting - 1)
+    l_ex_iter, t_run_iter = evaluate_dat(algorithms, problem_gen, n_gen, 1, None, solve, verbose, plotting - 1)
+    # l_ex_iter, t_run_iter = evaluate_dat(algorithms, problem_gen, n_gen, solve, verbose, plotting - 1)
     l_ex_mean, t_run_mean = map(iter_to_mean, (l_ex_iter, t_run_iter))
 
     # Results
