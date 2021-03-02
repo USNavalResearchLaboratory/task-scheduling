@@ -12,20 +12,18 @@ from tensorflow import keras
 from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime, iter_to_mean
 from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix, reset_weights
 from task_scheduling.generators import scheduling_problems as problem_gens
-from task_scheduling import algorithms as algs
-from task_scheduling import learning
+from task_scheduling.algorithms import free as free
+from task_scheduling.learning import SL_policy
 from task_scheduling.learning import environments as envs
 from task_scheduling.util.plot import plot_task_losses, plot_schedule, scatter_loss_runtime, plot_loss_runtime
 from task_scheduling.learning.features import param_features, encode_discrete_features
 from tests import seq_num_encoding
 
-# TODO: reconsider init imports - dont want TF overhead if unneeded?
-
-plt.style.use('seaborn')
-# plt.rc('axes', grid=True)
 
 np.set_printoptions(precision=3)
 pd.options.display.float_format = '{:,.3f}'.format
+plt.style.use('seaborn')
+# plt.rc('axes', grid=True)
 
 for device in tf.config.experimental.list_physical_devices('GPU'):
     tf.config.experimental.set_memory_growth(device, True)      # TODO: compatibility issue workaround
@@ -110,7 +108,7 @@ model = keras.Sequential([keras.Input(shape=env.observation_space.shape),
                           ])
 model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
-policy_model = learning.SL_policy.SupervisedLearningScheduler(model, env)
+policy_model = SL_policy.SupervisedLearningScheduler(model, env)
 
 
 train_args = {'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
@@ -123,9 +121,9 @@ train_args = {'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
 
 algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
-    ('Random', partial(algs.free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
-    ('ERT', algs.free.earliest_release, 1),
-    ('MCTS', partial(algs.free.mcts, n_mc=50, rng=RNGMix.make_rng(seed)), 10),
+    ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
+    ('ERT', free.earliest_release, 1),
+    ('MCTS', partial(free.mcts, n_mc=50, rng=RNGMix.make_rng(seed)), 10),
     ('NN', policy_model, 1),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
@@ -165,7 +163,7 @@ algorithms = np.array([
 #     algorithms['func'][_idx].learn(**train_args)
 #
 #     # Evaluate performance
-#     l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
+#     l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
 #                                                 data_path=None, log_path=None)
 #
 #     l_ex_mean, t_run_mean = map(iter_to_mean, (l_ex_iter, t_run_iter))

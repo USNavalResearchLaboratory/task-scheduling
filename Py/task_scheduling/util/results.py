@@ -75,8 +75,8 @@ def evaluate_schedule(tasks, t_ex):
 
 
 def iter_to_mean(array):    # TODO: rework eval funcs, deprecate?
-    return np.array([tuple(map(np.mean, item)) for item in array],
-                    dtype=[(name, float) for name in array.dtype.names])
+    return np.array([tuple(map(np.mean, item)) for item in array.flatten()],
+                    dtype=[(name, float) for name in array.dtype.names]).reshape(array.shape)
 
 
 def evaluate_dat(algorithms, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0):
@@ -126,11 +126,9 @@ def evaluate_dat(algorithms, problem_gen, n_gen=1, solve=False, verbose=0, plott
             solution_opt = None
 
         for name, func, n_iter in algorithms:
-            if verbose >= 2:
-                print(f'  {name}', end='\n')
             for iter_ in range(n_iter):  # perform new algorithm runs
                 if verbose >= 2:
-                    print(f'    Iteration: {iter_ + 1}/{n_iter}', end='\r')
+                    print(f'  {name} ({iter_ + 1}/{n_iter})', end='\r')
 
                 # Run algorithm
                 if name == 'BB Optimal':
@@ -186,10 +184,22 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
 
     """
 
+    # TODO: change default behavior?
+
     l_ex_iter, t_run_iter = evaluate_dat(algorithms, problem_gen, n_gen, solve, verbose, plotting - 1)
     l_ex_mean, t_run_mean = map(iter_to_mean, (l_ex_iter, t_run_iter))
 
     # Results
+    if verbose >= 1:
+        _data = [[l_ex_mean[name].mean(), t_run_mean[name].mean()] for name in algorithms['name']]
+        df = pd.DataFrame(_data, index=pd.CategoricalIndex(algorithms['name']), columns=['Loss', 'Runtime'])
+        df_str = '\n' + df.to_markdown(tablefmt='github', floatfmt='.3f')
+
+        print(df_str)
+        if log_path is not None:
+            with open(log_path, 'a') as fid:
+                print(df_str, file=fid)
+
     if plotting >= 1:
         __, ax_results = plt.subplots(num='Results', clear=True)
         scatter_loss_runtime(t_run_mean, l_ex_mean,
@@ -198,12 +208,10 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
                              )
 
     if solve:  # relative to B&B
-        names = algorithms['name']
-
-        l_ex_mean_opt = l_ex_mean['BB Optimal'].copy()
         l_ex_mean_rel = l_ex_mean.copy()
-        for name in names:
-            l_ex_mean_rel[name] -= l_ex_mean_opt
+        l_ex_mean_rel['BB Optimal'] = 0.
+        for name in algorithms['name']:
+            l_ex_mean_rel[name] -= l_ex_mean['BB Optimal']
             # l_ex_mean_rel[name] /= l_ex_mean_opt
 
         if plotting >= 1:
@@ -216,24 +224,14 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
                                  )
 
             __, ax_results_rel_no_bb = plt.subplots(num='Results (Relative, opt excluded)', clear=True)
-            scatter_loss_runtime(t_run_mean[names[1:]], l_ex_mean_rel[names[1:]],
+            scatter_loss_runtime(t_run_mean[algorithms['name']], l_ex_mean_rel[algorithms['name']],
                                  ax=ax_results_rel_no_bb,
                                  ax_kwargs={'ylabel': 'Excess Loss',
                                             # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
                                             }
                                  )
 
-    if verbose >= 1:
-        _data = [[l_ex_mean[name].mean(), t_run_mean[name].mean()] for name in algorithms['name']]
-        df = pd.DataFrame(_data, index=pd.CategoricalIndex(algorithms['name']), columns=['Loss', 'Runtime'])
-        df_str = '\n' + df.to_markdown(tablefmt='github', floatfmt='.3f')
-
-        print(df_str)
-        if log_path is not None:
-            with open(log_path, 'a') as fid:
-                print(df_str, file=fid)
-
-    return l_ex_iter, t_run_iter
+    return l_ex_mean, t_run_mean
 
 
 def evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=1, n_mc=1, solve=False, verbose=0, plotting=0,
@@ -260,16 +258,18 @@ def evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=1, n_mc
         print(f"MC iteration {i_mc + 1}/{n_mc}")
 
         if reuse_data:
-            problem_gen.shuffle()
+            problem_gen.shuffle()  # random train/test split
 
         # Reset/train supervised learner
         _idx = algorithms['name'].tolist().index('NN')
         reset_weights(algorithms['func'][_idx].model)
-        algorithms['func'][_idx].learn(**train_args)
+        algorithms['func'][_idx].learn(**train_args)  # note: calls `problem_gen` via environment reset
 
         # Evaluate performance
-        l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
-                                                    data_path=None, log_path=None)
+        l_ex_iter, t_run_iter = evaluate_dat(algorithms, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0)
+        # l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
+        #                                             log_path=None)
+
 
         l_ex_mean, t_run_mean = map(iter_to_mean, (l_ex_iter, t_run_iter))
 
