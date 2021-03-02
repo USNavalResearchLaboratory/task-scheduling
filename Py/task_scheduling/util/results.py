@@ -190,16 +190,6 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
     l_ex_mean, t_run_mean = map(iter_to_mean, (l_ex_iter, t_run_iter))
 
     # Results
-    if verbose >= 1:
-        _data = [[l_ex_mean[name].mean(), t_run_mean[name].mean()] for name in algorithms['name']]
-        df = pd.DataFrame(_data, index=pd.CategoricalIndex(algorithms['name']), columns=['Loss', 'Runtime'])
-        df_str = '\n' + df.to_markdown(tablefmt='github', floatfmt='.3f')
-
-        print(df_str)
-        if log_path is not None:
-            with open(log_path, 'a') as fid:
-                print(df_str, file=fid)
-
     if plotting >= 1:
         __, ax_results = plt.subplots(num='Results', clear=True)
         scatter_loss_runtime(t_run_mean, l_ex_mean,
@@ -231,11 +221,21 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
                                             }
                                  )
 
+    if verbose >= 1:    # TODO: move calc to _train func?
+        _data = [[l_ex_mean[name].mean(), t_run_mean[name].mean()] for name in algorithms['name']]
+        df = pd.DataFrame(_data, index=pd.CategoricalIndex(algorithms['name']), columns=['Loss', 'Runtime'])
+        df_str = '\n' + df.to_markdown(tablefmt='github', floatfmt='.3f')
+
+        print(df_str)
+        if log_path is not None:
+            with open(log_path, 'a') as fid:
+                print(df_str, file=fid)
+
     return l_ex_mean, t_run_mean
 
 
 def evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=1, n_mc=1, solve=False, verbose=0, plotting=0,
-                              data_path=None, log_path=None):
+                              log_path=None):
 
     if isinstance(problem_gen, Dataset):
         n_gen_train = (train_args['n_batch_train'] + train_args['n_batch_val']) * train_args['batch_size']
@@ -247,11 +247,12 @@ def evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=1, n_mc
             if n_gen_total * n_mc > problem_gen.n_problems:
                 raise ValueError("Dataset cannot generate enough problems.")
 
-    _array = np.array([(np.nan,) * len(algorithms)] * n_mc, dtype=[(alg['name'], float) for alg in algorithms])
+    _array = np.array([[(np.nan,) * len(algorithms)] * n_gen] * n_mc,
+                      dtype=[(alg['name'], float) for alg in algorithms])
 
     l_ex_mc = _array.copy()
     t_run_mc = _array.copy()
-    l_ex_mc_rel = _array.copy()
+    # l_ex_mc_rel = _array.copy()
 
     reuse_data = isinstance(problem_gen, Dataset) and problem_gen.repeat
     for i_mc in range(n_mc):
@@ -266,12 +267,14 @@ def evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=1, n_mc
         algorithms['func'][_idx].learn(**train_args)  # note: calls `problem_gen` via environment reset
 
         # Evaluate performance
-        l_ex_iter, t_run_iter = evaluate_dat(algorithms, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0)
-        # l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
-        #                                             log_path=None)
 
+        # l_ex_iter, t_run_iter = evaluate_dat(algorithms, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0)
+        # l_ex_mean, t_run_mean = map(iter_to_mean, (l_ex_iter, t_run_iter))
 
-        l_ex_mean, t_run_mean = map(iter_to_mean, (l_ex_iter, t_run_iter))
+        l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen, solve, verbose, plotting, log_path)
+
+        l_ex_mc[i_mc] = l_ex_mean
+        t_run_mc[i_mc] = t_run_mean
 
         l_ex_mean_opt = l_ex_mean['BB Optimal'].copy()
         l_ex_mean_rel = l_ex_mean.copy()
@@ -292,6 +295,7 @@ def evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=1, n_mc
                              )
 
 
+#%% Runtime limited operation
 def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0,
                                 save_path=None):
     # if solve:
@@ -317,12 +321,8 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
             tasks, ch_avail = out_gen
 
         for name, func, n_iter in algorithms:
-            # if verbose >= 2:
-            #     print(f'  {name}', end='\n')
-
             for iter_ in range(n_iter):  # perform new algorithm runs
                 if verbose >= 2:
-                    # print(f'    Iteration: {iter_ + 1}/{n_iter}', end='\r')
                     print(f'  {name}: Iteration: {iter_ + 1}/{n_iter}', end='\r')
 
                 # Evaluate schedule
