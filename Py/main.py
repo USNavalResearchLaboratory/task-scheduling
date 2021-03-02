@@ -39,7 +39,7 @@ seed = 12345
 
 # %% Define scheduling problem and algorithms
 
-n_gen = 2
+n_gen = 100
 
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=seed)
@@ -172,8 +172,8 @@ with open(log_path, 'a') as fid:
         print(f"\n![](../{train_path}.png)\n", file=fid)
     print('Results\n---\n', file=fid)
 
-l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=2,
-                                            data_path=None, log_path=log_path)
+l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
+                                            log_path=log_path)
 
 # plt.figure('Results (Relative)').savefig(image_path)
 plt.figure('Results (Relative, opt excluded)').savefig(image_path)

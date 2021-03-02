@@ -4,7 +4,7 @@ import numpy as np
 
 from task_scheduling.tree_search import TreeNode, TreeNodeShift, TreeNodeBound
 from task_scheduling.algorithms.free import branch_bound
-from task_scheduling.util.results import eval_loss
+from task_scheduling.util.results import evaluate_schedule
 from task_scheduling.generators import scheduling_problems as problem_gens, tasks as task_gens
 
 # TODO: use proper testing w/ builtin module
@@ -21,7 +21,7 @@ def test_argsort(problem_gen, n_iter=1):
 
         (tasks, ch_avail), = problem_gen(1)
         t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True, rng=None)
-        loss = eval_loss(tasks, t_ex)
+        loss = evaluate_schedule(tasks, t_ex)
 
         seq_sort = np.argsort(t_ex)
         node_sort = TreeNode(tasks, ch_avail, seq_sort)

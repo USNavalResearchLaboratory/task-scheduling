@@ -10,7 +10,7 @@ import tensorflow as tf
 from tensorflow import keras
 
 from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime, iter_to_mean
-from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix
+from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix, reset_weights
 from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling import algorithms as algs
 from task_scheduling import learning
@@ -43,7 +43,7 @@ seed = 12345
 
 #%% Define scheduling problem and algorithms
 
-n_mc = 2
+n_mc = 10
 n_gen = 100
 
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=rng)
@@ -133,69 +133,57 @@ algorithms = np.array([
 
 #%% Evaluate and record results
 
-def reset_weights(model_):      # from https://github.com/keras-team/keras/issues/341#issuecomment-539198392
-    for layer in model_.layers:
-        if isinstance(layer, tf.keras.Model):
-            reset_weights(layer)
-        else:
-            for key, initializer in layer.__dict__.items():
-                if "initializer" in key:
-                    # find the corresponding variable
-                    var = getattr(layer, key.replace("_initializer", ""))
-                    var.assign(initializer(var.shape, var.dtype))
-
-
-reuse_data = isinstance(problem_gen, problem_gens.Dataset) and problem_gen.repeat
-if isinstance(problem_gen, problem_gens.Dataset):
-    n_gen_train = (train_args['n_batch_train'] + train_args['n_batch_val']) * train_args['batch_size']
-    n_gen_total = n_gen + n_gen_train
-    if problem_gen.repeat:
-        if n_gen_total > problem_gen.n_problems:
-            raise ValueError("Dataset cannot generate enough unique problems.")
-    else:
-        if n_gen_total * n_mc > problem_gen.n_problems:
-            raise ValueError("Dataset cannot generate enough unique problems.")
-
-_args_mc = {'object': [(np.nan,) * len(algorithms)] * n_mc,
-            'dtype': [(alg['name'], float) for alg in algorithms]}
-
-l_ex_mc = np.array(**_args_mc)
-t_run_mc = np.array(**_args_mc)
-l_ex_mc_rel = np.array(**_args_mc)
-
-# TODO: clean-up, refactor as new `evaluate_algorithms_mc` func?!
-
-for i_mc in range(n_mc):
-    print(f"MC iteration {i_mc + 1}/{n_mc}")
-
-    if reuse_data:
-        problem_gen.shuffle()
-
-    # Reset/train supervised learner
-    reset_weights(model)
-    _idx = algorithms['name'].tolist().index('NN')
-    algorithms['func'][_idx].learn(**train_args)
-
-    # Evaluate performance
-    l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
-                                                data_path=None, log_path=None)
-
-    l_ex_mean, t_run_mean = map(iter_to_mean, (l_ex_iter, t_run_iter))
-
-    l_ex_mean_opt = l_ex_mean['BB Optimal'].copy()
-    l_ex_mean_rel = l_ex_mean.copy()
-    for name in algorithms['name']:
-        l_ex_mc[name][i_mc] = l_ex_mean[name].mean()
-        t_run_mc[name][i_mc] = t_run_mean[name].mean()
-
-        l_ex_mean_rel[name] -= l_ex_mean_opt
-        l_ex_mc_rel[name][i_mc] = l_ex_mean_rel[name].mean()
-
-    # Plot
-    __, ax_results_rel = plt.subplots(num='Results MC (Relative)', clear=True)
-    scatter_loss_runtime(t_run_mc, l_ex_mc_rel,
-                         ax=ax_results_rel,
-                         ax_kwargs={'ylabel': 'Excess Loss',
-                                    # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
-                                    }
-                         )
+# if isinstance(problem_gen, problem_gens.Dataset):
+#     n_gen_train = (train_args['n_batch_train'] + train_args['n_batch_val']) * train_args['batch_size']
+#     n_gen_total = n_gen + n_gen_train
+#     if problem_gen.repeat:
+#         if n_gen_total > problem_gen.n_problems:
+#             raise ValueError("Dataset cannot generate enough unique problems.")
+#     else:
+#         if n_gen_total * n_mc > problem_gen.n_problems:
+#             raise ValueError("Dataset cannot generate enough problems.")
+#
+#
+# _array = np.array([(np.nan,) * len(algorithms)] * n_mc, dtype=[(alg['name'], float) for alg in algorithms])
+#
+# l_ex_mc = _array.copy()
+# t_run_mc = _array.copy()
+# l_ex_mc_rel = _array.copy()
+#
+# # TODO: clean-up, refactor as new `evaluate_algorithms_mc` func?!
+#
+# reuse_data = isinstance(problem_gen, problem_gens.Dataset) and problem_gen.repeat
+# for i_mc in range(n_mc):
+#     print(f"MC iteration {i_mc + 1}/{n_mc}")
+#
+#     if reuse_data:
+#         problem_gen.shuffle()
+#
+#     # Reset/train supervised learner
+#     _idx = algorithms['name'].tolist().index('NN')
+#     reset_weights(algorithms['func'][_idx].model)
+#     algorithms['func'][_idx].learn(**train_args)
+#
+#     # Evaluate performance
+#     l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
+#                                                 data_path=None, log_path=None)
+#
+#     l_ex_mean, t_run_mean = map(iter_to_mean, (l_ex_iter, t_run_iter))
+#
+#     l_ex_mean_opt = l_ex_mean['BB Optimal'].copy()
+#     l_ex_mean_rel = l_ex_mean.copy()
+#     for name in algorithms['name']:
+#         l_ex_mc[name][i_mc] = l_ex_mean[name].mean()
+#         t_run_mc[name][i_mc] = t_run_mean[name].mean()
+#
+#         l_ex_mean_rel[name] -= l_ex_mean_opt
+#         l_ex_mc_rel[name][i_mc] = l_ex_mean_rel[name].mean()
+#
+#     # Plot
+#     __, ax_results_rel = plt.subplots(num='Results MC (Relative)', clear=True)
+#     scatter_loss_runtime(t_run_mc, l_ex_mc_rel,
+#                          ax=ax_results_rel,
+#                          ax_kwargs={'ylabel': 'Excess Loss',
+#                                     # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
+#                                     }
+#                          )

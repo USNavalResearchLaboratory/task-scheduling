@@ -5,7 +5,7 @@ import numpy as np
 from task_scheduling.tree_search import TreeNode, TreeNodeBound
 from task_scheduling.algorithms.free import branch_bound_with_stats
 from task_scheduling.generators import scheduling_problems as problem_gens, tasks as task_gens
-from task_scheduling.util.results import eval_loss
+from task_scheduling.util.results import evaluate_schedule
 
 np.set_printoptions(precision=3)
 

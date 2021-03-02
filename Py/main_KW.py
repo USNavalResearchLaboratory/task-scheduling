@@ -22,7 +22,7 @@ from scheduling_algorithms import stats2nnXY
 np.set_printoptions(linewidth=300) # Set printing to avoid line wrapping when displaying 2D array
 
 from task_scheduling.util.generic import algorithm_repr, check_rng
-from task_scheduling.util.results import check_valid, eval_loss
+from task_scheduling.util.results import check_schedule, evaluate_schedule
 from task_scheduling.util.plot import plot_task_losses, scatter_loss_runtime
 
 from task_scheduling.generators.scheduling_problems import ReluDrop
@@ -124,8 +124,8 @@ for i_gen in range(n_gen):      # Generate new tasks
 
             t_run = time.time() - t_start
 
-            check_valid(tasks, t_ex, ch_ex)
-            l_ex = eval_loss(tasks, t_ex)
+            check_schedule(tasks, t_ex, ch_ex)
+            l_ex = evaluate_schedule(tasks, t_ex)
 
             t_run_iter[alg_repr][i_gen, i_run] = t_run
             l_ex_iter[alg_repr][i_gen, i_run] = l_ex
