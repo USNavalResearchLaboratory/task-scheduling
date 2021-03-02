@@ -10,6 +10,7 @@ import tensorflow as tf
 from tensorflow import keras
 
 from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime, iter_to_mean
+from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix
 from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling import algorithms as algs
 from task_scheduling import learning
@@ -122,9 +123,9 @@ train_args = {'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
 
 algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
-    ('Random', partial(algs.free.random_sequencer, rng=seed), 10),
+    ('Random', partial(algs.free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
     ('ERT', algs.free.earliest_release, 1),
-    ('MCTS', partial(algs.free.mcts, n_mc=50, rng=seed), 10),
+    ('MCTS', partial(algs.free.mcts, n_mc=50, rng=RNGMix.make_rng(seed)), 10),
     ('NN', policy_model, 1),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
@@ -145,10 +146,15 @@ def reset_weights(model_):      # from https://github.com/keras-team/keras/issue
 
 
 reuse_data = isinstance(problem_gen, problem_gens.Dataset) and problem_gen.repeat
-if reuse_data:
+if isinstance(problem_gen, problem_gens.Dataset):
     n_gen_train = (train_args['n_batch_train'] + train_args['n_batch_val']) * train_args['batch_size']
-    if n_gen + n_gen_train > problem_gen.n_problems:
-        raise ValueError("Dataset cannot generate enough unique problems.")
+    n_gen_total = n_gen + n_gen_train
+    if problem_gen.repeat:
+        if n_gen_total > problem_gen.n_problems:
+            raise ValueError("Dataset cannot generate enough unique problems.")
+    else:
+        if n_gen_total * n_mc > problem_gen.n_problems:
+            raise ValueError("Dataset cannot generate enough unique problems.")
 
 _args_mc = {'object': [(np.nan,) * len(algorithms)] * n_mc,
             'dtype': [(alg['name'], float) for alg in algorithms]}
