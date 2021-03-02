@@ -2,8 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from task_scheduling.util.generic import timing_wrapper
+from task_scheduling.util.generic import timing_wrapper, reset_weights
 from task_scheduling.util.plot import plot_task_losses, plot_schedule, scatter_loss_runtime, plot_loss_runtime
+from task_scheduling.generators.scheduling_problems import Dataset
 
 
 # logging.basicConfig(level=logging.INFO,       # TODO: logging?
@@ -217,6 +218,138 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
     return l_ex_iter, t_run_iter
 
 
+def evaluate_algorithms_mc(algorithms, problem_gen, n_mc=1, n_gen=1, train_args=None, solve=False, verbose=0,
+                           plotting=0, data_path=None, log_path=None):
+
+    if solve:
+        _opt = np.array([('BB Optimal', None, 1)], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
+        algorithms = np.concatenate((_opt, algorithms))
+
+    _array_iter = np.array([tuple([np.nan] * alg['n_iter'] for alg in algorithms)] * n_gen,
+                           dtype=[(alg['name'], float, (alg['n_iter'],)) for alg in algorithms])
+
+    _array_mean = np.array([(np.nan,) * len(algorithms)] * n_gen, dtype=[(alg['name'], float) for alg in algorithms])
+
+    l_ex_iter = _array_iter.copy()
+    l_ex_mean = _array_mean.copy()
+
+    t_run_iter = _array_iter.copy()
+    t_run_mean = _array_mean.copy()
+
+    reuse_data = isinstance(problem_gen, Dataset) and problem_gen.repeat
+    if isinstance(problem_gen, Dataset):
+        n_gen_train = (train_args['n_batch_train'] + train_args['n_batch_val']) * train_args['batch_size']
+        n_gen_total = n_gen + n_gen_train
+        if problem_gen.repeat:
+            if n_gen_total > problem_gen.n_problems:
+                raise ValueError("Dataset cannot generate enough unique problems.")
+        else:
+            if n_gen_total * n_mc > problem_gen.n_problems:
+                raise ValueError("Dataset cannot generate enough unique problems.")
+
+    # Generate scheduling problems
+    for i_mc in range(n_mc):
+        print(f"MC iteration {i_mc + 1}/{n_mc}")
+
+        if reuse_data:
+            problem_gen.shuffle()  # random train/test split
+
+        # Reset/train supervised learner
+        learner = algorithms['func'][algorithms['name'].tolist().index('NN')]
+        reset_weights(learner.model)
+        learner.learn(**train_args)
+
+        for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose, data_path)):
+            if solve:
+                (tasks, ch_avail), solution_opt = out_gen
+            else:
+                tasks, ch_avail = out_gen
+                solution_opt = None
+
+            for name, func, n_iter in algorithms:
+                if verbose >= 2:
+                    print(f'  {name}', end='\n')
+                for iter_ in range(n_iter):  # perform new algorithm runs
+                    if verbose >= 3:
+                        print(f'    Iteration: {iter_ + 1}/{n_iter}', end='\r')
+
+                    # Run algorithm
+                    if name == 'BB Optimal':
+                        t_ex, ch_ex, t_run = solution_opt
+                    else:
+                        t_ex, ch_ex, t_run = timing_wrapper(func)(tasks, ch_avail)
+
+                    # Evaluate schedule
+                    check_valid(tasks, t_ex, ch_ex)
+                    l_ex = eval_loss(tasks, t_ex)
+
+                    l_ex_iter[name][i_gen, iter_] = l_ex
+                    t_run_iter[name][i_gen, iter_] = t_run
+
+                    if plotting >= 3:
+                        plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, name=name, ax=None)
+
+                l_ex_mean[name][i_gen] = l_ex_iter[name][i_gen].mean()
+                t_run_mean[name][i_gen] = t_run_iter[name][i_gen].mean()
+
+                if verbose >= 2:
+                    print(f"    Avg. Loss: {l_ex_mean[name][i_gen]:.3f}"
+                          f"\n    Avg. Runtime: {t_run_mean[name][i_gen]:.3f} (s)")
+
+            if plotting >= 2:
+                _, ax_gen = plt.subplots(2, 1, num=f'Scheduling Problem: {i_gen + 1}', clear=True)
+                plot_task_losses(tasks, ax=ax_gen[0])
+                scatter_loss_runtime(t_run_iter[i_gen], l_ex_iter[i_gen], ax=ax_gen[1])
+
+    # Results
+    if plotting >= 1:
+        __, ax_results = plt.subplots(num='Results', clear=True)
+        scatter_loss_runtime(t_run_mean, l_ex_mean,
+                             ax=ax_results,
+                             # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
+                             )
+
+    if solve:  # relative to B&B
+        names = algorithms['name']
+
+        l_ex_mean_opt = l_ex_mean['BB Optimal'].copy()
+        l_ex_mean_rel = l_ex_mean.copy()
+        for name in names:
+            l_ex_mean_rel[name] -= l_ex_mean_opt
+            # l_ex_mean_rel[name] /= l_ex_mean_opt
+
+        if plotting >= 1:
+            __, ax_results_rel = plt.subplots(num='Results (Relative)', clear=True)
+            scatter_loss_runtime(t_run_mean, l_ex_mean_rel,
+                                 ax=ax_results_rel,
+                                 ax_kwargs={'ylabel': 'Excess Loss',
+                                            # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
+                                            }
+                                 )
+
+            __, ax_results_rel_no_bb = plt.subplots(num='Results (Relative, opt excluded)', clear=True)
+            scatter_loss_runtime(t_run_mean[names[1:]], l_ex_mean_rel[names[1:]],
+                                 ax=ax_results_rel_no_bb,
+                                 ax_kwargs={'ylabel': 'Excess Loss',
+                                            # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
+                                            }
+                                 )
+
+    if verbose >= 1:
+        _data = [[l_ex_mean[name].mean(), t_run_mean[name].mean()] for name in algorithms['name']]
+        df = pd.DataFrame(_data, index=pd.CategoricalIndex(algorithms['name']), columns=['Loss', 'Runtime'])
+        df_str = '\n' + df.to_markdown(tablefmt='github', floatfmt='.3f')
+
+        print(df_str)
+        if log_path is not None:
+            with open(log_path, 'a') as fid:
+                print(df_str, file=fid)
+
+    return l_ex_iter, t_run_iter
+
+
+
+#%% Runtime-limited operation
 def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0,
                                 save_path=None):
     # if solve:

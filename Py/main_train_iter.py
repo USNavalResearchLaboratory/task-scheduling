@@ -1,6 +1,5 @@
 from functools import partial
 from time import strftime
-from copy import deepcopy
 
 import numpy as np
 import pandas as pd
@@ -9,15 +8,13 @@ from matplotlib import pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
 
-from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime, iter_to_mean
-from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix
+from task_scheduling.util.results import evaluate_algorithms, iter_to_mean
+from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix, reset_weights
 from task_scheduling.generators import scheduling_problems as problem_gens
-from task_scheduling import algorithms as algs
-from task_scheduling import learning
+from task_scheduling.algorithms import free
+from task_scheduling.learning.SL_policy import SupervisedLearningScheduler
 from task_scheduling.learning import environments as envs
-from task_scheduling.util.plot import plot_task_losses, plot_schedule, scatter_loss_runtime, plot_loss_runtime
-from task_scheduling.learning.features import param_features, encode_discrete_features
-from tests import seq_num_encoding
+from task_scheduling.util.plot import scatter_loss_runtime
 
 # TODO: reconsider init imports - dont want TF overhead if unneeded?
 
@@ -110,7 +107,7 @@ model = keras.Sequential([keras.Input(shape=env.observation_space.shape),
                           ])
 model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
-policy_model = learning.SL_policy.SupervisedLearningScheduler(model, env)
+policy_model = SupervisedLearningScheduler(model, env)
 
 
 train_args = {'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
@@ -123,27 +120,15 @@ train_args = {'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
 
 algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
-    ('Random', partial(algs.free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
-    ('ERT', algs.free.earliest_release, 1),
-    ('MCTS', partial(algs.free.mcts, n_mc=50, rng=RNGMix.make_rng(seed)), 10),
+    ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
+    ('ERT', free.earliest_release, 1),
+    ('MCTS', partial(free.mcts, n_mc=50, rng=RNGMix.make_rng(seed)), 10),
     ('NN', policy_model, 1),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
 
 
 #%% Evaluate and record results
-
-def reset_weights(model_):      # from https://github.com/keras-team/keras/issues/341#issuecomment-539198392
-    for layer in model_.layers:
-        if isinstance(layer, tf.keras.Model):
-            reset_weights(layer)
-        else:
-            for key, initializer in layer.__dict__.items():
-                if "initializer" in key:
-                    # find the corresponding variable
-                    var = getattr(layer, key.replace("_initializer", ""))
-                    var.assign(initializer(var.shape, var.dtype))
-
 
 reuse_data = isinstance(problem_gen, problem_gens.Dataset) and problem_gen.repeat
 if isinstance(problem_gen, problem_gens.Dataset):
@@ -172,9 +157,9 @@ for i_mc in range(n_mc):
         problem_gen.shuffle()
 
     # Reset/train supervised learner
-    reset_weights(model)
-    _idx = algorithms['name'].tolist().index('NN')
-    algorithms['func'][_idx].learn(**train_args)
+    learner = algorithms['func'][algorithms['name'].tolist().index('NN')]
+    reset_weights(learner.model)
+    learner.learn(**train_args)
 
     # Evaluate performance
     l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,

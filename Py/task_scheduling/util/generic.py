@@ -6,6 +6,7 @@ from pathlib import Path
 from time import perf_counter
 
 import numpy as np
+import tensorflow as tf
 
 _cwd = Path.cwd()
 data_path = _cwd / 'data'
@@ -173,3 +174,15 @@ def num2seq(num, length, check_input=True):
         seq.append(n)
 
     return tuple(seq)
+
+
+def reset_weights(model):      # from https://github.com/keras-team/keras/issues/341#issuecomment-539198392
+    for layer in model.layers:
+        if isinstance(layer, tf.keras.Model):
+            reset_weights(layer)
+        else:
+            for key, initializer in layer.__dict__.items():
+                if "initializer" in key:
+                    # find the corresponding variable
+                    var = getattr(layer, key.replace("_initializer", ""))
+                    var.assign(initializer(var.shape, var.dtype))

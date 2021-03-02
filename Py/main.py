@@ -12,8 +12,8 @@ from tensorflow import keras
 from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime
 from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix
 from task_scheduling.generators import scheduling_problems as problem_gens
-from task_scheduling import algorithms as algs
-from task_scheduling import learning
+from task_scheduling.algorithms import free
+from task_scheduling.learning.SL_policy import SupervisedLearningScheduler
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.features import param_features, encode_discrete_features
 from tests import seq_num_encoding
@@ -39,7 +39,7 @@ seed = 12345
 
 # %% Define scheduling problem and algorithms
 
-n_gen = 2
+n_gen = 100
 
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=seed)
@@ -128,8 +128,8 @@ SL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_par
            'save': False, 'save_path': None,
            'seed': seed,
            }
-# policy_model = learning.SL_policy.SupervisedLearningScheduler.train_from_gen(**SL_args)
-# policy_model = SL_Scheduler.load('temp/2020-10-28_14-56-42')
+# policy_model = SupervisedLearningScheduler.train_from_gen(**SL_args)
+# policy_model = SupervisedLearningScheduler.load('temp/2020-10-28_14-56-42')
 
 
 # RL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
@@ -142,9 +142,9 @@ SL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_par
 
 algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
-    ('Random', partial(algs.free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
-    ('ERT', algs.free.earliest_release, 1),
-    ('MCTS', partial(algs.free.mcts, n_mc=50, rng=RNGMix.make_rng(seed)), 10),
+    ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
+    ('ERT', free.earliest_release, 1),
+    ('MCTS', partial(free.mcts, n_mc=50, rng=RNGMix.make_rng(seed)), 10),
     # ('NN', policy_model, 1),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
@@ -172,7 +172,7 @@ with open(log_path, 'a') as fid:
         print(f"\n![](../{train_path}.png)\n", file=fid)
     print('Results\n---\n', file=fid)
 
-l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=2,
+l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
                                             data_path=None, log_path=log_path)
 
 # plt.figure('Results (Relative)').savefig(image_path)
