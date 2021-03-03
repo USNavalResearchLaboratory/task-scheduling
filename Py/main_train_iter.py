@@ -8,21 +8,21 @@ from matplotlib import pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
 
-from task_scheduling.util.results import evaluate_algorithms, iter_to_mean
+from task_scheduling.util.results import evaluate_algorithms_train
 from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix, reset_weights
 from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.algorithms import free
 from task_scheduling.learning.SL_policy import SupervisedLearningScheduler
 from task_scheduling.learning import environments as envs
-from task_scheduling.util.plot import scatter_loss_runtime
+from task_scheduling.util.plot import plot_task_losses, plot_schedule, scatter_loss_runtime, plot_loss_runtime
+from task_scheduling.learning.features import param_features, encode_discrete_features
+from tests import seq_num_encoding
 
-# TODO: reconsider init imports - dont want TF overhead if unneeded?
-
-plt.style.use('seaborn')
-# plt.rc('axes', grid=True)
 
 np.set_printoptions(precision=3)
 pd.options.display.float_format = '{:,.3f}'.format
+plt.style.use('seaborn')
+# plt.rc('axes', grid=True)
 
 for device in tf.config.experimental.list_physical_devices('GPU'):
     tf.config.experimental.set_memory_growth(device, True)      # TODO: compatibility issue workaround
@@ -110,10 +110,10 @@ model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy', metri
 policy_model = SupervisedLearningScheduler(model, env)
 
 
-train_args = {'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
+train_args = {'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 2,
               'weight_func': None,
               # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-              'fit_params': {'epochs': 500},
+              'fit_params': {'epochs': 50},
               'plot_history': True,
               }
 
@@ -130,57 +130,5 @@ algorithms = np.array([
 
 #%% Evaluate and record results
 
-reuse_data = isinstance(problem_gen, problem_gens.Dataset) and problem_gen.repeat
-if isinstance(problem_gen, problem_gens.Dataset):
-    n_gen_train = (train_args['n_batch_train'] + train_args['n_batch_val']) * train_args['batch_size']
-    n_gen_total = n_gen + n_gen_train
-    if problem_gen.repeat:
-        if n_gen_total > problem_gen.n_problems:
-            raise ValueError("Dataset cannot generate enough unique problems.")
-    else:
-        if n_gen_total * n_mc > problem_gen.n_problems:
-            raise ValueError("Dataset cannot generate enough unique problems.")
-
-_args_mc = {'object': [(np.nan,) * len(algorithms)] * n_mc,
-            'dtype': [(alg['name'], float) for alg in algorithms]}
-
-l_ex_mc = np.array(**_args_mc)
-t_run_mc = np.array(**_args_mc)
-l_ex_mc_rel = np.array(**_args_mc)
-
-# TODO: clean-up, refactor as new `evaluate_algorithms_mc` func?!
-
-for i_mc in range(n_mc):
-    print(f"MC iteration {i_mc + 1}/{n_mc}")
-
-    if reuse_data:
-        problem_gen.shuffle()
-
-    # Reset/train supervised learner
-    learner = algorithms['func'][algorithms['name'].tolist().index('NN')]
-    reset_weights(learner.model)
-    learner.learn(**train_args)
-
-    # Evaluate performance
-    l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
-                                                data_path=None, log_path=None)
-
-    l_ex_mean, t_run_mean = map(iter_to_mean, (l_ex_iter, t_run_iter))
-
-    l_ex_mean_opt = l_ex_mean['BB Optimal'].copy()
-    l_ex_mean_rel = l_ex_mean.copy()
-    for name in algorithms['name']:
-        l_ex_mc[name][i_mc] = l_ex_mean[name].mean()
-        t_run_mc[name][i_mc] = t_run_mean[name].mean()
-
-        l_ex_mean_rel[name] -= l_ex_mean_opt
-        l_ex_mc_rel[name][i_mc] = l_ex_mean_rel[name].mean()
-
-    # Plot
-    __, ax_results_rel = plt.subplots(num='Results MC (Relative)', clear=True)
-    scatter_loss_runtime(t_run_mc, l_ex_mc_rel,
-                         ax=ax_results_rel,
-                         ax_kwargs={'ylabel': 'Excess Loss',
-                                    # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
-                                    }
-                         )
+evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen, n_mc, solve=True, verbose=2, plotting=1,
+                          log_path=None)

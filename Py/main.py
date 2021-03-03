@@ -18,13 +18,11 @@ from task_scheduling.learning import environments as envs
 from task_scheduling.learning.features import param_features, encode_discrete_features
 from tests import seq_num_encoding
 
-# TODO: reconsider init imports - dont want TF overhead if unneeded?
-
-plt.style.use('seaborn')
-# plt.rc('axes', grid=True)
 
 np.set_printoptions(precision=3)
 pd.options.display.float_format = '{:,.3f}'.format
+plt.style.use('seaborn')
+# plt.rc('axes', grid=True)
 
 for device in tf.config.experimental.list_physical_devices('GPU'):
     tf.config.experimental.set_memory_growth(device, True)  # TODO: compatibility issue workaround
@@ -172,11 +170,11 @@ with open(log_path, 'a') as fid:
         print(f"\n![](../{train_path}.png)\n", file=fid)
     print('Results\n---\n', file=fid)
 
-l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
-                                            data_path=None, log_path=log_path)
+l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
+                                            log_path=log_path)
 
-# plt.figure('Results (Relative)').savefig(image_path)
-plt.figure('Results (Relative, opt excluded)').savefig(image_path)
+# plt.figure('Gen (Relative)').savefig(image_path)
+plt.figure('Gen (Relative, opt excluded)').savefig(image_path)
 with open(log_path, 'a') as fid:
     # str_ = image_path.resolve().as_posix().replace('.png', '')
     print(f"![](../{image_path}.png)\n", file=fid)

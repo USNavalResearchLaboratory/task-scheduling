@@ -42,8 +42,8 @@ def data_gen(env, n_gen=1, gen_method=True):
         if gen_method:
             t_ex, ch_ex = branch_bound(env.node.tasks, env.node.ch_avail, verbose=True)
             seq = np.argsort(t_ex)     # optimal sequence
-            # check_valid(tasks, t_ex, ch_ex)
-            # l_ex = eval_loss(tasks, t_ex)
+            # check_schedule(tasks, t_ex, ch_ex)
+            # l_ex = evaluate_schedule(tasks, t_ex)
 
             for n in seq:
                 x_gen.append(env.state.copy())

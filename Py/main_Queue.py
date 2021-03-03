@@ -15,7 +15,7 @@ from task_scheduling.learning import environments as envs
 from task_scheduling.tree_search import TreeNodeShift
 # from task_scheduling.learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler
 from task_scheduling.learning.features import _get_param
-from task_scheduling.util.results import timing_wrapper, evaluate_algorithms, evaluate_algorithms_runtime, iter_to_mean
+from task_scheduling.util.results import timing_wrapper, evaluate_algorithms, evaluate_algorithms_runtime
 from task_scheduling.util.plot import scatter_loss_runtime_stats
 from task_scheduling.tasks import check_task_types
 from task_scheduling.learning.SL_policy import SupervisedLearningScheduler as SL_Scheduler
@@ -294,10 +294,9 @@ algorithms = np.array([
 #                                                                                    verbose=2, plotting=1,
 #                                                                                    save=False, save_path=None)
 
-l_ex_iter, t_run_iter = evaluate_algorithms(algorithms, problem_gen, n_gen=n_eval, solve=True, verbose=2, plotting=1,
+l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen=n_eval, solve=True, verbose=2, plotting=1,
                                             data_path=None)
 
-l_ex_mean, t_run_mean = map(iter_to_mean, (l_ex_iter, t_run_iter))
 scatter_loss_runtime_stats(t_run_mean, l_ex_mean, ax=None, ax_kwargs=None)
 
 

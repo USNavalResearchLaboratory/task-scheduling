@@ -6,7 +6,7 @@ from pathlib import Path
 from time import perf_counter
 
 import numpy as np
-import tensorflow as tf
+from tensorflow import keras
 
 _cwd = Path.cwd()
 data_path = _cwd / 'data'
@@ -178,7 +178,7 @@ def num2seq(num, length, check_input=True):
 
 def reset_weights(model):      # from https://github.com/keras-team/keras/issues/341#issuecomment-539198392
     for layer in model.layers:
-        if isinstance(layer, tf.keras.Model):
+        if isinstance(layer, keras.Model):
             reset_weights(layer)
         else:
             for key, initializer in layer.__dict__.items():

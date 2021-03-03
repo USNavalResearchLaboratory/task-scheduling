@@ -877,7 +877,7 @@ class TaskAssignmentDiscrete(gym.Env):
             l_ex = eval_loss(job_scheduler, t_ex)
             # max_idx = np.argsort(t_ex)[-1]
             # t_max = t_ex[max_idx] + job_scheduler[max_idx].duration
-            # l_ex_remainder = eval_loss(job, t_max * np.ones(len(job)))  # Put all other tasks at max time and evaluate cost
+            # l_ex_remainder = evaluate_schedule(job, t_max * np.ones(len(job)))  # Put all other tasks at max time and evaluate cost
             # reward = l_ex + l_ex_remainder
             reward = -l_ex  # TODO: Is this the right metric? Reward only a function of tasks not scheduled yet
 

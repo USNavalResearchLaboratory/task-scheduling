@@ -29,7 +29,7 @@ from task_scheduling.algorithms.free import branch_bound, random_sequencer, earl
 from functools import partial
 from task_scheduling.util.generic import algorithm_repr
 from task_scheduling.util.plot import plot_task_losses, scatter_loss_runtime
-from task_scheduling.util.results import check_valid, eval_loss
+from task_scheduling.util.results import check_schedule, evaluate_schedule
 
 
 # policy_file = 'temp/2020-08-03_11-08-06'
@@ -303,8 +303,8 @@ for alg_repr, alg_func, n_run in zip(alg_reprs, alg_funcs, alg_n_runs):
             t_run = time.time() - t_start
 
 
-            check_valid(job_scheduler, t_ex, ch_ex)
-            l_ex = eval_loss(job_scheduler, t_ex)
+            check_schedule(job_scheduler, t_ex, ch_ex)
+            l_ex = evaluate_schedule(job_scheduler, t_ex)
 
             t_run_iter[alg_repr][ii, i_run] = t_run
             l_ex_iter[alg_repr][ii, i_run] = l_ex
