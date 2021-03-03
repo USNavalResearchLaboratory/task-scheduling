@@ -40,9 +40,6 @@ seed = 12345
 
 #%% Define scheduling problem and algorithms
 
-n_mc = 2
-n_gen = 100
-
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=rng)
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=rng)
@@ -130,5 +127,6 @@ algorithms = np.array([
 
 #%% Evaluate and record results
 
-evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen, n_mc, solve=True, verbose=2, plotting=1,
+evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=10, n_mc=2, solve=True, verbose=2, plotting=1,
                           log_path=None)
+

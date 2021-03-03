@@ -237,15 +237,6 @@ class BaseTasking(Env, ABC):
     def close(self):
         plt.close('all')
 
-    # @classmethod      # TODO: delete?
-    # def from_problem_gen(cls, problem_gen, env_params=None):
-    #     """Environment constructor from problem generators."""
-    #
-    #     if env_params is None:
-    #         return cls(problem_gen)
-    #     else:
-    #         return cls(problem_gen, **env_params)
-
     def data_gen(self, n_batch, batch_size=1, weight_func=None, verbose=False, rng=None):
         """
         Generate state-action data for learner training and evaluation.

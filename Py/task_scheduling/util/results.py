@@ -239,7 +239,7 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
     if plotting >= 1:
         scatter_results(l_ex_mean, t_run_mean, label='Gen')
     if verbose >= 1:
-        print_averages(l_ex_mean, l_ex_mean, log_path)
+        print_averages(l_ex_mean, t_run_mean, log_path)
 
     return l_ex_mean, t_run_mean
 
@@ -272,10 +272,13 @@ def evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=1, n_mc
             problem_gen.shuffle()  # random train/test split
 
         # Reset/train supervised learner
-        learner = algorithms['func'][algorithms['name'].tolist().index('NN')]
-        reset_weights(learner.model)
-        learner.learn(**train_args)  # note: calls `problem_gen` via environment reset
-        # FIXME: ensure same data is used for each training op
+        try:
+            learner = algorithms['func'][algorithms['name'].tolist().index('NN')]
+            reset_weights(learner.model)
+            learner.learn(**train_args)  # note: calls `problem_gen` via environment reset
+            # FIXME: ensure same data is used for each training op
+        except ValueError:
+            pass
 
         # Evaluate performance
         l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen, solve, verbose - 1, plotting - 1)
@@ -285,7 +288,7 @@ def evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=1, n_mc
     if plotting >= 1:
         scatter_results(l_ex_mc, t_run_mc, label='Train')
     if verbose >= 1:
-        print_averages(l_ex_mc, l_ex_mc, log_path)
+        print_averages(l_ex_mc, t_run_mc, log_path)
 
     return l_ex_mc, t_run_mc
 

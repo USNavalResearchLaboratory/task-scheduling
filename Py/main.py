@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
 
-from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime
+from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime, evaluate_algorithms_train
 from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix
 from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.algorithms import free
@@ -37,8 +37,6 @@ seed = 12345
 
 # %% Define scheduling problem and algorithms
 
-n_gen = 100
-
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
@@ -46,7 +44,10 @@ n_gen = 100
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2), rng=seed)
 # problem_gen = problem_gens.Dataset.load('data/continuous_relu_c1t8', shuffle=True, repeat=False, rng=seed)
-problem_gen = problem_gens.Dataset.load('data/discrete_relu_c1t8', shuffle=True, repeat=False, rng=seed)
+
+# problem_gen = problem_gens.Dataset.load('data/discrete_relu_c1t8', shuffle=True, repeat=False, rng=seed)
+problem_gen = problem_gens.Dataset.load('data/discrete_relu_c1t8', shuffle=False, repeat=True, rng=seed)
+
 # problem_gen = problem_gens.Dataset.load('data/search_track_c1t8_release_0', shuffle=True, repeat=False, rng=seed)
 
 
@@ -91,12 +92,12 @@ env_params = {'features': features,
               'seq_encoding': seq_encoding,
               }
 
+env = env_cls(problem_gen, **env_params)
+
 
 def _weight_init():
     return keras.initializers.GlorotUniform(seed)
 
-
-# layers = None
 
 layers = [keras.layers.Flatten(),
           keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
@@ -111,23 +112,24 @@ layers = [keras.layers.Flatten(),
 # layers = [keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
 #           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu', kernel_initializer=_weight_init())]
 
+model = keras.Sequential([keras.Input(shape=env.observation_space.shape),
+                          *layers,
+                          keras.layers.Dense(env.action_space.n, activation='softmax',
+                                             kernel_initializer=_weight_init())
+                          ])
+model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
-weight_func_ = None
-# def weight_func_(env):
-#     return 1 - len(env.node.seq) / env.n_tasks
 
+train_args = {'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
+              'weight_func': None,
+              # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
+              'fit_params': {'epochs': 500},
+              'do_tensorboard': False,
+              'plot_history': True,
+              }
 
-SL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
-           'layers': layers,
-           'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
-           'weight_func': weight_func_,
-           'fit_params': {'epochs': 500},
-           'plot_history': True,
-           'save': False, 'save_path': None,
-           'seed': seed,
-           }
-# policy_model = SupervisedLearningScheduler.train_from_gen(**SL_args)
-# policy_model = SupervisedLearningScheduler.load('temp/2020-10-28_14-56-42')
+policy_model = SupervisedLearningScheduler(model, env)
+policy_model.learn(**train_args)
 
 
 # RL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
@@ -143,7 +145,7 @@ algorithms = np.array([
     ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
     ('ERT', free.earliest_release, 1),
     ('MCTS', partial(free.mcts, n_mc=50, rng=RNGMix.make_rng(seed)), 10),
-    # ('NN', policy_model, 1),
+    ('NN', policy_model, 1),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
 
@@ -163,21 +165,27 @@ with open(log_path, 'a') as fid:
     print(f"\n# {time_str}\n", file=fid)
     # print(f"Problem gen: ", end='', file=fid)
     # problem_gen.summary(fid)
+
     if 'NN' in algorithms['name']:
         policy_model.summary(fid)
         train_path = image_path + '_train'
         plt.figure('Training history').savefig(train_path)
         print(f"\n![](../{train_path}.png)\n", file=fid)
+
     print('Results\n---\n', file=fid)
 
-l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
-                                            log_path=log_path)
+# l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen=10, solve=True, verbose=1, plotting=1,
+#                                             log_path=log_path)
+l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=10, n_mc=2, solve=True,
+                                              verbose=2, plotting=1, log_path=log_path)
 
 # plt.figure('Gen (Relative)').savefig(image_path)
-plt.figure('Gen (Relative, opt excluded)').savefig(image_path)
+# plt.figure('Gen (Relative, opt excluded)').savefig(image_path)
+plt.figure('Train (Relative, opt excluded)').savefig(image_path)
 with open(log_path, 'a') as fid:
     # str_ = image_path.resolve().as_posix().replace('.png', '')
     print(f"![](../{image_path}.png)\n", file=fid)
+
 
 # %% Limited Runtime
 

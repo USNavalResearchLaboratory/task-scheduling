@@ -197,7 +197,7 @@ class SupervisedLearningScheduler:
     @classmethod
     def train_from_gen(cls, problem_gen, env_cls=envs.StepTasking, env_params=None, layers=None, compile_params=None,
                        n_batch_train=1, n_batch_val=1, batch_size=1, weight_func=None, fit_params=None,
-                       do_tensorboard=False, plot_history=False, save=False, save_path=None, seed=None):
+                       do_tensorboard=False, plot_history=False, save=False, save_path=None):
         """
         Create and train a supervised learning scheduler.
 
@@ -231,8 +231,6 @@ class SupervisedLearningScheduler:
             If True, the network and environment are serialized.
         save_path : str, optional
             String representation of sub-directory to save to.
-        seed : int, optional
-            Seed for TensorFlow RNG.
 
         Returns
         -------
@@ -245,7 +243,6 @@ class SupervisedLearningScheduler:
             env = env_cls(problem_gen)
         else:
             env = env_cls(problem_gen, **env_params)
-        # env = env_cls.from_problem_gen(problem_gen, env_params)
 
         # Create model
         if layers is None:
@@ -258,7 +255,7 @@ class SupervisedLearningScheduler:
         if len(model.output_shape) > 2:  # flatten to 1-D for softmax output layer
             model.add(keras.layers.Flatten())
         model.add(keras.layers.Dense(env.action_space.n, activation='softmax',
-                                     kernel_initializer=keras.initializers.GlorotUniform(seed)))
+                                     kernel_initializer=keras.initializers.GlorotUniform()))
 
         if compile_params is None:
             compile_params = {'optimizer': 'rmsprop',

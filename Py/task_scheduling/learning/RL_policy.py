@@ -206,7 +206,6 @@ class ReinforcementLearningScheduler:
             env = env_cls(problem_gen)
         else:
             env = env_cls(problem_gen, **env_params)
-        # env = env_cls.from_problem_gen(problem_gen, env_params)
 
         # Create model
         if model_params is None:
