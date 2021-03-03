@@ -37,7 +37,7 @@ seed = 12345
 
 # %% Define scheduling problem and algorithms
 
-n_gen = 100
+n_gen = 10
 
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=seed)
