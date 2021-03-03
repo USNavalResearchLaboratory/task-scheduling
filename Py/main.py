@@ -37,7 +37,7 @@ seed = 12345
 
 # %% Define scheduling problem and algorithms
 
-n_gen = 10
+n_gen = 100
 
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=seed)
@@ -173,8 +173,8 @@ with open(log_path, 'a') as fid:
 l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen, solve=True, verbose=1, plotting=1,
                                             log_path=log_path)
 
-# plt.figure('Results (Relative)').savefig(image_path)
-plt.figure('Results (Relative, opt excluded)').savefig(image_path)
+# plt.figure('Gen (Relative)').savefig(image_path)
+plt.figure('Gen (Relative, opt excluded)').savefig(image_path)
 with open(log_path, 'a') as fid:
     # str_ = image_path.resolve().as_posix().replace('.png', '')
     print(f"![](../{image_path}.png)\n", file=fid)

@@ -131,5 +131,5 @@ algorithms = np.array([
 
 #%% Evaluate and record results
 
-evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen, n_mc, solve=True, verbose=1, plotting=2,
+evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen, n_mc, solve=True, verbose=2, plotting=1,
                           log_path=None)
