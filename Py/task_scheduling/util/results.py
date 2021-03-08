@@ -99,8 +99,20 @@ def _empty_result(algorithms, n):
     return np.array([(np.nan,) * len(algorithms)] * n, dtype=[(alg['name'], float) for alg in algorithms])
 
 
-def scatter_results(l_ex, t_run, label='Results'):
+def _relative_loss(l_ex):
     names = l_ex.dtype.names
+    if 'BB Optimal' not in names:
+        raise ValueError("Optimal solutions must be included in the loss array.")
+
+    l_ex_rel = l_ex.copy()
+    for name in names:
+        l_ex_rel[name] -= l_ex['BB Optimal']
+        # l_ex_rel[name] /= l_ex_mean_opt
+
+    return l_ex_rel
+
+
+def scatter_results(l_ex, t_run, label='Results', do_relative=False):
 
     __, ax_results = plt.subplots(num=label, clear=True)
     scatter_loss_runtime(t_run, l_ex,
@@ -108,37 +120,42 @@ def scatter_results(l_ex, t_run, label='Results'):
                          # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
                          )
 
-    if 'BB Optimal' in names:  # relative to B&B
-        l_ex_mean_rel = l_ex.copy()
-        for name in names:
-            l_ex_mean_rel[name] -= l_ex['BB Optimal']
-            # l_ex_mean_rel[name] /= l_ex_mean_opt
+    if do_relative:  # relative to B&B
+        l_ex_rel = _relative_loss(l_ex)
 
+        # __, ax_results_rel = plt.subplots(num=f'{label} (Relative)', clear=True)
+        # scatter_loss_runtime(t_run, l_ex_rel,
+        #                      ax=ax_results_rel,
+        #                      ax_kwargs={'ylabel': 'Excess Loss',
+        #                                 # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
+        #                                 }
+        #                      )
+
+        names = list(l_ex.dtype.names)
+        names.remove('BB Optimal')
         __, ax_results_rel = plt.subplots(num=f'{label} (Relative)', clear=True)
-        scatter_loss_runtime(t_run, l_ex_mean_rel,
+        scatter_loss_runtime(t_run[names], l_ex_rel[names],
                              ax=ax_results_rel,
                              ax_kwargs={'ylabel': 'Excess Loss',
                                         # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
                                         }
                              )
 
-        names_no_bb = list(names)
-        names_no_bb.remove('BB Optimal')
-        __, ax_results_rel_no_bb = plt.subplots(num=f'{label} (Relative, opt excluded)', clear=True)
-        scatter_loss_runtime(t_run[names_no_bb], l_ex_mean_rel[names_no_bb],
-                             ax=ax_results_rel_no_bb,
-                             ax_kwargs={'ylabel': 'Excess Loss',
-                                        # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
-                                        }
-                             )
 
-
-def print_averages(l_ex, t_run, log_path=None):
+def print_averages(l_ex, t_run, log_path=None, do_relative=False):
     names = l_ex.dtype.names
 
-    _data = [[l_ex[name].mean(), t_run[name].mean()] for name in names]
-    df = pd.DataFrame(_data, index=pd.CategoricalIndex(names), columns=['Loss', 'Runtime'])
-    df_str = '\n' + df.to_markdown(tablefmt='github', floatfmt='.3f')
+    data = [[l_ex[name].mean(), t_run[name].mean()] for name in names]
+    columns = ['Loss', 'Runtime']
+
+    if do_relative:
+        l_ex_rel = _relative_loss(l_ex)
+        for item, name in zip(data, names):
+            item.insert(0, l_ex_rel[name].mean())
+        columns.insert(0, 'Relative Loss')
+
+    df = pd.DataFrame(data, index=pd.CategoricalIndex(names), columns=columns)
+    df_str = df.to_markdown(tablefmt='github', floatfmt='.3f') + '\n'
 
     print(df_str)
     if log_path is not None:
@@ -149,7 +166,8 @@ def print_averages(l_ex, t_run, log_path=None):
 #%% Algorithm evaluation
 def evaluate_algorithms_single(algorithms, tasks, ch_avail, solution_opt=None, verbose=0, plotting=0, log_path=None):
 
-    if solution_opt is not None:
+    solve = solution_opt is not None
+    if solve:
         algorithms = _add_bb(algorithms)
 
     _array_iter = np.array(tuple([np.nan] * alg['n_iter'] for alg in algorithms),
@@ -182,9 +200,9 @@ def evaluate_algorithms_single(algorithms, tasks, ch_avail, solution_opt=None, v
 
     # Results
     if plotting >= 1:
-        scatter_results(l_ex_iter, t_run_iter, label='Problem')
+        scatter_results(l_ex_iter, t_run_iter, label='Problem', do_relative=solve)
     if verbose >= 1:
-        print_averages(l_ex_iter, l_ex_iter, log_path)
+        print_averages(l_ex_iter, l_ex_iter, log_path, do_relative=solve)
 
     return l_ex_iter, t_run_iter
 
@@ -232,14 +250,15 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
             tasks, ch_avail = out_gen
             solution_opt = None
 
-        l_ex_iter, t_run_iter = evaluate_algorithms_single(algorithms, tasks, ch_avail, solution_opt, verbose - 1, plotting - 1)
+        l_ex_iter, t_run_iter = evaluate_algorithms_single(algorithms, tasks, ch_avail, solution_opt, verbose - 1,
+                                                           plotting - 1)
         l_ex_mean[i_gen], t_run_mean[i_gen] = map(_iter_to_mean, (l_ex_iter, t_run_iter))
 
     # Results
     if plotting >= 1:
-        scatter_results(l_ex_mean, t_run_mean, label='Gen')
+        scatter_results(l_ex_mean, t_run_mean, label='Gen', do_relative=solve)
     if verbose >= 1:
-        print_averages(l_ex_mean, t_run_mean, log_path)
+        print_averages(l_ex_mean, t_run_mean, log_path, do_relative=solve)
 
     return l_ex_mean, t_run_mean
 
@@ -276,7 +295,7 @@ def evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=1, n_mc
             learner = algorithms['func'][algorithms['name'].tolist().index('NN')]
             reset_weights(learner.model)
             learner.learn(**train_args)  # note: calls `problem_gen` via environment reset
-            # FIXME: ensure same data is used for each training op
+            # TODO: generalize for multiple learners, ensure same data is used for each training op
         except ValueError:
             pass
 
@@ -286,9 +305,9 @@ def evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=1, n_mc
 
     # Results
     if plotting >= 1:
-        scatter_results(l_ex_mc, t_run_mc, label='Train')
+        scatter_results(l_ex_mc, t_run_mc, label='Train', do_relative=solve)
     if verbose >= 1:
-        print_averages(l_ex_mc, t_run_mc, log_path)
+        print_averages(l_ex_mc, t_run_mc, log_path, do_relative=solve)
 
     return l_ex_mc, t_run_mc
 

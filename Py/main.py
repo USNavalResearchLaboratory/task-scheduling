@@ -61,56 +61,40 @@ problem_gen = problem_gens.Dataset.load('data/discrete_relu_c1t8', shuffle=False
 
 
 # Algorithms
+env_params = {
+    'features': None,
+    # 'sort_func': None,
+    'sort_func': 't_release',
+    # 'time_shift': False,
+    'time_shift': True,
+    # 'masking': False,
+    'masking': True,
+    'action_type': 'any',
+    # 'seq_encoding': None,
+    'seq_encoding': 'one-hot',
+}
 
-features = None
-# features = param_features(problem_gen, time_shift)
-# features = encode_discrete_features(problem_gen)
-
-# sort_func = None
-sort_func = 't_release'
-# def sort_func(task):
-#     return task.t_release
-
-# time_shift = False
-time_shift = True
-
-# masking = False
-masking = True
-
-# seq_encoding = None
-seq_encoding = 'one-hot'
-
-# env_cls = envs.SeqTasking
-env_cls = envs.StepTasking
-
-env_params = {'features': features,
-              'sort_func': sort_func,
-              'time_shift': time_shift,
-              'masking': masking,
-              # 'action_type': 'int',
-              'action_type': 'any',
-              'seq_encoding': seq_encoding,
-              }
-
-env = env_cls(problem_gen, **env_params)
+env = envs.StepTasking(problem_gen, **env_params)
 
 
 def _weight_init():
     return keras.initializers.GlorotUniform(seed)
 
 
-layers = [keras.layers.Flatten(),
-          keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
-          # keras.layers.Dropout(0.2),
-          ]
-
-# layers = [keras.layers.Conv1D(50, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-#           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-#           # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
+# layers = [keras.layers.Flatten(),
+#           keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
+#           # keras.layers.Dropout(0.2),
 #           ]
+
+layers = [keras.layers.Conv1D(50, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+          keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+          # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
+          keras.layers.Flatten(),
+          ]
 
 # layers = [keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
 #           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu', kernel_initializer=_weight_init())]
+
 
 model = keras.Sequential([keras.Input(shape=env.observation_space.shape),
                           *layers,
@@ -123,13 +107,10 @@ model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy', metri
 train_args = {'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
               'weight_func': None,
               # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-              'fit_params': {'epochs': 500},
+              'fit_params': {'epochs': 500, 'verbose': 1},
               'do_tensorboard': False,
               'plot_history': True,
               }
-
-policy_model = SupervisedLearningScheduler(model, env)
-policy_model.learn(**train_args)
 
 
 # RL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
@@ -145,7 +126,7 @@ algorithms = np.array([
     ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
     ('ERT', free.earliest_release, 1),
     ('MCTS', partial(free.mcts, n_mc=50, rng=RNGMix.make_rng(seed)), 10),
-    ('NN', policy_model, 1),
+    ('NN', SupervisedLearningScheduler(model, env), 1),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
 
@@ -157,7 +138,7 @@ if not isinstance(problem_gen, problem_gens.Dataset):
 
 # log_path = None
 # log_path = 'docs/temp/PGR_results.md'
-log_path = 'docs/discrete_relu_c1t8.md'
+log_path = 'docs/discrete_relu_c1t8_train.md'
 
 image_path = f'images/temp/{time_str}'
 
@@ -167,24 +148,33 @@ with open(log_path, 'a') as fid:
     # problem_gen.summary(fid)
 
     if 'NN' in algorithms['name']:
-        policy_model.summary(fid)
+        idx_nn = algorithms['name'].tolist().index('NN')
+        algorithms['func'][idx_nn].summary(fid)
+
         train_path = image_path + '_train'
         plt.figure('Training history').savefig(train_path)
         print(f"\n![](../{train_path}.png)\n", file=fid)
 
     print('Results\n---\n', file=fid)
 
-# l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen=10, solve=True, verbose=1, plotting=1,
+
+# sim_type = 'Gen'
+# if 'NN' in algorithms['name']:
+#     idx_nn = algorithms['name'].tolist().index('NN')
+#     algorithms['func'][idx_nn].learn(**train_args)
+# l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen=100, solve=True, verbose=1, plotting=1,
 #                                             log_path=log_path)
-l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=10, n_mc=2, solve=True,
+
+
+sim_type = 'Train'
+l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=100, n_mc=10, solve=True,
                                               verbose=2, plotting=1, log_path=log_path)
 
-# plt.figure('Gen (Relative)').savefig(image_path)
-# plt.figure('Gen (Relative, opt excluded)').savefig(image_path)
-plt.figure('Train (Relative, opt excluded)').savefig(image_path)
+
+plt.figure(f'{sim_type} (Relative)').savefig(image_path)
 with open(log_path, 'a') as fid:
-    # str_ = image_path.resolve().as_posix().replace('.png', '')
     print(f"![](../{image_path}.png)\n", file=fid)
+    # str_ = image_path.resolve().as_posix().replace('.png', '')
 
 
 # %% Limited Runtime
