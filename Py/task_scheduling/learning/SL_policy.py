@@ -2,6 +2,7 @@ import shutil
 import time
 import webbrowser
 from functools import partial
+from pathlib import Path
 
 import dill
 import gym
@@ -12,7 +13,6 @@ from tensorboard import program
 from tensorflow import keras
 
 from task_scheduling.learning import environments as envs
-from task_scheduling.util.generic import log_path, model_path
 
 
 # TODO: make loss func for full seq targets?
@@ -20,7 +20,7 @@ from task_scheduling.util.generic import log_path, model_path
 
 
 class SupervisedLearningScheduler:
-    log_dir = log_path / 'TF_train'
+    log_dir = Path.cwd() / 'logs' / 'TF_train'
 
     def __init__(self, model, env):
         self.model = model
@@ -176,20 +176,18 @@ class SupervisedLearningScheduler:
 
     def save(self, save_path=None):
         if save_path is None:
-            save_path = f"temp/{time.strftime('%Y-%m-%d_%H-%M-%S')}"
+            save_path = f"models/temp/{time.strftime('%Y-%m-%d_%H-%M-%S')}"
 
-        save_path = model_path / save_path
         self.model.save(save_path)  # save TF model
 
-        with save_path.joinpath('env').open(mode='wb') as fid:
+        with Path(save_path).joinpath('env').open(mode='wb') as fid:
             dill.dump(self.env, fid)  # save environment
 
     @classmethod
     def load(cls, load_path):
-        load_path = model_path / load_path
         model = keras.models.load_model(load_path)
 
-        with load_path.joinpath('env').open(mode='rb') as fid:
+        with Path(load_path).joinpath('env').open(mode='rb') as fid:
             env = dill.load(fid)
 
         return cls(model, env)

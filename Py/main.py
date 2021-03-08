@@ -1,6 +1,6 @@
 from functools import partial
 from time import strftime
-from copy import deepcopy
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -9,14 +9,13 @@ from matplotlib import pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
 
-from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_runtime, evaluate_algorithms_train
+from task_scheduling.util.results import (evaluate_algorithms, evaluate_algorithms_runtime, evaluate_algorithms_train,
+                                          scatter_results)
 from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix
 from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.algorithms import free
 from task_scheduling.learning.SL_policy import SupervisedLearningScheduler
 from task_scheduling.learning import environments as envs
-from task_scheduling.learning.features import param_features, encode_discrete_features
-from tests import seq_num_encoding
 
 
 np.set_printoptions(precision=3)
@@ -37,6 +36,9 @@ seed = 12345
 
 # %% Define scheduling problem and algorithms
 
+data_path = Path.cwd() / 'data'
+schedule_path = data_path / 'schedules'
+
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
@@ -46,18 +48,9 @@ seed = 12345
 # problem_gen = problem_gens.Dataset.load('data/continuous_relu_c1t8', shuffle=True, repeat=False, rng=seed)
 
 # problem_gen = problem_gens.Dataset.load('data/discrete_relu_c1t8', shuffle=True, repeat=False, rng=seed)
-problem_gen = problem_gens.Dataset.load('data/discrete_relu_c1t8', shuffle=False, repeat=True, rng=seed)
+problem_gen = problem_gens.Dataset.load(schedule_path / 'discrete_relu_c1t8', shuffle=False, repeat=True, rng=seed)
 
 # problem_gen = problem_gens.Dataset.load('data/search_track_c1t8_release_0', shuffle=True, repeat=False, rng=seed)
-
-
-# TODO: deprecate? Random gen RNG sharing defeats my original reproducibility purpose...
-# if isinstance(problem_gen, problem_gens.Dataset):
-#     # Pop evaluation problems for new dataset generator
-#     problem_gen, problem_gen_train = problem_gen.pop_dataset(n_gen, shuffle=True, repeat=False, rng=seed), problem_gen
-# else:
-#     problem_gen_train = deepcopy(problem_gen)  # copy random generator
-#     problem_gen_train.rng = problem_gen.rng  # share RNG, avoid train/test overlap
 
 
 # Algorithms
@@ -108,8 +101,6 @@ train_args = {'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
               'weight_func': None,
               # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
               'fit_params': {'epochs': 500, 'verbose': 1},
-              'do_tensorboard': False,
-              'plot_history': True,
               }
 
 
@@ -123,9 +114,9 @@ train_args = {'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
 
 algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
-    ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
-    ('ERT', free.earliest_release, 1),
-    ('MCTS', partial(free.mcts, n_mc=50, rng=RNGMix.make_rng(seed)), 10),
+    # ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
+    # ('ERT', free.earliest_release, 1),
+    # ('MCTS', partial(free.mcts, n_mc=50, rng=RNGMix.make_rng(seed)), 10),
     ('NN', SupervisedLearningScheduler(model, env), 1),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
@@ -133,14 +124,12 @@ algorithms = np.array([
 
 # %% Evaluate and record results
 
-if not isinstance(problem_gen, problem_gens.Dataset):
-    problem_gens.Base.temp_path = 'data/temp/'  # set a temp path for saving new data
-
 # log_path = None
 # log_path = 'docs/temp/PGR_results.md'
 log_path = 'docs/discrete_relu_c1t8_train.md'
 
 image_path = f'images/temp/{time_str}'
+
 
 with open(log_path, 'a') as fid:
     print(f"\n# {time_str}\n", file=fid)
@@ -151,17 +140,18 @@ with open(log_path, 'a') as fid:
         idx_nn = algorithms['name'].tolist().index('NN')
         algorithms['func'][idx_nn].summary(fid)
 
-        train_path = image_path + '_train'
-        plt.figure('Training history').savefig(train_path)
-        print(f"\n![](../{train_path}.png)\n", file=fid)
-
-    print('Results\n---\n', file=fid)
+    print('\nResults\n---\n', file=fid)
 
 
 # sim_type = 'Gen'
 # if 'NN' in algorithms['name']:
 #     idx_nn = algorithms['name'].tolist().index('NN')
-#     algorithms['func'][idx_nn].learn(**train_args)
+#     algorithms['func'][idx_nn].learn(plot_history=True, **train_args)
+#
+#     train_path = image_path + '_train'
+#     plt.figure('Training history').savefig(train_path)
+#     with open(log_path, 'a') as fid:
+#         print(f"![](../{train_path}.png)\n", file=fid)
 # l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen=100, solve=True, verbose=1, plotting=1,
 #                                             log_path=log_path)
 
@@ -169,12 +159,14 @@ with open(log_path, 'a') as fid:
 sim_type = 'Train'
 l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=100, n_mc=10, solve=True,
                                               verbose=2, plotting=1, log_path=log_path)
+np.savez(data_path / f'results/temp/{time_str}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
 
 
-plt.figure(f'{sim_type} (Relative)').savefig(image_path)
-with open(log_path, 'a') as fid:
-    print(f"![](../{image_path}.png)\n", file=fid)
-    # str_ = image_path.resolve().as_posix().replace('.png', '')
+# # plt.figure(f'{sim_type}').savefig(image_path)
+# plt.figure(f'{sim_type} (Relative)').savefig(image_path)
+# with open(log_path, 'a') as fid:
+#     print(f"![](../{image_path}.png)\n", file=fid)
+#     # str_ = image_path.resolve().as_posix().replace('.png', '')
 
 
 # %% Limited Runtime

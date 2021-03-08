@@ -2,18 +2,11 @@ from collections import namedtuple
 from functools import wraps
 from math import factorial
 from numbers import Integral
-from pathlib import Path
 from time import perf_counter
 
 import numpy as np
 from tensorflow import keras
 
-_cwd = Path.cwd()
-data_path = _cwd / 'data'
-log_path = _cwd / 'logs'
-image_path = _cwd / 'images'
-model_path = _cwd / 'models'
-agent_path = _cwd / 'agents'
 
 SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
 SchedulingProblemFlexDAR = namedtuple('SchedulingProblem', ['tasks', 'ch_avail', 'clock'])

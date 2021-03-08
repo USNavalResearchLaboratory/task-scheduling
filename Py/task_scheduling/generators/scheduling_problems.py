@@ -21,8 +21,6 @@ from task_scheduling.util.generic import RandomGeneratorMixin, timing_wrapper, S
 class Base(RandomGeneratorMixin, ABC):
     temp_path = None
 
-    # temp_path = data_path / 'temp'
-
     def __init__(self, n_tasks, n_ch, task_gen, ch_avail_gen, rng=None):
         """
         Base class for scheduling problem generators.

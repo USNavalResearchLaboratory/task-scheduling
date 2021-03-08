@@ -7,8 +7,9 @@ logs/
 # Temporary agents and models
 agents/temp/
 models/temp/
-data/temp/
-data/_deprecated/
+data/schedules/temp/
+data/schedules/_deprecated/
+data/results/temp/
 images/temp
 docs/temp
 

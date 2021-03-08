@@ -112,7 +112,7 @@ def _relative_loss(l_ex):
     return l_ex_rel
 
 
-def scatter_results(l_ex, t_run, label='Results', do_relative=False):
+def scatter_results(t_run, l_ex, label='Results', do_relative=False):
 
     __, ax_results = plt.subplots(num=label, clear=True)
     scatter_loss_runtime(t_run, l_ex,
@@ -200,7 +200,7 @@ def evaluate_algorithms_single(algorithms, tasks, ch_avail, solution_opt=None, v
 
     # Results
     if plotting >= 1:
-        scatter_results(l_ex_iter, t_run_iter, label='Problem', do_relative=solve)
+        scatter_results(t_run_iter, l_ex_iter, label='Problem', do_relative=solve)
     if verbose >= 1:
         print_averages(l_ex_iter, l_ex_iter, log_path, do_relative=solve)
 
@@ -256,7 +256,7 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
 
     # Results
     if plotting >= 1:
-        scatter_results(l_ex_mean, t_run_mean, label='Gen', do_relative=solve)
+        scatter_results(t_run_mean, l_ex_mean, label='Gen', do_relative=solve)
     if verbose >= 1:
         print_averages(l_ex_mean, t_run_mean, log_path, do_relative=solve)
 
@@ -305,7 +305,7 @@ def evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=1, n_mc
 
     # Results
     if plotting >= 1:
-        scatter_results(l_ex_mc, t_run_mc, label='Train', do_relative=solve)
+        scatter_results(t_run_mc, l_ex_mc, label='Train', do_relative=solve)
     if verbose >= 1:
         print_averages(l_ex_mc, t_run_mc, log_path, do_relative=solve)
 

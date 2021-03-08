@@ -1,5 +1,6 @@
 import time
 from collections import namedtuple
+from pathlib import Path
 
 import dill
 from stable_baselines import DQN, PPO2, A2C
@@ -7,7 +8,6 @@ from stable_baselines.bench import Monitor
 from stable_baselines.results_plotter import plot_results
 
 from task_scheduling.learning import environments as envs
-from task_scheduling.util.generic import log_path, agent_path
 
 
 # from stable_baselines.common.vec_env import DummyVecEnv
@@ -45,7 +45,7 @@ class RandomAgent:
 
 # Schedulers
 class ReinforcementLearningScheduler:
-    log_dir = log_path / 'SB_train'
+    log_dir = Path.cwd() / 'logs' / 'SB_train'
 
     _default_tuple = namedtuple('ModelDefault', ['cls', 'kwargs'])
     model_defaults = {'Random': _default_tuple(RandomAgent, {}),
@@ -132,7 +132,7 @@ class ReinforcementLearningScheduler:
             cls_str = self.model.__class__.__name__
             save_path = f"temp/{cls_str}_{time.strftime('%Y-%m-%d_%H-%M-%S')}"
 
-        save_path = agent_path / save_path
+        save_path = Path.cwd() / 'agents' / save_path
         save_path.parent.mkdir(exist_ok=True)
 
         self.model.save(str(save_path))
@@ -149,7 +149,7 @@ class ReinforcementLearningScheduler:
         elif isinstance(model_cls, str):
             model_cls = cls.model_defaults[model_cls].cls
 
-        load_path = agent_path / load_path
+        load_path = Path.cwd() / 'agents' / load_path
         model = model_cls.load(str(load_path))
 
         try:
