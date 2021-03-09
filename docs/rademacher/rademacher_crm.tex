@@ -1,82 +1,50 @@
 \documentclass[11pt]{article}
 
-\linespread{1.5}
-\usepackage[margin=1.0in]{geometry}
+\linespread{1.6}
+
+%\usepackage[letterpaper,vmargin=1in,hmargin=1.25in]{geometry}
+\usepackage[a4paper,width=150mm,top=25mm,bottom=25mm]{geometry}
+
+\usepackage{microtype}
+
+\usepackage{graphicx}
+\graphicspath{{./Figures/}}
+
+%\usepackage[backend=biber,style=numeric]{biblatex}
+%\addbibresource{./References/references.bib}
 
 \usepackage{amsmath,amssymb,amsfonts}
-\usepackage{algorithm,algorithmic,setspace}
-\usepackage{graphicx}
-\usepackage{textcomp}
 \usepackage{bm}
 \usepackage{upgreek}
-\usepackage{multirow}
-
 \usepackage[retainorgcmds]{IEEEtrantools}
 
 \usepackage{hyperref}
+\usepackage{cleveref}
 
 \usepackage[colorinlistoftodos,backgroundcolor=yellow,linecolor=red]{todonotes}
 
-%\usepackage[nottoc]{tocbibind}
-%\setcounter{secnumdepth}{3}
 
+%\usepackage{algorithm,algorithmicx}
+%\usepackage{multirow}
+
+
+\usepackage{etoolbox}
+\undef{\Bbb}
+\usepackage{mathfont_shortcuts}
 
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\argmax}{arg\,max}
 
-\DeclareMathOperator{\xrm}{\mathrm{x}}
-\DeclareMathOperator{\Xrm}{\mathrm{X}}
-\DeclareMathOperator{\yrm}{\mathrm{y}}
-\DeclareMathOperator{\Yrm}{\mathrm{Y}}
-\DeclareMathOperator{\Drm}{\mathrm{D}}
-\DeclareMathOperator{\nrm}{\mathrm{n}}
-\DeclareMathOperator{\nbarrm}{\bar{\mathrm{n}}}
-\DeclareMathOperator{\zrm}{\mathrm{z}}
-
-\DeclareMathOperator{\Prm}{\mathrm{P}}
-\DeclareMathOperator{\prm}{\mathrm{p}}
-\DeclareMathOperator{\Erm}{\mathrm{E}}
-\DeclareMathOperator{\Crm}{\mathrm{C}}
-
-\DeclareMathOperator{\crm}{\mathrm{c}}
-\DeclareMathOperator{\mrm}{\mathrm{m}}
-\DeclareMathOperator{\drm}{\mathrm{d}}
-
-\DeclareMathOperator{\Xcal}{\mathcal{X}}
-\DeclareMathOperator{\Ycal}{\mathcal{Y}}
-\DeclareMathOperator{\Dcal}{\mathcal{D}}
-\DeclareMathOperator{\Ncal}{\mathcal{N}}
-\DeclareMathOperator{\Zcal}{\mathcal{Z}}
-\DeclareMathOperator{\Hcal}{\mathcal{H}}
-\DeclareMathOperator{\Fcal}{\mathcal{F}}
-\DeclareMathOperator{\Rcal}{\mathcal{R}}
-\DeclareMathOperator{\Mcal}{\mathcal{M}}
-\DeclareMathOperator{\Scal}{\mathcal{S}}
-\DeclareMathOperator{\Pcal}{\mathcal{P}}
-\DeclareMathOperator{\Lcal}{\mathcal{L}}
-
-\DeclareMathOperator{\Rbb}{\mathbb{R}}
-\DeclareMathOperator{\Nbb}{\mathbb{N}}
-\DeclareMathOperator{\Zbb}{\mathbb{Z}}
-
-
-
-%\usepackage{cite}
-%\usepackage[style=numeric]{biblatex}
-%\addbibresource{{./References/References.bib}}
-
-\graphicspath{{./Figures/}}
+\DeclareMathOperator{\Rbbgeq}{\mathbb{R}_{\geq 0}}
+\DeclareMathOperator{\Zbbgeq}{\mathbb{Z}_{\geq 0}}
 
 
 \title{Feature space design for supervised learning of optimal tasking schedules}
 \author{Paul Rademacher}
 
-
 \begin{document}
 
 \maketitle
-%\tableofcontents
-
 %\listoftodos
 
 
@@ -84,16 +52,32 @@
 Task scheduling is a mature field of research with a wide range of applications. Determining the optimal schedule given a set of tasks can be require a prohibitive amount of computation, especially when the scheduler is meant to operate in real time. 
 
 
-%\bibliographystyle{plain}
-%\bibliography{{./References/References}}
+\section{Problem Statement}
+The scheduler operates on a number of tasks, each of which is defined by a release time $t_{\rrm}$, a duration $d$, and a monotonically non-decreasing loss function $l: [t_{\rrm}, \infty) \mapsto \Rbbgeq$.
+
+
+
 %\printbibliography
 
-
-
-
-
-
-
-
-
 \end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

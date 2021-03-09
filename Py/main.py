@@ -55,16 +55,16 @@ problem_gen = problem_gens.Dataset.load(schedule_path / 'discrete_relu_c1t8', sh
 
 # Algorithms
 env_params = {
-    'features': None,
+    'features': None,  # defaults to task parameters
     # 'sort_func': None,
-    'sort_func': 't_release',
+    'sort_func': 'duration',
     # 'time_shift': False,
     'time_shift': True,
     # 'masking': False,
     'masking': True,
     'action_type': 'any',
-    # 'seq_encoding': None,
-    'seq_encoding': 'one-hot',
+    'seq_encoding': None,
+    # 'seq_encoding': 'one-hot',
 }
 
 env = envs.StepTasking(problem_gen, **env_params)
@@ -74,16 +74,16 @@ def _weight_init():
     return keras.initializers.GlorotUniform(seed)
 
 
-# layers = [keras.layers.Flatten(),
-#           keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
-#           # keras.layers.Dropout(0.2),
-#           ]
-
-layers = [keras.layers.Conv1D(50, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-          keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-          # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
-          keras.layers.Flatten(),
+layers = [keras.layers.Flatten(),
+          keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
+          # keras.layers.Dropout(0.2),
           ]
+
+# layers = [keras.layers.Conv1D(50, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+#           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+#           # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
+#           keras.layers.Flatten(),
+#           ]
 
 # layers = [keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
 #           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu', kernel_initializer=_weight_init())]
@@ -144,6 +144,9 @@ with open(log_path, 'a') as fid:
 
     print('Results\n---', file=fid)
 
+
+# TODO: generate more probs
+# TODO: try making new features
 
 # sim_type = 'Gen'
 # if 'NN' in algorithms['name']:

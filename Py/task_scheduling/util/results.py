@@ -143,16 +143,20 @@ def scatter_results(t_run, l_ex, label='Results', do_relative=False):
 
 
 def print_averages(l_ex, t_run, log_path=None, do_relative=False):
-    names = l_ex.dtype.names
+    names = list(l_ex.dtype.names)
 
     data = [[l_ex[name].mean(), t_run[name].mean()] for name in names]
     columns = ['Loss', 'Runtime']
 
     if do_relative:
         l_ex_rel = _relative_loss(l_ex)
+        # for item, name in zip(data, names):
+        #     item.insert(0, l_ex_rel[name].mean())
+        # columns.insert(0, 'Excess Loss')
+        l_ex_opt = data[names.index('BB Optimal')][0]
         for item, name in zip(data, names):
-            item.insert(0, l_ex_rel[name].mean())
-        columns.insert(0, 'Relative Loss')
+            item.insert(0, l_ex_rel[name].mean() / l_ex_opt)
+        columns.insert(0, 'Excess Loss (%)')
 
     df = pd.DataFrame(data, index=pd.CategoricalIndex(names), columns=columns)
     df_str = df.to_markdown(tablefmt='github', floatfmt='.3f')
