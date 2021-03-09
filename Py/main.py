@@ -74,16 +74,16 @@ def _weight_init():
     return keras.initializers.GlorotUniform(seed)
 
 
-# layers = [keras.layers.Flatten(),
-#           keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
-#           # keras.layers.Dropout(0.2),
-#           ]
-
-layers = [keras.layers.Conv1D(50, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-          keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-          # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
-          keras.layers.Flatten(),
+layers = [keras.layers.Flatten(),
+          keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
+          # keras.layers.Dropout(0.2),
           ]
+
+# layers = [keras.layers.Conv1D(50, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+#           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+#           # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
+#           keras.layers.Flatten(),
+#           ]
 
 # layers = [keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
 #           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu', kernel_initializer=_weight_init())]
@@ -100,7 +100,7 @@ model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy', metri
 train_args = {'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
               'weight_func': None,
               # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-              'fit_params': {'epochs': 500, 'verbose': 1},
+              'fit_params': {'epochs': 500},
               }
 
 
@@ -146,7 +146,7 @@ with open(log_path, 'a') as fid:
 # sim_type = 'Gen'
 # if 'NN' in algorithms['name']:
 #     idx_nn = algorithms['name'].tolist().index('NN')
-#     algorithms['func'][idx_nn].learn(plot_history=True, **train_args)
+#     algorithms['func'][idx_nn].learn(verbose=2, plot_history=True, **train_args)
 #
 #     train_path = image_path + '_train'
 #     plt.figure('Training history').savefig(train_path)

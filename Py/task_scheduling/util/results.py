@@ -155,12 +155,12 @@ def print_averages(l_ex, t_run, log_path=None, do_relative=False):
         columns.insert(0, 'Relative Loss')
 
     df = pd.DataFrame(data, index=pd.CategoricalIndex(names), columns=columns)
-    df_str = df.to_markdown(tablefmt='github', floatfmt='.3f') + '\n'
+    df_str = df.to_markdown(tablefmt='github', floatfmt='.3f')
 
-    print(df_str)
+    print(df_str, end='\n\n')
     if log_path is not None:
         with open(log_path, 'a') as fid:
-            print(df_str, file=fid)
+            print(df_str, end='\n\n', file=fid)
 
 
 #%% Algorithm evaluation
@@ -294,7 +294,7 @@ def evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=1, n_mc
         try:
             learner = algorithms['func'][algorithms['name'].tolist().index('NN')]
             reset_weights(learner.model)
-            learner.learn(**train_args)  # note: calls `problem_gen` via environment reset
+            learner.learn(verbose=verbose - 1, **train_args)  # note: calls `problem_gen` via environment reset
             # TODO: generalize for multiple learners, ensure same data is used for each training op
         except ValueError:
             pass

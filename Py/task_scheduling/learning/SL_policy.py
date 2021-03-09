@@ -135,10 +135,10 @@ class SupervisedLearningScheduler:
         return history
 
     def learn(self, n_batch_train=1, n_batch_val=1, batch_size=1, weight_func=None,
-              fit_params=None, do_tensorboard=False, plot_history=False):
+              fit_params=None, verbose=0, do_tensorboard=False, plot_history=False):
 
-        d_val = self.env.data_gen_numpy(n_batch_val * batch_size, weight_func=weight_func, verbose=True)
-        d_train = self.env.data_gen_numpy(n_batch_train * batch_size, weight_func=weight_func, verbose=True)
+        d_val = self.env.data_gen_numpy(n_batch_val * batch_size, weight_func=weight_func, verbose=verbose)
+        d_train = self.env.data_gen_numpy(n_batch_train * batch_size, weight_func=weight_func, verbose=verbose)
 
         x_train, y_train = d_train[:2]
 
@@ -168,8 +168,12 @@ class SupervisedLearningScheduler:
                            'batch_size': batch_size * self.env.steps_per_episode,
                            'shuffle': False,
                            'sample_weight': sample_weight,
-                           'callbacks': [keras.callbacks.EarlyStopping(patience=60, monitor='val_loss', min_delta=0.)]
+                           'callbacks': [keras.callbacks.EarlyStopping(patience=60, monitor='val_loss', min_delta=0.)],
+                           'verbose': verbose - 1,
                            })
+
+        if verbose >= 1:
+            print('Training model...')
 
         # self.fit(*d_train, do_tensorboard, plot_history, **fit_params)
         self.fit(x_train, y_train, do_tensorboard, plot_history, **fit_params)

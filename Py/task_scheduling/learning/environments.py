@@ -98,7 +98,7 @@ class BaseTasking(Env, ABC):
         str_ = f"{cls_str}\n---\n"
         str_ += f"\n- Features: {self.features['name'].tolist()}"
         str_ += f"\n- Sorting: {self._sort_func_str}"
-        str_ += f"\n- Task shifting: {isinstance(self.node, tree_search.TreeNodeShift)}"
+        str_ += f"\n- Task shifting: {self.node_cls == tree_search.TreeNodeShift}"
         str_ += f"\n- Masking: {self.masking}"
         return str_
 
@@ -237,7 +237,7 @@ class BaseTasking(Env, ABC):
     def close(self):
         plt.close('all')
 
-    def data_gen(self, n_batch, batch_size=1, weight_func=None, verbose=False, rng=None):
+    def data_gen(self, n_batch, batch_size=1, weight_func=None, verbose=0, rng=None):
         """
         Generate state-action data for learner training and evaluation.
 
@@ -249,8 +249,8 @@ class BaseTasking(Env, ABC):
             Number of scheduling problems to make data from per yielded batch.
         weight_func : callable, optional
             Function mapping environment object to a training weight.
-        verbose : bool, optional
-            Enables print-out progress information.
+        verbose : int, optional
+            0: silent, 1: add batch info, 2: add problem info
         rng : int or RandomState or Generator, optional
             NumPy random number generator or seed. Instance RNG if None.
 
@@ -266,7 +266,7 @@ class BaseTasking(Env, ABC):
         """
 
         for i_batch in range(n_batch):
-            if verbose:
+            if verbose >= 1:
                 print(f'Batch: {i_batch + 1}/{n_batch}', end='\n')
 
             steps_total = batch_size * self.steps_per_episode
@@ -276,7 +276,7 @@ class BaseTasking(Env, ABC):
             w_set = np.empty(steps_total, dtype=float)
 
             for i_gen in range(batch_size):
-                if verbose:
+                if verbose >= 2:
                     print(f'  Problem: {i_gen + 1}/{batch_size}', end='\r')
 
                 self.reset(solve=True, rng=rng)  # generates new scheduling problem
@@ -301,7 +301,7 @@ class BaseTasking(Env, ABC):
         """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
         raise NotImplementedError
 
-    def data_gen_numpy(self, n_gen, weight_func=None, verbose=False):
+    def data_gen_numpy(self, n_gen, weight_func=None, verbose=0):
         """Generate state-action data as NumPy arrays."""
         data, = self.data_gen(n_batch=1, batch_size=n_gen, weight_func=weight_func, verbose=verbose)
         return data  # TODO: save dataset to save on Env computation time?
