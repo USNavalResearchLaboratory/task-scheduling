@@ -340,7 +340,7 @@ class TreeNodeBound(TreeNode):
 
     """
 
-    def __init__(self, tasks, ch_avail, seq=None, rng=None):
+    def __init__(self, tasks, ch_avail, seq=(), rng=None):
         self._l_lo = 0.
         self._l_up = float('inf')
         super().__init__(tasks, ch_avail, seq, rng)
@@ -435,7 +435,7 @@ class TreeNodeBound(TreeNode):
 
 
 class TreeNodeShift(TreeNode):
-    def __init__(self, tasks, ch_avail, seq=None, rng=None):
+    def __init__(self, tasks, ch_avail, seq=(), rng=None):
         self.t_origin = 0.
         super().__init__(tasks, ch_avail, seq, rng)
 

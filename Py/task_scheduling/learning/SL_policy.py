@@ -97,16 +97,17 @@ class SupervisedLearningScheduler:
             except FileNotFoundError:
                 pass
 
-            # fit_params['callbacks'].append(keras.callbacks.TensorBoard(log_dir=log_dir))
-            fit_params['callbacks'] += [keras.callbacks.TensorBoard(log_dir=self.log_dir)]
+            if not any(isinstance(cb, keras.callbacks.TensorBoard) for cb in fit_params['callbacks']):
+                # fit_params['callbacks'].append(keras.callbacks.TensorBoard(log_dir=log_dir))
+                fit_params['callbacks'] += [keras.callbacks.TensorBoard(log_dir=self.log_dir)]
 
             tb = program.TensorBoard()
             tb.configure(argv=[None, '--logdir', self.log_dir])
             url = tb.launch()
             webbrowser.open(url)
 
-        # history = model.fit(d_train, **fit_params)      # generator Dataset
         history = self.model.fit(x, y, **fit_params)  # NumPy data
+        # history = model.fit(d_train, **fit_params)      # generator Dataset
 
         acc_str = 'acc' if tf.version.VERSION[0] == '1' else 'accuracy'
         if plot_history:
@@ -134,18 +135,38 @@ class SupervisedLearningScheduler:
 
         return history
 
-    def learn(self, n_batch_train=1, n_batch_val=1, batch_size=1, weight_func=None,
+    def learn(self, n_batch_train=1, n_batch_val=0, batch_size=1, weight_func=None,
               fit_params=None, verbose=0, do_tensorboard=False, plot_history=False):
 
-        d_val = self.env.data_gen_numpy(n_batch_val * batch_size, weight_func=weight_func, verbose=verbose)
+        if fit_params is None:
+            fit_params = {}
+        fit_params.update({'shuffle': False,
+                           'batch_size': batch_size * self.env.steps_per_episode,
+                           # 'batch_size': None,   # generator Dataset
+                           # 'validation_freq': 1,
+                           'verbose': verbose - 1,
+                           })
+
+        if verbose >= 1:
+            print("Generating training data...")
         d_train = self.env.data_gen_numpy(n_batch_train * batch_size, weight_func=weight_func, verbose=verbose)
 
         x_train, y_train = d_train[:2]
-
         if callable(weight_func):
-            sample_weight = d_train[2]
-        else:
-            sample_weight = None
+            fit_params['sample_weight'] = d_train[2]
+
+        if n_batch_val > 0:  # use validation data
+            if verbose >= 1:
+                print("Generating validation data...")
+            fit_params['validation_data'] = self.env.data_gen_numpy(n_batch_val * batch_size, weight_func=weight_func,
+                                                                    verbose=verbose)
+
+            # Add stopping callback if needed
+            if 'callbacks' not in fit_params:
+                fit_params['callbacks'] = [keras.callbacks.EarlyStopping(patience=60, monitor='val_loss', min_delta=0.)]
+            elif not any(isinstance(cb, keras.callbacks.EarlyStopping) for cb in fit_params['callbacks']):
+                fit_params['callbacks'].append(keras.callbacks.EarlyStopping(patience=60, monitor='val_loss',
+                                                                             min_delta=0.))
 
         # gen_callable = partial(env.data_gen, weight_func=weight_func)  # function type not supported by from_generator
         #
@@ -160,23 +181,11 @@ class SupervisedLearningScheduler:
         # d_val = tf.data.Dataset.from_generator(gen_callable, output_types,
         #                                        output_shapes, args=(n_batch_val, batch_size))
 
-        if fit_params is None:
-            fit_params = {}
-        fit_params.update({'validation_data': d_val,
-                           # 'validation_freq': 1,
-                           # 'batch_size': None,   # generator Dataset
-                           'batch_size': batch_size * self.env.steps_per_episode,
-                           'shuffle': False,
-                           'sample_weight': sample_weight,
-                           'callbacks': [keras.callbacks.EarlyStopping(patience=60, monitor='val_loss', min_delta=0.)],
-                           'verbose': verbose - 1,
-                           })
-
         if verbose >= 1:
             print('Training model...')
 
-        # self.fit(*d_train, do_tensorboard, plot_history, **fit_params)
         self.fit(x_train, y_train, do_tensorboard, plot_history, **fit_params)
+        # self.fit(*d_train, do_tensorboard, plot_history, **fit_params)
 
     def save(self, save_path=None):
         if save_path is None:

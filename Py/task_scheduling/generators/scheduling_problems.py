@@ -86,7 +86,7 @@ class Base(RandomGeneratorMixin, ABC):
         for i_gen in range(n_gen):
             if verbose >= 1:
                 end = '\r' if verbose == 1 else '\n'
-                print(f'Scheduling Problem: {i_gen + 1}/{n_gen}', end=end)
+                print(f'Problem: {i_gen + 1}/{n_gen}', end=end)
 
             problem = self._gen_problem(rng)
             if save:

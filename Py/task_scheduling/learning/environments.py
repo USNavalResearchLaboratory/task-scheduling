@@ -237,6 +237,11 @@ class BaseTasking(Env, ABC):
     def close(self):
         plt.close('all')
 
+    @abstractmethod
+    def _gen_single(self, seq, weight_func):
+        """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
+        raise NotImplementedError
+
     def data_gen(self, n_batch, batch_size=1, weight_func=None, verbose=0, rng=None):
         """
         Generate state-action data for learner training and evaluation.
@@ -266,8 +271,8 @@ class BaseTasking(Env, ABC):
         """
 
         for i_batch in range(n_batch):
-            if verbose >= 1:
-                print(f'Batch: {i_batch + 1}/{n_batch}', end='\n')
+            # if verbose >= 1:
+            #     print(f'Batch: {i_batch + 1}/{n_batch}', end='\n')
 
             steps_total = batch_size * self.steps_per_episode
 
@@ -276,8 +281,10 @@ class BaseTasking(Env, ABC):
             w_set = np.empty(steps_total, dtype=float)
 
             for i_gen in range(batch_size):
-                if verbose >= 2:
-                    print(f'  Problem: {i_gen + 1}/{batch_size}', end='\r')
+                # if verbose >= 2:
+                #     print(f'  Problem: {i_gen + 1}/{batch_size}', end='\r')
+                if verbose >= 1:
+                    print(f'Problem: {batch_size*i_batch + i_gen + 1}/{n_batch * batch_size}', end='\r')
 
                 self.reset(solve=True, rng=rng)  # generates new scheduling problem
 
@@ -296,15 +303,10 @@ class BaseTasking(Env, ABC):
             else:
                 yield x_set, y_set
 
-    @abstractmethod
-    def _gen_single(self, seq, weight_func):
-        """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
-        raise NotImplementedError
-
     def data_gen_numpy(self, n_gen, weight_func=None, verbose=0):
         """Generate state-action data as NumPy arrays."""
         data, = self.data_gen(n_batch=1, batch_size=n_gen, weight_func=weight_func, verbose=verbose)
-        return data  # TODO: save dataset to save on Env computation time?
+        return data
 
     def data_gen_baselines(self, n_gen):
         steps_total = n_gen * self.steps_per_episode
