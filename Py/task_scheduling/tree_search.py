@@ -38,7 +38,7 @@ class TreeNode(RandomGeneratorMixin):
 
     """
 
-    def __init__(self, tasks, ch_avail, seq=None, rng=None):
+    def __init__(self, tasks, ch_avail, seq=(), rng=None):
         super().__init__(rng)
 
         self._tasks = deepcopy(tasks)  # TODO: slow? add option for copy?
@@ -55,7 +55,7 @@ class TreeNode(RandomGeneratorMixin):
 
         self._l_ex = 0.  # incurred loss
 
-        if seq is not None and len(seq) > 0:
+        if len(seq) > 0:
             self.seq_extend(seq)
 
     def __repr__(self):
@@ -189,6 +189,15 @@ class TreeNode(RandomGeneratorMixin):
 
         self._ch_avail[ch] = self._t_ex[n] + self._tasks[n].duration  # new channel availability
 
+    def _extend_util(self, seq_ext, inplace=True):
+        node = self
+        if not inplace:
+            node = deepcopy(node)
+
+        node.seq_extend(seq_ext, check_valid=False)
+
+        return node
+
     def branch(self, do_permute=True, rng=None):
         """
         Generate descendant nodes.
@@ -213,9 +222,10 @@ class TreeNode(RandomGeneratorMixin):
             rng.shuffle(seq_iter)
 
         for n in seq_iter:
-            node_new = deepcopy(self)  # new TreeNode object
-            node_new.seq_append(n, check_valid=False)
-            yield node_new
+            yield self._extend_util(n, inplace=False)
+            # node_new = deepcopy(self)  # new TreeNode object
+            # node_new.seq_append(n, check_valid=False)
+            # yield node_new
 
     def roll_out(self, inplace=True, rng=None):
         """
@@ -231,7 +241,7 @@ class TreeNode(RandomGeneratorMixin):
         Returns
         -------
         TreeNode
-            Only if do_copy is True.
+            Only if `inplace` is False.
 
         """
 
@@ -239,40 +249,6 @@ class TreeNode(RandomGeneratorMixin):
         seq_ext = rng.permutation(list(self._seq_rem)).tolist()
 
         node = self._extend_util(seq_ext, inplace)
-
-        if not inplace:
-            return node
-
-        # if inplace:
-        #     self.seq_extend(seq_ext, check_valid=False)
-        # else:
-        #     node_new = deepcopy(self)  # new TreeNode object
-        #     node_new.seq_extend(seq_ext, check_valid=False)
-        #     return node_new
-
-    def _extend_util(self, seq_ext, inplace=True):
-        node = self
-        if not inplace:
-            node = deepcopy(node)
-
-        node.seq_extend(seq_ext, check_valid=False)
-
-        return node
-
-    def earliest_release(self, inplace=True, check_swaps=False):
-        return self._earliest_sorter('t_release', inplace, check_swaps)
-
-    def earliest_drop(self, inplace=True, check_swaps=False):
-        return self._earliest_sorter('t_drop', inplace, check_swaps)
-
-    def _earliest_sorter(self, name, inplace=True, check_swaps=False):
-        _dict = {n: getattr(self.tasks[n], name) for n in self.seq_rem}
-        seq_ext = sorted(self.seq_rem, key=_dict.__getitem__)
-
-        node = self._extend_util(seq_ext, inplace)
-
-        if check_swaps:
-            node.check_swaps()
 
         if not inplace:
             return node
@@ -289,6 +265,49 @@ class TreeNode(RandomGeneratorMixin):
             node_swap = TreeNode(self._tasks, self._ch_avail, seq_swap)
             if node_swap.l_ex < self.l_ex:
                 self = node_swap  # TODO: improper?
+
+    def _earliest_sorter(self, name, inplace=True, check_swaps=False):
+        _dict = {n: getattr(self.tasks[n], name) for n in self.seq_rem}
+        seq_ext = sorted(self.seq_rem, key=_dict.__getitem__)
+
+        node = self._extend_util(seq_ext, inplace)
+
+        if check_swaps:
+            node.check_swaps()
+
+        if not inplace:
+            return node
+
+    def earliest_release(self, inplace=True, check_swaps=False):
+        return self._earliest_sorter('t_release', inplace, check_swaps)
+
+    def earliest_drop(self, inplace=True, check_swaps=False):
+        return self._earliest_sorter('t_drop', inplace, check_swaps)
+
+    def mcts(self, n_mc=1, inplace=True, verbose=False, rng=None):
+
+        # TODO: add exploration/exploitation input control.
+
+        # l_up = TreeNodeBound(tasks, ch_avail).l_up
+        tree = SearchNode(self.n_tasks, self.seq, l_up=np.inf, rng=self._get_rng(rng))
+
+        node_best, loss_min = None, np.inf
+        while tree.n_visits < n_mc:
+            if verbose:
+                print(f'Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_min}', end='\r')
+
+            seq = tree.simulate()  # roll-out a complete sequence
+            node = TreeNode(self.tasks, self.ch_avail, seq)  # evaluate execution times and channels, total loss
+
+            tree.backup(seq, node.l_ex)  # update search tree from leaf sequence to root
+
+            if node.l_ex < loss_min:
+                node_best, loss_min = node, node.l_ex
+
+        if inplace:
+            self.seq = node_best.seq
+        else:
+            return node_best
 
 
 class TreeNodeBound(TreeNode):
@@ -383,6 +402,8 @@ class TreeNodeBound(TreeNode):
 
         """
 
+        # TODO: different search strategies? pre-sort?
+
         rng = self._get_rng(rng)
 
         stack = deque([self])  # initialize stack
@@ -474,11 +495,11 @@ class SearchNode(RandomGeneratorMixin):
 
     """
 
-    def __init__(self, n_tasks, seq=None, l_up=None, rng=None):
+    def __init__(self, n_tasks, seq=(), l_up=None, rng=None):
         super().__init__(rng)
 
         self.n_tasks = n_tasks
-        self._seq = seq if seq is not None else []
+        self._seq = list(seq)
         self.l_up = l_up
 
         self._n_visits = 0

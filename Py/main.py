@@ -74,16 +74,16 @@ def _weight_init():
     return keras.initializers.GlorotUniform(seed)
 
 
-layers = [keras.layers.Flatten(),
-          keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
-          # keras.layers.Dropout(0.2),
-          ]
-
-# layers = [keras.layers.Conv1D(50, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-#           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-#           # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
-#           keras.layers.Flatten(),
+# layers = [keras.layers.Flatten(),
+#           keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
+#           # keras.layers.Dropout(0.2),
 #           ]
+
+layers = [keras.layers.Conv1D(50, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+          keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+          # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
+          keras.layers.Flatten(),
+          ]
 
 # layers = [keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
 #           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu', kernel_initializer=_weight_init())]
@@ -114,10 +114,10 @@ train_args = {'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
 
 algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
-    # ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
-    # ('ERT', free.earliest_release, 1),
-    # ('MCTS', partial(free.mcts, n_mc=50, rng=RNGMix.make_rng(seed)), 10),
-    ('NN', SupervisedLearningScheduler(model, env), 1),
+    ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
+    ('ERT', free.earliest_release, 1),
+    ('MCTS', partial(free.mcts, n_mc=40, rng=RNGMix.make_rng(seed)), 10),
+    # ('NN', SupervisedLearningScheduler(model, env), 1),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
 
@@ -139,34 +139,36 @@ with open(log_path, 'a') as fid:
     if 'NN' in algorithms['name']:
         idx_nn = algorithms['name'].tolist().index('NN')
         algorithms['func'][idx_nn].summary(fid)
+        n_gen_train = (train_args['n_batch_train'] + train_args['n_batch_val']) * train_args['batch_size']
+        print(f"Training problems = {n_gen_train}\n", file=fid)
 
-    print('\nResults\n---\n', file=fid)
-
-
-# sim_type = 'Gen'
-# if 'NN' in algorithms['name']:
-#     idx_nn = algorithms['name'].tolist().index('NN')
-#     algorithms['func'][idx_nn].learn(verbose=2, plot_history=True, **train_args)
-#
-#     train_path = image_path + '_train'
-#     plt.figure('Training history').savefig(train_path)
-#     with open(log_path, 'a') as fid:
-#         print(f"![](../{train_path}.png)\n", file=fid)
-# l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen=100, solve=True, verbose=1, plotting=1,
-#                                             log_path=log_path)
+    print('Results\n---\n', file=fid)
 
 
-sim_type = 'Train'
-l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=100, n_mc=10, solve=True,
-                                              verbose=2, plotting=1, log_path=log_path)
-np.savez(data_path / f'results/temp/{time_str}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
+sim_type = 'Gen'
+if 'NN' in algorithms['name']:
+    idx_nn = algorithms['name'].tolist().index('NN')
+    algorithms['func'][idx_nn].learn(verbose=2, plot_history=True, **train_args)
+
+    train_path = image_path + '_train'
+    plt.figure('Training history').savefig(train_path)
+    with open(log_path, 'a') as fid:
+        print(f"![](../{train_path}.png)\n", file=fid)
+l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen=100, solve=True, verbose=1, plotting=1,
+                                            log_path=log_path)
+
+
+# sim_type = 'Train'
+# l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=100, n_mc=10, solve=True,
+#                                               verbose=2, plotting=1, log_path=log_path)
+# np.savez(data_path / f'results/temp/{time_str}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
 
 
 # # plt.figure(f'{sim_type}').savefig(image_path)
 # plt.figure(f'{sim_type} (Relative)').savefig(image_path)
 # with open(log_path, 'a') as fid:
 #     print(f"![](../{image_path}.png)\n", file=fid)
-#     # str_ = image_path.resolve().as_posix().replace('.png', '')
+#     # str_ = image_path.resolve().as_posix().replace('.png', '')s
 
 
 # %% Limited Runtime

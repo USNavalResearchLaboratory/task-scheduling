@@ -258,6 +258,12 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
     if plotting >= 1:
         scatter_results(t_run_mean, l_ex_mean, label='Gen', do_relative=solve)
     if verbose >= 1:
+        if log_path is not None:
+            with open(log_path, 'a') as fid:
+                print(f'n_gen = {n_gen}', end='\n\n', file=fid)
+        else:
+            print(f'n_gen = {n_gen}', end='\n\n')
+
         print_averages(l_ex_mean, t_run_mean, log_path, do_relative=solve)
 
     return l_ex_mean, t_run_mean
@@ -307,6 +313,12 @@ def evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=1, n_mc
     if plotting >= 1:
         scatter_results(t_run_mc, l_ex_mc, label='Train', do_relative=solve)
     if verbose >= 1:
+        if log_path is not None:
+            with open(log_path, 'a') as fid:
+                print(f'- n_mc = {n_mc}\n- n_gen = {n_gen}', end='\n\n', file=fid)
+        else:
+            print(f'- n_mc = {n_mc}\n- n_gen = {n_gen}', end='\n\n')
+
         print_averages(l_ex_mc, t_run_mc, log_path, do_relative=solve)
 
     return l_ex_mc, t_run_mc

@@ -1,8 +1,4 @@
-from numbers import Integral
-
-import numpy as np
-
-from task_scheduling.tree_search import TreeNodeBound, TreeNode, SearchNode
+from task_scheduling.tree_search import TreeNodeBound, TreeNode
 
 
 # from sequence2schedule import FlexDARMultiChannelSequenceScheduler
@@ -30,8 +26,6 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
         Task execution channels.
 
     """
-
-    # TODO: different search strategies? pre-sort?
 
     node = TreeNodeBound(tasks, ch_avail, rng=rng)
     node_best = node.branch_bound(inplace=False, verbose=verbose)
@@ -86,7 +80,8 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
                 if node_new.l_up < node_best.l_ex:
                     node_best = node_new.roll_out(inplace=False)  # roll-out a new best node
                     # if len(node_new.seq) == len(tasks) - 1:
-                    #     node_stats.append(node_best)  # Don't append here needs to be a complete sequence. Line above is
+                    #     node_stats.append(node_best)
+                    # Don't append here needs to be a complete sequence. Line above is
                     # random draw to finish sequence, can have better solutions
                     stack = [s for s in stack if s.l_lo < node_best.l_ex]  # Cut Dominated Nodes
 
@@ -105,7 +100,7 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
     return node_best.t_ex, node_best.ch_ex, node_stats
 
 
-def mcts_orig(tasks, ch_avail, n_mc, verbose=False, rng=None):
+def mcts(tasks, ch_avail, n_mc=1, verbose=False, rng=None):
     """
     Monte Carlo tree search algorithm.
 
@@ -114,56 +109,7 @@ def mcts_orig(tasks, ch_avail, n_mc, verbose=False, rng=None):
     tasks : Iterable of task_scheduling.tasks.Base
     ch_avail : Iterable of float
         Channel availability times.
-    n_mc : int or Iterable of int
-        Number of Monte Carlo roll-outs per task.
-    verbose : bool
-        Enables printing of algorithm state information.
-    rng : int or RandomState or Generator, optional
-        NumPy random number generator or seed. Instance RNG if None.
-
-    Returns
-    -------
-    t_ex : ndarray
-        Task execution times.
-    ch_ex : ndarray
-        Task execution channels.
-
-    """
-
-    node = TreeNode(tasks, ch_avail, rng=rng)
-    node_best = node.roll_out(inplace=False)
-
-    n_tasks = len(tasks)
-    if isinstance(n_mc, Integral):
-        n_mc = n_tasks * [int(n_mc)]
-
-    for n in range(n_tasks):
-        if verbose:
-            print(f'Assigning Task {n + 1}/{n_tasks}', end='\r')
-
-        # Perform Roll-outs
-        for _ in range(n_mc[n]):
-            node_mc = node.roll_out(inplace=False)
-
-            if node_mc.l_ex < node_best.l_ex:  # Update best node
-                node_best = node_mc
-
-        # Assign next task from earliest available channel
-        node.seq_append(node_best.seq[n], check_valid=False)
-
-    return node_best.t_ex, node_best.ch_ex
-
-
-def mcts(tasks, ch_avail, n_mc, verbose=False, rng=None):
-    """
-    Monte Carlo tree search algorithm.
-
-    Parameters
-    ----------
-    tasks : Iterable of task_scheduling.tasks.Base
-    ch_avail : Iterable of float
-        Channel availability times.
-    n_mc : int
+    n_mc : int, optional
         Number of roll-outs performed.
     verbose : bool
         Enables printing of algorithm state information.
@@ -179,30 +125,10 @@ def mcts(tasks, ch_avail, n_mc, verbose=False, rng=None):
 
     """
 
-    # TODO: as TreeNode method!?
+    node = TreeNode(tasks, ch_avail, rng=rng)
+    node = node.mcts(n_mc, inplace=False, verbose=verbose)
 
-    # TODO: add exploration/exploitation input control.
-
-    l_up = TreeNodeBound(tasks, ch_avail).l_up
-    tree = SearchNode(n_tasks=len(tasks), seq=[], l_up=l_up, rng=rng)
-
-    node_best = None
-
-    loss_min = float('inf')
-    while tree.n_visits < n_mc:
-        if verbose:
-            print(f'Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_min}', end='\r')
-
-        seq = tree.simulate()  # roll-out a complete sequence
-        node = TreeNode(tasks, ch_avail, seq)  # evaluate execution times and channels, total loss
-
-        loss = node.l_ex
-        tree.backup(seq, loss)  # update search tree from leaf sequence to root
-
-        if loss < loss_min:
-            node_best, loss_min = node, loss
-
-    return node_best.t_ex, node_best.ch_ex
+    return node.t_ex, node.ch_ex
 
 
 def random_sequencer(tasks, ch_avail, rng=None):
