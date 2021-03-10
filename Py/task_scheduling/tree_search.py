@@ -2,6 +2,7 @@ from collections import deque
 from copy import deepcopy
 from math import factorial
 from numbers import Integral
+from collections import Iterable, Collection
 
 import numpy as np
 import pandas as pd
@@ -18,12 +19,17 @@ class TreeNode(RandomGeneratorMixin):
 
     Parameters
     ----------
-    seq : Iterable of int
+    tasks : Collection of task_scheduling.tasks.Base
+    ch_avail : Collection of float
+        Channel availabilities
+    seq : Collection of int
         Partial task index sequence.
+    rng : int or RandomState or Generator, optional
+            NumPy random number generator or seed. Instance RNG if None.
 
     Attributes
     ----------
-    seq : Iterable of int
+    seq : Collection of int
         Partial task index sequence.
     t_ex : ndarray
         Task execution times. NaN for unscheduled.
@@ -105,44 +111,14 @@ class TreeNode(RandomGeneratorMixin):
             # self.__init__(seq)  # initialize from scratch
             raise ValueError(f"Sequence must be an extension of {self._seq}")
 
-    # def seq_extend(self, seq_ext, check_valid=True):
-    #     """
-    #     Extends node sequence and updates attributes using sequence-to-schedule approach.
-    #
-    #     Parameters
-    #     ----------
-    #     seq_ext : int or Iterable of int
-    #         Iterable of indices referencing cls._tasks.
-    #     check_valid : bool
-    #         Perform check of index sequence validity.
-    #
-    #     """
-    #
-    #     if isinstance(seq_ext, Integral):
-    #         seq_ext = [seq_ext]
-    #     if len(seq_ext) == 0:
-    #         return
-    #
-    #     if check_valid:
-    #         seq_ext_set = set(seq_ext)
-    #         if len(seq_ext) != len(seq_ext_set):
-    #             raise ValueError("Input 'seq_ext' must have unique values.")
-    #         if not seq_ext_set.issubset(self._seq_rem):
-    #             raise ValueError("Values in 'seq_ext' must not be in the current node sequence.")
-    #
-    #     for n in seq_ext:
-    #         self._seq.append(n)
-    #         self._seq_rem.remove(n)
-    #         self._update_ex(n, self.ch_min)     # assign task to channel with earliest availability
-
     def seq_extend(self, seq_ext, check_valid=True):
         """
         Extends node sequence and updates attributes using sequence-to-schedule approach.
 
         Parameters
         ----------
-        seq_ext : int or Iterable of int
-            Iterable of indices referencing self.tasks.
+        seq_ext : int or Collection of int
+            Indices referencing self.tasks.
         check_valid : bool
             Perform check of index sequence validity.
 
@@ -289,7 +265,7 @@ class TreeNode(RandomGeneratorMixin):
         # TODO: add exploration/exploitation input control.
 
         # l_up = TreeNodeBound(tasks, ch_avail).l_up
-        tree = SearchNode(self.n_tasks, self.seq, l_up=np.inf, rng=self._get_rng(rng))
+        tree = SearchNode(self.n_tasks, self.seq, rng=self._get_rng(rng))
 
         node_best, loss_min = None, np.inf
         while tree.n_visits < n_mc:
@@ -357,8 +333,8 @@ class TreeNodeBound(TreeNode):
 
         Parameters
         ----------
-        seq_ext : int or Iterable of int
-            Iterable of indices referencing self.tasks.
+        seq_ext : int or Collection of int
+            Indices referencing self.tasks.
         check_valid : bool
             Perform check of index sequence validity.
 
@@ -495,19 +471,26 @@ class SearchNode(RandomGeneratorMixin):
 
     """
 
-    def __init__(self, n_tasks, seq=(), l_up=None, rng=None):
+    def __init__(self, n_tasks, seq=(), l_up=np.inf, rng=None):
         super().__init__(rng)
 
-        self.n_tasks = n_tasks
+        self._n_tasks = n_tasks
         self._seq = list(seq)
-        self.l_up = l_up
+        self._l_up = l_up   # TODO: use normalized loss to drive explore/exploit
 
         self._n_visits = 0
         self._l_avg = 0.
-        self._l_min = float('inf')  # FIXME: min? ordered statistic?
-        self._children = {}
+        # self._l_min = np.inf  # FIXME: min? ordered statistic?
 
+        self._children = {}
         self._seq_unk = set(range(self.n_tasks)) - set(self._seq)  # set of unexplored task indices
+
+    n_tasks = property(lambda self: self._n_tasks)
+    seq = property(lambda self: self._seq)
+
+    n_visits = property(lambda self: self._n_visits)
+    l_avg = property(lambda self: self._l_avg)
+    children = property(lambda self: self._children)
 
     def __repr__(self):
         return f"SearchNode(seq={self._seq}, children={list(self._children.keys())}, " \
@@ -530,21 +513,17 @@ class SearchNode(RandomGeneratorMixin):
 
         if isinstance(item, Integral):
             return self._children[item]
-        else:
+        elif isinstance(item, Collection):
             node = self
             for n in item:
                 node = node._children[n]
             return node
-
-    seq = property(lambda self: self._seq)
-    n_visits = property(lambda self: self._n_visits)
-    l_avg = property(lambda self: self._l_avg)
-    children = property(lambda self: self._children)
+        else:
+            raise TypeError
 
     @property
     def weight(self):
         return self._l_avg - 10 / (self._n_visits + 1)  # FIXME: placeholder. Need real metric and user control.
-        # return np.random.random()
 
     def select_child(self):
         """
@@ -561,14 +540,14 @@ class SearchNode(RandomGeneratorMixin):
 
         w = {n: node.weight for (n, node) in self._children.items()}
         w.update({n: -10 for n in self._seq_unk})  # FIXME: value?
-        w = dict(self.rng.permutation(list(w.items())))  # permute elements to randomly break ties
+        w = dict(self.rng.permutation(list(w.items())))  # permute elements to break ties randomly
 
         n = int(min(w, key=w.__getitem__))
         if n not in self._children:
-            self._children[n] = SearchNode(self.n_tasks, self._seq + [n], self.l_up, self.rng)
+            self._children[n] = SearchNode(self.n_tasks, self._seq + [n], self._l_up, self.rng)
             self._seq_unk.remove(n)
 
-        return self[n]
+        return self._children[n]
 
     def simulate(self):
         """

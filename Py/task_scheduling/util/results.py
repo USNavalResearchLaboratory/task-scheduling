@@ -57,8 +57,8 @@ def evaluate_schedule(tasks, t_ex):
 
     Parameters
     ----------
-    tasks : Iterable of task_scheduling.tasks.Base
-    t_ex : Iterable of float
+    tasks : Collection of task_scheduling.tasks.Base
+    t_ex : Collection of float
         Task execution times.
 
     Returns

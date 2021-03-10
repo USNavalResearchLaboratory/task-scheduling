@@ -110,7 +110,7 @@ def seq2num(seq, check_input=True):
 
     Parameters
     ----------
-    seq : Iterable
+    seq : Collection of int
         Elements are unique in range(len(seq)).
     check_input : bool
         Enables value checking of input sequence.

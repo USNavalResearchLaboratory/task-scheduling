@@ -53,8 +53,14 @@ Task scheduling is a mature field of research with a wide range of applications.
 
 
 \section{Problem Statement}
-The scheduler operates on a number of tasks, each of which is defined by a release time $t_{\rrm}$, a duration $d$, and a monotonically non-decreasing loss function $l: [t_{\rrm}, \infty) \mapsto \Rbbgeq$.
+The scheduler operates on a set of $N$ tasks, $\{T_1, \ldots, T_N\}$; each task $T_i$ is defined by a release time $t_{\rrm, i}$, a duration $d_i$, and a monotonically non-decreasing loss function $l_i: [t_{\rrm,i}, \infty) \mapsto \Rbbgeq$. The objective is to jointly determine execution times $t_{\erm, i}$ for the tasks to minimize the overall loss. Together, the executions times $(t_{\erm, 1}, \ldots, t_{\erm, N})$ are referred to as a schedule.
 
+\todo[inline]{assume zero loss at release time?}
+
+The space of valid schedules is 
+\begin{IEEEeqnarray}{rCl}
+	\Tcal & = & \left\{\right\}
+\end{IEEEeqnarray}
 
 
 %\printbibliography

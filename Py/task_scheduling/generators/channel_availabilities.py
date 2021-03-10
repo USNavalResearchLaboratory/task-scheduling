@@ -11,7 +11,7 @@ class Base(RandomGeneratorMixin, ABC):
 
     Parameters
     ----------
-    lims : Iterable of float
+    lims : Collection of float
         Lower and upper channel limits.
 
     """

@@ -154,9 +154,9 @@ class BaseTasking(Env, ABC):
 
         Parameters
         ----------
-        tasks : Iterable of task_scheduling.tasks.Base, optional
+        tasks : Collection of task_scheduling.tasks.Base, optional
             Optional task set for non-random reset.
-        ch_avail : Iterable of float, optional
+        ch_avail : Collection of float, optional
             Optional initial channel availabilities for non-random reset.
         persist : bool
             If True, keeps tasks and channels fixed during reset, regardless of other inputs.
@@ -201,7 +201,7 @@ class BaseTasking(Env, ABC):
 
         Parameters
         ----------
-        action : int or Iterable of int
+        action : int or Collection of int
             Complete index sequence.
 
         Returns

@@ -1,14 +1,15 @@
 # Notes
-- Simple MLP
-  - Masking: negligible improvement
-  - Sorting effects
-    - t_release: good
-    - slope: moderate
-    - duration: equally good!
-  - Shifting: very good
-  - Sort + shift = even better!
+- Sorting effects
+  - t_release: good
+  - slope: moderate
+  - duration: equally good!
+- Shifting: very good
+- Sort + shift = even better!
+  - Negligible improvement from masking or encoding!
   
-- NOTE: effect of seq encoding is NEGLIGIBLE!!
+- Without sorting/shifting
+  - Encoding-only and masking-only provide comparable improvement, minimal synergy
+  
 - TODO: investigate training sample weighting
   
 - CNN: TODO
@@ -432,4 +433,149 @@ Results
 |------------|-------------------|---------|-----------|
 | BB Optimal |             0.000 | 148.531 |     0.359 |
 | NN         |             0.088 | 161.603 |     0.008 |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 2021-03-10_08-49-56
+
+Env: StepTasking
+---
+
+- Features: ['duration', 't_release', 'slope', 't_drop', 'l_drop']
+- Sorting: None
+- Task shifting: False
+- Masking: False
+- Valid actions: False
+- Sequence encoding: None
+
+Model
+---
+```
+Model: "sequential"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+flatten (Flatten)            (None, 40)                0         
+_________________________________________________________________
+dense (Dense)                (None, 30)                1230      
+_________________________________________________________________
+dense_1 (Dense)              (None, 8)                 248       
+=================================================================
+Total params: 1,478
+Trainable params: 1,478
+Non-trainable params: 0
+_________________________________________________________________
+```
+
+Training problems = 900
+
+Results
+---
+- n_mc = 10
+- n_gen = 100
+
+|            |   Excess Loss (%) |    Loss |   Runtime |
+|------------|-------------------|---------|-----------|
+| BB Optimal |             0.000 | 148.531 |     0.359 |
+| NN         |             0.667 | 247.569 |     0.008 |
+
+
+# 2021-03-10_08-56-14
+
+Env: StepTasking
+---
+
+- Features: ['duration', 't_release', 'slope', 't_drop', 'l_drop']
+- Sorting: None
+- Task shifting: False
+- Masking: True
+- Valid actions: False
+- Sequence encoding: None
+
+Model
+---
+```
+Model: "sequential"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+flatten (Flatten)            (None, 40)                0         
+_________________________________________________________________
+dense (Dense)                (None, 30)                1230      
+_________________________________________________________________
+dense_1 (Dense)              (None, 8)                 248       
+=================================================================
+Total params: 1,478
+Trainable params: 1,478
+Non-trainable params: 0
+_________________________________________________________________
+```
+
+Training problems = 900
+
+Results
+---
+- n_mc = 10
+- n_gen = 100
+
+|            |   Excess Loss (%) |    Loss |   Runtime |
+|------------|-------------------|---------|-----------|
+| BB Optimal |             0.000 | 148.531 |     0.359 |
+| NN         |             0.420 | 210.918 |     0.008 |
+
+
+# 2021-03-10_09-04-38
+
+Env: StepTasking
+---
+
+- Features: ['duration', 't_release', 'slope', 't_drop', 'l_drop']
+- Sorting: None
+- Task shifting: False
+- Masking: True
+- Valid actions: False
+- Sequence encoding: one-hot
+
+Model
+---
+```
+Model: "sequential"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+flatten (Flatten)            (None, 104)               0         
+_________________________________________________________________
+dense (Dense)                (None, 30)                3150      
+_________________________________________________________________
+dense_1 (Dense)              (None, 8)                 248       
+=================================================================
+Total params: 3,398
+Trainable params: 3,398
+Non-trainable params: 0
+_________________________________________________________________
+```
+
+Training problems = 900
+
+Results
+---
+- n_mc = 10
+- n_gen = 100
+
+|            |   Excess Loss (%) |    Loss |   Runtime |
+|------------|-------------------|---------|-----------|
+| BB Optimal |             0.000 | 148.531 |     0.359 |
+| NN         |             0.405 | 208.737 |     0.008 |
 
