@@ -2,7 +2,6 @@ from collections import deque
 from copy import deepcopy
 from math import factorial
 from numbers import Integral
-from collections.abc import Sequence
 from typing import Sequence
 
 import numpy as np
@@ -110,7 +109,8 @@ class TreeNode(RandomGeneratorMixin):
             if len(seq_ext) > 0:
                 self.seq_extend(seq_ext)
         else:
-            # self.__init__(seq)  # initialize from scratch
+            # self.__init__(self.tasks, self.ch_avail, seq, rng=self.rng)  # initialize from scratch
+            # TODO: shift nodes cannot recover original task/ch_avail state!
             raise ValueError(f"Sequence must be an extension of {self._seq}")
 
     def seq_extend(self, seq_ext, check_valid=True):
@@ -201,9 +201,6 @@ class TreeNode(RandomGeneratorMixin):
 
         for n in seq_iter:
             yield self._extend_util(n, inplace=False)
-            # node_new = deepcopy(self)  # new TreeNode object
-            # node_new.seq_append(n, check_valid=False)
-            # yield node_new
 
     def roll_out(self, inplace=True, rng=None):
         """
@@ -240,7 +237,7 @@ class TreeNode(RandomGeneratorMixin):
         for i in range(len(self.seq) - 1):
             seq_swap = self.seq.copy()
             seq_swap[i:i + 2] = seq_swap[i:i + 2][::-1]
-            node_swap = TreeNode(self._tasks, self._ch_avail, seq_swap)
+            node_swap = self.__class__(self._tasks, self._ch_avail, seq_swap)
             if node_swap.l_ex < self.l_ex:
                 self = node_swap  # TODO: improper?
 
@@ -275,7 +272,7 @@ class TreeNode(RandomGeneratorMixin):
                 print(f'Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_min}', end='\r')
 
             seq = tree.simulate()  # roll-out a complete sequence
-            node = TreeNode(self.tasks, self.ch_avail, seq)  # evaluate execution times and channels, total loss
+            node = self.__class__(self.tasks, self.ch_avail, seq)  # evaluate execution times and channels, total loss
 
             tree.backup(seq, node.l_ex)  # update search tree from leaf sequence to root
 
@@ -322,13 +319,14 @@ class TreeNodeBound(TreeNode):
 
     def _update_bounds(self):
         # Add bound attributes
-        t_ex_max = (max([self._tasks[n].t_release for n in self._seq_rem] + [min(self._ch_avail)])
-                    + sum(self._tasks[n].duration for n in self._seq_rem))  # maximum execution time for bounding
+        t_release_max = max(min(self._ch_avail), *(self._tasks[n].t_release for n in self._seq_rem))
+        t_ex_max = t_release_max + sum(self._tasks[n].duration for n in self._seq_rem)
+        t_ex_max -= min(self._tasks[n].duration for n in self._seq_rem)
 
         self._l_lo = self._l_ex
         self._l_up = self._l_ex
         for n in self._seq_rem:  # update loss bounds
-            self._l_lo += self._tasks[n](max(self._tasks[n].t_release, min(self._ch_avail)))
+            self._l_lo += self._tasks[n](max(min(self._ch_avail), self._tasks[n].t_release))
             self._l_up += self._tasks[n](t_ex_max)
 
     def branch_bound(self, inplace=True, verbose=False, rng=None):
@@ -556,7 +554,7 @@ class SearchNode(RandomGeneratorMixin):
         self._n_visits += 1
         self._l_avg = loss_total / self._n_visits
 
-    def backup(self, seq: list, loss):
+    def backup(self, seq, loss):
         """
         Updates search attributes for all descendant nodes corresponding to an index sequence.
 
