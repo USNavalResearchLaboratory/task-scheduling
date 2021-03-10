@@ -318,7 +318,10 @@ class TreeNodeBound(TreeNode):
         self._update_bounds()
 
     def _update_bounds(self):
-        # Add bound attributes
+
+        if len(self.seq_rem) == 0:
+            return
+
         t_release_max = max(min(self._ch_avail), *(self._tasks[n].t_release for n in self._seq_rem))
         t_ex_max = t_release_max + sum(self._tasks[n].duration for n in self._seq_rem)
         t_ex_max -= min(self._tasks[n].duration for n in self._seq_rem)
