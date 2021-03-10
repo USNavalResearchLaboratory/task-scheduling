@@ -133,7 +133,7 @@ class DiscreteSet(Space):
 
     def __eq__(self, other):
         if isinstance(other, DiscreteSet):
-            return (self.elements == other.elements).all()
+            return np.all(self.elements == other.elements)
         else:
             return NotImplemented
 

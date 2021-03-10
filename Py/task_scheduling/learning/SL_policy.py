@@ -35,8 +35,8 @@ class SupervisedLearningScheduler:
 
         Parameters
         ----------
-        tasks : Collection of task_scheduling.tasks.Base
-        ch_avail : Collection of float
+        tasks : Sequence of task_scheduling.tasks.Base
+        ch_avail : Sequence of float
             Channel availability times.
 
         Returns
@@ -220,7 +220,7 @@ class SupervisedLearningScheduler:
             Gym environment class.
         env_params : dict, optional
             Parameters for environment initialization.
-        layers : Iterable of tensorflow.keras.layers.Layer
+        layers : Sequence of tensorflow.keras.layers.Layer
             Neural network layers.
         compile_params : dict, optional
             Parameters for the model compile method.

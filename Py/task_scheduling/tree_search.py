@@ -2,11 +2,13 @@ from collections import deque
 from copy import deepcopy
 from math import factorial
 from numbers import Integral
-from collections import Iterable, Collection
+from collections.abc import Sequence
+from typing import Sequence
 
 import numpy as np
 import pandas as pd
 
+from task_scheduling.tasks import Base as BaseTask, Shift as ShiftTask
 from task_scheduling.util.generic import RandomGeneratorMixin
 
 
@@ -19,17 +21,17 @@ class TreeNode(RandomGeneratorMixin):
 
     Parameters
     ----------
-    tasks : Collection of task_scheduling.tasks.Base
-    ch_avail : Collection of float
+    tasks : Sequence of BaseTask
+    ch_avail : Sequence of float
         Channel availabilities
-    seq : Collection of int
+    seq : Sequence of int
         Partial task index sequence.
     rng : int or RandomState or Generator, optional
             NumPy random number generator or seed. Instance RNG if None.
 
     Attributes
     ----------
-    seq : Collection of int
+    seq : Sequence of int
         Partial task index sequence.
     t_ex : ndarray
         Task execution times. NaN for unscheduled.
@@ -117,7 +119,7 @@ class TreeNode(RandomGeneratorMixin):
 
         Parameters
         ----------
-        seq_ext : int or Collection of int
+        seq_ext : int or Sequence of int
             Indices referencing self.tasks.
         check_valid : bool
             Perform check of index sequence validity.
@@ -287,35 +289,6 @@ class TreeNode(RandomGeneratorMixin):
 
 
 class TreeNodeBound(TreeNode):
-    """
-    Node object with additional loss bounding attributes.
-
-    Parameters
-    ----------
-    seq : list of int
-        Partial task index sequence.
-
-    Attributes
-    ----------
-    seq : list of int
-        Partial task index sequence.
-    t_ex : ndarray
-        Task execution times. NaN for unscheduled.
-    ch_ex : ndarray
-        Task execution channels. -1 for unscheduled.
-    ch_avail : ndarray
-        Channel availability times.
-    l_ex : float
-        Total loss of scheduled tasks.
-    seq_rem: set
-        Unscheduled task indices.
-    l_lo: float
-        Lower bound on total loss for descendant nodes.
-    l_up: float
-        Upper bound on total loss for descendant nodes.
-
-    """
-
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
         self._l_lo = 0.
         self._l_up = float('inf')
@@ -333,7 +306,7 @@ class TreeNodeBound(TreeNode):
 
         Parameters
         ----------
-        seq_ext : int or Collection of int
+        seq_ext : int or Sequence of int
             Indices referencing self.tasks.
         check_valid : bool
             Perform check of index sequence validity.
@@ -411,6 +384,8 @@ class TreeNodeBound(TreeNode):
 
 
 class TreeNodeShift(TreeNode):
+    _tasks: Sequence[ShiftTask]
+
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
         self.t_origin = 0.
         super().__init__(tasks, ch_avail, seq, rng)
@@ -453,12 +428,12 @@ class SearchNode(RandomGeneratorMixin):
 
     Parameters
     ----------
-    seq : list of int
+    seq : Sequence of int
         Partial task index sequence.
 
     Attributes
     ----------
-    seq : list of int
+    seq : Sequence of int
         Partial task index sequence.
     n_visits : int
         Number of times a roll-out has passed through the node.
@@ -502,7 +477,7 @@ class SearchNode(RandomGeneratorMixin):
 
         Parameters
         ----------
-        item : int or list of int
+        item : int or Sequence of int
             Index of sequence of indices for recursive child node selection.
 
         Returns
@@ -513,7 +488,7 @@ class SearchNode(RandomGeneratorMixin):
 
         if isinstance(item, Integral):
             return self._children[item]
-        elif isinstance(item, Collection):
+        elif isinstance(item, Sequence):
             node = self
             for n in item:
                 node = node._children[n]
@@ -538,8 +513,10 @@ class SearchNode(RandomGeneratorMixin):
         # TODO: learn selection function with value network? Fast EST based selection?
         # TODO: add epsilon-greedy selector?
 
-        w = {n: node.weight for (n, node) in self._children.items()}
-        w.update({n: -10 for n in self._seq_unk})  # FIXME: value?
+        w = {n: node.weight for (n, node) in self._children.items()}  # descendant node weights
+        w.update({n: -10 for n in self._seq_unk})  # base weight for unexplored nodes
+        # FIXME: value?
+
         w = dict(self.rng.permutation(list(w.items())))  # permute elements to break ties randomly
 
         n = int(min(w, key=w.__getitem__))
@@ -555,7 +532,7 @@ class SearchNode(RandomGeneratorMixin):
 
         Returns
         -------
-        list of int
+        Sequence of int
 
         """
 
@@ -585,7 +562,7 @@ class SearchNode(RandomGeneratorMixin):
 
         Parameters
         ----------
-        seq : list of int
+        seq : Sequence of int
             Complete task index sequence.
         loss : float
             Loss of a complete solution descending from the node.
@@ -600,5 +577,5 @@ class SearchNode(RandomGeneratorMixin):
         node = self
         node.update_stats(loss)
         for n in seq_rem:
-            node = node[n]
+            node = node._children[n]
             node.update_stats(loss)

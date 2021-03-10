@@ -120,9 +120,9 @@ class Base(RandomGeneratorMixin, ABC):
 
         Parameters
         ----------
-        problems : Collection of SchedulingProblem
+        problems : Sequence of SchedulingProblem
             Named tuple with fields 'tasks' and 'ch_avail'.
-        solutions : Collection of SchedulingSolution
+        solutions : Sequence of SchedulingSolution
             Named tuple with fields 't_ex', 'ch_ex', and 't_run'.
         file_path : PathLike, optional
             File location relative to data/schedules/
@@ -413,6 +413,7 @@ class Dataset(Base):
     def summary(self, file=None):
         super().summary(file)
         print(f"Number of problems: {self.n_problems}\n", file=file)
+
 
 
 class QueueFlexDAR(Base):

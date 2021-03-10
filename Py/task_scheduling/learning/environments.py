@@ -11,7 +11,7 @@ from gym.spaces import Discrete, MultiDiscrete
 from task_scheduling import tree_search
 from task_scheduling.learning import spaces as spaces_tasking
 from task_scheduling.learning.features import param_features
-from task_scheduling.util.generic import seq2num, num2seq, RandomGeneratorMixin
+from task_scheduling.util.generic import seq2num, num2seq
 from task_scheduling.util.plot import plot_task_losses
 
 
@@ -154,9 +154,9 @@ class BaseTasking(Env, ABC):
 
         Parameters
         ----------
-        tasks : Collection of task_scheduling.tasks.Base, optional
+        tasks : Sequence of task_scheduling.tasks.Base, optional
             Optional task set for non-random reset.
-        ch_avail : Collection of float, optional
+        ch_avail : Sequence of float, optional
             Optional initial channel availabilities for non-random reset.
         persist : bool
             If True, keeps tasks and channels fixed during reset, regardless of other inputs.
@@ -201,7 +201,7 @@ class BaseTasking(Env, ABC):
 
         Parameters
         ----------
-        action : int or Collection of int
+        action : int or Sequence of int
             Complete index sequence.
 
         Returns

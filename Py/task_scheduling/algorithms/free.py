@@ -10,8 +10,8 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : Collection of task_scheduling.tasks.Base
-    ch_avail : Collection of float
+    tasks : Sequence of task_scheduling.tasks.Base
+    ch_avail : Sequence of float
         Channel availability times.
     verbose : bool
         Enables printing of algorithm state information.
@@ -39,8 +39,8 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : Collection of task_scheduling.tasks.Base
-    ch_avail : Collection of float
+    tasks : Sequence of task_scheduling.tasks.Base
+    ch_avail : Sequence of float
         Channel availability times.
     verbose : bool
         Enables printing of algorithm state information.
@@ -106,8 +106,8 @@ def mcts(tasks, ch_avail, n_mc=1, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : Collection of task_scheduling.tasks.Base
-    ch_avail : Collection of float
+    tasks : Sequence of task_scheduling.tasks.Base
+    ch_avail : Sequence of float
         Channel availability times.
     n_mc : int, optional
         Number of roll-outs performed.
@@ -137,8 +137,8 @@ def random_sequencer(tasks, ch_avail, rng=None):
 
     Parameters
     ----------
-    tasks : Collection of task_scheduling.tasks.Base
-    ch_avail : Collection of float
+    tasks : Sequence of task_scheduling.tasks.Base
+    ch_avail : Sequence of float
         Channel availability times.
     rng : int or RandomState or Generator, optional
         NumPy random number generator or seed. Instance RNG if None.
@@ -164,8 +164,8 @@ def earliest_release(tasks, ch_avail, check_swaps=False):
 
     Parameters
     ----------
-    tasks : Collection of task_scheduling.tasks.Base
-    ch_avail : Collection of float
+    tasks : Sequence of task_scheduling.tasks.Base
+    ch_avail : Sequence of float
         Channel availability times.
     check_swaps : bool
         Enables task swapping
@@ -191,8 +191,8 @@ def earliest_drop(tasks, ch_avail, check_swaps=False):
 
     Parameters
     ----------
-    tasks : Collection of task_scheduling.tasks.Base
-    ch_avail : Collection of float
+    tasks : Sequence of task_scheduling.tasks.Base
+    ch_avail : Sequence of float
         Channel availability times.
     check_swaps : bool
         Enables task swapping.

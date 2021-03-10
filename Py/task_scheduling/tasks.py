@@ -165,7 +165,18 @@ class Generic(Base):
     #         return NotImplemented
 
 
-class ReluDrop(Base):
+class Shift(Base):
+    @abstractmethod
+    def __call__(self, t):
+        """Loss function versus time."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def shift_origin(self, t):
+        raise NotImplementedError
+
+
+class ReluDrop(Shift):
     """
     Tasks with a rectified linear loss function task and a constant drop penalty.
 
