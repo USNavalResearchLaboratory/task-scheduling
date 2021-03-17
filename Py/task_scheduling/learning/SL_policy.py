@@ -14,9 +14,23 @@ from tensorflow import keras
 
 from task_scheduling.learning import environments as envs
 
+for device in tf.config.experimental.list_physical_devices('GPU'):
+    tf.config.experimental.set_memory_growth(device, True)  # TODO: compatibility issue workaround
+
 
 # TODO: make loss func for full seq targets?
 # TODO: make custom output layers to avoid illegal actions?
+
+def reset_weights(model):      # from https://github.com/keras-team/keras/issues/341#issuecomment-539198392
+    for layer in model.layers:
+        if isinstance(layer, keras.Model):
+            reset_weights(layer)
+        else:
+            for key, initializer in layer.__dict__.items():
+                if "initializer" in key:
+                    # find the corresponding variable
+                    var = getattr(layer, key.replace("_initializer", ""))
+                    var.assign(initializer(var.shape, var.dtype))
 
 
 class SupervisedLearningScheduler:

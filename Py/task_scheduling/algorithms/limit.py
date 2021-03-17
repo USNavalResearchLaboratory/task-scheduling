@@ -40,7 +40,7 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
         node = stack.pop()  # extract node
 
         # Branch
-        for node_new in node.branch(do_permute=True):
+        for node_new in node.branch(permute=True):
             # Bound
             if node_new.l_lo < node_best.l_ex:  # new node is not dominated
                 if node_new.l_up < node_best.l_ex:

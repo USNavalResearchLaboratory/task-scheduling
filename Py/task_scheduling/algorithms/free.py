@@ -69,7 +69,7 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
         node = stack.pop()  # Extract Node
 
         # Branch
-        for node_new in node.branch(do_permute=True):
+        for node_new in node.branch(permute=True):
             # Bound
 
             if len(node_new.seq) == len(tasks):
@@ -100,7 +100,7 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
     return node_best.t_ex, node_best.ch_ex, node_stats
 
 
-def mcts(tasks, ch_avail, n_mc=1, verbose=False, rng=None):
+def mcts(tasks, ch_avail, n_mc=1, c_explore=1., verbose=False, rng=None):
     """
     Monte Carlo tree search algorithm.
 
@@ -111,6 +111,8 @@ def mcts(tasks, ch_avail, n_mc=1, verbose=False, rng=None):
         Channel availability times.
     n_mc : int, optional
         Number of roll-outs performed.
+    c_explore : float, optional
+        Exploration weight. Higher values prioritize unexplored tree nodes.
     verbose : bool
         Enables printing of algorithm state information.
     rng : int or RandomState or Generator, optional
@@ -126,7 +128,14 @@ def mcts(tasks, ch_avail, n_mc=1, verbose=False, rng=None):
     """
 
     node = TreeNode(tasks, ch_avail, rng=rng)
-    node = node.mcts(n_mc, inplace=False, verbose=verbose)
+    node = node.mcts(n_mc, c_explore, inplace=False, verbose=verbose)
+
+    return node.t_ex, node.ch_ex
+
+
+def mcts_v2(tasks, ch_avail, n_mc=1, c_explore=1., visit_threshold=1, verbose=False, rng=None):
+    node = TreeNode(tasks, ch_avail, rng=rng)
+    node = node.mcts_v2(n_mc, c_explore, visit_threshold, inplace=False, verbose=verbose)
 
     return node.t_ex, node.ch_ex
 

@@ -45,6 +45,8 @@ class TreeNode(RandomGeneratorMixin):
 
     """
 
+    # TODO: rename? TaskSeq?
+
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
         super().__init__(rng)
 
@@ -176,13 +178,13 @@ class TreeNode(RandomGeneratorMixin):
 
         return node
 
-    def branch(self, do_permute=True, rng=None):
+    def branch(self, permute=True, rng=None):
         """
         Generate descendant nodes.
 
         Parameters
         ----------
-        do_permute : bool
+        permute : bool
             Enables random permutation of returned node list.
         rng : int or RandomState or Generator, optional
             NumPy random number generator or seed. Instance RNG if None.
@@ -195,7 +197,7 @@ class TreeNode(RandomGeneratorMixin):
         """
 
         seq_iter = list(self._seq_rem)
-        if do_permute:
+        if permute:
             rng = self._get_rng(rng)
             rng.shuffle(seq_iter)
 
@@ -259,12 +261,10 @@ class TreeNode(RandomGeneratorMixin):
     def earliest_drop(self, inplace=True, check_swaps=False):
         return self._earliest_sorter('t_drop', inplace, check_swaps)
 
-    def mcts(self, n_mc=1, inplace=True, verbose=False, rng=None):
+    def mcts(self, n_mc=1, c_explore=1., inplace=True, verbose=False, rng=None):
 
-        # TODO: add exploration/exploitation input control.
-
-        # l_up = TreeNodeBound(tasks, ch_avail).l_up
-        tree = SearchNode(self.n_tasks, self.seq, rng=self._get_rng(rng))
+        # l_up = TreeNodeBound(tasks, ch_avail).l_up  # TODO: normalization?
+        tree = SearchNode(self.n_tasks, self.seq, c_explore=c_explore, rng=rng)
 
         node_best, loss_min = None, np.inf
         while tree.n_visits < n_mc:
@@ -284,18 +284,47 @@ class TreeNode(RandomGeneratorMixin):
         else:
             return node_best
 
+    def mcts_v2(self, n_mc=1, c_explore=1., visit_threshold=1, inplace=True, verbose=False, rng=None):
+
+        bounds = TreeNodeBound(self.tasks, self.ch_avail).bounds
+        root = SearchNodeV2(self.n_tasks, bounds, self.seq, c_explore, visit_threshold, rng=rng)
+
+        node_best, loss_min = None, np.inf
+        while root.n_visits < n_mc:
+            if verbose:
+                print(f'Solutions evaluated: {root.n_visits}, Min. Loss: {loss_min}', end='\r')
+
+            # leaf = root.selection()
+            # leaf_new = leaf.expansion()
+            leaf_new = root.selection()
+
+            # loss = node.evaluation()
+            node = self.__class__(self.tasks, self.ch_avail, leaf_new.seq, leaf_new.rng)
+            node.roll_out()
+            loss = node.l_ex
+
+            leaf_new.backup(loss)
+
+            if node.l_ex < loss_min:
+                node_best, loss_min = node, node.l_ex
+
+        if inplace:
+            self.seq = node_best.seq
+        else:
+            return node_best
+
 
 class TreeNodeBound(TreeNode):
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
-        self._l_lo = 0.
-        self._l_up = float('inf')
+        self._bounds = [0., float('inf')]
         super().__init__(tasks, ch_avail, seq, rng)
 
     def __repr__(self):
         return f"TreeNodeBound(sequence: {self.seq}, {self.l_lo:.3f} < loss < {self.l_up:.3f})"
 
-    l_lo = property(lambda self: self._l_lo)
-    l_up = property(lambda self: self._l_up)
+    bounds = property(lambda self: self._bounds)
+    l_lo = property(lambda self: self._bounds[0])
+    l_up = property(lambda self: self._bounds[1])
 
     def seq_extend(self, seq_ext, check_valid=True):
         """
@@ -320,17 +349,16 @@ class TreeNodeBound(TreeNode):
     def _update_bounds(self):
 
         if len(self.seq_rem) == 0:
-            return
+            return  # already converged
 
         t_release_max = max(min(self._ch_avail), *(self._tasks[n].t_release for n in self._seq_rem))
         t_ex_max = t_release_max + sum(self._tasks[n].duration for n in self._seq_rem)
-        t_ex_max -= min(self._tasks[n].duration for n in self._seq_rem)
+        # t_ex_max -= min(self._tasks[n].duration for n in self._seq_rem)
 
-        self._l_lo = self._l_ex
-        self._l_up = self._l_ex
+        self._bounds = [self._l_ex, self._l_ex]
         for n in self._seq_rem:  # update loss bounds
-            self._l_lo += self._tasks[n](max(min(self._ch_avail), self._tasks[n].t_release))
-            self._l_up += self._tasks[n](t_ex_max)
+            self._bounds[0] += self._tasks[n](max(min(self._ch_avail), self._tasks[n].t_release))
+            self._bounds[1] += self._tasks[n](t_ex_max)
 
     def branch_bound(self, inplace=True, verbose=False, rng=None):
         """
@@ -364,7 +392,7 @@ class TreeNodeBound(TreeNode):
             node = stack.pop()  # extract node
 
             # Branch
-            for node_new in node.branch(do_permute=True, rng=rng):
+            for node_new in node.branch(permute=True, rng=rng):
                 # Bound
                 if node_new.l_lo < node_best.l_ex:  # new node is not dominated
                     if node_new.l_up < node_best.l_ex:
@@ -427,11 +455,6 @@ class SearchNode(RandomGeneratorMixin):
     """
     Node object for Monte Carlo tree search.
 
-    Parameters
-    ----------
-    seq : Sequence of int
-        Partial task index sequence.
-
     Attributes
     ----------
     seq : Sequence of int
@@ -447,26 +470,30 @@ class SearchNode(RandomGeneratorMixin):
 
     """
 
-    def __init__(self, n_tasks, seq=(), l_up=np.inf, rng=None):
+    def __init__(self, n_tasks, seq=(), parent=None, c_explore=1., l_up=np.inf, rng=None):
         super().__init__(rng)
 
         self._n_tasks = n_tasks
         self._seq = list(seq)
+
+        self._parent = parent
+        self._children = {}
+        self._seq_unk = set(range(self.n_tasks)) - set(self._seq)  # set of unexplored task indices
+
+        self._c_explore = c_explore
         self._l_up = l_up   # TODO: use normalized loss to drive explore/exploit
 
         self._n_visits = 0
-        self._l_avg = 0.
-        # self._l_min = np.inf  # FIXME: min? ordered statistic?
-
-        self._children = {}
-        self._seq_unk = set(range(self.n_tasks)) - set(self._seq)  # set of unexplored task indices
+        self._l_avg = 0.  # TODO: try using min? ordered statistic?
 
     n_tasks = property(lambda self: self._n_tasks)
     seq = property(lambda self: self._seq)
 
+    parent = property(lambda self: self._parent)
+    children = property(lambda self: self._children)
+
     n_visits = property(lambda self: self._n_visits)
     l_avg = property(lambda self: self._l_avg)
-    children = property(lambda self: self._children)
 
     def __repr__(self):
         return f"SearchNode(seq={self._seq}, children={list(self._children.keys())}, " \
@@ -499,7 +526,9 @@ class SearchNode(RandomGeneratorMixin):
 
     @property
     def weight(self):
-        return self._l_avg - 10 / (self._n_visits + 1)  # FIXME: placeholder. Need real metric and user control.
+        # return self._l_avg - self._c_explore / (self._n_visits + 1)
+        # return self._l_avg - self._c_explore * np.sqrt(self.parent.n_visits) / (self._n_visits + 1)
+        return self._l_avg - self._c_explore * np.sqrt(np.log(self.parent.n_visits) / self._n_visits)
 
     def select_child(self):
         """
@@ -515,14 +544,15 @@ class SearchNode(RandomGeneratorMixin):
         # TODO: add epsilon-greedy selector?
 
         w = {n: node.weight for (n, node) in self._children.items()}  # descendant node weights
-        w.update({n: -10 for n in self._seq_unk})  # base weight for unexplored nodes
-        # FIXME: value?
+        w.update({n: -self._c_explore for n in self._seq_unk})  # base weight for unexplored nodes
+        # FIXME: init value? use upper bound??
 
         w = dict(self.rng.permutation(list(w.items())))  # permute elements to break ties randomly
 
         n = int(min(w, key=w.__getitem__))
         if n not in self._children:
-            self._children[n] = SearchNode(self.n_tasks, self._seq + [n], self._l_up, self.rng)
+            self._children[n] = SearchNode(self.n_tasks, self._seq + [n], parent=self, c_explore=self._c_explore,
+                                           l_up=self._l_up, rng=self.rng)
             self._seq_unk.remove(n)
 
         return self._children[n]
@@ -542,21 +572,6 @@ class SearchNode(RandomGeneratorMixin):
             node = node.select_child()
         return node._seq
 
-    def update_stats(self, loss):
-        """
-        Update visit count and average loss of roll-outs.
-
-        Parameters
-        ----------
-        loss : float
-            Loss of a complete solution descending from the node.
-
-        """
-
-        loss_total = self._l_avg * self._n_visits + loss
-        self._n_visits += 1
-        self._l_avg = loss_total / self._n_visits
-
     def backup(self, seq, loss):
         """
         Updates search attributes for all descendant nodes corresponding to an index sequence.
@@ -573,10 +588,179 @@ class SearchNode(RandomGeneratorMixin):
         if len(seq) != self.n_tasks:
             raise ValueError('Sequence must be complete.')
 
-        seq_rem = seq[len(self._seq):]
+        seq_rem = seq[len(self._seq):]  # TODO: check leading values for equivalence?
 
         node = self
         node.update_stats(loss)
         for n in seq_rem:
             node = node._children[n]
             node.update_stats(loss)
+
+    def update_stats(self, loss):
+        """
+        Update visit count and average loss of roll-outs.
+
+        Parameters
+        ----------
+        loss : float
+            Loss of a complete solution descending from the node.
+
+        """
+
+        loss_total = self._l_avg * self._n_visits + loss
+        self._n_visits += 1
+        self._l_avg = loss_total / self._n_visits
+
+
+class SearchNodeV2(RandomGeneratorMixin):
+    def __init__(self, n_tasks, bounds, seq=(), c_explore=1., visit_threshold=1, parent=None, rng=None):
+        """
+        Node object for Monte Carlo Tree Search.
+
+        Parameters
+        ----------
+        n_tasks : int
+        bounds : Iterable of float
+            Lower and upper loss bounds for node value normalization
+        seq : Iterable of int, optional
+            Partial task index sequence.
+        c_explore : float, optional
+            Exploration weight. Higher values prioritize searching new branches.
+        visit_threshold : int, optional
+            Once node has been visited this many times, UCT is used for child selection, not random choice.
+        parent : SearchNodeV2, optional
+        rng : int or RandomState or Generator, optional
+            NumPy random number generator or seed. Instance RNG if None.
+
+        """
+
+        super().__init__(rng)
+
+        self._n_tasks = n_tasks
+        self._bounds = tuple(bounds)
+        self._seq = list(seq)
+
+        self._c_explore = c_explore
+        self._visit_threshold = visit_threshold
+
+        self._parent = parent
+        self._children = {}
+        self._seq_rem = set(range(self.n_tasks)) - set(self._seq)
+        self._seq_unk = self._seq_rem.copy()  # set of unexplored task indices
+        # TODO: unk as property?
+
+        self._n_visits = 0
+        self._l_avg = 0.  # TODO: try using min? ordered statistic?
+
+    n_tasks = property(lambda self: self._n_tasks)
+    seq = property(lambda self: self._seq)
+
+    parent = property(lambda self: self._parent)
+    children = property(lambda self: self._children)
+
+    n_visits = property(lambda self: self._n_visits)
+    l_avg = property(lambda self: self._l_avg)
+
+    def __repr__(self):
+        return f"SearchNode(seq={self._seq}, children={list(self._children.keys())}, " \
+               f"visits={self._n_visits}, avg_loss={self._l_avg:.3f})"
+
+    def __getitem__(self, item):
+        """
+        Access a descendant node.
+
+        Parameters
+        ----------
+        item : int or Sequence of int
+            Index of sequence of indices for recursive child node selection.
+
+        Returns
+        -------
+        SearchNode
+
+        """
+
+        if isinstance(item, Integral):
+            return self._children[item]
+        elif isinstance(item, Sequence):
+            node = self
+            for n in item:
+                node = node._children[n]
+            return node
+        else:
+            raise TypeError  # TODO: create child if non-existent?
+
+    @property
+    def is_root(self):
+        return self._parent is None
+
+    @property
+    def is_leaf(self):
+        return len(self._children) == 0
+
+    # @property
+    # def weight(self):
+    #     # return self._l_avg - self._c_explore * np.sqrt(self.parent.n_visits) / (self._n_visits + 1)
+    #     return self._l_avg - self._c_explore * np.sqrt(np.log(self.parent.n_visits) / self._n_visits)
+
+    @property
+    def weight(self):  # losses normalized to positive values in unit interval
+        value = (self._bounds[1] - self._l_avg) / (self._bounds[1] - self._bounds[0])  # TODO: redundant computation!
+        # return value + self._c_explore * np.sqrt(self.parent.n_visits) / (self._n_visits + 1)
+        return value + self._c_explore * np.sqrt(np.log(self.parent.n_visits) / self._n_visits)
+
+    def select_child(self):
+        if self._n_visits < self._visit_threshold:
+            n = self.rng.choice(list(self._seq_rem))  # TODO: pseudo-random strategies?
+
+            if n not in self._children:  # Expansion
+                self._add_child(n)
+                # self._seq_unk.remove(n)
+                # self._children[n] = SearchNodeV2(self.n_tasks, self._bounds, self._seq + [n], self._c_explore,
+                #                                  self._visit_threshold, parent=self, rng=self.rng)
+        else:
+            w = {n: child.weight for (n, child) in self._children.items()}  # descendant node weights
+            n = min(w, key=w.__getitem__)
+
+        return self.children[n]
+
+    def selection(self):
+        node = self
+        while not node.is_leaf:
+            node = node.select_child()
+        if len(node.children) == 0 and len(node.seq) < node.n_tasks:
+            node = node.expansion()
+
+        return node
+
+    def _add_child(self, n):
+        self._seq_unk.remove(n)
+        self._children[n] = SearchNodeV2(self.n_tasks, self._bounds, self._seq + [n], self._c_explore,
+                                         self._visit_threshold, parent=self, rng=self.rng)
+
+    def expansion(self):  # TODO: RNG control
+        n = self.rng.choice(list(self._seq_unk))  # uniformly random
+        self._add_child(n)
+        # self._seq_unk.remove(n)
+        # self._children[n] = SearchNodeV2(self.n_tasks, self._bounds, self._seq + [n], self._c_explore,
+        #                                  self._visit_threshold, parent=self, rng=self.rng)
+
+        return self._children[n]
+
+    def evaluation(self):  # TODO: user custom definition. EST or NN!
+        raise NotImplementedError  # TODO: tree node??
+        # tree_node = TreeNode(tasks, ch_avail, self.seq, self.rng)
+        # tree_node.roll_out()
+        # return tree_node.l_ex
+
+    def backup(self, loss):
+        node = self
+        node.update_stats(loss)
+        while not node.is_root:
+            node = node.parent
+            node.update_stats(loss)
+
+    def update_stats(self, loss):
+        loss_total = self._l_avg * self._n_visits + loss
+        self._n_visits += 1
+        self._l_avg = loss_total / self._n_visits

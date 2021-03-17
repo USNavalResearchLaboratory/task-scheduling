@@ -174,7 +174,7 @@ class BaseTasking(Env, ABC):
 
         if persist:
             # tasks, ch_avail = self.tasks, self.ch_avail
-            raise NotImplementedError   # TODO: node objects cannot recover original task/ch_avail state!
+            raise NotImplementedError   # TODO: shift nodes cannot recover original task/ch_avail state!
         else:
             if tasks is None or ch_avail is None:  # generate new scheduling problem
                 if solve:  # TODO: next()? Pass a generator, not a callable??

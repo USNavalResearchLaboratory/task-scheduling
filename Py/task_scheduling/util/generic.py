@@ -5,8 +5,6 @@ from numbers import Integral
 from time import perf_counter
 
 import numpy as np
-from tensorflow import keras
-
 
 SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
 SchedulingProblemFlexDAR = namedtuple('SchedulingProblem', ['tasks', 'ch_avail', 'clock'])
@@ -169,13 +167,3 @@ def num2seq(num, length, check_input=True):
     return tuple(seq)
 
 
-def reset_weights(model):      # from https://github.com/keras-team/keras/issues/341#issuecomment-539198392
-    for layer in model.layers:
-        if isinstance(layer, keras.Model):
-            reset_weights(layer)
-        else:
-            for key, initializer in layer.__dict__.items():
-                if "initializer" in key:
-                    # find the corresponding variable
-                    var = getattr(layer, key.replace("_initializer", ""))
-                    var.assign(initializer(var.shape, var.dtype))

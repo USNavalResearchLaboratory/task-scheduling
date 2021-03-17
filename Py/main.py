@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-import tensorflow as tf
+# import tensorflow as tf
 from tensorflow import keras
 
 from task_scheduling.util.results import (evaluate_algorithms, evaluate_algorithms_runtime, evaluate_algorithms_train,
@@ -23,13 +23,10 @@ pd.options.display.float_format = '{:,.3f}'.format
 plt.style.use('seaborn')
 # plt.rc('axes', grid=True)
 
-for device in tf.config.experimental.list_physical_devices('GPU'):
-    tf.config.experimental.set_memory_growth(device, True)  # TODO: compatibility issue workaround
-
 time_str = strftime('%Y-%m-%d_%H-%M-%S')
 
-# seed = None
-seed = 12345
+seed = None
+# seed = 12345
 
 # tf.random.set_seed(seed)
 
@@ -39,7 +36,7 @@ seed = 12345
 data_path = Path.cwd() / 'data'
 schedule_path = data_path / 'schedules'
 
-# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
+# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=12, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
@@ -116,13 +113,20 @@ algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
     ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
     ('ERT', free.earliest_release, 1),
-    ('MCTS', partial(free.mcts, n_mc=40, rng=RNGMix.make_rng(seed)), 10),
-    ('NN', SupervisedLearningScheduler(model, env), 1),
+    # ('MCTS', partial(free.mcts, n_mc=40, c_explore=10, rng=RNGMix.make_rng(seed)), 10),
+    # *((f'MCTS, c={c}', partial(free.mcts, n_mc=40, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [0, 10, 1e4]),
+    *((f'MCTS_V2, c={c}', partial(free.mcts_v2, n_mc=120, c_explore=c, visit_threshold=10, rng=RNGMix.make_rng(seed)), 10) for c in [0, 100]),
+    # ('NN Policy', SupervisedLearningScheduler(model, env), 1),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
 
 
 # %% Evaluate and record results
+
+# TODO: generate new, larger datasets
+# TODO: try making new features
+# TODO: make problem a shared node class attribute? Setting them seems hackish...
+# TODO: value networks
 
 log_path = 'docs/temp/PGR_results.md'
 # log_path = 'docs/discrete_relu_c1t8_train.md'
@@ -135,21 +139,19 @@ with open(log_path, 'a') as fid:
     # print(f"Problem gen: ", end='', file=fid)
     # problem_gen.summary(fid)
 
-    if 'NN' in algorithms['name']:
-        idx_nn = algorithms['name'].tolist().index('NN')
+    if 'NN Policy' in algorithms['name']:
+        idx_nn = algorithms['name'].tolist().index('NN Policy')
         algorithms['func'][idx_nn].summary(fid)
         n_gen_train = (train_args['n_batch_train'] + train_args['n_batch_val']) * train_args['batch_size']
         print(f"Training problems = {n_gen_train}\n", file=fid)
 
     print('Results\n---', file=fid)
 
-
-# TODO: generate more probs
-# TODO: try making new features
+# TODO: recheck classic alg reproducibility
 
 sim_type = 'Gen'
-if 'NN' in algorithms['name']:
-    idx_nn = algorithms['name'].tolist().index('NN')
+if 'NN Policy' in algorithms['name']:
+    idx_nn = algorithms['name'].tolist().index('NN Policy')
     algorithms['func'][idx_nn].learn(verbose=2, plot_history=True, **train_args)
 
     train_path = image_path + '_train'
