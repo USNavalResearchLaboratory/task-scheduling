@@ -1,6 +1,6 @@
 from time import perf_counter
 
-from task_scheduling.tree_search import TreeNode, TreeNodeBound, SearchNode
+from task_scheduling.tree_search import TreeNode, TreeNodeBound, SearchNodeV1
 
 
 def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng=None):
@@ -94,7 +94,7 @@ def mcts(tasks: list, ch_avail: list, runtimes: list, verbose=False):
     t_run = perf_counter()
 
     l_up = TreeNodeBound(tasks, ch_avail).l_up
-    tree = SearchNode(n_tasks=len(tasks), seq=[], l_up=l_up)
+    tree = SearchNodeV1(n_tasks=len(tasks), seq=[], l_up=l_up)
 
     node_best = None
     loss_min = float('inf')
