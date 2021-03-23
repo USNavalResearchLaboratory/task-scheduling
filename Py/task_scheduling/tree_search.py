@@ -290,7 +290,7 @@ class TreeNode(RandomGeneratorMixin):
         else:
             return node_best
 
-    def mcts_v2(self, n_mc=1, c_explore=0., visit_threshold=1, inplace=True, verbose=False, rng=None):
+    def mcts_v2(self, n_mc=1, c_explore=0., visit_threshold=0, inplace=True, verbose=False, rng=None):
 
         bounds = TreeNodeBound(self.tasks, self.ch_avail).bounds
         root = SearchNodeV2(self.n_tasks, bounds, self.seq, c_explore, visit_threshold, rng=rng)
@@ -301,7 +301,7 @@ class TreeNode(RandomGeneratorMixin):
                 print(f'Solutions evaluated: {root.n_visits}, Min. Loss: {loss_min}', end='\r')
 
             # FIXME
-            print(np.array([[node.n_visits, node.l_avg, node.weight] for node in root.children.values()]))
+            # print(np.array([[node.n_visits, node.l_avg, node.weight] for node in root.children.values()]))
 
             # leaf = root.selection()
             # leaf_new = leaf.expansion()
@@ -622,7 +622,7 @@ class SearchNode(RandomGeneratorMixin):
 
 
 class SearchNodeV2(RandomGeneratorMixin):
-    def __init__(self, n_tasks, bounds, seq=(), c_explore=0., visit_threshold=1, parent=None, rng=None):
+    def __init__(self, n_tasks, bounds, seq=(), c_explore=0., visit_threshold=0, parent=None, rng=None):
         """
         Node object for Monte Carlo Tree Search.
 
@@ -707,11 +707,6 @@ class SearchNodeV2(RandomGeneratorMixin):
     def is_leaf(self):
         return len(self._children) == 0
 
-    # @property
-    # def weight(self):
-    #     # return self._l_avg - self._c_explore * np.sqrt(self.parent.n_visits) / (self._n_visits + 1)
-    #     return self._l_avg - self._c_explore * np.sqrt(np.log(self.parent.n_visits) / self._n_visits)
-
     @property
     def weight(self):  # losses normalized to positive values in unit interval
         value_loss = (self._bounds[1] - self._l_avg) / (self._bounds[1] - self._bounds[0])  # TODO: redundant eval!
@@ -720,17 +715,12 @@ class SearchNodeV2(RandomGeneratorMixin):
         return value_loss + self._c_explore * value_explore
 
     def select_child(self):
-        if self._n_visits < self._visit_threshold:
+        if self._n_visits <= self._visit_threshold:
             n = self.rng.choice(list(self._seq_rem))  # TODO: pseudo-random strategies?
-
             if n not in self._children:  # Expansion
                 self._add_child(n)
-                # self._seq_unk.remove(n)
-                # self._children[n] = SearchNodeV2(self.n_tasks, self._bounds, self._seq + [n], self._c_explore,
-                #                                  self._visit_threshold, parent=self, rng=self.rng)
         else:
             w = {n: child.weight for (n, child) in self._children.items()}  # descendant node weights
-            # n = min(w, key=w.__getitem__)
             n = max(w, key=w.__getitem__)
 
         return self.children[n]
@@ -739,7 +729,7 @@ class SearchNodeV2(RandomGeneratorMixin):
         node = self
         while not node.is_leaf:
             node = node.select_child()
-        if len(node.children) == 0 and len(node.seq) < node.n_tasks:
+        if node.n_visits > 0 and len(node.seq) < node.n_tasks:
             node = node.expansion()
 
         return node
@@ -749,13 +739,9 @@ class SearchNodeV2(RandomGeneratorMixin):
         self._children[n] = SearchNodeV2(self.n_tasks, self._bounds, self._seq + [n], self._c_explore,
                                          self._visit_threshold, parent=self, rng=self.rng)
 
-    def expansion(self):  # TODO: RNG control
+    def expansion(self):
         n = self.rng.choice(list(self._seq_unk))  # uniformly random
         self._add_child(n)
-        # self._seq_unk.remove(n)
-        # self._children[n] = SearchNodeV2(self.n_tasks, self._bounds, self._seq + [n], self._c_explore,
-        #                                  self._visit_threshold, parent=self, rng=self.rng)
-
         return self._children[n]
 
     def evaluation(self):  # TODO: user custom definition. EST or NN!
