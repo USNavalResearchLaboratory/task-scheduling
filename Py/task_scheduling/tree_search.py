@@ -64,8 +64,9 @@ class TreeNode(RandomGeneratorMixin):
 
         self._l_ex = 0.  # incurred loss
 
-        if len(seq) > 0:
-            self.seq_extend(seq)
+        self.seq = seq
+        # if len(seq) > 0:
+        #     self.seq_extend(seq)
 
     def __repr__(self):
         return f"TreeNode(sequence: {self.seq}, loss incurred:{self.l_ex:.3f})"
@@ -106,10 +107,12 @@ class TreeNode(RandomGeneratorMixin):
 
     @seq.setter
     def seq(self, seq):
+        seq = list(seq)
         seq_prev, seq_ext = seq[:len(self._seq)], seq[len(self._seq):]
         if seq_prev == self._seq:  # new sequence is an extension of current sequence
-            if len(seq_ext) > 0:
-                self.seq_extend(seq_ext)
+            self.seq_extend(seq_ext)
+            # if len(seq_ext) > 0:
+            #     self.seq_extend(seq_ext)
         else:
             # self.__init__(self.tasks, self.ch_avail, seq, rng=self.rng)  # initialize from scratch
             # TODO: shift nodes cannot recover original task/ch_avail state!
@@ -271,6 +274,9 @@ class TreeNode(RandomGeneratorMixin):
             if verbose:
                 print(f'Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_min}', end='\r')
 
+            # FIXME
+            # print(np.array([[node.n_visits, node.l_avg, node.weight] for node in tree.children.values()]))
+
             seq = tree.simulate()  # roll-out a complete sequence
             node = self.__class__(self.tasks, self.ch_avail, seq)  # evaluate execution times and channels, total loss
 
@@ -284,7 +290,7 @@ class TreeNode(RandomGeneratorMixin):
         else:
             return node_best
 
-    def mcts_v2(self, n_mc=1, c_explore=1., visit_threshold=1, inplace=True, verbose=False, rng=None):
+    def mcts_v2(self, n_mc=1, c_explore=0., visit_threshold=1, inplace=True, verbose=False, rng=None):
 
         bounds = TreeNodeBound(self.tasks, self.ch_avail).bounds
         root = SearchNodeV2(self.n_tasks, bounds, self.seq, c_explore, visit_threshold, rng=rng)
@@ -294,12 +300,15 @@ class TreeNode(RandomGeneratorMixin):
             if verbose:
                 print(f'Solutions evaluated: {root.n_visits}, Min. Loss: {loss_min}', end='\r')
 
+            # FIXME
+            print(np.array([[node.n_visits, node.l_avg, node.weight] for node in root.children.values()]))
+
             # leaf = root.selection()
             # leaf_new = leaf.expansion()
             leaf_new = root.selection()
 
             # loss = node.evaluation()
-            node = self.__class__(self.tasks, self.ch_avail, leaf_new.seq, leaf_new.rng)
+            node = self.__class__(self.tasks, self.ch_avail, leaf_new.seq, rng=leaf_new.rng)
             node.roll_out()
             loss = node.l_ex
 
@@ -613,7 +622,7 @@ class SearchNode(RandomGeneratorMixin):
 
 
 class SearchNodeV2(RandomGeneratorMixin):
-    def __init__(self, n_tasks, bounds, seq=(), c_explore=1., visit_threshold=1, parent=None, rng=None):
+    def __init__(self, n_tasks, bounds, seq=(), c_explore=0., visit_threshold=1, parent=None, rng=None):
         """
         Node object for Monte Carlo Tree Search.
 
@@ -705,9 +714,10 @@ class SearchNodeV2(RandomGeneratorMixin):
 
     @property
     def weight(self):  # losses normalized to positive values in unit interval
-        value = (self._bounds[1] - self._l_avg) / (self._bounds[1] - self._bounds[0])  # TODO: redundant computation!
-        # return value + self._c_explore * np.sqrt(self.parent.n_visits) / (self._n_visits + 1)
-        return value + self._c_explore * np.sqrt(np.log(self.parent.n_visits) / self._n_visits)
+        value_loss = (self._bounds[1] - self._l_avg) / (self._bounds[1] - self._bounds[0])  # TODO: redundant eval!
+        value_explore = np.sqrt(np.log(self.parent.n_visits) / self._n_visits)
+        # value_explore = np.sqrt(self.parent.n_visits) / (self._n_visits + 1)
+        return value_loss + self._c_explore * value_explore
 
     def select_child(self):
         if self._n_visits < self._visit_threshold:
@@ -720,7 +730,8 @@ class SearchNodeV2(RandomGeneratorMixin):
                 #                                  self._visit_threshold, parent=self, rng=self.rng)
         else:
             w = {n: child.weight for (n, child) in self._children.items()}  # descendant node weights
-            n = min(w, key=w.__getitem__)
+            # n = min(w, key=w.__getitem__)
+            n = max(w, key=w.__getitem__)
 
         return self.children[n]
 

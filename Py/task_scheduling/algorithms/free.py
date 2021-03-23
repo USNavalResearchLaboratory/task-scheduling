@@ -128,14 +128,14 @@ def mcts(tasks, ch_avail, n_mc=1, c_explore=1., verbose=False, rng=None):
     """
 
     node = TreeNode(tasks, ch_avail, rng=rng)
-    node = node.mcts(n_mc, c_explore, inplace=False, verbose=verbose)
+    node = node.mcts(n_mc, c_explore, inplace=False, verbose=verbose, rng=rng)
 
     return node.t_ex, node.ch_ex
 
 
-def mcts_v2(tasks, ch_avail, n_mc=1, c_explore=1., visit_threshold=1, verbose=False, rng=None):
+def mcts_v2(tasks, ch_avail, n_mc=1, c_explore=0., visit_threshold=1, verbose=False, rng=None):
     node = TreeNode(tasks, ch_avail, rng=rng)
-    node = node.mcts_v2(n_mc, c_explore, visit_threshold, inplace=False, verbose=verbose)
+    node = node.mcts_v2(n_mc, c_explore, visit_threshold, inplace=False, verbose=verbose, rng=rng)
 
     return node.t_ex, node.ch_ex
 
