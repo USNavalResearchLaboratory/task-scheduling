@@ -1,4 +1,5 @@
 from functools import partial
+from itertools import product
 from time import strftime
 from pathlib import Path
 
@@ -25,8 +26,8 @@ plt.style.use('seaborn')
 
 time_str = strftime('%Y-%m-%d_%H-%M-%S')
 
-seed = None
-# seed = 12345
+# seed = None
+seed = 12345
 
 # tf.random.set_seed(seed)
 
@@ -113,12 +114,12 @@ algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
     ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
     ('ERT', free.earliest_release, 1),
-    # ('MCTS', partial(free.mcts, n_mc=40, c_explore=10, rng=RNGMix.make_rng(seed)), 10),
-    # *((f'MCTS, c={c}', partial(free.mcts, n_mc=40, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [0, 10, 1e4]),
-    *((f'MCTS_V2, c={c}', partial(free.mcts_v2, n_mc=120, c_explore=c, visit_threshold=10, rng=RNGMix.make_rng(seed)), 10) for c in [0, 100]),
-    # ('NN Policy', SupervisedLearningScheduler(model, env), 1),
+    *((f'MCTS, c={c}', partial(free.mcts, n_mc=40, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10]),
+    *((f'MCTS_V2, c={c}, t={t}', partial(free.mcts_v2, n_mc=70, c_explore=c, visit_threshold=t,
+                                         rng=RNGMix.make_rng(seed)), 10) for c, t in product([.05], [15])),
+    ('NN Policy', SupervisedLearningScheduler(model, env), 1),
     # ('DQN Agent', dqn_agent, 5),
-], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
+], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
 
 # %% Evaluate and record results
@@ -147,7 +148,6 @@ with open(log_path, 'a') as fid:
 
     print('Results\n---', file=fid)
 
-# TODO: recheck classic alg reproducibility
 
 sim_type = 'Gen'
 if 'NN Policy' in algorithms['name']:

@@ -90,7 +90,7 @@ def _struct_mean(array):
 
 def _add_bb(algorithms):
     if 'BB Optimal' not in algorithms['name']:
-        _opt = np.array([('BB Optimal', None, 1)], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
+        _opt = np.array([('BB Optimal', None, 1)], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
         algorithms = np.concatenate((_opt, algorithms))
 
     return algorithms

@@ -560,8 +560,8 @@ class SearchNode(RandomGeneratorMixin):
 
         n = int(min(w, key=w.__getitem__))
         if n not in self._children:
-            self._children[n] = SearchNode(self.n_tasks, self._seq + [n], parent=self, c_explore=self._c_explore,
-                                           l_up=self._l_up, rng=self.rng)
+            self._children[n] = self.__class__(self.n_tasks, self._seq + [n], parent=self, c_explore=self._c_explore,
+                                               l_up=self._l_up, rng=self.rng)
             self._seq_unk.remove(n)
 
         return self._children[n]
@@ -674,30 +674,16 @@ class SearchNodeV2(RandomGeneratorMixin):
         return f"SearchNode(seq={self._seq}, children={list(self._children.keys())}, " \
                f"visits={self._n_visits}, avg_loss={self._l_avg:.3f})"
 
-    def __getitem__(self, item):
-        """
-        Access a descendant node.
-
-        Parameters
-        ----------
-        item : int or Sequence of int
-            Index of sequence of indices for recursive child node selection.
-
-        Returns
-        -------
-        SearchNode
-
-        """
-
-        if isinstance(item, Integral):
-            return self._children[item]
-        elif isinstance(item, Sequence):
-            node = self
-            for n in item:
-                node = node._children[n]
-            return node
-        else:
-            raise TypeError  # TODO: create child if non-existent?
+    # def __getitem__(self, item):
+    #     if isinstance(item, Integral):
+    #         return self._children[item]
+    #     elif isinstance(item, Sequence):
+    #         node = self
+    #         for n in item:
+    #             node = node._children[n]
+    #         return node
+    #     else:
+    #         raise TypeError
 
     @property
     def is_root(self):
@@ -736,11 +722,11 @@ class SearchNodeV2(RandomGeneratorMixin):
 
     def _add_child(self, n):
         self._seq_unk.remove(n)
-        self._children[n] = SearchNodeV2(self.n_tasks, self._bounds, self._seq + [n], self._c_explore,
-                                         self._visit_threshold, parent=self, rng=self.rng)
+        self._children[n] = self.__class__(self.n_tasks, self._bounds, self._seq + [n], self._c_explore,
+                                           self._visit_threshold, parent=self, rng=self.rng)
 
     def expansion(self):
-        n = self.rng.choice(list(self._seq_unk))  # uniformly random
+        n = self.rng.choice(list(self._seq_rem))  # uniformly random
         self._add_child(n)
         return self._children[n]
 
