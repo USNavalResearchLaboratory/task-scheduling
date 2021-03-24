@@ -177,10 +177,9 @@ class SupervisedLearningScheduler:
 
             # Add stopping callback if needed
             if 'callbacks' not in fit_params:
-                fit_params['callbacks'] = [keras.callbacks.EarlyStopping(patience=60, monitor='val_loss', min_delta=0.)]
+                fit_params['callbacks'] = [keras.callbacks.EarlyStopping('val_loss', patience=60, min_delta=0.)]
             elif not any(isinstance(cb, keras.callbacks.EarlyStopping) for cb in fit_params['callbacks']):
-                fit_params['callbacks'].append(keras.callbacks.EarlyStopping(patience=60, monitor='val_loss',
-                                                                             min_delta=0.))
+                fit_params['callbacks'].append(keras.callbacks.EarlyStopping('val_loss', patience=60, min_delta=0.))
 
         # gen_callable = partial(env.data_gen, weight_func=weight_func)  # function type not supported by from_generator
         #

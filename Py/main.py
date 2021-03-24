@@ -26,16 +26,13 @@ plt.style.use('seaborn')
 
 time_str = strftime('%Y-%m-%d_%H-%M-%S')
 
-# seed = None
-seed = 12345
+seed = None
+# seed = 12345
 
 # tf.random.set_seed(seed)
 
 
 # %% Define scheduling problem and algorithms
-
-data_path = Path.cwd() / 'data'
-schedule_path = data_path / 'schedules'
 
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=12, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=seed)
@@ -43,19 +40,22 @@ schedule_path = data_path / 'schedules'
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2), rng=seed)
-# problem_gen = problem_gens.Dataset.load('data/continuous_relu_c1t8', shuffle=True, repeat=False, rng=seed)
 
-# problem_gen = problem_gens.Dataset.load('data/discrete_relu_c1t8', shuffle=True, repeat=False, rng=seed)
-problem_gen = problem_gens.Dataset.load(schedule_path / 'discrete_relu_c1t8', shuffle=False, repeat=True, rng=seed)
+data_path = Path.cwd() / 'data'
+schedule_path = data_path / 'schedules'
 
-# problem_gen = problem_gens.Dataset.load('data/search_track_c1t8_release_0', shuffle=True, repeat=False, rng=seed)
+# dataset = 'discrete_relu_c1t8'
+dataset = 'continuous_relu_c1t8'
+# dataset = 'search_track_c1t8_release_0'
+
+problem_gen = problem_gens.Dataset.load(schedule_path / dataset, shuffle=True, repeat=True, rng=seed)
 
 
 # Algorithms
 env_params = {
     'features': None,  # defaults to task parameters
     # 'sort_func': None,
-    'sort_func': 'duration',
+    'sort_func': 't_release',
     # 'time_shift': False,
     'time_shift': True,
     # 'masking': False,
@@ -74,10 +74,18 @@ def _weight_init():
 
 # layers = [keras.layers.Flatten(),
 #           keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
+#           keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
 #           # keras.layers.Dropout(0.2),
 #           ]
 
-layers = [keras.layers.Conv1D(50, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+# layers = [keras.layers.Conv1D(50, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+#           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+#           # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
+#           keras.layers.Flatten(),
+#           ]
+
+layers = [keras.layers.Conv1D(30, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+          keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
           # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
           keras.layers.Flatten(),
@@ -95,10 +103,12 @@ model = keras.Sequential([keras.Input(shape=env.observation_space.shape),
 model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
 
-train_args = {'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
+train_args = {'n_batch_train': 15, 'n_batch_val': 7, 'batch_size': 40,
               'weight_func': None,
               # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-              'fit_params': {'epochs': 500},
+              'fit_params': {'epochs': 500,
+                             'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=200, min_delta=0.)]
+                             },
               }
 
 
@@ -114,10 +124,10 @@ algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
     ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
     ('ERT', free.earliest_release, 1),
-    *((f'MCTS, c={c}', partial(free.mcts_v1, n_mc=40, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10]),
-    *((f'MCTS_V2, c={c}, t={t}', partial(free.mcts, n_mc=70, c_explore=c, visit_threshold=t,
-                                         rng=RNGMix.make_rng(seed)), 10) for c, t in product([.05], [15])),
-    # ('NN Policy', SupervisedLearningScheduler(model, env), 1),
+    *((f'MCTS_v1, c={c}', partial(free.mcts_v1, n_mc=40, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10]),
+    *((f'MCTS, c={c}, t={t}', partial(free.mcts, n_mc=70, c_explore=c, visit_threshold=t,
+                                      rng=RNGMix.make_rng(seed)), 10) for c, t in product([.05], [15])),
+    ('NN Policy', SupervisedLearningScheduler(model, env), 1),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
@@ -151,6 +161,10 @@ with open(log_path, 'a') as fid:
 
 sim_type = 'Gen'
 if 'NN Policy' in algorithms['name']:
+    if isinstance(problem_gen, problem_gens.Dataset) and problem_gen.repeat:
+        print('Dataset generator repeat disabled for train/test separation.')
+        problem_gen.repeat = False
+
     idx_nn = algorithms['name'].tolist().index('NN Policy')
     algorithms['func'][idx_nn].learn(verbose=2, plot_history=True, **train_args)
 

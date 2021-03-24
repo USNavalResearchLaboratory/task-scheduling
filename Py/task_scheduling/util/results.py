@@ -242,6 +242,9 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
 
     """
 
+    if isinstance(problem_gen, Dataset) and n_gen > problem_gen.n_problems:
+        raise ValueError("Dataset cannot generate enough unique problems.")
+
     if solve:
         algorithms = _add_bb(algorithms)
 
