@@ -48,3 +48,11 @@ def mcts_orig(tasks, ch_avail, n_mc, verbose=False, rng=None):
         node.seq_append(node_best.seq[n], check_valid=False)
 
     return node_best.t_ex, node_best.ch_ex
+
+
+def branch_bound_lo(tasks, ch_avail, verbose=False, rng=None):
+
+    node = TreeNodeBoundLo(tasks, ch_avail, rng=rng)
+    node_best = node.branch_bound(inplace=False, verbose=verbose)
+
+    return node_best.t_ex, node_best.ch_ex  # optimal

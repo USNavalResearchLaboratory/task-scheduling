@@ -417,8 +417,8 @@ class TreeNodeBound(TreeNode):
 
         rng = self._get_rng(rng)
 
+        node_best = self.roll_out(inplace=False, rng=rng)  # roll-out initial solution
         stack = deque([self])  # initialize stack
-        node_best = stack[0].roll_out(inplace=False, rng=rng)  # roll-out initial solution
 
         # Iterate
         while len(stack) > 0:
