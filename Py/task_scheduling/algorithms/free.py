@@ -33,6 +33,13 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
     return node_best.t_ex, node_best.ch_ex  # optimal
 
 
+def branch_bound_v2(tasks, ch_avail, verbose=False, rng=None):
+    node = TreeNodeBound(tasks, ch_avail, rng=rng)
+    node_best = node.branch_bound_v2(inplace=False, verbose=verbose)
+
+    return node_best.t_ex, node_best.ch_ex  # optimal
+
+
 def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
     """
     Branch and Bound algorithm.

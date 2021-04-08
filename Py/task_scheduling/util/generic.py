@@ -94,9 +94,9 @@ def sort_wrapper(scheduler, sort_func):  # TODO: use for basic algorithms?
     @wraps(scheduler)
     def sorted_scheduler(tasks, ch_avail):
         idx = list(np.argsort([sort_func(task) for task in tasks]))
-        t_ex, ch_ex = scheduler([tasks[i] for i in idx], ch_avail)
-
         idx_inv = [idx.index(n) for n in range(len(tasks))]
+
+        t_ex, ch_ex = scheduler([tasks[i] for i in idx], ch_avail)
         return t_ex[idx_inv], ch_ex[idx_inv]
 
     return sorted_scheduler

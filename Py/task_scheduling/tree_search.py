@@ -423,16 +423,52 @@ class TreeNodeBound(TreeNode):
         # Iterate
         while len(stack) > 0:
             node = stack.pop()  # extract node
+            if node.l_lo >= node_best.l_ex:
+                continue  # node is dominated
 
             # Branch
             for node_new in node.branch(permute=True, rng=rng):
                 # Bound
-                if node_new.l_lo < node_best.l_ex:  # new node is not dominated
+                if node_new.l_lo < node_best.l_ex:
+                    stack.append(node_new)  # new node is not dominated, add to stack (LIFO)
+
                     if node_new.l_up < node_best.l_ex:
                         node_best = node_new.roll_out(inplace=False, rng=rng)  # roll-out a new best node
-                        stack = [s for s in stack if s.l_lo < node_best.l_ex]  # cut dominated nodes
 
-                    stack.append(node_new)  # add new node to stack, LIFO
+            if verbose:
+                progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(self.n_tasks)
+                print(f'Search progress: {progress:.3f}, Loss < {node_best.l_ex:.3f}', end='\r')
+                # print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.l_ex:.3f}', end='\r')
+
+        if inplace:
+            self.seq = node_best.seq
+        else:
+            return node_best
+
+    def branch_bound_v2(self, inplace=True, verbose=False, rng=None):
+
+        rng = self._get_rng(rng)
+
+        node_best = self.roll_out(inplace=False, rng=rng)  # roll-out initial solution
+        stack = [self]  # initialize stack
+
+        # Iterate
+        while len(stack) > 0:
+            node = stack.pop()  # extract node
+            if node.l_lo >= node_best.l_ex:
+                continue  # node is dominated
+
+            # Branch
+            for node_new in node.branch(permute=True, rng=rng):
+                # Bound
+                if node_new.l_lo < node_best.l_ex:
+                    stack.append(node_new)  # new node is not dominated, add to stack (LIFO)
+
+                    if node_new.l_up < node_best.l_ex:
+                        node_best = node_new.roll_out(inplace=False, rng=rng)  # roll-out a new best node
+
+            # Sort stack
+            stack.sort(key=lambda node_: node_.l_lo, reverse=True)  # TODO: heapq?
 
             if verbose:
                 progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(self.n_tasks)
