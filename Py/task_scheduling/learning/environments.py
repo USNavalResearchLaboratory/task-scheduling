@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from math import factorial
 from types import MethodType
+from operator import attrgetter
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -56,10 +57,7 @@ class BaseTasking(Env, ABC):
             self.sort_func = sort_func
             self._sort_func_str = 'Custom'
         elif isinstance(sort_func, str):
-            def _sort_func(task):
-                return getattr(task, sort_func)
-
-            self.sort_func = _sort_func
+            self.sort_func = attrgetter(sort_func)
             self._sort_func_str = sort_func
         else:
             self.sort_func = None

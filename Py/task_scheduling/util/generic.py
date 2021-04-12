@@ -3,6 +3,7 @@ from functools import wraps
 from math import factorial
 from numbers import Integral
 from time import perf_counter
+from operator import attrgetter
 
 import numpy as np
 
@@ -86,10 +87,7 @@ def runtime_wrapper(scheduler):
 
 def sort_wrapper(scheduler, sort_func):  # TODO: use for basic algorithms?
     if isinstance(sort_func, str):
-        attr_str = sort_func
-
-        def sort_func(task):
-            return getattr(task, attr_str)
+        sort_func = attrgetter(sort_func)
 
     @wraps(scheduler)
     def sorted_scheduler(tasks, ch_avail):

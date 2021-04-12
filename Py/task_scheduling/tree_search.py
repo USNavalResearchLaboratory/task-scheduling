@@ -3,9 +3,11 @@ from copy import deepcopy
 from math import factorial
 from numbers import Integral
 from typing import Sequence
+from operator import attrgetter
 
 import numpy as np
 import pandas as pd
+from sortedcontainers import SortedKeyList
 
 from task_scheduling.tasks import Base as BaseTask, Shift as ShiftTask
 from task_scheduling.util.generic import RandomGeneratorMixin
@@ -413,12 +415,11 @@ class TreeNodeBound(TreeNode):
 
         """
 
-        # TODO: different search strategies? pre-sort?
-
         rng = self._get_rng(rng)
 
         node_best = self.roll_out(inplace=False, rng=rng)  # roll-out initial solution
         stack = deque([self])  # initialize stack
+        # stack = [self]
 
         # Iterate
         while len(stack) > 0:
@@ -434,6 +435,8 @@ class TreeNodeBound(TreeNode):
 
                     if node_new.l_up < node_best.l_ex:
                         node_best = node_new.roll_out(inplace=False, rng=rng)  # roll-out a new best node
+
+            # stack.sort(key=attrgetter('l_lo'), reverse=True)
 
             if verbose:
                 progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(self.n_tasks)
@@ -445,12 +448,12 @@ class TreeNodeBound(TreeNode):
         else:
             return node_best
 
-    def branch_bound_v2(self, inplace=True, verbose=False, rng=None):
+    def branch_bound_priority(self, key=lambda node_: -node_.l_lo, inplace=True, verbose=False, rng=None):
 
         rng = self._get_rng(rng)
 
         node_best = self.roll_out(inplace=False, rng=rng)  # roll-out initial solution
-        stack = [self]  # initialize stack
+        stack = SortedKeyList([self], key)
 
         # Iterate
         while len(stack) > 0:
@@ -462,13 +465,10 @@ class TreeNodeBound(TreeNode):
             for node_new in node.branch(permute=True, rng=rng):
                 # Bound
                 if node_new.l_lo < node_best.l_ex:
-                    stack.append(node_new)  # new node is not dominated, add to stack (LIFO)
+                    stack.add(node_new)  # new node is not dominated, add to stack (prioritized)
 
                     if node_new.l_up < node_best.l_ex:
                         node_best = node_new.roll_out(inplace=False, rng=rng)  # roll-out a new best node
-
-            # Sort stack
-            stack.sort(key=lambda node_: node_.l_lo, reverse=True)  # TODO: SortedCollection? sortedcontainers?
 
             if verbose:
                 progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(self.n_tasks)
