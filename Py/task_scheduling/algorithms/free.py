@@ -1,3 +1,6 @@
+from itertools import permutations
+from math import factorial
+
 from task_scheduling.tree_search import TreeNodeBound, TreeNode
 
 
@@ -254,3 +257,38 @@ def earliest_drop(tasks, ch_avail, check_swaps=False):
     node.earliest_drop(check_swaps=check_swaps)
 
     return node.t_ex, node.ch_ex
+
+
+def brute_force(tasks, ch_avail, verbose=False):
+    """
+    Exhaustively Searches all Possibilities
+
+    Parameters
+    ----------
+    tasks : Sequence of task_scheduling.tasks.Base
+    ch_avail : Sequence of float
+        Channel availability times.
+    verbose : bool
+        Enables printing of algorithm state information.
+
+    Returns
+    -------
+    t_ex : ndarray
+        Task execution times.
+    ch_ex : ndarray
+        Task execution channels.
+
+    """
+
+    node_best, loss_best = None, float('inf')
+
+    n_perms = factorial(len(tasks))
+    for i, seq in enumerate(permutations(range(len(tasks)))):
+        if verbose:
+            print(f"Brute force: {i+1}/{n_perms}", end='\r')
+
+        node = TreeNodeBound(tasks, ch_avail, seq=seq)
+        if node.l_ex < loss_best:
+            node_best, loss_best = node, node.l_ex
+
+    return node_best.t_ex, node_best.ch_ex   # optimal

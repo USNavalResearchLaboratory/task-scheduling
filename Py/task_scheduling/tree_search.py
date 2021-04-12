@@ -381,6 +381,7 @@ class TreeNodeBound(TreeNode):
 
     def _update_bounds(self):
 
+        self._bounds = [self._l_ex, self._l_ex]
         if len(self.seq_rem) == 0:
             return  # already converged
 
@@ -388,7 +389,6 @@ class TreeNodeBound(TreeNode):
         t_ex_max = t_release_max + sum(self._tasks[n].duration for n in self._seq_rem)
         # t_ex_max -= min(self._tasks[n].duration for n in self._seq_rem)
 
-        self._bounds = [self._l_ex, self._l_ex]
         for n in self._seq_rem:  # update loss bounds
             self._bounds[0] += self._tasks[n](max(min(self._ch_avail), self._tasks[n].t_release))
             self._bounds[1] += self._tasks[n](t_ex_max)
@@ -468,7 +468,7 @@ class TreeNodeBound(TreeNode):
                         node_best = node_new.roll_out(inplace=False, rng=rng)  # roll-out a new best node
 
             # Sort stack
-            stack.sort(key=lambda node_: node_.l_lo, reverse=True)  # TODO: heapq?
+            stack.sort(key=lambda node_: node_.l_lo, reverse=True)  # TODO: SortedCollection? sortedcontainers?
 
             if verbose:
                 progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(self.n_tasks)

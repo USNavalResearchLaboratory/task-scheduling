@@ -122,7 +122,7 @@ train_args = {'n_batch_train': 15, 'n_batch_val': 7, 'batch_size': 40,
 
 algorithms = np.array([
     ('BB', partial(free.branch_bound, rng=RNGMix.make_rng(seed)), 1),
-    ('BB_v2', partial(free.branch_bound_v2, rng=RNGMix.make_rng(seed)), 1),
+    # ('BB_v2', partial(free.branch_bound_v2, rng=RNGMix.make_rng(seed)), 1),
     # ('B&B sort', sort_wrapper(partial(free.branch_bound, verbose=False), 't_release'), 1),
     # ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
     # ('ERT', free.earliest_release, 1),
@@ -176,7 +176,7 @@ if 'NN Policy' in algorithms['name']:
     plt.figure('Training history').savefig(train_path)
     with open(log_path, 'a') as fid:
         print(f"![](../{train_path}.png)\n", file=fid)
-l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen=20, solve=False, verbose=1, plotting=1,
+l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen=10, solve=False, verbose=1, plotting=1,
                                             log_path=log_path)
 
 
