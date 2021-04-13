@@ -34,7 +34,7 @@ seed = None
 
 # %% Define scheduling problem and algorithms
 
-problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=12, n_ch=1, rng=seed)
+problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
@@ -122,7 +122,8 @@ train_args = {'n_batch_train': 15, 'n_batch_val': 7, 'batch_size': 40,
 
 algorithms = np.array([
     ('BB', partial(free.branch_bound, rng=RNGMix.make_rng(seed)), 1),
-    ('BB_v2', partial(free.branch_bound_priority, rng=RNGMix.make_rng(seed)), 1),
+    ('brute', partial(free.brute_force, verbose=True), 1),
+    # ('BB_v2', partial(free.branch_bound_priority, rng=RNGMix.make_rng(seed)), 1),
     # ('B&B sort', sort_wrapper(partial(free.branch_bound, verbose=False), 't_release'), 1),
     # ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
     # ('ERT', free.earliest_release, 1),

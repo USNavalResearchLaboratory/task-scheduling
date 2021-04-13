@@ -205,7 +205,7 @@ def random_sequencer(tasks, ch_avail, rng=None):
     return node.t_ex, node.ch_ex
 
 
-def earliest_release(tasks, ch_avail, check_swaps=False):
+def earliest_release(tasks, ch_avail):
     """
     Earliest Start Times Algorithm.
 
@@ -214,8 +214,6 @@ def earliest_release(tasks, ch_avail, check_swaps=False):
     tasks : Sequence of task_scheduling.tasks.Base
     ch_avail : Sequence of float
         Channel availability times.
-    check_swaps : bool
-        Enables task swapping
 
     Returns
     -------
@@ -227,12 +225,12 @@ def earliest_release(tasks, ch_avail, check_swaps=False):
     """
 
     node = TreeNode(tasks, ch_avail)
-    node.earliest_release(check_swaps=check_swaps)
+    node.earliest_release()
 
     return node.t_ex, node.ch_ex
 
 
-def earliest_drop(tasks, ch_avail, check_swaps=False):
+def earliest_drop(tasks, ch_avail):
     """
     Earliest Drop Times Algorithm.
 
@@ -241,8 +239,6 @@ def earliest_drop(tasks, ch_avail, check_swaps=False):
     tasks : Sequence of task_scheduling.tasks.Base
     ch_avail : Sequence of float
         Channel availability times.
-    check_swaps : bool
-        Enables task swapping.
 
     Returns
     -------
@@ -254,14 +250,14 @@ def earliest_drop(tasks, ch_avail, check_swaps=False):
     """
 
     node = TreeNode(tasks, ch_avail)
-    node.earliest_drop(check_swaps=check_swaps)
+    node.earliest_drop()
 
     return node.t_ex, node.ch_ex
 
 
 def brute_force(tasks, ch_avail, verbose=False):
     """
-    Exhaustively Searches all Possibilities
+    Exhaustively search all complete sequences.
 
     Parameters
     ----------
@@ -280,15 +276,7 @@ def brute_force(tasks, ch_avail, verbose=False):
 
     """
 
-    node_best, loss_best = None, float('inf')
+    node = TreeNode(tasks, ch_avail)
+    node_best = node.brute_force(inplace=False, verbose=verbose)
 
-    n_perms = factorial(len(tasks))
-    for i, seq in enumerate(permutations(range(len(tasks)))):
-        if verbose:
-            print(f"Brute force: {i+1}/{n_perms}", end='\r')
-
-        node = TreeNodeBound(tasks, ch_avail, seq=seq)
-        if node.l_ex < loss_best:
-            node_best, loss_best = node, node.l_ex
-
-    return node_best.t_ex, node_best.ch_ex   # optimal
+    return node_best.t_ex, node_best.ch_ex

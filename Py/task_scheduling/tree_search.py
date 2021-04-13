@@ -3,7 +3,8 @@ from copy import deepcopy
 from math import factorial
 from numbers import Integral
 from typing import Sequence
-from operator import attrgetter
+from operator import attrgetter, methodcaller
+from itertools import permutations
 
 import numpy as np
 import pandas as pd
@@ -231,40 +232,38 @@ class TreeNode(RandomGeneratorMixin):
         seq_ext = rng.permutation(list(self._seq_rem)).tolist()
 
         node = self._extend_util(seq_ext, inplace)
-
         if not inplace:
             return node
 
-    def check_swaps(self):
-        """Try adjacent task swapping, overwrite node if loss drops."""
+    # def check_swaps(self):
+    #     """Try adjacent task swapping, overwrite node if loss drops."""
+    #
+    #     if len(self._seq_rem) != 0:
+    #         raise ValueError("Node sequence must be complete.")
+    #
+    #     for i in range(len(self.seq) - 1):
+    #         seq_swap = self.seq.copy()
+    #         seq_swap[i:i + 2] = seq_swap[i:i + 2][::-1]
+    #         node_swap = self.__class__(self._tasks, self._ch_avail, seq_swap)
+    #         if node_swap.l_ex < self.l_ex:
+    #             self = node_swap
 
-        if len(self._seq_rem) != 0:
-            raise ValueError("Node sequence must be complete.")
-
-        for i in range(len(self.seq) - 1):
-            seq_swap = self.seq.copy()
-            seq_swap[i:i + 2] = seq_swap[i:i + 2][::-1]
-            node_swap = self.__class__(self._tasks, self._ch_avail, seq_swap)
-            if node_swap.l_ex < self.l_ex:
-                self = node_swap  # TODO: improper?
-
-    def _earliest_sorter(self, name, inplace=True, check_swaps=False):
+    def _earliest_sorter(self, name, inplace=True):
         _dict = {n: getattr(self.tasks[n], name) for n in self.seq_rem}
         seq_ext = sorted(self.seq_rem, key=_dict.__getitem__)
+        # def sort_func(n):
+        #     return getattr(self.tasks[n], name)
+        # seq_ext = sorted(self.seq_rem, key=sort_func)
 
         node = self._extend_util(seq_ext, inplace)
-
-        if check_swaps:
-            node.check_swaps()
-
         if not inplace:
             return node
 
-    def earliest_release(self, inplace=True, check_swaps=False):
-        return self._earliest_sorter('t_release', inplace, check_swaps)
+    def earliest_release(self, inplace=True):
+        return self._earliest_sorter('t_release', inplace)
 
-    def earliest_drop(self, inplace=True, check_swaps=False):
-        return self._earliest_sorter('t_drop', inplace, check_swaps)
+    def earliest_drop(self, inplace=True):
+        return self._earliest_sorter('t_drop', inplace)
 
     def mcts(self, n_mc=1, c_explore=0., visit_threshold=0, inplace=True, verbose=False, rng=None):
         """
@@ -342,6 +341,40 @@ class TreeNode(RandomGeneratorMixin):
 
             if node.l_ex < loss_min:
                 node_best, loss_min = node, node.l_ex
+
+        if inplace:
+            self.seq = node_best.seq
+        else:
+            return node_best
+
+    def brute_force(self, inplace=True, verbose=False):
+        """
+        Exhaustively search all complete sequences.
+
+        Parameters
+        ----------
+        inplace : bool, optional
+            If True, self.seq is completed. Otherwise, a new node object is returned.
+        verbose : bool
+            Enables printing of algorithm state information.
+
+        Returns
+        -------
+        TreeNode
+            Only if `inplace` is False.
+
+        """
+
+        node_best, loss_best = None, float('inf')
+
+        n_perms = factorial(len(self.seq_rem))
+        for i, seq in enumerate(permutations(self.seq_rem)):
+            if verbose:
+                print(f"Brute force: {i + 1}/{n_perms}", end='\r')
+
+            node = self._extend_util(seq, inplace=False)
+            if node.l_ex < loss_best:
+                node_best, loss_best = node, node.l_ex
 
         if inplace:
             self.seq = node_best.seq
@@ -452,7 +485,11 @@ class TreeNodeBound(TreeNode):
 
         rng = self._get_rng(rng)
 
-        node_best = self.roll_out(inplace=False, rng=rng)  # roll-out initial solution
+        # heuristic = methodcaller('roll_out', inplace=False, rng=rng)
+        heuristic = methodcaller('earliest_release', inplace=False)
+
+        # node_best = self.roll_out(inplace=False, rng=rng)  # roll-out initial solution
+        node_best = heuristic(self)
         stack = SortedKeyList([self], key)
 
         # Iterate
@@ -468,7 +505,8 @@ class TreeNodeBound(TreeNode):
                     stack.add(node_new)  # new node is not dominated, add to stack (prioritized)
 
                     if node_new.l_up < node_best.l_ex:
-                        node_best = node_new.roll_out(inplace=False, rng=rng)  # roll-out a new best node
+                        # node_best = node_new.roll_out(inplace=False, rng=rng)  # roll-out a new best node
+                        node_best = heuristic(node_new)
 
             if verbose:
                 progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(self.n_tasks)
