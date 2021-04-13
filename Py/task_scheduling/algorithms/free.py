@@ -30,8 +30,32 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
     return node_best.t_ex, node_best.ch_ex  # optimal
 
 
-def branch_bound_priority(tasks, ch_avail, priority_func=None, heuristic=None, verbose=False, rng=None):
-    node = TreeNodeBound(tasks, ch_avail, rng=rng)
+def branch_bound_priority(tasks, ch_avail, priority_func=None, heuristic=None, verbose=False):
+    """
+    Branch-and-Bound with priority queueing and general heuristics.
+
+    Parameters
+    ----------
+    tasks : Sequence of task_scheduling.tasks.Base
+    ch_avail : Sequence of float
+        Channel availability times.
+    priority_func : callable, optional
+        Key function that maps `TreeNode` objects to priority values. Defaults to negative lower bound.
+    heuristic : callable, optional
+        Uses a partial node to generate a complete sequence node.
+    verbose : bool
+        Enables printing of algorithm state information.
+
+    Returns
+    -------
+    t_ex : ndarray
+        Task execution times.
+    ch_ex : ndarray
+        Task execution channels.
+
+    """
+
+    node = TreeNodeBound(tasks, ch_avail)
     node_best = node.branch_bound_priority(priority_func, heuristic, False, verbose)
 
     return node_best.t_ex, node_best.ch_ex  # optimal

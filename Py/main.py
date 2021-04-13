@@ -144,8 +144,6 @@ algorithms = np.array([
 # TODO: make problem a shared node class attribute? Setting them seems hackish...
 # TODO: value networks
 
-# TODO: ERT wrapper (generally, scheduler ensemble)
-
 log_path = 'docs/temp/PGR_results.md'
 # log_path = 'docs/discrete_relu_c1t8_train.md'
 

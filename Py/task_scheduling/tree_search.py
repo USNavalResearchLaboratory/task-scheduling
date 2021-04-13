@@ -482,8 +482,26 @@ class TreeNodeBound(TreeNode):
             return node_best
 
     def branch_bound_priority(self, priority_func=None, heuristic=None, inplace=True, verbose=False):
+        """
+        Branch-and-Bound with priority queueing and generic heuristics.
 
-        # rng = self._get_rng(rng)
+        Parameters
+        ----------
+        priority_func : callable, optional
+            Key function that maps `TreeNode` objects to priority values. Defaults to negative lower bound.
+        heuristic : callable, optional
+            Uses a partial node to generate a complete sequence node.
+        inplace : bool, optional
+            If True, self.seq is completed. Otherwise, a new node object is returned.
+        verbose : bool, optional
+            Enables printing of algorithm state information.
+
+        Returns
+        -------
+        TreeNodeBound, optional
+            Only if `inplace` is False.
+
+        """
 
         if priority_func is None:
             def priority_func(node_):
@@ -491,10 +509,8 @@ class TreeNodeBound(TreeNode):
 
         if heuristic is None:
             heuristic = methodcaller('roll_out', inplace=False)
-            # heuristic = methodcaller('roll_out', inplace=False, rng=rng)
             # heuristic = methodcaller('earliest_release', inplace=False)
 
-        # node_best = self.roll_out(inplace=False, rng=rng)  # roll-out initial solution
         node_best = heuristic(self)
         stack = SortedKeyList([self], priority_func)
 
@@ -511,7 +527,6 @@ class TreeNodeBound(TreeNode):
                     stack.add(node_new)  # new node is not dominated, add to stack (prioritized)
 
                     if node_new.l_up < node_best.l_ex:
-                        # node_best = node_new.roll_out(inplace=False, rng=rng)  # roll-out a new best node
                         node_best = heuristic(node_new)
 
             if verbose:
