@@ -13,7 +13,7 @@ from tensorflow import keras
 
 from task_scheduling.util.results import (evaluate_algorithms, evaluate_algorithms_runtime, evaluate_algorithms_train,
                                           scatter_results)
-from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix, sort_wrapper
+from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix, sort_wrapper, ensemble_scheduler
 from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.algorithms import free
 from task_scheduling.learning.SL_policy import SupervisedLearningScheduler
@@ -124,8 +124,9 @@ train_args = {'n_batch_train': 15, 'n_batch_val': 7, 'batch_size': 40,
 algorithms = np.array([
     ('BB', partial(free.branch_bound, rng=RNGMix.make_rng(seed)), 1),
     ('BB_p', partial(free.branch_bound_priority, heuristic=methodcaller('roll_out', inplace=False, rng=RNGMix.make_rng(seed))), 1),
-    # ('BB_p_ERT', partial(free.branch_bound_priority, heuristic=methodcaller('earliest_release', inplace=False)), 1),
+    ('BB_p_ERT', partial(free.branch_bound_priority, heuristic=methodcaller('earliest_release', inplace=False)), 1),
     # ('B&B sort', sort_wrapper(partial(free.branch_bound, verbose=False), 't_release'), 1),
+    # ('Ensemble', ensemble_scheduler(free.random_sequencer, free.earliest_release), 5),
     # ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
     # ('ERT', free.earliest_release, 1),
     # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, n_mc=40, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10]),

@@ -1,10 +1,4 @@
-from itertools import permutations
-from math import factorial
-
 from task_scheduling.tree_search import TreeNodeBound, TreeNode
-
-
-# from sequence2schedule import FlexDARMultiChannelSequenceScheduler
 
 
 def branch_bound(tasks, ch_avail, verbose=False, rng=None):
@@ -280,3 +274,5 @@ def brute_force(tasks, ch_avail, verbose=False):
     node_best = node.brute_force(inplace=False, verbose=verbose)
 
     return node_best.t_ex, node_best.ch_ex
+
+

@@ -59,6 +59,7 @@ def evaluate_schedule(tasks, t_ex):
     Parameters
     ----------
     tasks : Sequence of task_scheduling.tasks.Base
+        Tasks
     t_ex : Sequence of float
         Task execution times.
 
