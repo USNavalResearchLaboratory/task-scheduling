@@ -2,6 +2,7 @@ from functools import partial
 from itertools import product
 from time import strftime
 from pathlib import Path
+from operator import methodcaller
 
 import numpy as np
 import pandas as pd
@@ -26,8 +27,8 @@ plt.style.use('seaborn')
 
 time_str = strftime('%Y-%m-%d_%H-%M-%S')
 
-seed = None
-# seed = 12345
+# seed = None
+seed = 12345
 
 # tf.random.set_seed(seed)
 
@@ -122,8 +123,8 @@ train_args = {'n_batch_train': 15, 'n_batch_val': 7, 'batch_size': 40,
 
 algorithms = np.array([
     ('BB', partial(free.branch_bound, rng=RNGMix.make_rng(seed)), 1),
-    ('brute', partial(free.brute_force, verbose=True), 1),
-    # ('BB_v2', partial(free.branch_bound_priority, rng=RNGMix.make_rng(seed)), 1),
+    ('BB_p', partial(free.branch_bound_priority, heuristic=methodcaller('roll_out', inplace=False, rng=RNGMix.make_rng(seed))), 1),
+    # ('BB_p_ERT', partial(free.branch_bound_priority, heuristic=methodcaller('earliest_release', inplace=False)), 1),
     # ('B&B sort', sort_wrapper(partial(free.branch_bound, verbose=False), 't_release'), 1),
     # ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
     # ('ERT', free.earliest_release, 1),
@@ -142,7 +143,7 @@ algorithms = np.array([
 # TODO: make problem a shared node class attribute? Setting them seems hackish...
 # TODO: value networks
 
-# TODO: ERT wrapper
+# TODO: ERT wrapper (generally, scheduler ensemble)
 
 log_path = 'docs/temp/PGR_results.md'
 # log_path = 'docs/discrete_relu_c1t8_train.md'

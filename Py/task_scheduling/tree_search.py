@@ -481,16 +481,22 @@ class TreeNodeBound(TreeNode):
         else:
             return node_best
 
-    def branch_bound_priority(self, key=lambda node_: -node_.l_lo, inplace=True, verbose=False, rng=None):
+    def branch_bound_priority(self, priority_func=None, heuristic=None, inplace=True, verbose=False):
 
-        rng = self._get_rng(rng)
+        # rng = self._get_rng(rng)
 
-        # heuristic = methodcaller('roll_out', inplace=False, rng=rng)
-        heuristic = methodcaller('earliest_release', inplace=False)
+        if priority_func is None:
+            def priority_func(node_):
+                return -node_.l_lo
+
+        if heuristic is None:
+            heuristic = methodcaller('roll_out', inplace=False)
+            # heuristic = methodcaller('roll_out', inplace=False, rng=rng)
+            # heuristic = methodcaller('earliest_release', inplace=False)
 
         # node_best = self.roll_out(inplace=False, rng=rng)  # roll-out initial solution
         node_best = heuristic(self)
-        stack = SortedKeyList([self], key)
+        stack = SortedKeyList([self], priority_func)
 
         # Iterate
         while len(stack) > 0:
@@ -499,7 +505,7 @@ class TreeNodeBound(TreeNode):
                 continue  # node is dominated
 
             # Branch
-            for node_new in node.branch(permute=True, rng=rng):
+            for node_new in node.branch():
                 # Bound
                 if node_new.l_lo < node_best.l_ex:
                     stack.add(node_new)  # new node is not dominated, add to stack (prioritized)
