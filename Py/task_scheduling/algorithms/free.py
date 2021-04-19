@@ -32,7 +32,7 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
 
 def branch_bound_priority(tasks, ch_avail, priority_func=None, heuristic=None, verbose=False):
     """
-    Branch-and-Bound with priority queueing and general heuristics.
+    Branch-and-Bound with priority queueing and variable heuristic.
 
     Parameters
     ----------

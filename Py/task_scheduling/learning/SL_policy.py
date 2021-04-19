@@ -68,24 +68,6 @@ class SupervisedLearningScheduler:
 
         done = False
         while not done:
-            # if tf.executing_eagerly():
-            #     prob = self.model(obs[np.newaxis]).numpy().squeeze(0)
-            # else:
-            #     a = 1 # TODO fix this problem. Actually run in eager execution, but getting other errors.
-            #     # a_tensor = tf.constant([[1, 2, 3], [4, 5, 6]])
-            #     # print(a_tensor)
-            #     # an_array = a_tensor.eval(session=tf.compat.v1.Session())
-            #     #
-            #     # prob = self.model(obs[np.newaxis])
-            #     # print(prob)
-            #     # abc = prob.eval(session=tf.compat.v1.Session())
-            #     #
-            #     # # prob.eval(session=tf.compat.v1.Session())
-            #     # sess = tf.Session()
-            #     # with sess.as_default():
-            #     #     # A = tf.constant([1, 2, 3]).eval()
-            #     #     prob.eval(sess)
-
             prob = self.model(obs[np.newaxis]).numpy().squeeze(0)
             if ensure_valid:
                 prob = self.env.mask_probability(prob)

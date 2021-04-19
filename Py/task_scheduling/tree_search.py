@@ -3,6 +3,7 @@ from copy import deepcopy
 from math import factorial
 from numbers import Integral
 from typing import Sequence
+from types import MethodType
 from operator import attrgetter, methodcaller
 from itertools import permutations
 
@@ -294,27 +295,22 @@ class TreeNode(RandomGeneratorMixin):
         bounds = TreeNodeBound(self.tasks, self.ch_avail).bounds
         root = SearchNode(self.n_tasks, bounds, self.seq, c_explore, visit_threshold, rng=rng)
 
-        node_best, loss_min = None, np.inf
+        node_best, loss_best = None, np.inf
         while root.n_visits < n_mc:
             if verbose:
-                print(f'Solutions evaluated: {root.n_visits}, Min. Loss: {loss_min}', end='\r')
+                print(f'Solutions evaluated: {root.n_visits+1}/{n_mc}, Min. Loss: {loss_best}', end='\r')
 
-            # FIXME
-            # print(np.array([[node.n_visits, node.l_avg, node.weight] for node in root.children.values()]))
+            leaf_new = root.selection()  # expansion step happens in selection call
 
-            # leaf = root.selection()
-            # leaf_new = leaf.expansion()
-            leaf_new = root.selection()
+            seq_ext = leaf_new.seq[len(self.seq):]
+            node = self._extend_util(seq_ext, inplace=False)
+            node.roll_out()  # TODO: rollout with policy?
+            if node.l_ex < loss_best:
+                node_best, loss_best = node, node.l_ex
 
-            # loss = node.evaluation()  # TODO
-            node = TreeNode(self.tasks, self.ch_avail, leaf_new.seq, rng=leaf_new.rng)
-            node.roll_out()
-            loss = node.l_ex
-
+            # loss = leaf_new.evaluation()
+            loss = node.l_ex  # TODO: combine rollout with optional value func?
             leaf_new.backup(loss)
-
-            if node.l_ex < loss_min:
-                node_best, loss_min = node, node.l_ex
 
         if inplace:
             self.seq = node_best.seq
@@ -326,10 +322,10 @@ class TreeNode(RandomGeneratorMixin):
         # l_up = TreeNodeBound(tasks, ch_avail).l_up  # TODO: normalization?
         tree = SearchNodeV1(self.n_tasks, self.seq, c_explore=c_explore, rng=rng)
 
-        node_best, loss_min = None, np.inf
+        node_best, loss_best = None, np.inf
         while tree.n_visits < n_mc:
             if verbose:
-                print(f'Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_min}', end='\r')
+                print(f'Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_best}', end='\r')
 
             # FIXME
             # print(np.array([[node.n_visits, node.l_avg, node.weight] for node in tree.children.values()]))
@@ -339,8 +335,8 @@ class TreeNode(RandomGeneratorMixin):
 
             tree.backup(seq, node.l_ex)  # update search tree from leaf sequence to root
 
-            if node.l_ex < loss_min:
-                node_best, loss_min = node, node.l_ex
+            if node.l_ex < loss_best:
+                node_best, loss_best = node, node.l_ex
 
         if inplace:
             self.seq = node_best.seq
@@ -483,7 +479,7 @@ class TreeNodeBound(TreeNode):
 
     def branch_bound_priority(self, priority_func=None, heuristic=None, inplace=True, verbose=False):
         """
-        Branch-and-Bound with priority queueing and generic heuristics.
+        Branch-and-Bound with priority queueing and variable heuristics.
 
         Parameters
         ----------
@@ -613,8 +609,6 @@ class SearchNode(RandomGeneratorMixin):
         self._parent = parent
         self._children = {}
         self._seq_rem = set(range(self.n_tasks)) - set(self._seq)
-        self._seq_unk = self._seq_rem.copy()  # set of unexplored task indices
-        # TODO: unk as property?
 
         self._n_visits = 0
         self._l_avg = 0.  # TODO: try using min? ordered statistic?
@@ -631,17 +625,6 @@ class SearchNode(RandomGeneratorMixin):
     def __repr__(self):
         return f"SearchNode(seq={self._seq}, children={list(self._children.keys())}, " \
                f"visits={self._n_visits}, avg_loss={self._l_avg:.3f})"
-
-    # def __getitem__(self, item):
-    #     if isinstance(item, Integral):
-    #         return self._children[item]
-    #     elif isinstance(item, Sequence):
-    #         node = self
-    #         for n in item:
-    #             node = node._children[n]
-    #         return node
-    #     else:
-    #         raise TypeError
 
     @property
     def is_root(self):
@@ -676,29 +659,25 @@ class SearchNode(RandomGeneratorMixin):
         node = self
         while not node.is_leaf:
             node = node.select_child()
-        if node.n_visits > 0 and len(node.seq) < node.n_tasks:
+        if node.n_visits > 0 and len(node.seq) < node.n_tasks:  # node is not new, expand to create child
             node = node.expansion()
 
         return node
 
     def _add_child(self, n):
-        self._seq_unk.remove(n)
         self._children[n] = self.__class__(self.n_tasks, self._bounds, self._seq + [n], self._c_explore,
                                            self._visit_threshold, parent=self, rng=self.rng)
 
     def expansion(self):
         """Pseudo-random expansion, potentially creating a new child node."""
 
-        n = self.rng.choice(list(self._seq_rem))  # TODO: pseudo-random strategies?
+        n = self.rng.choice(list(self._seq_rem))  # TODO: pseudo-random strategies? ERT?
         if n not in self._children:
             self._add_child(n)
         return self._children[n]
 
     def evaluation(self):  # TODO: user custom definition. EST or NN!
-        raise NotImplementedError  # TODO: tree node??
-        # tree_node = TreeNode(tasks, ch_avail, self.seq, self.rng)
-        # tree_node.roll_out()
-        # return tree_node.l_ex
+        raise NotImplementedError
 
     def backup(self, loss):
         """Update loss and visit statistics for the node and all ancestors."""
