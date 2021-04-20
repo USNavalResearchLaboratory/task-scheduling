@@ -35,8 +35,8 @@ seed = 12345
 
 # %% Define scheduling problem and algorithms
 
-# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=seed)
+# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
@@ -45,11 +45,13 @@ seed = 12345
 data_path = Path.cwd() / 'data'
 schedule_path = data_path / 'schedules'
 
+# list(problem_gen(100, save_path=schedule_path/'temp'/time_str))
+
 dataset = 'discrete_relu_c1t8'
 # dataset = 'continuous_relu_c1t8'
 # dataset = 'search_track_c1t8_release_0'
 
-problem_gen = problem_gens.Dataset.load(schedule_path / dataset, shuffle=True, repeat=True, rng=seed)
+problem_gen = problem_gens.Dataset.load(schedule_path / dataset, shuffle=False, repeat=True, rng=seed)
 
 
 # Algorithms
@@ -128,11 +130,11 @@ algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(free.branch_bound, verbose=False), 't_release'), 1),
     # ('Ensemble', ensemble_scheduler(free.random_sequencer, free.earliest_release), 5),
     ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
-    ('ERT', free.earliest_release, 1),
-    *((f'MCTS_v1, c={c}', partial(free.mcts_v1, n_mc=40, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10]),
-    *((f'MCTS, c={c}, t={t}', partial(free.mcts, n_mc=70, c_explore=c, visit_threshold=t,
-                                      rng=RNGMix.make_rng(seed)), 10) for c, t in product([.05], [15])),
-    ('NN Policy', SupervisedLearningScheduler(model, env), 1),
+    # ('ERT', free.earliest_release, 1),
+    # *((f'MCTS, c={c}, t={t}', partial(free.mcts, n_mc=50, c_explore=c, visit_threshold=t,
+    #                                   rng=RNGMix.make_rng(seed)), 10) for c, t in product([.05], [15])),
+    *((f'MCTS_v1, c={c}', partial(free.mcts_v1, n_mc=50, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [5, 10, 15]),
+    # ('NN Policy', SupervisedLearningScheduler(model, env), 1),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
@@ -144,8 +146,8 @@ algorithms = np.array([
 # TODO: make problem a shared node class attribute? Setting them seems hackish...
 # TODO: value networks
 
-log_path = 'docs/temp/PGR_results.md'
-# log_path = 'docs/discrete_relu_c1t8_train.md'
+# log_path = 'docs/temp/PGR_results.md'
+log_path = 'docs/discrete_relu_c1t8.md'
 
 image_path = f'images/temp/{time_str}'
 

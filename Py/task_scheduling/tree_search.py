@@ -292,6 +292,8 @@ class TreeNode(RandomGeneratorMixin):
 
         """
 
+        rng = self._get_rng(rng)
+
         bounds = TreeNodeBound(self.tasks, self.ch_avail).bounds
         root = SearchNode(self.n_tasks, bounds, self.seq, c_explore, visit_threshold, rng=rng)
 
@@ -319,6 +321,8 @@ class TreeNode(RandomGeneratorMixin):
 
     def mcts_v1(self, n_mc=1, c_explore=1., inplace=True, verbose=False, rng=None):
 
+        rng = self._get_rng(rng)
+
         # l_up = TreeNodeBound(tasks, ch_avail).l_up  # TODO: normalization?
         tree = SearchNodeV1(self.n_tasks, self.seq, c_explore=c_explore, rng=rng)
 
@@ -331,12 +335,14 @@ class TreeNode(RandomGeneratorMixin):
             # print(np.array([[node.n_visits, node.l_avg, node.weight] for node in tree.children.values()]))
 
             seq = tree.simulate()  # roll-out a complete sequence
-            node = self.__class__(self.tasks, self.ch_avail, seq)  # evaluate execution times and channels, total loss
 
-            tree.backup(seq, node.l_ex)  # update search tree from leaf sequence to root
-
+            seq_ext = seq[len(self.seq):]
+            node = self._extend_util(seq_ext, inplace=False)
+            # node = self.__class__(self.tasks, self.ch_avail, seq)
             if node.l_ex < loss_best:
                 node_best, loss_best = node, node.l_ex
+
+            tree.backup(seq, node.l_ex)  # update search tree from leaf sequence to root
 
         if inplace:
             self.seq = node_best.seq

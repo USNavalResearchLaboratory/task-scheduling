@@ -69,6 +69,7 @@ class SupervisedLearningScheduler:
         done = False
         while not done:
             prob = self.model(obs[np.newaxis]).numpy().squeeze(0)
+            # prob = self.model.predict_on_batch(obs[np.newaxis]).squeeze(0)
             if ensure_valid:
                 prob = self.env.mask_probability(prob)
             action = prob.argmax()

@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 
 import task_scheduling.tasks
-from task_scheduling.algorithms.free import branch_bound, branch_bound_priority, earliest_release
+from task_scheduling.algorithms.free import branch_bound_priority, earliest_release
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
 from task_scheduling.util.generic import RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution
 
