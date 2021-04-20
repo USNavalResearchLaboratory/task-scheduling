@@ -131,9 +131,9 @@ algorithms = np.array([
     # ('Ensemble', ensemble_scheduler(free.random_sequencer, free.earliest_release), 5),
     ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
     # ('ERT', free.earliest_release, 1),
-    # *((f'MCTS, c={c}, t={t}', partial(free.mcts, n_mc=50, c_explore=c, visit_threshold=t,
-    #                                   rng=RNGMix.make_rng(seed)), 10) for c, t in product([.05], [15])),
-    *((f'MCTS_v1, c={c}', partial(free.mcts_v1, n_mc=50, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [5, 10, 15]),
+    *((f'MCTS, c={c}, t={t}', partial(free.mcts, n_mc=50, c_explore=c, visit_threshold=t,
+                                      rng=RNGMix.make_rng(seed)), 10) for c, t in product([0], [0, 5, 10, 20])),
+    # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, n_mc=50, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10, 20, 30]),
     # ('NN Policy', SupervisedLearningScheduler(model, env), 1),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
@@ -145,6 +145,8 @@ algorithms = np.array([
 # TODO: try making new features
 # TODO: make problem a shared node class attribute? Setting them seems hackish...
 # TODO: value networks
+
+# TODO: use runtime-limited MCTS
 
 # log_path = 'docs/temp/PGR_results.md'
 log_path = 'docs/discrete_relu_c1t8.md'

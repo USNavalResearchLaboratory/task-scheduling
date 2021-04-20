@@ -6,6 +6,7 @@ from typing import Sequence
 from types import MethodType
 from operator import attrgetter, methodcaller
 from itertools import permutations
+from time import perf_counter
 
 import numpy as np
 import pandas as pd
@@ -136,17 +137,29 @@ class TreeNode(RandomGeneratorMixin):
         """
 
         if isinstance(seq_ext, Integral):
-            self.seq_append(seq_ext, check_valid)
-        else:
-            if check_valid:
-                set_ext = set(seq_ext)
-                if len(seq_ext) != len(set_ext):
-                    raise ValueError("Input 'seq_ext' must have unique values.")
-                elif not set_ext.issubset(self._seq_rem):
-                    raise ValueError("Values in 'seq_ext' must not be in the current node sequence.")
+            seq_ext = [seq_ext]
+        if check_valid:
+            set_ext = set(seq_ext)
+            if len(seq_ext) != len(set_ext):
+                raise ValueError("Input 'seq_ext' must have unique values.")
+            elif not set_ext.issubset(self._seq_rem):
+                raise ValueError("Values in 'seq_ext' must not be in the current node sequence.")
 
-            for n in seq_ext:
-                self.seq_append(n, check_valid=False)
+        for n in seq_ext:
+            self.seq_append(n, check_valid=False)
+
+        # if isinstance(seq_ext, Integral):
+        #     self.seq_append(seq_ext, check_valid)
+        # else:
+        #     if check_valid:
+        #         set_ext = set(seq_ext)
+        #         if len(seq_ext) != len(set_ext):
+        #             raise ValueError("Input 'seq_ext' must have unique values.")
+        #         elif not set_ext.issubset(self._seq_rem):
+        #             raise ValueError("Values in 'seq_ext' must not be in the current node sequence.")
+        #
+        #     for n in seq_ext:
+        #         self.seq_append(n, check_valid=False)
 
     def seq_append(self, n, check_valid=True):
         """
@@ -266,7 +279,7 @@ class TreeNode(RandomGeneratorMixin):
     def earliest_drop(self, inplace=True):
         return self._earliest_sorter('t_drop', inplace)
 
-    def mcts(self, n_mc=1, c_explore=0., visit_threshold=0, inplace=True, verbose=False, rng=None):
+    def mcts(self, runtimes, c_explore=0., visit_threshold=0, inplace=True, verbose=False, rng=None):
         """
         Monte Carlo tree search.
 
@@ -292,15 +305,22 @@ class TreeNode(RandomGeneratorMixin):
 
         """
 
+        t_run = perf_counter()
+        if inplace:
+            runtimes = runtimes[-1:]
+        i_time = 0
+        n_times = len(runtimes)
+
         rng = self._get_rng(rng)
 
         bounds = TreeNodeBound(self.tasks, self.ch_avail).bounds
         root = SearchNode(self.n_tasks, bounds, self.seq, c_explore, visit_threshold, rng=rng)
 
         node_best, loss_best = None, np.inf
-        while root.n_visits < n_mc:
+        while i_time < n_times:
             if verbose:
-                print(f'Solutions evaluated: {root.n_visits+1}/{n_mc}, Min. Loss: {loss_best}', end='\r')
+                raise NotImplementedError
+                # print(f'Solutions evaluated: {root.n_visits+1}/{n_mc}, Min. Loss: {loss_best}', end='\r')
 
             leaf_new = root.selection()  # expansion step happens in selection call
 
@@ -314,40 +334,129 @@ class TreeNode(RandomGeneratorMixin):
             loss = node.l_ex  # TODO: combine rollout with optional value func?
             leaf_new.backup(loss)
 
+            if perf_counter() - t_run >= runtimes[i_time]:
+                if not inplace:
+                    yield node_best.t_ex, node_best.ch_ex
+                i_time += 1
+
         if inplace:
             self.seq = node_best.seq
-        else:
-            return node_best
 
-    def mcts_v1(self, n_mc=1, c_explore=1., inplace=True, verbose=False, rng=None):
+    def mcts_v1(self, runtimes, c_explore=1., inplace=True, verbose=False, rng=None):
+
+        t_run = perf_counter()
+        if inplace:
+            runtimes = runtimes[-1:]
+        i_time = 0
+        n_times = len(runtimes)
 
         rng = self._get_rng(rng)
 
-        # l_up = TreeNodeBound(tasks, ch_avail).l_up  # TODO: normalization?
         tree = SearchNodeV1(self.n_tasks, self.seq, c_explore=c_explore, rng=rng)
 
         node_best, loss_best = None, np.inf
-        while tree.n_visits < n_mc:
+        while i_time < n_times:
             if verbose:
                 print(f'Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_best}', end='\r')
-
-            # FIXME
-            # print(np.array([[node.n_visits, node.l_avg, node.weight] for node in tree.children.values()]))
 
             seq = tree.simulate()  # roll-out a complete sequence
 
             seq_ext = seq[len(self.seq):]
             node = self._extend_util(seq_ext, inplace=False)
-            # node = self.__class__(self.tasks, self.ch_avail, seq)
             if node.l_ex < loss_best:
                 node_best, loss_best = node, node.l_ex
 
             tree.backup(seq, node.l_ex)  # update search tree from leaf sequence to root
 
+            if perf_counter() - t_run >= runtimes[i_time]:
+                if not inplace:
+                    yield node_best.t_ex, node_best.ch_ex
+                i_time += 1
+
         if inplace:
             self.seq = node_best.seq
-        else:
-            return node_best
+
+    # def mcts(self, n_mc=1, c_explore=0., visit_threshold=0, inplace=True, verbose=False, rng=None):
+    #     """
+    #     Monte Carlo tree search.
+    #
+    #     Parameters
+    #     ----------
+    #     n_mc : int, optional
+    #         Number of complete sequences evaluated.
+    #     c_explore : float, optional
+    #         Exploration weight. Higher values prioritize less frequently visited notes.
+    #     visit_threshold : int, optional
+    #         Nodes with up to this number of visits will select children using the `expansion` method.
+    #     inplace : bool, optional
+    #         If True, self.seq is completed. Otherwise, a new node object is returned.
+    #     verbose : bool, optional
+    #         Enables printing of algorithm state information.
+    #     rng : int or RandomState or Generator, optional
+    #         NumPy random number generator or seed. Instance RNG if None.
+    #
+    #     Returns
+    #     -------
+    #     TreeNode, optional
+    #         Only if `inplace` is False.
+    #
+    #     """
+    #
+    #     rng = self._get_rng(rng)
+    #
+    #     bounds = TreeNodeBound(self.tasks, self.ch_avail).bounds
+    #     root = SearchNode(self.n_tasks, bounds, self.seq, c_explore, visit_threshold, rng=rng)
+    #
+    #     node_best, loss_best = None, np.inf
+    #     while root.n_visits < n_mc:
+    #         if verbose:
+    #             print(f'Solutions evaluated: {root.n_visits+1}/{n_mc}, Min. Loss: {loss_best}', end='\r')
+    #
+    #         leaf_new = root.selection()  # expansion step happens in selection call
+    #
+    #         seq_ext = leaf_new.seq[len(self.seq):]
+    #         node = self._extend_util(seq_ext, inplace=False)
+    #         node.roll_out()  # TODO: rollout with policy?
+    #         if node.l_ex < loss_best:
+    #             node_best, loss_best = node, node.l_ex
+    #
+    #         # loss = leaf_new.evaluation()
+    #         loss = node.l_ex  # TODO: combine rollout with optional value func?
+    #         leaf_new.backup(loss)
+    #
+    #     if inplace:
+    #         self.seq = node_best.seq
+    #     else:
+    #         return node_best
+    #
+    # def mcts_v1(self, n_mc=1, c_explore=1., inplace=True, verbose=False, rng=None):
+    #
+    #     rng = self._get_rng(rng)
+    #
+    #     # l_up = TreeNodeBound(tasks, ch_avail).l_up  # TODO: normalization?
+    #     tree = SearchNodeV1(self.n_tasks, self.seq, c_explore=c_explore, rng=rng)
+    #
+    #     node_best, loss_best = None, np.inf
+    #     while tree.n_visits < n_mc:
+    #         if verbose:
+    #             print(f'Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_best}', end='\r')
+    #
+    #         # FIXME
+    #         # print(np.array([[node.n_visits, node.l_avg, node.weight] for node in tree.children.values()]))
+    #
+    #         seq = tree.simulate()  # roll-out a complete sequence
+    #
+    #         seq_ext = seq[len(self.seq):]
+    #         node = self._extend_util(seq_ext, inplace=False)
+    #         if node.l_ex < loss_best:
+    #             node_best, loss_best = node, node.l_ex
+    #
+    #         tree.backup(seq, node.l_ex)  # update search tree from leaf sequence to root
+    #
+    #     if inplace:
+    #         self.seq = node_best.seq
+    #     else:
+    #         return node_best
 
     def brute_force(self, inplace=True, verbose=False):
         """
