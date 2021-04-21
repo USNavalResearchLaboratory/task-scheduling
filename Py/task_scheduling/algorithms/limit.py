@@ -1,8 +1,78 @@
 from time import perf_counter
 
-from task_scheduling.tree_search import TreeNode, TreeNodeBound, SearchNodeV1
+from task_scheduling.tree_search import TreeNode, TreeNodeBound
 
 
+def mcts(tasks, ch_avail, runtimes, c_explore=0., visit_threshold=0, verbose=False, rng=None):
+    """
+    Monte Carlo tree search algorithm.
+
+    Parameters
+    ----------
+    tasks : Sequence of task_scheduling.tasks.Base
+    ch_avail : Sequence of float
+        Channel availability times.
+    runtimes : float or Sequence of float
+            Allotted algorithm runtimes.
+    c_explore : float, optional
+        Exploration weight. Higher values prioritize less frequently visited notes.
+    visit_threshold : int, optional
+        Nodes with up to this number of visits will select children using the `expansion` method.
+    verbose : bool
+        Enables printing of algorithm state information.
+    rng : int or RandomState or Generator, optional
+        NumPy random number generator or seed. Instance RNG if None.
+
+    Returns
+    -------
+    t_ex : ndarray
+        Task execution times.
+    ch_ex : ndarray
+        Task execution channels.
+
+    """
+
+    node = TreeNode(tasks, ch_avail, rng=rng)
+    # node = node.mcts_runtime(runtimes, c_explore, visit_threshold, inplace=False, verbose=verbose)
+    #
+    # return node.t_ex, node.ch_ex
+    return node.mcts_runtime(runtimes, c_explore, visit_threshold, inplace=False, verbose=verbose)
+
+
+def mcts_v1(tasks, ch_avail, runtimes, c_explore=1., verbose=False, rng=None):
+    """
+    Monte Carlo tree search algorithm.
+
+    Parameters
+    ----------
+    tasks : Sequence of task_scheduling.tasks.Base
+    ch_avail : Sequence of float
+        Channel availability times.
+    runtimes : float or Sequence of float
+            Allotted algorithm runtimes.
+    c_explore : float, optional
+        Exploration weight. Higher values prioritize unexplored tree nodes.
+    verbose : bool
+        Enables printing of algorithm state information.
+    rng : int or RandomState or Generator, optional
+        NumPy random number generator or seed. Instance RNG if None.
+
+    Returns
+    -------
+    t_ex : ndarray
+        Task execution times.
+    ch_ex : ndarray
+        Task execution channels.
+
+    """
+
+    node = TreeNode(tasks, ch_avail, rng=rng)
+    node = node.mcts_runtime_v1(runtimes, c_explore, inplace=False, verbose=verbose)
+
+    return node.t_ex, node.ch_ex
+
+
+#%%
 def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng=None):
     """
     Branch and Bound algorithm.
@@ -65,58 +135,64 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
         yield node_best.t_ex, node_best.ch_ex
 
 
-def mcts(tasks: list, ch_avail: list, runtimes: list, verbose=False):
-    """
-    Monte Carlo tree search algorithm.
-
-    Parameters
-    ----------
-    tasks : list of tasks.Base
-    ch_avail : list of float
-        Channel availability times.
-    runtimes : list of float
-        Allotted algorithm runtime.
-    verbose : bool
-        Enables printing of algorithm state information.
-
-    Returns
-    -------
-    t_ex : ndarray
-        Task execution times.
-    ch_ex : ndarray
-        Task execution channels.
-
-    """
-
-    # TODO: add exploration/exploitation input control.
-    # TODO: add early termination for completed search.
-
-    t_run = perf_counter()
-
-    l_up = TreeNodeBound(tasks, ch_avail).l_up
-    tree = SearchNodeV1(n_tasks=len(tasks), seq=[], l_up=l_up)
-
-    node_best = None
-    loss_min = float('inf')
-
-    i_time = 0
-    n_times = len(runtimes)
-    while i_time < n_times:
-        if verbose:
-            print(f'Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_min}', end='\r')
-
-        seq = tree.simulate()  # roll-out a complete sequence
-        node = TreeNode(tasks, ch_avail, seq)  # evaluate execution times and channels, total loss
-
-        loss = node.l_ex
-        tree.backup(seq, loss)  # update search tree from leaf sequence to root
-
-        if loss < loss_min:
-            node_best, loss_min = node, loss
-
-        if perf_counter() - t_run >= runtimes[i_time]:
-            yield node_best.t_ex, node_best.ch_ex
-            i_time += 1
+# def mcts(tasks: list, ch_avail: list, runtimes: list, verbose=False):
+#     """
+#     Monte Carlo tree search algorithm.
+#
+#     Parameters
+#     ----------
+#     tasks : list of tasks.Base
+#     ch_avail : list of float
+#         Channel availability times.
+#     runtimes : list of float
+#         Allotted algorithm runtime.
+#     verbose : bool
+#         Enables printing of algorithm state information.
+#
+#     Returns
+#     -------
+#     t_ex : ndarray
+#         Task execution times.
+#     ch_ex : ndarray
+#         Task execution channels.
+#
+#     """
+#
+#     # TODO: add exploration/exploitation input control.
+#     # TODO: add early termination for completed search.
+#
+#     t_run = perf_counter()
+#     if not isinstance(runtimes, (Sequence, np.ndarray)):
+#         runtimes = [runtimes]
+#     if inplace:
+#         runtimes = runtimes[-1:]
+#     i_time = 0
+#     n_times = len(runtimes)
+#
+#     l_up = TreeNodeBound(tasks, ch_avail).l_up
+#     tree = SearchNodeV1(n_tasks=len(tasks), seq=[], l_up=l_up)
+#
+#     node_best = None
+#     loss_min = float('inf')
+#
+#     i_time = 0
+#     n_times = len(runtimes)
+#     while i_time < n_times:
+#         if verbose:
+#             print(f'Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_min}', end='\r')
+#
+#         seq = tree.simulate()  # roll-out a complete sequence
+#         node = TreeNode(tasks, ch_avail, seq)  # evaluate execution times and channels, total loss
+#
+#         loss = node.l_ex
+#         tree.backup(seq, loss)  # update search tree from leaf sequence to root
+#
+#         if loss < loss_min:
+#             node_best, loss_min = node, loss
+#
+#         if perf_counter() - t_run >= runtimes[i_time]:
+#             yield node_best.t_ex, node_best.ch_ex
+#             i_time += 1
 
 # def mcts_orig(tasks: list, ch_avail: list, max_runtime=float('inf'), n_mc=None, verbose=False, rng=None):
 #     """

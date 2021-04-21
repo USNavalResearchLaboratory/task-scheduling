@@ -128,7 +128,7 @@ def branch_bound_with_stats(tasks, ch_avail, verbose=False, rng=None):
     return node_best.t_ex, node_best.ch_ex, node_stats
 
 
-def mcts(tasks, ch_avail, n_mc=1, c_explore=0., visit_threshold=0, verbose=False, rng=None):
+def mcts(tasks, ch_avail, runtime, c_explore=0., visit_threshold=0, verbose=False, rng=None):
     """
     Monte Carlo tree search algorithm.
 
@@ -137,8 +137,8 @@ def mcts(tasks, ch_avail, n_mc=1, c_explore=0., visit_threshold=0, verbose=False
     tasks : Sequence of task_scheduling.tasks.Base
     ch_avail : Sequence of float
         Channel availability times.
-    n_mc : int, optional
-        Number of complete sequences evaluated.
+    runtime : float
+            Allotted algorithm runtime.
     c_explore : float, optional
         Exploration weight. Higher values prioritize less frequently visited notes.
     visit_threshold : int, optional
@@ -158,12 +158,12 @@ def mcts(tasks, ch_avail, n_mc=1, c_explore=0., visit_threshold=0, verbose=False
     """
 
     node = TreeNode(tasks, ch_avail, rng=rng)
-    node = node.mcts(n_mc, c_explore, visit_threshold, inplace=False, verbose=verbose)
+    node = node.mcts(runtime, c_explore, visit_threshold, inplace=False, verbose=verbose)
 
     return node.t_ex, node.ch_ex
 
 
-def mcts_v1(tasks, ch_avail, n_mc=1, c_explore=1., verbose=False, rng=None):
+def mcts_v1(tasks, ch_avail, runtime, c_explore=1., verbose=False, rng=None):
     """
     Monte Carlo tree search algorithm.
 
@@ -172,8 +172,8 @@ def mcts_v1(tasks, ch_avail, n_mc=1, c_explore=1., verbose=False, rng=None):
     tasks : Sequence of task_scheduling.tasks.Base
     ch_avail : Sequence of float
         Channel availability times.
-    n_mc : int, optional
-        Number of roll-outs performed.
+    runtime : float
+            Allotted algorithm runtime.
     c_explore : float, optional
         Exploration weight. Higher values prioritize unexplored tree nodes.
     verbose : bool
@@ -191,9 +191,76 @@ def mcts_v1(tasks, ch_avail, n_mc=1, c_explore=1., verbose=False, rng=None):
     """
 
     node = TreeNode(tasks, ch_avail, rng=rng)
-    node = node.mcts_v1(n_mc, c_explore, inplace=False, verbose=verbose)
+    node = node.mcts_v1(runtime, c_explore, inplace=False, verbose=verbose)
 
     return node.t_ex, node.ch_ex
+
+# def mcts(tasks, ch_avail, n_mc=1, c_explore=0., visit_threshold=0, verbose=False, rng=None):
+#     """
+#     Monte Carlo tree search algorithm.
+#
+#     Parameters
+#     ----------
+#     tasks : Sequence of task_scheduling.tasks.Base
+#     ch_avail : Sequence of float
+#         Channel availability times.
+#     n_mc : int, optional
+#         Number of complete sequences evaluated.
+#     c_explore : float, optional
+#         Exploration weight. Higher values prioritize less frequently visited notes.
+#     visit_threshold : int, optional
+#         Nodes with up to this number of visits will select children using the `expansion` method.
+#     verbose : bool
+#         Enables printing of algorithm state information.
+#     rng : int or RandomState or Generator, optional
+#         NumPy random number generator or seed. Instance RNG if None.
+#
+#     Returns
+#     -------
+#     t_ex : ndarray
+#         Task execution times.
+#     ch_ex : ndarray
+#         Task execution channels.
+#
+#     """
+#
+#     node = TreeNode(tasks, ch_avail, rng=rng)
+#     node = node.mcts(n_mc, c_explore, visit_threshold, inplace=False, verbose=verbose)
+#
+#     return node.t_ex, node.ch_ex
+#
+#
+# def mcts_v1(tasks, ch_avail, n_mc=1, c_explore=1., verbose=False, rng=None):
+#     """
+#     Monte Carlo tree search algorithm.
+#
+#     Parameters
+#     ----------
+#     tasks : Sequence of task_scheduling.tasks.Base
+#     ch_avail : Sequence of float
+#         Channel availability times.
+#     n_mc : int, optional
+#         Number of roll-outs performed.
+#     c_explore : float, optional
+#         Exploration weight. Higher values prioritize unexplored tree nodes.
+#     verbose : bool
+#         Enables printing of algorithm state information.
+#     rng : int or RandomState or Generator, optional
+#         NumPy random number generator or seed. Instance RNG if None.
+#
+#     Returns
+#     -------
+#     t_ex : ndarray
+#         Task execution times.
+#     ch_ex : ndarray
+#         Task execution channels.
+#
+#     """
+#
+#     node = TreeNode(tasks, ch_avail, rng=rng)
+#     node = node.mcts_v1(n_mc, c_explore, inplace=False, verbose=verbose)
+#
+#     return node.t_ex, node.ch_ex
 
 
 def random_sequencer(tasks, ch_avail, rng=None):

@@ -15,7 +15,7 @@ from task_scheduling.util.results import (evaluate_algorithms, evaluate_algorith
                                           scatter_results)
 from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix, sort_wrapper, ensemble_scheduler
 from task_scheduling.generators import scheduling_problems as problem_gens
-from task_scheduling.algorithms import free
+from task_scheduling.algorithms import free, limit
 from task_scheduling.learning.SL_policy import SupervisedLearningScheduler
 from task_scheduling.learning import environments as envs
 
@@ -131,9 +131,12 @@ algorithms = np.array([
     # ('Ensemble', ensemble_scheduler(free.random_sequencer, free.earliest_release), 5),
     ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
     # ('ERT', free.earliest_release, 1),
-    *((f'MCTS, c={c}, t={t}', partial(free.mcts, n_mc=50, c_explore=c, visit_threshold=t,
-                                      rng=RNGMix.make_rng(seed)), 10) for c, t in product([0], [0, 5, 10, 20])),
-    # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, n_mc=50, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10, 20, 30]),
+    *((f'MCTS, c={c}, t={t}', partial(free.mcts, runtime=.02, c_explore=c, visit_threshold=t,
+                                      rng=RNGMix.make_rng(seed)), 10) for c, t in product([0.05], [15])),
+    *((f'MCTS_v1, c={c}', partial(free.mcts_v1, runtime=.02, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10]),
+    # *((f'MCTS, c={c}, t={t}', partial(free.mcts, n_mc=50, c_explore=c, visit_threshold=t,
+    #                                   rng=RNGMix.make_rng(seed)), 10) for c, t in product([0.05], [15])),
+    # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, n_mc=50, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10]),
     # ('NN Policy', SupervisedLearningScheduler(model, env), 1),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
@@ -191,11 +194,11 @@ l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen=100, 
 # np.savez(data_path / f'results/temp/{time_str}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
 
 
-# # plt.figure(f'{sim_type}').savefig(image_path)
-# plt.figure(f'{sim_type} (Relative)').savefig(image_path)
-# with open(log_path, 'a') as fid:
-#     print(f"![](../{image_path}.png)\n", file=fid)
-#     # str_ = image_path.resolve().as_posix().replace('.png', '')s
+# plt.figure(f'{sim_type}').savefig(image_path)
+plt.figure(f'{sim_type} (Relative)').savefig(image_path)
+with open(log_path, 'a') as fid:
+    print(f"![](../{image_path}.png)\n", file=fid)
+    # str_ = image_path.resolve().as_posix().replace('.png', '')s
 
 
 # %% Limited Runtime
