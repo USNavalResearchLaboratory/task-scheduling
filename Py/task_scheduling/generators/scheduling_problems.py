@@ -458,8 +458,7 @@ class QueueFlexDAR(Base):
 
         # TODO: add prioritization?
 
-        return SchedulingProblem(tasks,
-                                 ch_avail_input.copy())  # SchedulingProblemFlexDAR(tasks, self.ch_avail.copy(), self.clock.copy())
+        return SchedulingProblem(tasks, ch_avail_input.copy())
 
     def add_tasks(self, tasks):
         if isinstance(tasks, Iterable):

@@ -1,7 +1,6 @@
 from collections import namedtuple
 from functools import wraps
 from math import factorial
-from numbers import Integral
 from time import perf_counter
 from operator import attrgetter
 
@@ -10,7 +9,6 @@ import numpy as np
 from task_scheduling.util import results
 
 SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
-SchedulingProblemFlexDAR = namedtuple('SchedulingProblem', ['tasks', 'ch_avail', 'clock'])
 SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
 
 
@@ -52,7 +50,7 @@ class RandomGeneratorMixin:
         """
         if rng is None:
             return np.random.default_rng()
-        elif isinstance(rng, Integral):
+        elif isinstance(rng, int):
             return np.random.default_rng(rng)
         elif isinstance(rng, np.random.Generator) or isinstance(rng, np.random.RandomState):
             return rng

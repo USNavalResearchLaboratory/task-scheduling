@@ -1,9 +1,7 @@
 from collections import deque
 from copy import deepcopy
 from math import factorial
-from numbers import Integral
 from typing import Sequence
-from types import MethodType
 from operator import attrgetter, methodcaller
 from itertools import permutations
 from time import perf_counter
@@ -19,40 +17,23 @@ from task_scheduling.util.generic import RandomGeneratorMixin
 # TODO: modify classes and algorithms to efficiently handle repeated tasks!?
 
 
-class TreeNode(RandomGeneratorMixin):
-    """
-    Node object for mapping sequences into optimal execution times and channels.
-
-    Parameters
-    ----------
-    tasks : Sequence of BaseTask
-    ch_avail : Sequence of float
-        Channel availabilities
-    seq : Sequence of int
-        Partial task index sequence.
-    rng : int or RandomState or Generator, optional
-            NumPy random number generator or seed. Instance RNG if None.
-
-    Attributes
-    ----------
-    seq : Sequence of int
-        Partial task index sequence.
-    t_ex : ndarray
-        Task execution times. NaN for unscheduled.
-    ch_ex : ndarray
-        Task execution channels. -1 for unscheduled.
-    ch_avail : ndarray
-        Channel availability times.
-    l_ex : float
-        Total loss of scheduled tasks.
-    seq_rem: set
-        Unscheduled task indices.
-
-    """
-
-    # TODO: rename? TaskSeq?
-
+class TreeNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
+        """
+        Node object for mapping sequences into optimal execution times and channels.
+
+        Parameters
+        ----------
+        tasks : Sequence
+        ch_avail : Sequence of float
+            Channel availabilities
+        seq : Sequence of int
+            Partial task index sequence.
+        rng : int or RandomState or Generator, optional
+                NumPy random number generator or seed. Instance RNG if None.
+
+        """
+
         super().__init__(rng)
 
         self._tasks = deepcopy(tasks)  # TODO: slow? add option for copy?
@@ -136,7 +117,7 @@ class TreeNode(RandomGeneratorMixin):
 
         """
 
-        if isinstance(seq_ext, Integral):
+        if not isinstance(seq_ext, Sequence):
             seq_ext = [seq_ext]
         if check_valid:
             set_ext = set(seq_ext)
@@ -148,26 +129,13 @@ class TreeNode(RandomGeneratorMixin):
         for n in seq_ext:
             self.seq_append(n, check_valid=False)
 
-        # if isinstance(seq_ext, Integral):
-        #     self.seq_append(seq_ext, check_valid)
-        # else:
-        #     if check_valid:
-        #         set_ext = set(seq_ext)
-        #         if len(seq_ext) != len(set_ext):
-        #             raise ValueError("Input 'seq_ext' must have unique values.")
-        #         elif not set_ext.issubset(self._seq_rem):
-        #             raise ValueError("Values in 'seq_ext' must not be in the current node sequence.")
-        #
-        #     for n in seq_ext:
-        #         self.seq_append(n, check_valid=False)
-
     def seq_append(self, n, check_valid=True):
         """
         Extends node sequence and updates attributes using sequence-to-schedule approach.
 
         Parameters
         ----------
-        n : Integral
+        n : int
             Index referencing self.tasks.
         check_valid : bool
             Perform check of index validity.
@@ -285,8 +253,8 @@ class TreeNode(RandomGeneratorMixin):
 
         Parameters
         ----------
-        n_mc : int, optional
-            Number of complete sequences evaluated.
+        runtimes : Sequence of float
+            Allotted algorithm runtime.
         c_explore : float, optional
             Exploration weight. Higher values prioritize less frequently visited notes.
         visit_threshold : int, optional
@@ -698,9 +666,9 @@ class SearchNode(RandomGeneratorMixin):
         Parameters
         ----------
         n_tasks : int
-        bounds : Iterable of float
+        bounds : Sequence of float
             Lower and upper loss bounds for node value normalization
-        seq : Iterable of int, optional
+        seq : Sequence of int
             Partial task index sequence.
         c_explore : float, optional
             Exploration weight. Higher values prioritize searching new branches.
@@ -864,7 +832,7 @@ class SearchNodeV1(RandomGeneratorMixin):
 
         """
 
-        if isinstance(item, Integral):
+        if isinstance(item, int):
             return self._children[item]
         elif isinstance(item, Sequence):
             node = self
@@ -913,7 +881,7 @@ class SearchNodeV1(RandomGeneratorMixin):
 
         Returns
         -------
-        Sequence of int
+        list of int
 
         """
 
