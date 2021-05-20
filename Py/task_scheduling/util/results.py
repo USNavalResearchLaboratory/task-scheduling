@@ -3,10 +3,8 @@ import numpy as np
 import pandas as pd
 
 from task_scheduling.util.generic import timing_wrapper
-from task_scheduling.learning.SL_policy import reset_weights
 from task_scheduling.util.plot import plot_task_losses, plot_schedule, scatter_loss_runtime, plot_loss_runtime
 from task_scheduling.generators.scheduling_problems import Dataset
-
 
 # logging.basicConfig(level=logging.INFO,       # TODO: logging?
 #                     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -308,11 +306,11 @@ def evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=1, n_mc
             problem_gen.shuffle()  # random train/test split
 
         # Reset/train supervised learner
-        try:
-            learner = algorithms['func'][algorithms['name'].tolist().index('NN Policy')]
-            reset_weights(learner.model)
-            learner.learn(verbose=verbose - 1, **train_args)  # note: calls `problem_gen` via environment reset
+        try:  # FIXME: generalize for torch. Loop, execute model `reset`
             # TODO: generalize for multiple learners, ensure same data is used for each training op
+            learner = algorithms['func'][algorithms['name'].tolist().index('NN Policy')]
+            learner.reset()
+            learner.learn(verbose=verbose - 1, **train_args)  # note: calls `problem_gen` via environment reset
         except ValueError:
             pass
 

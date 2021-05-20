@@ -1,5 +1,3 @@
-
-import itertools
 import os
 
 import numpy as np
@@ -7,18 +5,15 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from gym import spaces
 
-import task_scheduling
-from task_scheduling.generators import (tasks as task_gens, channel_availabilities as ch_gens,
-                                        scheduling_problems as problem_gens)
+from task_scheduling.generators import (tasks as task_gens, scheduling_problems as problem_gens)
 from task_scheduling.algorithms.free import earliest_release, branch_bound
 from task_scheduling.learning import environments as envs
-from task_scheduling.tree_search import TreeNodeShift
 # from task_scheduling.learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler
 from task_scheduling.learning.features import _get_param
-from task_scheduling.util.results import timing_wrapper, evaluate_algorithms, evaluate_algorithms_runtime
+from task_scheduling.util.results import evaluate_algorithms
 from task_scheduling.util.plot import scatter_loss_runtime_stats
 from task_scheduling.tasks import check_task_types
-from task_scheduling.learning.SL_policy import SupervisedLearningScheduler as SL_Scheduler
+from task_scheduling.learning.supervised.tf import Scheduler as SL_Scheduler
 from tensorflow import keras
 import tensorflow as tf
 print(tf.__version__)
@@ -28,8 +23,6 @@ device = cuda.get_current_device()
 device.reset()
 
 
-
-from task_scheduling.learning.features import param_features, encode_discrete_features
 # tf.enable_eager_execution()  # Set tf to eager execution --> avoids error in SL_policy line 61
 # tf.compat.v1.enable_eager_execution()
 # tf.config.experimental_run_functions_eagerly(True)

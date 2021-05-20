@@ -2,7 +2,6 @@ from functools import partial
 from itertools import product
 from time import strftime
 from pathlib import Path
-from operator import methodcaller
 
 import numpy as np
 import pandas as pd
@@ -10,13 +9,15 @@ from matplotlib import pyplot as plt
 
 # import tensorflow as tf
 from tensorflow import keras
+import torch
+from torch import nn, optim
 
-from task_scheduling.util.results import (evaluate_algorithms, evaluate_algorithms_runtime, evaluate_algorithms_train,
-                                          scatter_results)
-from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix, sort_wrapper, ensemble_scheduler
+from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_train
+from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix
 from task_scheduling.generators import scheduling_problems as problem_gens
-from task_scheduling.algorithms import free, limit
-from task_scheduling.learning.SL_policy import SupervisedLearningScheduler
+from task_scheduling.algorithms import free
+from task_scheduling.learning.supervised.tf import Scheduler as tfScheduler
+from task_scheduling.learning.supervised.torch import Scheduler as torchScheduler
 from task_scheduling.learning import environments as envs
 
 
@@ -109,7 +110,7 @@ model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy', metri
 train_args = {'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
               'weight_func': None,
               # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-              'fit_params': {'epochs': 500,
+              'fit_params': {'epochs': 10,
                              'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=200, min_delta=0.)]
                              },
               }
@@ -121,6 +122,20 @@ train_args = {'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
 #            'save': False, 'save_path': None}
 # dqn_agent = learning.RL_policy.ReinforcementLearningScheduler.train_from_gen(**RL_args)
 # dqn_agent = RL_Scheduler.load('temp/DQN_2020-10-28_15-44-00', env=None, model_cls='DQN')
+
+
+model_torch = nn.Sequential(
+    nn.Flatten(),
+    nn.Linear(np.prod(env.observation_space.shape), 30),
+    nn.ReLU(),
+    nn.Linear(30, 30),
+    nn.ReLU(),
+    nn.Linear(30, env.action_space.n),
+    nn.Softmax(dim=1),
+).double()
+
+loss_func = nn.CrossEntropyLoss()
+opt = optim.SGD(model_torch.parameters(), lr=1e-3)
 
 
 algorithms = np.array([
@@ -151,8 +166,8 @@ algorithms = np.array([
 
 # TODO: use runtime-limited MCTS
 
-# log_path = 'docs/temp/PGR_results.md'
-log_path = 'docs/discrete_relu_c1t8.md'
+log_path = 'docs/temp/PGR_results.md'
+# log_path = 'docs/discrete_relu_c1t8.md'
 
 image_path = f'images/temp/{time_str}'
 
@@ -174,8 +189,8 @@ with open(log_path, 'a') as fid:
 sim_type = 'Gen'
 if 'NN Policy' in algorithms['name']:
     if isinstance(problem_gen, problem_gens.Dataset) and problem_gen.repeat:
-        print('Dataset generator repeat disabled for train/test separation.')
         problem_gen.repeat = False
+        print('Dataset generator repeat disabled to enforce train/test separation.')
 
     idx_nn = algorithms['name'].tolist().index('NN Policy')
     algorithms['func'][idx_nn].learn(verbose=2, plot_history=True, **train_args)
@@ -190,7 +205,7 @@ l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen=100, 
 
 # sim_type = 'Train'
 # l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=100, n_mc=10, solve=True,
-#                                               verbose=2, plotting=1, log_path=log_path)
+#                                               verbose=3, plotting=1, log_path=log_path)
 # np.savez(data_path / f'results/temp/{time_str}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
 
 

@@ -299,3 +299,257 @@ Results
 
 
 
+
+# 2021-05-20_10-14-33
+
+Env: StepTasking
+---
+
+- Features: ['duration', 't_release', 'slope', 't_drop', 'l_drop']
+- Sorting: t_release
+- Task shifting: True
+- Masking: True
+- Valid actions: False
+- Sequence encoding: one-hot
+
+Model
+---
+```
+Model: "sequential"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+conv1d (Conv1D)              (None, 7, 30)             810       
+_________________________________________________________________
+conv1d_1 (Conv1D)            (None, 6, 20)             1220      
+_________________________________________________________________
+conv1d_2 (Conv1D)            (None, 5, 20)             820       
+_________________________________________________________________
+flatten (Flatten)            (None, 100)               0         
+_________________________________________________________________
+dense (Dense)                (None, 8)                 808       
+=================================================================
+Total params: 3,658
+Trainable params: 3,658
+Non-trainable params: 0
+_________________________________________________________________
+```
+
+Training problems = 900
+
+Results
+---
+![](../images/temp/2021-05-20_10-14-33_train.png)
+
+
+# 2021-05-20_10-21-50
+
+Env: StepTasking
+---
+
+- Features: ['duration', 't_release', 'slope', 't_drop', 'l_drop']
+- Sorting: t_release
+- Task shifting: True
+- Masking: True
+- Valid actions: False
+- Sequence encoding: one-hot
+
+Model
+---
+```
+Model: "sequential"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+conv1d (Conv1D)              (None, 7, 30)             810       
+_________________________________________________________________
+conv1d_1 (Conv1D)            (None, 6, 20)             1220      
+_________________________________________________________________
+conv1d_2 (Conv1D)            (None, 5, 20)             820       
+_________________________________________________________________
+flatten (Flatten)            (None, 100)               0         
+_________________________________________________________________
+dense (Dense)                (None, 8)                 808       
+=================================================================
+Total params: 3,658
+Trainable params: 3,658
+Non-trainable params: 0
+_________________________________________________________________
+```
+
+Training problems = 900
+
+Results
+---
+
+# 2021-05-20_10-22-53
+
+Env: StepTasking
+---
+
+- Features: ['duration', 't_release', 'slope', 't_drop', 'l_drop']
+- Sorting: t_release
+- Task shifting: True
+- Masking: True
+- Valid actions: False
+- Sequence encoding: one-hot
+
+Model
+---
+```
+Model: "sequential"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+conv1d (Conv1D)              (None, 7, 30)             810       
+_________________________________________________________________
+conv1d_1 (Conv1D)            (None, 6, 20)             1220      
+_________________________________________________________________
+conv1d_2 (Conv1D)            (None, 5, 20)             820       
+_________________________________________________________________
+flatten (Flatten)            (None, 100)               0         
+_________________________________________________________________
+dense (Dense)                (None, 8)                 808       
+=================================================================
+Total params: 3,658
+Trainable params: 3,658
+Non-trainable params: 0
+_________________________________________________________________
+```
+
+Training problems = 900
+
+Results
+---
+
+# 2021-05-20_10-23-38
+
+Env: StepTasking
+---
+
+- Features: ['duration', 't_release', 'slope', 't_drop', 'l_drop']
+- Sorting: t_release
+- Task shifting: True
+- Masking: True
+- Valid actions: False
+- Sequence encoding: one-hot
+
+Model
+---
+```
+Model: "sequential"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+conv1d (Conv1D)              (None, 7, 30)             810       
+_________________________________________________________________
+conv1d_1 (Conv1D)            (None, 6, 20)             1220      
+_________________________________________________________________
+conv1d_2 (Conv1D)            (None, 5, 20)             820       
+_________________________________________________________________
+flatten (Flatten)            (None, 100)               0         
+_________________________________________________________________
+dense (Dense)                (None, 8)                 808       
+=================================================================
+Total params: 3,658
+Trainable params: 3,658
+Non-trainable params: 0
+_________________________________________________________________
+```
+
+Training problems = 900
+
+Results
+---
+
+# 2021-05-20_10-24-34
+
+Env: StepTasking
+---
+
+- Features: ['duration', 't_release', 'slope', 't_drop', 'l_drop']
+- Sorting: t_release
+- Task shifting: True
+- Masking: True
+- Valid actions: False
+- Sequence encoding: one-hot
+
+Model
+---
+```
+Model: "sequential"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+conv1d (Conv1D)              (None, 7, 30)             810       
+_________________________________________________________________
+conv1d_1 (Conv1D)            (None, 6, 20)             1220      
+_________________________________________________________________
+conv1d_2 (Conv1D)            (None, 5, 20)             820       
+_________________________________________________________________
+flatten (Flatten)            (None, 100)               0         
+_________________________________________________________________
+dense (Dense)                (None, 8)                 808       
+=================================================================
+Total params: 3,658
+Trainable params: 3,658
+Non-trainable params: 0
+_________________________________________________________________
+```
+
+Training problems = 900
+
+Results
+---
+
+# 2021-05-20_10-26-17
+
+Env: StepTasking
+---
+
+- Features: ['duration', 't_release', 'slope', 't_drop', 'l_drop']
+- Sorting: t_release
+- Task shifting: True
+- Masking: True
+- Valid actions: False
+- Sequence encoding: one-hot
+
+Model
+---
+```
+Model: "sequential"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+conv1d (Conv1D)              (None, 7, 30)             810       
+_________________________________________________________________
+conv1d_1 (Conv1D)            (None, 6, 20)             1220      
+_________________________________________________________________
+conv1d_2 (Conv1D)            (None, 5, 20)             820       
+_________________________________________________________________
+flatten (Flatten)            (None, 100)               0         
+_________________________________________________________________
+dense (Dense)                (None, 8)                 808       
+=================================================================
+Total params: 3,658
+Trainable params: 3,658
+Non-trainable params: 0
+_________________________________________________________________
+```
+
+Training problems = 900
+
+Results
+---
+
+
+
+
+
+
+
+
+
+
+
+

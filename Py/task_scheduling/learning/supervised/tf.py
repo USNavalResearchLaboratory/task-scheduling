@@ -33,7 +33,7 @@ def reset_weights(model):      # from https://github.com/keras-team/keras/issues
                     var.assign(initializer(var.shape, var.dtype))
 
 
-class SupervisedLearningScheduler:
+class Scheduler:
     log_dir = Path.cwd() / 'logs' / 'TF_train'
 
     def __init__(self, model, env):
@@ -183,6 +183,9 @@ class SupervisedLearningScheduler:
         self.fit(x_train, y_train, do_tensorboard, plot_history, **fit_params)
         # self.fit(*d_train, do_tensorboard, plot_history, **fit_params)
 
+    def reset(self):
+        reset_weights(self.model)
+
     def save(self, save_path=None):
         if save_path is None:
             save_path = f"models/temp/{time.strftime('%Y-%m-%d_%H-%M-%S')}"
@@ -241,7 +244,7 @@ class SupervisedLearningScheduler:
 
         Returns
         -------
-        SupervisedLearningScheduler
+        Scheduler
 
         """
 
