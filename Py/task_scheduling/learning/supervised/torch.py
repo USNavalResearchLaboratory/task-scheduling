@@ -22,19 +22,22 @@ from task_scheduling.learning import environments as envs
 # TODO: make loss func for full seq targets?
 # TODO: make custom output layers to avoid illegal actions?
 
+# device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+device = torch.device("cpu")
+
 
 def weights_init(model):
-    # if isinstance(m, nn.Conv2d):
-    #     torch.nn.init.xavier_uniform(m.weight.data)
     if hasattr(model, 'reset_parameters'):
         model.reset_parameters()
+    # if isinstance(m, nn.Conv2d):
+    #     torch.nn.init.xavier_uniform(m.weight.data)
 
 
 class Scheduler:
     log_dir = Path.cwd() / 'logs' / 'torch_train'
 
     def __init__(self, model, env, loss_func, opt):
-        self.model = model
+        self.model = model.to(device)
         self.env = env
 
         self.loss_func = loss_func
@@ -69,7 +72,8 @@ class Scheduler:
         done = False
         with torch.no_grad():
             while not done:
-                prob = self.model(torch.from_numpy(obs[np.newaxis])).numpy().squeeze(0)  # TODO: tensor conversion in model?
+                input_ = torch.from_numpy(obs[np.newaxis]).float()  # TODO: to GPU?
+                prob = self.model(input_).numpy().squeeze(0)  # TODO: tensor conversion in model?
                 # prob = self.model(obs[np.newaxis]).numpy().squeeze(0)  # FIXME
                 # prob = self.model.predict_on_batch(obs[np.newaxis]).squeeze(0)
                 if ensure_valid:
@@ -84,7 +88,8 @@ class Scheduler:
         print('Env: ', end='', file=file)
         self.env.summary(file)
         print('Model\n---\n```', file=file)
-        print_fn = partial(print, file=file)
+
+        # print_fn = partial(print, file=file)
         # self.model.summary(print_fn=print_fn)  # FIXME
         print(self.model, file=file)
         print('```', end='\n\n', file=file)
@@ -98,6 +103,9 @@ class Scheduler:
 
         x_train, y_train = d_train[:2]
         x_train, y_train = map(torch.tensor, (x_train, y_train))
+        x_train, y_train = x_train.float(), y_train.float()
+        # if device.type == 'cuda':
+        #     x_train, y_train = x_train.float(), y_train.float()
 
         ds_train = TensorDataset(x_train, y_train)
         dl_train = DataLoader(ds_train, batch_size=batch_size * self.env.steps_per_episode, shuffle=True)
@@ -110,6 +118,9 @@ class Scheduler:
             print("Generating validation data...")
         x_val, y_val = self.env.data_gen_numpy(n_batch_val * batch_size, weight_func=weight_func, verbose=verbose)
         x_val, y_val = map(torch.tensor, (x_val, y_val))
+        x_val, y_val = x_val.float(), y_val.float()
+        # if device.type == 'cuda':
+        #     x_val, y_val = x_val.float(), y_val.float()
 
         ds_val = TensorDataset(x_val, y_val)
         dl_val = DataLoader(ds_val, shuffle=True)  # TODO: shuffle control
@@ -125,22 +136,32 @@ class Scheduler:
         if verbose >= 1:
             print('Training model...')
 
+        def loss_batch(model, loss_func, xb_, yb_, opt=None):
+            xb_, yb_ = xb_.to(device), yb_.to(device, dtype=torch.int64)
+            loss = loss_func(model(xb_), yb_)
+
+            if opt is not None:
+                loss.backward()
+                opt.step()
+                opt.zero_grad()
+
+            return loss.item(), len(xb)
+
         epochs = fit_params['epochs']
         for epoch in range(epochs):
             self.model.train()
             for xb, yb in dl_train:
-                loss = self.loss_func(self.model(xb), yb)
-
-                loss.backward()
-                self.opt.step()
-                self.opt.zero_grad()
+                loss_batch(self.model, self.loss_func, xb, yb, self.opt)
 
             self.model.eval()
             with torch.no_grad():
-                valid_loss = sum(self.loss_func(self.model(xb), yb) for xb, yb in dl_val)
+                losses, nums = zip(
+                    *[loss_batch(self.model, self.loss_func, xb, yb) for xb, yb in dl_val]
+                )
+            val_loss = np.sum(np.multiply(losses, nums)) / np.sum(nums)
 
             if verbose >= 2:
-                print(f"  Epoch = {epoch} : loss = {valid_loss / len(dl_val):.3f}", end='\r')
+                print(f"  Epoch = {epoch} : loss = {val_loss:.3f}", end='\r')
 
         # TODO: train curves, tensorboard, etc.
 

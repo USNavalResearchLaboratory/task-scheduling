@@ -76,24 +76,18 @@ def _weight_init():
     return keras.initializers.GlorotUniform(seed)
 
 
-# layers = [keras.layers.Flatten(),
-#           keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
-#           keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
-#           # keras.layers.Dropout(0.2),
-#           ]
+layers = [keras.layers.Flatten(),
+          keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
+          keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
+          # keras.layers.Dropout(0.2),
+          ]
 
-# layers = [keras.layers.Conv1D(50, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+# layers = [keras.layers.Conv1D(30, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+#           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
 #           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
 #           # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
 #           keras.layers.Flatten(),
 #           ]
-
-layers = [keras.layers.Conv1D(30, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-          keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-          keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-          # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
-          keras.layers.Flatten(),
-          ]
 
 # layers = [keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
 #           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu', kernel_initializer=_weight_init())]
@@ -110,7 +104,7 @@ model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy', metri
 train_args = {'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
               'weight_func': None,
               # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-              'fit_params': {'epochs': 10,
+              'fit_params': {'epochs': 100,
                              'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=200, min_delta=0.)]
                              },
               }
@@ -131,11 +125,18 @@ model_torch = nn.Sequential(
     nn.Linear(30, 30),
     nn.ReLU(),
     nn.Linear(30, env.action_space.n),
-    nn.Softmax(dim=1),
-).double()
+    # nn.Softmax(dim=1),
+)
 
 loss_func = nn.CrossEntropyLoss()
 opt = optim.SGD(model_torch.parameters(), lr=1e-3)
+
+# FIXME: SLOWER on GPU!?!?
+# FIXME: INVESTIGATE huge PyTorch speed-up over Tensorflow!!
+
+# FIXME: torch performance for simple MLP is poor. BUG???
+
+# TODO: distinct validation batch size for speed?
 
 
 algorithms = np.array([
