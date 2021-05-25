@@ -14,32 +14,28 @@ from torch import nn
 from torch.utils.data import TensorDataset
 from torch.utils.data import DataLoader
 
-
 # from tensorboard import program
 
 from task_scheduling.learning import environments as envs
 
-# TODO: make loss func for full seq targets?
-# TODO: make custom output layers to avoid illegal actions?
 
-# device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-device = torch.device("cpu")
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+# device = torch.device("cpu")
 
 
 def weights_init(model):
     if hasattr(model, 'reset_parameters'):
         model.reset_parameters()
-    # if isinstance(m, nn.Conv2d):
-    #     torch.nn.init.xavier_uniform(m.weight.data)
 
 
 class Scheduler:
     log_dir = Path.cwd() / 'logs' / 'torch_train'
 
-    def __init__(self, model, env, loss_func, opt):
-        self.model = model.to(device)
+    def __init__(self, env, model, loss_func, opt):
         self.env = env
 
+        # self.model = model.to(device)
+        self.model = model
         self.loss_func = loss_func
         self.opt = opt
 
@@ -64,23 +60,25 @@ class Scheduler:
             Task execution channels.
         """
 
-        ensure_valid = isinstance(self.env, envs.StepTasking) and not self.env.do_valid_actions
-        # ensure_valid = False    # TODO: trained models may naturally avoid invalid actions!!
+        # ensure_valid = isinstance(self.env, envs.StepTasking) and not self.env.do_valid_actions
+        ensure_valid = False    # TODO: trained models may naturally avoid invalid actions!!
 
         obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)
 
         done = False
-        with torch.no_grad():
-            while not done:
-                input_ = torch.from_numpy(obs[np.newaxis]).float()  # TODO: to GPU?
-                prob = self.model(input_).numpy().squeeze(0)  # TODO: tensor conversion in model?
-                # prob = self.model(obs[np.newaxis]).numpy().squeeze(0)  # FIXME
-                # prob = self.model.predict_on_batch(obs[np.newaxis]).squeeze(0)
-                if ensure_valid:
-                    prob = self.env.mask_probability(prob)
-                action = prob.argmax()
+        while not done:
+            with torch.no_grad():
+                input_ = torch.from_numpy(obs[np.newaxis]).float()
+                # input_ = input_.to(device)
+                prob = self.model(input_).squeeze(0)  # TODO: tensor conversion in model?
+                # prob = self.model(input_).numpy().squeeze(0)  # TODO: tensor conversion in model?
+            # prob = np.zeros(self.env.action_space.n)
 
-                obs, reward, done, info = self.env.step(action)
+            if ensure_valid:  # TODO: try/catch for speed?!
+                prob = self.env.mask_probability(prob)
+            action = prob.argmax()
+
+            obs, reward, done, info = self.env.step(action)
 
         return self.env.node.t_ex, self.env.node.ch_ex
 
@@ -94,21 +92,22 @@ class Scheduler:
         print(self.model, file=file)
         print('```', end='\n\n', file=file)
 
-    def learn(self, n_batch_train=1, n_batch_val=0, batch_size=1, weight_func=None,
+    def learn(self, n_batch_train, batch_size_train=1, n_batch_val=0, batch_size_val=1, weight_func=None,
               fit_params=None, verbose=0, do_tensorboard=False, plot_history=False):
+
+        self.model = self.model.to(device)
 
         if verbose >= 1:
             print("Generating training data...")
-        d_train = self.env.data_gen_numpy(n_batch_train * batch_size, weight_func=weight_func, verbose=verbose)
+        d_train = self.env.data_gen_numpy(n_batch_train * batch_size_train, weight_func=weight_func, verbose=verbose)
 
         x_train, y_train = d_train[:2]
-        x_train, y_train = map(torch.tensor, (x_train, y_train))
-        x_train, y_train = x_train.float(), y_train.float()
-        # if device.type == 'cuda':
-        #     x_train, y_train = x_train.float(), y_train.float()
+        x_train, y_train = map(partial(torch.tensor, dtype=torch.float32), (x_train, y_train))
+        # x_train, y_train = map(torch.tensor, (x_train, y_train))
 
         ds_train = TensorDataset(x_train, y_train)
-        dl_train = DataLoader(ds_train, batch_size=batch_size * self.env.steps_per_episode, shuffle=True)
+        dl_train = DataLoader(ds_train, batch_size=batch_size_train * self.env.steps_per_episode, shuffle=True,
+                              pin_memory=True)
         # FIXME: shuffle control? Enforce False??
 
         # if callable(weight_func):  # FIXME: add sample weighting
@@ -116,14 +115,13 @@ class Scheduler:
 
         if verbose >= 1:
             print("Generating validation data...")
-        x_val, y_val = self.env.data_gen_numpy(n_batch_val * batch_size, weight_func=weight_func, verbose=verbose)
-        x_val, y_val = map(torch.tensor, (x_val, y_val))
-        x_val, y_val = x_val.float(), y_val.float()
-        # if device.type == 'cuda':
-        #     x_val, y_val = x_val.float(), y_val.float()
+        x_val, y_val = self.env.data_gen_numpy(n_batch_val * batch_size_val, weight_func=weight_func, verbose=verbose)
+        x_val, y_val = map(partial(torch.tensor, dtype=torch.float32), (x_val, y_val))
+        # x_val, y_val = map(torch.tensor, (x_val, y_val))
 
         ds_val = TensorDataset(x_val, y_val)
-        dl_val = DataLoader(ds_val, shuffle=True)  # TODO: shuffle control
+        dl_val = DataLoader(ds_val, batch_size=batch_size_val * self.env.steps_per_episode, shuffle=True,
+                            pin_memory=True)
 
         # TODO: validation weighting?
 
@@ -163,7 +161,9 @@ class Scheduler:
             if verbose >= 2:
                 print(f"  Epoch = {epoch} : loss = {val_loss:.3f}", end='\r')
 
-        # TODO: train curves, tensorboard, etc.
+        # TODO: loss/acc plots, tensorboard, etc.
+
+        self.model = self.model.to('cpu')  # move back to CPU for single sample evaluations in `__call__`
 
     def reset(self):
         # reset_weights(self.model)  # FIXME

@@ -282,7 +282,8 @@ def evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=1, n_mc
                               log_path=None):
 
     if isinstance(problem_gen, Dataset):
-        n_gen_train = (train_args['n_batch_train'] + train_args['n_batch_val']) * train_args['batch_size']
+        n_gen_train = (train_args['n_batch_train'] * train_args['batch_size_train']
+                       + train_args['n_batch_val'] * train_args['batch_size_val'])
         n_gen_total = n_gen + n_gen_train
         if problem_gen.repeat:
             if n_gen_total > problem_gen.n_problems:

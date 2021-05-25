@@ -98,13 +98,13 @@ model = keras.Sequential([keras.Input(shape=env.observation_space.shape),
                           keras.layers.Dense(env.action_space.n, activation='softmax',
                                              kernel_initializer=_weight_init())
                           ])
-model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+model.compile(optimizer='sgd', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
 
-train_args = {'n_batch_train': 30, 'n_batch_val': 15, 'batch_size': 20,
+train_args = {'n_batch_train': 30, 'batch_size_train': 20, 'n_batch_val': 10, 'batch_size_val': 30,
               'weight_func': None,
               # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-              'fit_params': {'epochs': 100,
+              'fit_params': {'epochs': 500,
                              'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=200, min_delta=0.)]
                              },
               }
@@ -129,15 +129,13 @@ model_torch = nn.Sequential(
 )
 
 loss_func = nn.CrossEntropyLoss()
-opt = optim.SGD(model_torch.parameters(), lr=1e-3)
+opt = optim.SGD(model_torch.parameters(), lr=1e-2)
 
-# FIXME: SLOWER on GPU!?!?
+# FIXME: no faster on GPU!?!?
 # FIXME: INVESTIGATE huge PyTorch speed-up over Tensorflow!!
 
-# FIXME: torch performance for simple MLP is poor. BUG???
-
-# TODO: distinct validation batch size for speed?
-
+# TODO: SL base class
+# TODO: new MCTS parameter search for shorter runtime
 
 algorithms = np.array([
     # ('BB', partial(free.branch_bound, rng=RNGMix.make_rng(seed)), 1),
@@ -181,7 +179,8 @@ with open(log_path, 'a') as fid:
     if 'NN Policy' in algorithms['name']:
         idx_nn = algorithms['name'].tolist().index('NN Policy')
         algorithms['func'][idx_nn].summary(fid)
-        n_gen_train = (train_args['n_batch_train'] + train_args['n_batch_val']) * train_args['batch_size']
+        n_gen_train = (train_args['n_batch_train'] * train_args['batch_size_train']
+                       + train_args['n_batch_val'] * train_args['batch_size_val'])
         print(f"Training problems = {n_gen_train}\n", file=fid)
 
     print('Results\n---', file=fid)

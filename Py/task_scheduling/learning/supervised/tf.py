@@ -36,9 +36,9 @@ def reset_weights(model):      # from https://github.com/keras-team/keras/issues
 class Scheduler:
     log_dir = Path.cwd() / 'logs' / 'TF_train'
 
-    def __init__(self, model, env):
-        self.model = model
+    def __init__(self, env, model):
         self.env = env
+        self.model = model
 
         if not isinstance(self.env.action_space, gym.spaces.Discrete):
             raise TypeError("Action space must be Discrete.")
@@ -68,8 +68,10 @@ class Scheduler:
 
         done = False
         while not done:
-            prob = self.model(obs[np.newaxis]).numpy().squeeze(0)
-            # prob = self.model.predict_on_batch(obs[np.newaxis]).squeeze(0)
+            input_ = obs[np.newaxis].astype('float32')
+            prob = self.model(input_).numpy().squeeze(0)
+            # prob = np.zeros(self.env.action_space.n)
+
             if ensure_valid:
                 prob = self.env.mask_probability(prob)
             action = prob.argmax()
@@ -132,13 +134,14 @@ class Scheduler:
 
         return history
 
-    def learn(self, n_batch_train=1, n_batch_val=0, batch_size=1, weight_func=None,
+    def learn(self, n_batch_train, batch_size_train=1, n_batch_val=0, batch_size_val=1, weight_func=None,
               fit_params=None, verbose=0, do_tensorboard=False, plot_history=False):
 
         if fit_params is None:
             fit_params = {}
         fit_params.update({'shuffle': False,
-                           'batch_size': batch_size * self.env.steps_per_episode,
+                           'batch_size': batch_size_train * self.env.steps_per_episode,
+                           'validation_batch_size': batch_size_val * self.env.steps_per_episode,
                            # 'batch_size': None,   # generator Dataset
                            # 'validation_freq': 1,
                            'verbose': verbose - 1,
@@ -146,7 +149,7 @@ class Scheduler:
 
         if verbose >= 1:
             print("Generating training data...")
-        d_train = self.env.data_gen_numpy(n_batch_train * batch_size, weight_func=weight_func, verbose=verbose)
+        d_train = self.env.data_gen_numpy(n_batch_train * batch_size_train, weight_func=weight_func, verbose=verbose)
 
         x_train, y_train = d_train[:2]
         if callable(weight_func):
@@ -155,14 +158,14 @@ class Scheduler:
         if n_batch_val > 0:  # use validation data
             if verbose >= 1:
                 print("Generating validation data...")
-            fit_params['validation_data'] = self.env.data_gen_numpy(n_batch_val * batch_size, weight_func=weight_func,
+            fit_params['validation_data'] = self.env.data_gen_numpy(n_batch_val * batch_size_val, weight_func=weight_func,
                                                                     verbose=verbose)
 
-            # Add stopping callback if needed
-            if 'callbacks' not in fit_params:
-                fit_params['callbacks'] = [keras.callbacks.EarlyStopping('val_loss', patience=60, min_delta=0.)]
-            elif not any(isinstance(cb, keras.callbacks.EarlyStopping) for cb in fit_params['callbacks']):
-                fit_params['callbacks'].append(keras.callbacks.EarlyStopping('val_loss', patience=60, min_delta=0.))
+            # # Add stopping callback if needed  # TODO: Remove? Inappropriate to enforce this?
+            # if 'callbacks' not in fit_params:
+            #     fit_params['callbacks'] = [keras.callbacks.EarlyStopping('val_loss', patience=60, min_delta=0.)]
+            # elif not any(isinstance(cb, keras.callbacks.EarlyStopping) for cb in fit_params['callbacks']):
+            #     fit_params['callbacks'].append(keras.callbacks.EarlyStopping('val_loss', patience=60, min_delta=0.))
 
         # gen_callable = partial(env.data_gen, weight_func=weight_func)  # function type not supported by from_generator
         #
@@ -202,7 +205,7 @@ class Scheduler:
         with Path(load_path).joinpath('env').open(mode='rb') as fid:
             env = dill.load(fid)
 
-        return cls(model, env)
+        return cls(env, model)
 
     @classmethod
     def train_from_gen(cls, problem_gen, env_cls=envs.StepTasking, env_params=None, layers=None, compile_params=None,
@@ -275,8 +278,9 @@ class Scheduler:
         model.compile(**compile_params)
 
         # Create and train scheduler
-        scheduler = cls(model, env)
-        scheduler.learn(n_batch_train, n_batch_val, batch_size, weight_func, fit_params, do_tensorboard, plot_history)
+        scheduler = cls(env, model)
+        scheduler.learn(n_batch_train, batch_size, n_batch_val, weight_func=weight_func, fit_params=fit_params,
+                        verbose=do_tensorboard, do_tensorboard=plot_history)
         if save:
             scheduler.save(save_path)
 
