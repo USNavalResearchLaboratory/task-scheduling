@@ -38,10 +38,10 @@ class Scheduler:
 
     def __init__(self, env, model):
         self.env = env
-        self.model = model
-
         if not isinstance(self.env.action_space, gym.spaces.Discrete):
             raise TypeError("Action space must be Discrete.")
+
+        self.model = model
 
     def __call__(self, tasks, ch_avail):
         """
@@ -84,8 +84,8 @@ class Scheduler:
         print('Env: ', end='', file=file)
         self.env.summary(file)
         print('Model\n---\n```', file=file)
-        print_fn = partial(print, file=file)
-        self.model.summary(print_fn=print_fn)
+
+        self.model.summary(print_fn=partial(print, file=file))
         print('```', end='\n\n', file=file)
 
     def fit(self, x, y=None, do_tensorboard=False, plot_history=False, **fit_params):

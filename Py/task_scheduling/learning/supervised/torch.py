@@ -3,8 +3,8 @@ import time
 import webbrowser
 from functools import partial
 from pathlib import Path
-
 import dill
+
 import gym
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,6 +13,8 @@ import torch
 from torch import nn
 from torch.utils.data import TensorDataset
 from torch.utils.data import DataLoader
+
+import pytorch_lightning as pl
 
 # from tensorboard import program
 
@@ -33,14 +35,13 @@ class Scheduler:
 
     def __init__(self, env, model, loss_func, opt):
         self.env = env
-
-        # self.model = model.to(device)
-        self.model = model
-        self.loss_func = loss_func
-        self.opt = opt
-
         if not isinstance(self.env.action_space, gym.spaces.Discrete):
             raise TypeError("Action space must be Discrete.")
+
+        self.model = model
+        # self.model = model.to(device)
+        self.loss_func = loss_func
+        self.opt = opt
 
     def __call__(self, tasks, ch_avail):
         """
@@ -68,10 +69,10 @@ class Scheduler:
         done = False
         while not done:
             with torch.no_grad():
-                input_ = torch.from_numpy(obs[np.newaxis]).float()
+                input_ = torch.from_numpy(obs[np.newaxis]).float()  # TODO: tensor conversion in model?
                 # input_ = input_.to(device)
-                prob = self.model(input_).squeeze(0)  # TODO: tensor conversion in model?
-                # prob = self.model(input_).numpy().squeeze(0)  # TODO: tensor conversion in model?
+                prob = self.model(input_).squeeze(0)
+                # prob = self.model(input_).numpy().squeeze(0)
             # prob = np.zeros(self.env.action_space.n)
 
             if ensure_valid:  # TODO: try/catch for speed?!
@@ -87,8 +88,6 @@ class Scheduler:
         self.env.summary(file)
         print('Model\n---\n```', file=file)
 
-        # print_fn = partial(print, file=file)
-        # self.model.summary(print_fn=print_fn)  # FIXME
         print(self.model, file=file)
         print('```', end='\n\n', file=file)
 
@@ -161,106 +160,29 @@ class Scheduler:
             if verbose >= 2:
                 print(f"  Epoch = {epoch} : loss = {val_loss:.3f}", end='\r')
 
-        # TODO: loss/acc plots, tensorboard, etc.
+        # TODO: loss/acc plots, tensorboard, etc. LIGHTNING??
 
         self.model = self.model.to('cpu')  # move back to CPU for single sample evaluations in `__call__`
 
     def reset(self):
-        # reset_weights(self.model)  # FIXME
         self.model.apply(weights_init)
 
-    def save(self, save_path=None):
-        if save_path is None:
-            save_path = f"models/temp/{time.strftime('%Y-%m-%d_%H-%M-%S')}"
-
-        self.model.save(save_path)  # save TF model
-
-        with Path(save_path).joinpath('env').open(mode='wb') as fid:
-            dill.dump(self.env, fid)  # save environment
-
-    @classmethod
-    def load(cls, load_path):
-        model = keras.models.load_model(load_path)
-
-        with Path(load_path).joinpath('env').open(mode='rb') as fid:
-            env = dill.load(fid)
-
-        return cls(model, env)
-
-    @classmethod
-    def train_from_gen(cls, problem_gen, env_cls=envs.StepTasking, env_params=None, layers=None, compile_params=None,
-                       n_batch_train=1, n_batch_val=1, batch_size=1, weight_func=None, fit_params=None,
-                       do_tensorboard=False, plot_history=False, save=False, save_path=None):
-        """
-        Create and train a supervised learning scheduler.
-
-        Parameters
-        ----------
-        problem_gen : generators.scheduling_problems.Base
-            Scheduling problem generation object.
-        env_cls : class, optional
-            Gym environment class.
-        env_params : dict, optional
-            Parameters for environment initialization.
-        layers : Sequence of tensorflow.keras.layers.Layer
-            Neural network layers.
-        compile_params : dict, optional
-            Parameters for the model compile method.
-        n_batch_train : int
-            Number of batches of state-action pair data to generate for model training.
-        n_batch_val : int
-            Number of batches of state-action pair data to generate for model validation.
-        batch_size : int
-            Number of scheduling problems to make data from per yielded batch.
-        weight_func : callable, optional
-            Function mapping environment object to a training weight.
-        fit_params : dict, optional
-            Parameters for the mode fit method.
-        do_tensorboard : bool, optional
-            If True, Tensorboard is used for training visualization.
-        plot_history : bool, optional
-            If True, training is visualized using plotting modules.
-        save : bool, optional
-            If True, the network and environment are serialized.
-        save_path : str, optional
-            String representation of sub-directory to save to.
-
-        Returns
-        -------
-        Scheduler
-
-        """
-
-        # Create environment
-        if env_params is None:
-            env = env_cls(problem_gen)
-        else:
-            env = env_cls(problem_gen, **env_params)
-
-        # Create model
-        if layers is None:
-            layers = []
-
-        model = keras.Sequential()
-        model.add(keras.Input(shape=env.observation_space.shape))
-        for layer in layers:  # add user-defined layers
-            model.add(layer)
-        if len(model.output_shape) > 2:  # flatten to 1-D for softmax output layer
-            model.add(keras.layers.Flatten())
-        model.add(keras.layers.Dense(env.action_space.n, activation='softmax',
-                                     kernel_initializer=keras.initializers.GlorotUniform()))
-
-        if compile_params is None:
-            compile_params = {'optimizer': 'rmsprop',
-                              'loss': 'sparse_categorical_crossentropy',
-                              'metrics': ['accuracy'],
-                              }
-        model.compile(**compile_params)
-
-        # Create and train scheduler
-        scheduler = cls(model, env)
-        scheduler.learn(n_batch_train, n_batch_val, batch_size, weight_func, fit_params, do_tensorboard, plot_history)
-        if save:
-            scheduler.save(save_path)
-
-        return scheduler
+    # def save(self, save_path=None):  # FIXME FIXME
+    #     if save_path is None:
+    #         save_path = f"models/temp/{time.strftime('%Y-%m-%d_%H-%M-%S')}.pth"
+    #
+    #     with Path(save_path).joinpath('env').open(mode='wb') as fid:
+    #         dill.dump(self.env, fid)  # save environment
+    #
+    #     torch.save(self.model, save_path)
+    #     # self.model.save(save_path)  # save TF model  # FIXME
+    #
+    # @classmethod
+    # def load(cls, load_path):
+    #     model = torch.load(load_path)
+    #     # model = keras.models.load_model(load_path)  # FIXME
+    #
+    #     with Path(load_path).joinpath('env').open(mode='rb') as fid:
+    #         env = dill.load(fid)
+    #
+    #     return cls(model, env)  # FIXME: opt, loss, etc.? Easier with Lightning???

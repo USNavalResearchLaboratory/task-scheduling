@@ -104,7 +104,7 @@ model.compile(optimizer='sgd', loss='sparse_categorical_crossentropy', metrics=[
 train_args = {'n_batch_train': 30, 'batch_size_train': 20, 'n_batch_val': 10, 'batch_size_val': 30,
               'weight_func': None,
               # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-              'fit_params': {'epochs': 500,
+              'fit_params': {'epochs': 100,
                              'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=200, min_delta=0.)]
                              },
               }
@@ -120,7 +120,7 @@ train_args = {'n_batch_train': 30, 'batch_size_train': 20, 'n_batch_val': 10, 'b
 
 model_torch = nn.Sequential(
     nn.Flatten(),
-    nn.Linear(np.prod(env.observation_space.shape), 30),
+    nn.Linear(np.prod(env.observation_space.shape).item(), 30),
     nn.ReLU(),
     nn.Linear(30, 30),
     nn.ReLU(),
@@ -144,14 +144,15 @@ algorithms = np.array([
     # ('B&B sort', sort_wrapper(partial(free.branch_bound, verbose=False), 't_release'), 1),
     # ('Ensemble', ensemble_scheduler(free.random_sequencer, free.earliest_release), 5),
     ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
-    # ('ERT', free.earliest_release, 1),
-    *((f'MCTS, c={c}, t={t}', partial(free.mcts, runtime=.02, c_explore=c, visit_threshold=t,
-                                      rng=RNGMix.make_rng(seed)), 10) for c, t in product([0.05], [15])),
-    *((f'MCTS_v1, c={c}', partial(free.mcts_v1, runtime=.02, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10]),
+    ('ERT', free.earliest_release, 10),
+    *((f'MCTS, c={c}, t={t}', partial(free.mcts, runtime=.002, c_explore=c, visit_threshold=t,
+                                      rng=RNGMix.make_rng(seed)), 10) for c, t in product([.035], [15])),
+    # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, runtime=.02, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [15]),
     # *((f'MCTS, c={c}, t={t}', partial(free.mcts, n_mc=50, c_explore=c, visit_threshold=t,
     #                                   rng=RNGMix.make_rng(seed)), 10) for c, t in product([0.05], [15])),
     # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, n_mc=50, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10]),
-    # ('NN Policy', SupervisedLearningScheduler(model, env), 1),
+    # ('NN Policy', tfScheduler(env, model), 10),
+    ('NN Policy', torchScheduler(env, model_torch, loss_func, opt), 10),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
@@ -163,7 +164,6 @@ algorithms = np.array([
 # TODO: make problem a shared node class attribute? Setting them seems hackish...
 # TODO: value networks
 
-# TODO: use runtime-limited MCTS
 
 log_path = 'docs/temp/PGR_results.md'
 # log_path = 'docs/discrete_relu_c1t8.md'
