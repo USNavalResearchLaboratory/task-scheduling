@@ -332,9 +332,27 @@ class BaseTasking(Env, ABC):
 
 
 class SeqTasking(BaseTasking):
-    """Tasking environment with single action of a complete task index sequence."""
-
     def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='seq'):
+        """
+        Tasking environment with single action of a complete task index sequence.
+
+        Parameters
+        ----------
+        problem_gen : generators.scheduling_problems.Base
+            Scheduling problem generation object.
+        features : ndarray, optional
+            Structured numpy array of features with fields 'name', 'func', and 'lims'.
+        sort_func : function or str, optional
+            Method that returns a sorting value for re-indexing given a task index 'n'.
+        time_shift : bool, optional
+            Enables task re-parameterization after sequence updates.
+        masking : bool, optional
+            If True, features are zeroed out for scheduled tasks.
+        action_type : str, optional
+            If 'seq', action type is index sequence `Permutation`; if 'int', action space is `Discrete` and
+            index sequences are mapped to integers.
+
+        """
 
         super().__init__(problem_gen, features, sort_func, time_shift, masking)
 

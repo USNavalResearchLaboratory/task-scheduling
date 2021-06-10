@@ -11,13 +11,16 @@ from matplotlib import pyplot as plt
 from tensorflow import keras
 import torch
 from torch import nn, optim
+from torch.nn import functional
+import pytorch_lightning as pl
 
 from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_train
 from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix
 from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.algorithms import free
+from task_scheduling.learning.supervised.base import BaseSupervisedScheduler
 from task_scheduling.learning.supervised.tf import Scheduler as tfScheduler
-from task_scheduling.learning.supervised.torch import Scheduler as torchScheduler
+from task_scheduling.learning.supervised.torch import Scheduler as torchScheduler, LightningScheduler as plScheduler
 from task_scheduling.learning import environments as envs
 
 
@@ -93,18 +96,18 @@ layers = [keras.layers.Flatten(),
 #           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu', kernel_initializer=_weight_init())]
 
 
-model = keras.Sequential([keras.Input(shape=env.observation_space.shape),
-                          *layers,
-                          keras.layers.Dense(env.action_space.n, activation='softmax',
-                                             kernel_initializer=_weight_init())
-                          ])
-model.compile(optimizer='sgd', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+model_tf = keras.Sequential([keras.Input(shape=env.observation_space.shape),
+                             *layers,
+                             keras.layers.Dense(env.action_space.n, activation='softmax',
+                                                kernel_initializer=_weight_init())
+                             ])
+model_tf.compile(optimizer='sgd', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
 
 train_args = {'n_batch_train': 30, 'batch_size_train': 20, 'n_batch_val': 10, 'batch_size_val': 30,
               'weight_func': None,
               # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-              'fit_params': {'epochs': 100,
+              'fit_params': {'epochs': 400,
                              'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=200, min_delta=0.)]
                              },
               }
@@ -131,6 +134,37 @@ model_torch = nn.Sequential(
 loss_func = nn.CrossEntropyLoss()
 opt = optim.SGD(model_torch.parameters(), lr=1e-2)
 
+
+class LitModel(pl.LightningModule):
+    def __init__(self):
+        super().__init__()
+        self.model = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(np.prod(env.observation_space.shape).item(), 30),
+            nn.ReLU(),
+            nn.Linear(30, 30),
+            nn.ReLU(),
+            nn.Linear(30, env.action_space.n),
+            # nn.Softmax(dim=1),
+        )
+
+    def forward(self, x):
+        return self.model(x)
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self(x)
+        return functional.cross_entropy(y_hat, y)
+
+    def validation_step(self, batch, batch_idx):  # TODO: DRY? default?
+        x, y = batch
+        y_hat = self(x)
+        return functional.cross_entropy(y_hat, y)
+
+    def configure_optimizers(self):
+        return optim.SGD(self.parameters(), lr=1e-2)
+
+
 # FIXME: no faster on GPU!?!?
 # FIXME: INVESTIGATE huge PyTorch speed-up over Tensorflow!!
 
@@ -151,13 +185,16 @@ algorithms = np.array([
     # *((f'MCTS, c={c}, t={t}', partial(free.mcts, n_mc=50, c_explore=c, visit_threshold=t,
     #                                   rng=RNGMix.make_rng(seed)), 10) for c, t in product([0.05], [15])),
     # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, n_mc=50, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10]),
-    # ('NN Policy', tfScheduler(env, model), 10),
-    ('NN Policy', torchScheduler(env, model_torch, loss_func, opt), 10),
+    # ('TF Policy', tfScheduler(env, model_tf), 10),
+    # ('Torch Policy', torchScheduler(env, model_torch, loss_func, opt), 10),
+    ('Lit Policy', plScheduler(env, LitModel()), 10),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
 
 # %% Evaluate and record results
+
+# TODO: generalize for multiple learners, ensure same data is used for each training op
 
 # TODO: generate new, larger datasets
 # TODO: try making new features
@@ -170,50 +207,54 @@ log_path = 'docs/temp/PGR_results.md'
 
 image_path = f'images/temp/{time_str}'
 
+learners = [func for func in algorithms['func'] if isinstance(func, BaseSupervisedScheduler)]  # TODO: RL generalize
 
 with open(log_path, 'a') as fid:
     print(f"\n# {time_str}\n", file=fid)
+
     # print(f"Problem gen: ", end='', file=fid)
     # problem_gen.summary(fid)
 
-    if 'NN Policy' in algorithms['name']:
-        idx_nn = algorithms['name'].tolist().index('NN Policy')
-        algorithms['func'][idx_nn].summary(fid)
+    if len(learners) > 0:
         n_gen_train = (train_args['n_batch_train'] * train_args['batch_size_train']
                        + train_args['n_batch_val'] * train_args['batch_size_val'])
         print(f"Training problems = {n_gen_train}\n", file=fid)
+
+    for learner in learners:
+        learner.summary(fid)
 
     print('Results\n---', file=fid)
 
 
 sim_type = 'Gen'
-if 'NN Policy' in algorithms['name']:
+if len(learners) > 0:
     if isinstance(problem_gen, problem_gens.Dataset) and problem_gen.repeat:
         problem_gen.repeat = False
         print('Dataset generator repeat disabled to enforce train/test separation.')
 
-    idx_nn = algorithms['name'].tolist().index('NN Policy')
-    algorithms['func'][idx_nn].learn(verbose=2, plot_history=True, **train_args)
+    for learner in learners:
+        learner.learn(verbose=2, plot_history=True, **train_args)
 
-    train_path = image_path + '_train'
-    plt.figure('Training history').savefig(train_path)
-    with open(log_path, 'a') as fid:
-        print(f"![](../{train_path}.png)\n", file=fid)
+        # train_path = image_path + '_train'
+        # plt.figure('Training history').savefig(train_path)
+        # with open(log_path, 'a') as fid:
+        #     print(f"![](../{train_path}.png)\n", file=fid)
+
 l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen=100, solve=True, verbose=1, plotting=1,
                                             log_path=log_path)
 
 
 # sim_type = 'Train'
 # l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=100, n_mc=10, solve=True,
-#                                               verbose=3, plotting=1, log_path=log_path)
+#                                               verbose=2, plotting=1, log_path=log_path)
 # np.savez(data_path / f'results/temp/{time_str}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
 
 
-# plt.figure(f'{sim_type}').savefig(image_path)
-plt.figure(f'{sim_type} (Relative)').savefig(image_path)
+fig_name = f'{sim_type}'
+fig_name += ' (Relative)'
+plt.figure(fig_name).savefig(image_path)
 with open(log_path, 'a') as fid:
-    print(f"![](../{image_path}.png)\n", file=fid)
-    # str_ = image_path.resolve().as_posix().replace('.png', '')s
+    print(f"![](../../{image_path}.png)\n", file=fid)
 
 
 # %% Limited Runtime
@@ -223,7 +264,7 @@ with open(log_path, 'a') as fid:
 #     ('Random', runtime_wrapper(algs.free.random_sequencer), 20),
 #     ('ERT', runtime_wrapper(algs.free.earliest_release), 1),
 #     ('MCTS', partial(algs.limit.mcts, verbose=False), 5),
-#     ('DNN Policy', runtime_wrapper(policy_model), 5),
+#     ('Policy', runtime_wrapper(policy_model), 5),
 #     # ('DQN Agent', dqn_agent, 5),
 # ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
 #

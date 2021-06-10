@@ -13,6 +13,7 @@ from tensorboard import program
 from tensorflow import keras
 
 from task_scheduling.learning import environments as envs
+from task_scheduling.learning.supervised.base import BaseSupervisedScheduler
 
 for device in tf.config.experimental.list_physical_devices('GPU'):
     tf.config.experimental.set_memory_growth(device, True)  # TODO: compatibility issue workaround
@@ -33,13 +34,13 @@ def reset_weights(model):      # from https://github.com/keras-team/keras/issues
                     var.assign(initializer(var.shape, var.dtype))
 
 
-class Scheduler:
+class Scheduler(BaseSupervisedScheduler):
     log_dir = Path.cwd() / 'logs' / 'TF_train'
 
     def __init__(self, env, model):
         self.env = env
-        if not isinstance(self.env.action_space, gym.spaces.Discrete):
-            raise TypeError("Action space must be Discrete.")
+        # if not isinstance(self.env.action_space, gym.spaces.Discrete):
+        #     raise TypeError("Action space must be Discrete.")
 
         self.model = model
 
@@ -61,8 +62,8 @@ class Scheduler:
             Task execution channels.
         """
 
-        ensure_valid = isinstance(self.env, envs.StepTasking) and not self.env.do_valid_actions
-        # ensure_valid = False    # TODO: trained models may naturally avoid invalid actions!!
+        # ensure_valid = isinstance(self.env, envs.StepTasking) and not self.env.do_valid_actions
+        # # ensure_valid = False    # TODO: trained models may naturally avoid invalid actions!!
 
         obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)
 
@@ -72,11 +73,19 @@ class Scheduler:
             prob = self.model(input_).numpy().squeeze(0)
             # prob = np.zeros(self.env.action_space.n)
 
-            if ensure_valid:
+            try:
+                action = prob.argmax()
+                obs, reward, done, info = self.env.step(action)
+            except ValueError:
                 prob = self.env.mask_probability(prob)
-            action = prob.argmax()
+                action = prob.argmax()
+                obs, reward, done, info = self.env.step(action)
 
-            obs, reward, done, info = self.env.step(action)
+            # if ensure_valid:
+            #     prob = self.env.mask_probability(prob)
+            # action = prob.argmax()
+            #
+            # obs, reward, done, info = self.env.step(action)
 
         return self.env.node.t_ex, self.env.node.ch_ex
 

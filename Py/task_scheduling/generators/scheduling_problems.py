@@ -327,13 +327,17 @@ class PermutedTasks(FixedTasks):
 
 
 class Dataset(Base):
-    def __init__(self, problems, solutions=None, shuffle=False, repeat=False, n_tasks=None, n_ch=None,
-                 task_gen=None, ch_avail_gen=None, rng=None):
+    # def __init__(self, problems, solutions=None, shuffle=False, repeat=False, n_tasks=None, n_ch=None,
+    #              task_gen=None, ch_avail_gen=None, rng=None):
+    def __init__(self, problems, solutions=None, shuffle=False, repeat=False, task_gen=None, ch_avail_gen=None,
+                 rng=None):
 
-        if n_tasks is None:
-            n_tasks = len(problems[0].tasks)
-        if n_ch is None:
-            n_ch = len(problems[0].ch_avail)
+        # if n_tasks is None:  # TODO: why are these args?? Exist in pickled datasets...
+        #     n_tasks = len(problems[0].tasks)
+        # if n_ch is None:
+        #     n_ch = len(problems[0].ch_avail)
+        n_tasks = len(problems[0].tasks)
+        n_ch = len(problems[0].ch_avail)
 
         super().__init__(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
@@ -358,15 +362,25 @@ class Dataset(Base):
         with Path(file_path).open(mode='rb') as fid:
             dict_gen = dill.load(fid)
 
-        return cls(**dict_gen, shuffle=shuffle, repeat=repeat, rng=rng)
+        # return cls(**dict_gen, shuffle=shuffle, repeat=repeat, rng=rng)
+        problems_solutions = (dict_gen['problems'],)
+        if 'solutions' in dict_gen.keys():
+            problems_solutions += (dict_gen['solutions'],)
+        kwargs = {'shuffle': shuffle, 'repeat': repeat, 'task_gen': dict_gen['task_gen'],
+                  'ch_avail_gen': dict_gen['ch_avail_gen'], 'rng': rng}
+        return cls(*problems_solutions, **kwargs)
 
     def pop_dataset(self, n, shuffle=False, repeat=False, rng=None):
         """Create a new Dataset from elements of own queue."""
 
+        if isinstance(n, float):  # interpret as fraction of total problems
+            n *= self.n_problems
+
         problems = [self.problems.pop() for __ in range(n)]
         solutions = [self.solutions.pop() for __ in range(n)]
-        return Dataset(problems, solutions, shuffle, repeat, self.n_tasks, self.n_ch, self.task_gen, self.ch_avail_gen,
-                       rng)
+        # return Dataset(problems, solutions, shuffle, repeat, self.n_tasks, self.n_ch, self.task_gen, self.ch_avail_gen,
+        #                rng)
+        return Dataset(problems, solutions, shuffle, repeat, self.task_gen, self.ch_avail_gen, rng)
 
     def add_problems(self, problems, solutions=None):
         """Add problems and solutions to the data set."""
