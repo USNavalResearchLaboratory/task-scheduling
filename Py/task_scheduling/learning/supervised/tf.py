@@ -5,7 +5,6 @@ from functools import partial
 from pathlib import Path
 
 import dill
-import gym
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
@@ -13,7 +12,7 @@ from tensorboard import program
 from tensorflow import keras
 
 from task_scheduling.learning import environments as envs
-from task_scheduling.learning.supervised.base import BaseSupervisedScheduler
+from task_scheduling.learning.supervised.base import Base
 
 for device in tf.config.experimental.list_physical_devices('GPU'):
     tf.config.experimental.set_memory_growth(device, True)  # TODO: compatibility issue workaround
@@ -34,70 +33,22 @@ def reset_weights(model):      # from https://github.com/keras-team/keras/issues
                     var.assign(initializer(var.shape, var.dtype))
 
 
-class Scheduler(BaseSupervisedScheduler):
-    log_dir = Path.cwd() / 'logs' / 'TF_train'
+class Scheduler(Base):
+    log_dir = Path.cwd() / 'logs' / 'tf'
 
     def __init__(self, env, model):
-        self.env = env
-        # if not isinstance(self.env.action_space, gym.spaces.Discrete):
-        #     raise TypeError("Action space must be Discrete.")
+        super().__init__(env, model)
 
-        self.model = model
+        # self.train_params = train_params
 
-    def __call__(self, tasks, ch_avail):
-        """
-        Call scheduler, produce execution times and channels.
+    def obs_to_prob(self, obs):
+        input_ = obs[np.newaxis].astype('float32')
+        return self.model(input_).numpy().squeeze(0)
 
-        Parameters
-        ----------
-        tasks : Sequence of task_scheduling.tasks.Base
-        ch_avail : Sequence of float
-            Channel availability times.
-
-        Returns
-        -------
-        ndarray
-            Task execution times.
-        ndarray
-            Task execution channels.
-        """
-
-        # ensure_valid = isinstance(self.env, envs.StepTasking) and not self.env.do_valid_actions
-        # # ensure_valid = False    # TODO: trained models may naturally avoid invalid actions!!
-
-        obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)
-
-        done = False
-        while not done:
-            input_ = obs[np.newaxis].astype('float32')
-            prob = self.model(input_).numpy().squeeze(0)
-            # prob = np.zeros(self.env.action_space.n)
-
-            try:
-                action = prob.argmax()
-                obs, reward, done, info = self.env.step(action)
-            except ValueError:
-                prob = self.env.mask_probability(prob)
-                action = prob.argmax()
-                obs, reward, done, info = self.env.step(action)
-
-            # if ensure_valid:
-            #     prob = self.env.mask_probability(prob)
-            # action = prob.argmax()
-            #
-            # obs, reward, done, info = self.env.step(action)
-
-        return self.env.node.t_ex, self.env.node.ch_ex
-
-    def summary(self, file=None):
-        print('Env: ', end='', file=file)
-        self.env.summary(file)
-        print('Model\n---\n```', file=file)
-
+    def _print_model(self, file=None):
         self.model.summary(print_fn=partial(print, file=file))
-        print('```', end='\n\n', file=file)
 
-    def fit(self, x, y=None, do_tensorboard=False, plot_history=False, **fit_params):
+    def _fit(self, x, y=None, do_tensorboard=False, plot_history=False, **fit_params):
 
         if do_tensorboard:
             try:
@@ -148,8 +99,7 @@ class Scheduler(BaseSupervisedScheduler):
 
         if fit_params is None:
             fit_params = {}
-        fit_params.update({'shuffle': False,
-                           'batch_size': batch_size_train * self.env.steps_per_episode,
+        fit_params.update({'batch_size': batch_size_train * self.env.steps_per_episode,
                            'validation_batch_size': batch_size_val * self.env.steps_per_episode,
                            # 'batch_size': None,   # generator Dataset
                            # 'validation_freq': 1,
@@ -167,14 +117,8 @@ class Scheduler(BaseSupervisedScheduler):
         if n_batch_val > 0:  # use validation data
             if verbose >= 1:
                 print("Generating validation data...")
-            fit_params['validation_data'] = self.env.data_gen_numpy(n_batch_val * batch_size_val, weight_func=weight_func,
-                                                                    verbose=verbose)
-
-            # # Add stopping callback if needed  # TODO: Remove? Inappropriate to enforce this?
-            # if 'callbacks' not in fit_params:
-            #     fit_params['callbacks'] = [keras.callbacks.EarlyStopping('val_loss', patience=60, min_delta=0.)]
-            # elif not any(isinstance(cb, keras.callbacks.EarlyStopping) for cb in fit_params['callbacks']):
-            #     fit_params['callbacks'].append(keras.callbacks.EarlyStopping('val_loss', patience=60, min_delta=0.))
+            fit_params['validation_data'] = self.env.data_gen_numpy(n_batch_val * batch_size_val,
+                                                                    weight_func=weight_func, verbose=verbose)
 
         # gen_callable = partial(env.data_gen, weight_func=weight_func)  # function type not supported by from_generator
         #
@@ -192,8 +136,8 @@ class Scheduler(BaseSupervisedScheduler):
         if verbose >= 1:
             print('Training model...')
 
-        self.fit(x_train, y_train, do_tensorboard, plot_history, **fit_params)
-        # self.fit(*d_train, do_tensorboard, plot_history, **fit_params)
+        self._fit(x_train, y_train, do_tensorboard, plot_history, **fit_params)
+        # self._fit(*d_train, do_tensorboard, plot_history, **fit_params)
 
     def reset(self):
         reset_weights(self.model)
@@ -244,7 +188,7 @@ class Scheduler(BaseSupervisedScheduler):
         weight_func : callable, optional
             Function mapping environment object to a training weight.
         fit_params : dict, optional
-            Parameters for the mode fit method.
+            Parameters for the model fit method.
         do_tensorboard : bool, optional
             If True, Tensorboard is used for training visualization.
         plot_history : bool, optional

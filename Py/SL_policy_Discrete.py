@@ -53,7 +53,7 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
     compile_params : dict, optional
         Parameters for the model compile method.
     fit_params : dict, optional
-        Parameters for the mode fit method.
+        Parameters for the model fit method.
     do_tensorboard : bool
         If True, Tensorboard is used for training visualization.
     plot_history : bool
@@ -130,7 +130,7 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
     model.compile(**compile_params)
 
     if do_tensorboard:
-        log_dir = './logs/TF_train'
+        log_dir = 'logs/tf'
         try:
             shutil.rmtree(log_dir)
         except FileNotFoundError:

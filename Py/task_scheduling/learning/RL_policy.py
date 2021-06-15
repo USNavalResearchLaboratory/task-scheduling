@@ -45,7 +45,7 @@ class RandomAgent:
 
 # Schedulers
 class ReinforcementLearningScheduler:
-    log_dir = Path.cwd() / 'logs' / 'SB_train'
+    log_dir = Path.cwd() / 'logs' / 'sb'
 
     _default_tuple = namedtuple('ModelDefault', ['cls', 'kwargs'])
     model_defaults = {'Random': _default_tuple(RandomAgent, {}),

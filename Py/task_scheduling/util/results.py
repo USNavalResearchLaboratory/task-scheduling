@@ -7,7 +7,7 @@ import pandas as pd
 from task_scheduling.util.generic import timing_wrapper
 from task_scheduling.util.plot import plot_task_losses, plot_schedule, scatter_loss_runtime, plot_loss_runtime
 from task_scheduling.generators.scheduling_problems import Dataset
-from task_scheduling.learning.supervised.base import BaseSupervisedScheduler
+from task_scheduling.learning.supervised.base import Base as BaseSupervisedScheduler
 
 # logging.basicConfig(level=logging.INFO,       # TODO: logging?
 #                     format='%(asctime)s - %(levelname)s - %(message)s',

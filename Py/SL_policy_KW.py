@@ -115,7 +115,7 @@ def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=Fals
     callbacks = [keras.callbacks.EarlyStopping(patience=20, monitor='val_loss', min_delta=0.)]
 
     if do_tensorboard:
-        log_dir = 'logs/TF_train'
+        log_dir = 'logs/tf'
         try:
             shutil.rmtree(log_dir)
         except FileNotFoundError:
