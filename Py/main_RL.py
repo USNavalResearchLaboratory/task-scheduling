@@ -5,7 +5,7 @@ from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.tree_search import TreeNodeShift
 from task_scheduling.algorithms import free as algs_base
 from task_scheduling.learning import environments as envs
-from task_scheduling.learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler
+from task_scheduling.learning.reinforcement import StableBaselinesScheduler as RL_Scheduler
 
 
 #%%

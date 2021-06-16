@@ -1,9 +1,7 @@
 import os
 from functools import partial
 from pathlib import Path
-import dill
 from abc import abstractmethod
-from time import strftime
 
 import numpy as np
 
@@ -13,7 +11,7 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 
-from task_scheduling.learning.supervised.base import Base
+from task_scheduling.learning.base import Base as BaseLearningScheduler
 
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -31,7 +29,7 @@ def weights_init(model):
         model.reset_parameters()
 
 
-class BaseTorch(Base):
+class Base(BaseLearningScheduler):
     def obs_to_prob(self, obs):
         with torch.no_grad():
             input_ = torch.from_numpy(obs[np.newaxis]).float()  # TODO: tensor conversion in model?
@@ -40,8 +38,8 @@ class BaseTorch(Base):
 
         return prob
 
-    def _print_model(self, file=None):
-        print(self.model, file=file)
+    # def _print_model(self, file=None):
+    #     print(self.model, file=file)
 
     def reset(self):
         self.model.apply(weights_init)
@@ -81,7 +79,7 @@ class BaseTorch(Base):
         self._fit(dl_train, dl_val, fit_params, verbose)
 
 
-class TorchScheduler(BaseTorch):
+class TorchScheduler(Base):
     log_dir = Path.cwd() / 'logs' / 'torch_train'
 
     def __init__(self, env, model, loss_func, opt):
@@ -168,7 +166,7 @@ class TorchScheduler(BaseTorch):
     #     return cls(model, env)  # FIXME: opt, loss, etc.?
 
 
-class LitScheduler(BaseTorch):
+class LitScheduler(Base):
     log_dir = Path.cwd() / 'logs'
 
     def __init__(self, env, model):
@@ -186,7 +184,7 @@ class LitScheduler(BaseTorch):
         trainer_kwargs = {
             'gpus': AVAIL_GPUS,
             'logger': True,
-            'default_root_dir': self.log_dir.as_posix(),
+            'default_root_dir': str(self.log_dir),
             'progress_bar_refresh_rate': int(verbose > 0),
         }
 

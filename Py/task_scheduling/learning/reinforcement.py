@@ -1,13 +1,15 @@
 import time
 from collections import namedtuple
 from pathlib import Path
-
 import dill
-from stable_baselines import DQN, PPO2, A2C
-from stable_baselines.bench import Monitor
-from stable_baselines.results_plotter import plot_results
+
+from stable_baselines3 import DQN, A2C
+from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.results_plotter import plot_results
 
 from task_scheduling.learning import environments as envs
+from task_scheduling.learning.base import Base as BaseLearningScheduler
+from task_scheduling.learning.supervised.torch import weights_init
 
 
 # from stable_baselines.common.vec_env import DummyVecEnv
@@ -44,7 +46,7 @@ class RandomAgent:
 
 
 # Schedulers
-class ReinforcementLearningScheduler:
+class StableBaselinesScheduler(BaseLearningScheduler):
     log_dir = Path.cwd() / 'logs' / 'sb'
 
     _default_tuple = namedtuple('ModelDefault', ['cls', 'kwargs'])
@@ -52,16 +54,18 @@ class ReinforcementLearningScheduler:
                       'DQN': _default_tuple(DQN, {'policy': 'MlpPolicy', 'verbose': 1}),
                       'DQN_LN': _default_tuple(DQN, {'policy': 'LnMlpPolicy', 'verbose': 1}),
                       'CNN': _default_tuple(DQN, {'policy': 'CnnPolicy', 'verbose': 1}),
-                      'PPO2': _default_tuple(PPO2, {}),
+                      # 'PPO2': _default_tuple(PPO2, {}),
                       'A2C': _default_tuple(A2C, {'policy': 'MlpPolicy', 'verbose': 1}),
                       }
 
     def __init__(self, model, env=None):
-        self.model = model
+        # self.do_monitor = True  # TODO: make init parameter?
+        self.do_monitor = False
 
-        self.do_monitor = True  # TODO: make init parameter?
-        if env is not None:
-            self.env = env  # invokes setter
+        super().__init__(env, model)
+
+        # self.model = model
+        # self.env = env  # invokes setter
 
     # Environment access
     @property
@@ -70,62 +74,28 @@ class ReinforcementLearningScheduler:
 
     @env.setter
     def env(self, env):
-        if isinstance(env, envs.BaseTasking):
+        if env is None:
+            pass
+        elif isinstance(env, envs.BaseTasking):
             if self.do_monitor:
                 env = Monitor(env, str(self.log_dir))
             self.model.set_env(env)
+
+            self.steps_per_episode = env.steps_per_episode  # FIXME: weak hack...
+
         else:
             raise TypeError("Environment must be an instance of BaseTasking.")
 
-    def __call__(self, tasks, ch_avail):
-        """
-        Call scheduler, produce execution times and channels.
+    def obs_to_prob(self, obs):
+        return self.model.action_probability(obs)
 
-        Parameters
-        ----------
-        tasks : Sequence of task_scheduling.tasks.Base
-        ch_avail : Sequence of float
-            Channel availability times.
+    def learn(self, *args, **kwargs):
 
-        Returns
-        -------
-        ndarray
-            Task execution times.
-        ndarray
-            Task execution channels.
-        """
-
-        ensure_valid = isinstance(self.env, envs.StepTasking) and not self.env.do_valid_actions
-
-        obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)  # kwargs required for wrapped Monitor environment
-        done = False
-        while not done:
-            # action, _states = self.model.predict(obs)
-
-            prob = self.model.action_probability(obs)
-            if ensure_valid:
-                prob = self.env.mask_probability(prob)
-            action = prob.argmax()
-
-            obs, reward, done, info = self.env.step(action)
-
-        return self.env.node.t_ex, self.env.node.ch_ex
-
-    def learn(self, n_episodes=0):
-        """
-        Train learning model.
-
-        Parameters
-        ----------
-        n_episodes : int
-            Number of complete tasking episode to train on.
-
-        """
-
-        self.model.learn(total_timesteps=n_episodes * self.env.steps_per_episode)
+        n_episodes = kwargs['batch_size_train']
+        self.model.learn(total_timesteps=n_episodes * self.steps_per_episode)
 
         if self.do_monitor:
-            plot_results([self.log_dir], num_timesteps=None, xaxis='timesteps', task_name='Training history')
+            plot_results([str(self.log_dir)], num_timesteps=None, x_axis='timesteps', task_name='Training history')
 
     def save(self, save_path=None):
         if save_path is None:
@@ -159,6 +129,9 @@ class ReinforcementLearningScheduler:
             pass
 
         return cls(model, env)
+
+    def reset(self):
+        self.model.policy.apply(weights_init)
 
     # @classmethod
     # def load_from_gen(cls, load_path, problem_gen, env_cls=StepTasking, env_params=None, model_cls=None):
@@ -197,7 +170,7 @@ class ReinforcementLearningScheduler:
 
         Returns
         -------
-        ReinforcementLearningScheduler
+        StableBaselinesScheduler
 
         """
 

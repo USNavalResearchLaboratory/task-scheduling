@@ -7,7 +7,7 @@ import pandas as pd
 from task_scheduling.util.generic import timing_wrapper
 from task_scheduling.util.plot import plot_task_losses, plot_schedule, scatter_loss_runtime, plot_loss_runtime
 from task_scheduling.generators.scheduling_problems import Dataset
-from task_scheduling.learning.supervised.base import Base as BaseSupervisedScheduler
+from task_scheduling.learning.base import Base as BaseLearningScheduler
 
 # logging.basicConfig(level=logging.INFO,       # TODO: logging?
 #                     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -312,7 +312,7 @@ def evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=1, n_mc
 
         # Reset/train supervised learners
         for learner in algorithms['func']:
-            if isinstance(learner, BaseSupervisedScheduler):
+            if isinstance(learner, BaseLearningScheduler):
                 learner.reset()
                 learner.learn(verbose=verbose - 1, **train_args)  # note: calls `problem_gen` via environment reset
 

@@ -13,14 +13,15 @@ from torch import nn, optim
 from torch.nn import functional
 import pytorch_lightning as pl
 
-from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_train
+from task_scheduling.util.results import evaluate_algorithms_train
 from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix
 from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.algorithms import free
-from task_scheduling.learning.supervised.base import Base as BaseSupervisedScheduler
-from task_scheduling.learning.supervised.tf import Scheduler as tfScheduler, keras
-from task_scheduling.learning.supervised.torch import TorchScheduler, LitScheduler
 from task_scheduling.learning import environments as envs
+from task_scheduling.learning.base import Base as BaseLearningScheduler
+# from task_scheduling.learning.supervised.tf import keras, Scheduler as tfScheduler
+from task_scheduling.learning.supervised.torch import TorchScheduler, LitScheduler
+from task_scheduling.learning.reinforcement import StableBaselinesScheduler
 
 
 np.set_printoptions(precision=3)
@@ -75,86 +76,33 @@ env_params = {
 env = envs.StepTasking(problem_gen, **env_params)
 
 
-def _weight_init():
-    return keras.initializers.GlorotUniform(seed)
-
-
-layers = [keras.layers.Flatten(),
-          keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
-          keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
-          # keras.layers.Dropout(0.2),
-          ]
-
-# layers = [keras.layers.Conv1D(30, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-#           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-#           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-#           # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
-#           keras.layers.Flatten(),
+# def _weight_init():
+#     return keras.initializers.GlorotUniform(seed)
+#
+#
+# layers = [keras.layers.Flatten(),
+#           keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
+#           keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
+#           # keras.layers.Dropout(0.2),
 #           ]
-
-# layers = [keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
-#           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu', kernel_initializer=_weight_init())]
-
-
-model_tf = keras.Sequential([keras.Input(shape=env.observation_space.shape),
-                             *layers,
-                             keras.layers.Dense(env.action_space.n, activation='softmax',
-                                                kernel_initializer=_weight_init())
-                             ])
-model_tf.compile(optimizer='sgd', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-
-
-# n_gen_train = 900
 #
-# train_params_tf = {'batch_size_train': 20,
-#                    # 'n_problems_val': 300,
-#                    'validation_split': 1/3,
-#                    'batch_size_val': 30,
-#                    'weight_func': None,
-#                    # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-#                    'epochs': 400,
-#                    'shuffle': True,
-#                    'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=20, min_delta=0.)]
-#                    }
+# # layers = [keras.layers.Conv1D(30, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+# #           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+# #           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+# #           # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
+# #           keras.layers.Flatten(),
+# #           ]
 #
-# train_params_pl = {'batch_size_train': 20,
-#                    'n_problems_val': 300, 'batch_size_val': 30,
-#                    'weight_func': None,
-#                    # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-#                    'epochs': 400,
-#                    'shuffle': True,
-#                    'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=20)]
-#                    }
-
-
-train_args = {'n_batch_train': 30, 'batch_size_train': 20, 'n_batch_val': 10, 'batch_size_val': 30,
-              'weight_func': None,
-              # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-              'fit_params': {'epochs': 400,
-                             'shuffle': True,
-                             # 'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=20, min_delta=0.)]
-                             # 'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=20)]
-                             },
-              # 'plot_history': True,
-              # 'do_tensorboard': True,
-              }
-
-n_gen_train = (train_args['n_batch_train'] * train_args['batch_size_train']
-               + train_args['n_batch_val'] * train_args['batch_size_val'])
-
-
-# FIXME: need common train param format for tf and pl learners?
-#  OR just instantiate scheduler objects with their own set of params!!
-#  Refactor for n_problem_train instead of n_batch_train?
-#  Only commonly used variables are the ones that make the DATA!!!
-
-
-# RL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
-#            'model_cls': 'DQN', 'model_params': {'verbose': 1, 'policy': 'MlpPolicy'},
-#            'n_episodes': 10000,
-#            'save': False, 'save_path': None}
-# dqn_agent = learning.RL_policy.ReinforcementLearningScheduler.train_from_gen(**RL_args)
-# dqn_agent = RL_Scheduler.load('temp/DQN_2020-10-28_15-44-00', env=None, model_cls='DQN')
+# # layers = [keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
+# #           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu', kernel_initializer=_weight_init())]
+#
+#
+# model_tf = keras.Sequential([keras.Input(shape=env.observation_space.shape),
+#                              *layers,
+#                              keras.layers.Dense(env.action_space.n, activation='softmax',
+#                                                 kernel_initializer=_weight_init())
+#                              ])
+# model_tf.compile(optimizer='sgd', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
 
 model_torch = nn.Sequential(
@@ -205,10 +153,71 @@ class LitModel(pl.LightningModule):
         return optim.SGD(self.parameters(), lr=1e-2)
 
 
+model_pl = LitModel()
+
+
+# RL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
+#            'model_cls': 'DQN', 'model_params': {'verbose': 1, 'policy': 'MlpPolicy'},
+#            'n_episodes': 10000,
+#            'save': False, 'save_path': None}
+# dqn_agent = StableBaselinesScheduler
+# dqn_agent = RL_Scheduler.load('temp/DQN_2020-10-28_15-44-00', env=None, model_cls='DQN')
+
+model_cls, model_params = StableBaselinesScheduler.model_defaults['DQN']
+model_sb = model_cls(env=env, **model_params)
+
+
+# n_gen_train = 900
+#
+# train_params_tf = {'batch_size_train': 20,
+#                    # 'n_problems_val': 300,
+#                    'validation_split': 1/3,
+#                    'batch_size_val': 30,
+#                    'weight_func': None,
+#                    # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
+#                    'epochs': 400,
+#                    'shuffle': True,
+#                    'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=20, min_delta=0.)]
+#                    }
+#
+# train_params_pl = {'batch_size_train': 20,
+#                    'n_problems_val': 300, 'batch_size_val': 30,
+#                    'weight_func': None,
+#                    # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
+#                    'epochs': 400,
+#                    'shuffle': True,
+#                    'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=20)]
+#                    }
+
+train_args = {'n_batch_train': 30, 'batch_size_train': 20, 'n_batch_val': 10, 'batch_size_val': 30,
+              'weight_func': None,
+              # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
+              'fit_params': {'epochs': 400,
+                             'shuffle': True,
+                             # 'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=20, min_delta=0.)]
+                             # 'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=20)]
+                             },
+              # 'plot_history': True,
+              # 'do_tensorboard': True,
+              }
+
+n_gen_train = (train_args['n_batch_train'] * train_args['batch_size_train']
+               + train_args['n_batch_val'] * train_args['batch_size_val'])
+
+
+# FIXME: need common train param format for tf and pl learners?
+#  OR just instantiate scheduler objects with their own set of params!!
+#  Refactor for n_problem_train instead of n_batch_train?
+#  Only commonly used variables are the ones that make the DATA!!!
+
+# FIXME: integrate SB3 before making any sweeping environment/learn API changes!!!
+
+
 # FIXME: no faster on GPU!?!?
 # FIXME: INVESTIGATE huge PyTorch speed-up over Tensorflow!!
 
 # TODO: new MCTS parameter search for shorter runtime
+
 
 algorithms = np.array([
     # ('BB', partial(free.branch_bound, rng=RNGMix.make_rng(seed)), 1),
@@ -225,10 +234,10 @@ algorithms = np.array([
     #                                   rng=RNGMix.make_rng(seed)), 10) for c, t in product([0.05], [15])),
     # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, n_mc=50, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10]),
     # ('TF Policy', tfScheduler(env, model_tf), 10),
-    ('Torch Policy', TorchScheduler(env, model_torch, loss_func, opt), 10),
+    # ('Torch Policy', TorchScheduler(env, model_torch, loss_func, opt), 10),
     # ('Torch Policy', TorchScheduler.load('models/temp/2021-06-16T12_14_41.pkl'), 10),
-    # ('Lit Policy', LitScheduler(env, LitModel()), 10),
-    # ('DQN Agent', dqn_agent, 5),
+    ('Lit Policy', LitScheduler(env, model_pl), 10),
+    # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
 
@@ -247,7 +256,7 @@ log_path = 'docs/temp/PGR_results.md'
 
 image_path = f'images/temp/{time_str}'
 
-learners = algorithms[[isinstance(alg['func'], BaseSupervisedScheduler) for alg in algorithms]]
+learners = algorithms[[isinstance(alg['func'], BaseLearningScheduler) for alg in algorithms]]
 with open(log_path, 'a') as fid:
     print(f"\n# {time_str}\n", file=fid)
 

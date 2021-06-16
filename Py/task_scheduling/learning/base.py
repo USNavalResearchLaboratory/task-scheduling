@@ -1,15 +1,17 @@
 from abc import ABC, abstractmethod
 
-from gym.spaces import Discrete
+# from gym.spaces import Discrete
+
+from task_scheduling.learning.environments import BaseTasking
 
 
 class Base(ABC):
     def __init__(self, env, model):
+        self.model = model
+
         self.env = env
         # if not isinstance(self.env.action_space, Discrete):
         #     raise TypeError("Action space must be Discrete.")
-
-        self.model = model
 
     def __call__(self, tasks, ch_avail):
         """
@@ -69,12 +71,22 @@ class Base(ABC):
 
     def summary(self, file=None):
         print('Env: ', end='', file=file)
-        self.env.summary(file)
+        # self.env.summary(file)
+        self._print_env(file)
         # print('Model\n---\n```', file=file)
         print('Model:\n```', file=file)
         self._print_model(file)
         print('```', end='\n\n', file=file)
 
-    @abstractmethod
+    # @abstractmethod
+    # def _print_model(self, file=None):
+    #     raise NotImplementedError
+
+    def _print_env(self, file=None):
+        if isinstance(self.env, BaseTasking):
+            self.env.summary(file)
+        else:
+            print(self.env, file=file)
+
     def _print_model(self, file=None):
-        raise NotImplementedError
+        print(self.model, file=file)

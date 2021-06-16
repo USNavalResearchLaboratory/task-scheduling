@@ -8,7 +8,7 @@ from gym import spaces
 from task_scheduling.generators import (tasks as task_gens, scheduling_problems as problem_gens)
 from task_scheduling.algorithms.free import earliest_release, branch_bound
 from task_scheduling.learning import environments as envs
-# from task_scheduling.learning.RL_policy import ReinforcementLearningScheduler as RL_Scheduler
+# from task_scheduling.learning.RL_policy import StableBaselinesScheduler as RL_Scheduler
 from task_scheduling.learning.features import _get_param
 from task_scheduling.util.results import evaluate_algorithms
 from task_scheduling.util.plot import scatter_loss_runtime_stats

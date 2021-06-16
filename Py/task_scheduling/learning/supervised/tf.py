@@ -12,7 +12,7 @@ from tensorboard import program
 from tensorflow import keras
 
 from task_scheduling.learning import environments as envs
-from task_scheduling.learning.supervised.base import Base
+from task_scheduling.learning.base import Base
 
 for device in tf.config.experimental.list_physical_devices('GPU'):
     tf.config.experimental.set_memory_growth(device, True)  # TODO: compatibility issue workaround
@@ -62,7 +62,7 @@ class Scheduler(Base):
                 fit_params['callbacks'].append(keras.callbacks.TensorBoard(log_dir=self.log_dir))
 
             tb = program.TensorBoard()
-            tb.configure(argv=[None, '--logdir', self.log_dir.as_posix()])
+            tb.configure(argv=[None, '--logdir', str(self.log_dir)])
             url = tb.launch()
             webbrowser.open(url)
 
