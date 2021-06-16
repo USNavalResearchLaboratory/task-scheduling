@@ -130,7 +130,7 @@ class ReinforcementLearningScheduler:
     def save(self, save_path=None):
         if save_path is None:
             cls_str = self.model.__class__.__name__
-            save_path = f"temp/{cls_str}_{time.strftime('%Y-%m-%d_%H-%M-%S')}"
+            save_path = f"temp/{cls_str}_{time.strftime('%Y-%m-%dT%H_%M_%S')}"
 
         save_path = Path.cwd() / 'agents' / save_path
         save_path.parent.mkdir(exist_ok=True)

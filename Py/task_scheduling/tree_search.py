@@ -274,6 +274,10 @@ class TreeNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
         TreeNode, optional
             Only if `inplace` is False.
 
+        Notes
+        -----
+        Reproducibility using `rng` argument may not be guaranteed due to differing code execution times.
+
         """
 
         t_run = perf_counter()

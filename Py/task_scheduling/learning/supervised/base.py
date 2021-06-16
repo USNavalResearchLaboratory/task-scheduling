@@ -4,9 +4,6 @@ from gym.spaces import Discrete
 
 
 class Base(ABC):
-
-    # TODO: complete base class API
-
     def __init__(self, env, model):
         self.env = env
         # if not isinstance(self.env.action_space, Discrete):
@@ -70,14 +67,11 @@ class Base(ABC):
     def reset(self, *args, **kwargs):
         raise NotImplementedError
 
-    # @abstractmethod
-    # def summary(self, file=None):
-    #     raise NotImplementedError
-
     def summary(self, file=None):
         print('Env: ', end='', file=file)
         self.env.summary(file)
-        print('Model\n---\n```', file=file)
+        # print('Model\n---\n```', file=file)
+        print('Model:\n```', file=file)
         self._print_model(file)
         print('```', end='\n\n', file=file)
 

@@ -164,7 +164,7 @@ def print_averages(l_ex, t_run, log_path=None, do_relative=False):
     df = pd.DataFrame(data, index=pd.CategoricalIndex(names), columns=columns)
     df_str = df.to_markdown(tablefmt='github', floatfmt='.3f')
 
-    print(df_str, end='\n\n')
+    print(df_str, end='\n\n')  # TODO: only print to `log_path`?
     if log_path is not None:
         with open(log_path, 'a') as fid:
             print(df_str, end='\n\n', file=fid)
@@ -311,13 +311,10 @@ def evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=1, n_mc
             problem_gen.shuffle()  # random train/test split
 
         # Reset/train supervised learners
-        try:
-            for learner in algorithms['func']:
-                if isinstance(learner, BaseSupervisedScheduler):
-                    learner.reset()
-                    learner.learn(verbose=verbose - 1, **train_args)  # note: calls `problem_gen` via environment reset
-        except ValueError:
-            pass
+        for learner in algorithms['func']:
+            if isinstance(learner, BaseSupervisedScheduler):
+                learner.reset()
+                learner.learn(verbose=verbose - 1, **train_args)  # note: calls `problem_gen` via environment reset
 
         # Evaluate performance
         l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen, solve, verbose - 1, plotting - 1)

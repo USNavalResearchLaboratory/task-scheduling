@@ -3,6 +3,7 @@ from functools import partial
 from pathlib import Path
 import dill
 from abc import abstractmethod
+from time import strftime
 
 import numpy as np
 
@@ -134,7 +135,21 @@ class TorchScheduler(BaseTorch):
 
     # def save(self, save_path=None):  # FIXME FIXME
     #     if save_path is None:
-    #         save_path = f"models/temp/{time.strftime('%Y-%m-%d_%H-%M-%S')}.pth"
+    #         save_path = f"models/temp/{strftime('%Y-%m-%dT%H_%M_%S')}.pkl"
+    #
+    #     with Path(save_path).open(mode='wb') as fid:
+    #         dill.dump(self, fid)
+    #
+    # @classmethod
+    # def load(cls, load_path):
+    #     with Path(load_path).open(mode='rb') as fid:
+    #         scheduler = dill.load(fid)
+    #
+    #     return scheduler
+
+    # def save(self, save_path=None):  # FIXME FIXME
+    #     if save_path is None:
+    #         save_path = f"models/temp/{strftime('%Y-%m-%dT%H_%M_%S')}.pth"
     #
     #     with Path(save_path).joinpath('env').open(mode='wb') as fid:
     #         dill.dump(self.env, fid)  # save environment
@@ -172,7 +187,7 @@ class LitScheduler(BaseTorch):
             'gpus': AVAIL_GPUS,
             'logger': True,
             'default_root_dir': self.log_dir.as_posix(),
-            # 'progress_bar_refresh_rate': 1000,
+            'progress_bar_refresh_rate': int(verbose > 0),
         }
 
         try:
@@ -188,7 +203,7 @@ class LitScheduler(BaseTorch):
 
     # def save(self, save_path=None):  # FIXME FIXME
     #     if save_path is None:
-    #         save_path = f"models/temp/{time.strftime('%Y-%m-%d_%H-%M-%S')}.pth"
+    #         save_path = f"models/temp/{strftime('%Y-%m-%dT%H_%M_%S')}.pth"
     #
     #     with Path(save_path).joinpath('env').open(mode='wb') as fid:
     #         dill.dump(self.env, fid)  # save environment

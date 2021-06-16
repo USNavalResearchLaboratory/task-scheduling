@@ -77,7 +77,7 @@ class Base(RandomGeneratorMixin, ABC):
         solutions = [] if solve else None
 
         if save_path is None and self.temp_path is not None:
-            save_path = Path(self.temp_path) / strftime('%Y-%m-%d_%H-%M-%S')
+            save_path = Path(self.temp_path) / strftime('%Y-%m-%dT%H_%M_%S')
 
         save = save_path is not None
 

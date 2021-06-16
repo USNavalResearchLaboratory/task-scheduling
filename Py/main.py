@@ -1,6 +1,7 @@
 from functools import partial
 from itertools import product
 from time import strftime
+# from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -27,10 +28,11 @@ pd.options.display.float_format = '{:,.3f}'.format
 plt.style.use('seaborn')
 # plt.rc('axes', grid=True)
 
-time_str = strftime('%Y-%m-%d_%H-%M-%S')
+# time_str = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
+time_str = strftime('%Y-%m-%dT%H_%M_%S')
 
-seed = None
-# seed = 12345
+# seed = None
+seed = 12345
 
 # tf.random.set_seed(seed)
 
@@ -102,7 +104,7 @@ model_tf = keras.Sequential([keras.Input(shape=env.observation_space.shape),
 model_tf.compile(optimizer='sgd', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
 
-# n_problems_train = 900
+# n_gen_train = 900
 #
 # train_params_tf = {'batch_size_train': 20,
 #                    # 'n_problems_val': 300,
@@ -133,7 +135,13 @@ train_args = {'n_batch_train': 30, 'batch_size_train': 20, 'n_batch_val': 10, 'b
                              # 'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=20, min_delta=0.)]
                              # 'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=20)]
                              },
+              # 'plot_history': True,
+              # 'do_tensorboard': True,
               }
+
+n_gen_train = (train_args['n_batch_train'] * train_args['batch_size_train']
+               + train_args['n_batch_val'] * train_args['batch_size_val'])
+
 
 # FIXME: need common train param format for tf and pl learners?
 #  OR just instantiate scheduler objects with their own set of params!!
@@ -200,7 +208,6 @@ class LitModel(pl.LightningModule):
 # FIXME: no faster on GPU!?!?
 # FIXME: INVESTIGATE huge PyTorch speed-up over Tensorflow!!
 
-# TODO: SL base class
 # TODO: new MCTS parameter search for shorter runtime
 
 algorithms = np.array([
@@ -211,7 +218,7 @@ algorithms = np.array([
     # ('Ensemble', ensemble_scheduler(free.random_sequencer, free.earliest_release), 5),
     ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
     ('ERT', free.earliest_release, 10),
-    *((f'MCTS, c={c}, t={t}', partial(free.mcts, runtime=.002, c_explore=c, visit_threshold=t,
+    *((f'MCTS: c={c}, t={t}', partial(free.mcts, runtime=.002, c_explore=c, visit_threshold=t,
                                       rng=RNGMix.make_rng(seed)), 10) for c, t in product([.035], [15])),
     # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, runtime=.02, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [15]),
     # *((f'MCTS, c={c}, t={t}', partial(free.mcts, n_mc=50, c_explore=c, visit_threshold=t,
@@ -219,6 +226,7 @@ algorithms = np.array([
     # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, n_mc=50, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10]),
     # ('TF Policy', tfScheduler(env, model_tf), 10),
     ('Torch Policy', TorchScheduler(env, model_torch, loss_func, opt), 10),
+    # ('Torch Policy', TorchScheduler.load('models/temp/2021-06-16T12_14_41.pkl'), 10),
     # ('Lit Policy', LitScheduler(env, LitModel()), 10),
     # ('DQN Agent', dqn_agent, 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
@@ -239,8 +247,7 @@ log_path = 'docs/temp/PGR_results.md'
 
 image_path = f'images/temp/{time_str}'
 
-learners = [func for func in algorithms['func'] if isinstance(func, BaseSupervisedScheduler)]  # TODO: RL generalize
-
+learners = algorithms[[isinstance(alg['func'], BaseSupervisedScheduler) for alg in algorithms]]
 with open(log_path, 'a') as fid:
     print(f"\n# {time_str}\n", file=fid)
 
@@ -248,42 +255,23 @@ with open(log_path, 'a') as fid:
     # problem_gen.summary(fid)
 
     if len(learners) > 0:
-        n_gen_train = (train_args['n_batch_train'] * train_args['batch_size_train']
-                       + train_args['n_batch_val'] * train_args['batch_size_val'])
         print(f"Training problems = {n_gen_train}\n", file=fid)
-        # print(f"Training problems = {n_problems_train}\n", file=fid)
 
+    print(f"## Learners\n", file=fid)
     for learner in learners:
-        learner.summary(fid)
+        print(f"### {learner['name']}", file=fid)
+        learner['func'].summary(fid)
 
-    print('Results\n---', file=fid)
-
-
-sim_type = 'Gen'
-if len(learners) > 0:
-    if isinstance(problem_gen, problem_gens.Dataset) and problem_gen.repeat:
-        problem_gen.repeat = False
-        print('Dataset generator repeat disabled to enforce train/test separation.')
-
-    for learner in learners:
-        learner.learn(verbose=2, plot_history=True, **train_args)
-
-        # train_path = image_path + '_train'
-        # plt.figure('Training history').savefig(train_path)
-        # with open(log_path, 'a') as fid:
-        #     print(f"![](../{train_path}.png)\n", file=fid)
-
-l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen=100, solve=True, verbose=1, plotting=1,
-                                            log_path=log_path)
+    print('## Results', file=fid)
 
 
-# sim_type = 'Train'
-# l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=100, n_mc=1, solve=True,
-#                                               verbose=2, plotting=1, log_path=log_path)
-# np.savez(data_path / f'results/temp/{time_str}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
+n_mc = 1
+l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=100, n_mc=n_mc, solve=True,
+                                              verbose=2, plotting=2, log_path=log_path)
+np.savez(data_path / f'results/temp/{time_str}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
 
 
-fig_name = f'{sim_type}'
+fig_name = 'Train' if n_mc > 1 else 'Gen'
 fig_name += ' (Relative)'
 plt.figure(fig_name).savefig(image_path)
 with open(log_path, 'a') as fid:
@@ -304,3 +292,26 @@ with open(log_path, 'a') as fid:
 # runtimes = np.logspace(-2, -1, 20, endpoint=False)
 # evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=40, solve=True, verbose=2, plotting=1,
 #                             save=False, file=None)
+
+
+#%% Deprecated
+
+# sim_type = 'Gen'
+# if len(learners) > 0:
+#     if isinstance(problem_gen, problem_gens.Dataset) and problem_gen.repeat:
+#         problem_gen.repeat = False
+#         print('Dataset generator repeat disabled to enforce train/test separation.')
+#         problem_gen.shuffle()
+#
+#     # for learner in learners:
+#     #     learner.learn(verbose=2, plot_history=True, **train_args)
+#     for func in learners['func']:
+#         func.learn(verbose=2, plot_history=True, **train_args)
+#
+#         # train_path = image_path + '_train'
+#         # plt.figure('Training history').savefig(train_path)
+#         # with open(log_path, 'a') as fid:
+#         #     print(f"![](../{train_path}.png)\n", file=fid)
+#
+# l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen=100, solve=True, verbose=1, plotting=1,
+#                                             log_path=log_path)

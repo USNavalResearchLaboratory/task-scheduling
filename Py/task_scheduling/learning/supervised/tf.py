@@ -1,5 +1,5 @@
 import shutil
-import time
+from time import strftime
 import webbrowser
 from functools import partial
 from pathlib import Path
@@ -56,12 +56,13 @@ class Scheduler(Base):
             except FileNotFoundError:
                 pass
 
+            if 'callbacks' not in fit_params:
+                fit_params['callbacks'] = []
             if not any(isinstance(cb, keras.callbacks.TensorBoard) for cb in fit_params['callbacks']):
-                # fit_params['callbacks'].append(keras.callbacks.TensorBoard(log_dir=log_dir))
-                fit_params['callbacks'] += [keras.callbacks.TensorBoard(log_dir=self.log_dir)]
+                fit_params['callbacks'].append(keras.callbacks.TensorBoard(log_dir=self.log_dir))
 
             tb = program.TensorBoard()
-            tb.configure(argv=[None, '--logdir', self.log_dir])
+            tb.configure(argv=[None, '--logdir', self.log_dir.as_posix()])
             url = tb.launch()
             webbrowser.open(url)
 
@@ -103,7 +104,7 @@ class Scheduler(Base):
                            'validation_batch_size': batch_size_val * self.env.steps_per_episode,
                            # 'batch_size': None,   # generator Dataset
                            # 'validation_freq': 1,
-                           'verbose': verbose - 1,
+                           'verbose': verbose,
                            })
 
         if verbose >= 1:
@@ -144,7 +145,7 @@ class Scheduler(Base):
 
     def save(self, save_path=None):
         if save_path is None:
-            save_path = f"models/temp/{time.strftime('%Y-%m-%d_%H-%M-%S')}"
+            save_path = f"models/temp/{strftime('%Y-%m-%dT%H_%M_%S')}"
 
         self.model.save(save_path)  # save TF model
 
