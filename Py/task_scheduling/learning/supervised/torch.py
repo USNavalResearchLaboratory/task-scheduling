@@ -3,7 +3,7 @@ from functools import partial
 from pathlib import Path
 import dill
 from abc import abstractmethod
-from time import strftime
+# from time import strftime
 
 import numpy as np
 
@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 
 from task_scheduling.learning.supervised.base import Base
+from task_scheduling.util.generic import TIME_STR
 
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")

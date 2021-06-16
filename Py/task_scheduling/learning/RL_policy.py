@@ -8,6 +8,7 @@ from stable_baselines.bench import Monitor
 from stable_baselines.results_plotter import plot_results
 
 from task_scheduling.learning import environments as envs
+from task_scheduling.util.generic import TIME_STR
 
 
 # from stable_baselines.common.vec_env import DummyVecEnv
@@ -130,7 +131,8 @@ class ReinforcementLearningScheduler:
     def save(self, save_path=None):
         if save_path is None:
             cls_str = self.model.__class__.__name__
-            save_path = f"temp/{cls_str}_{time.strftime('%Y-%m-%dT%H_%M_%S')}"
+            # save_path = f"temp/{cls_str}_{time.strftime('%Y-%m-%dT%H_%M_%S')}"
+            save_path = f"temp/{cls_str}_{TIME_STR}"
 
         save_path = Path.cwd() / 'agents' / save_path
         save_path.parent.mkdir(exist_ok=True)

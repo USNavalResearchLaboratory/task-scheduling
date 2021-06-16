@@ -3,10 +3,14 @@ from functools import wraps
 from math import factorial
 from time import perf_counter
 from operator import attrgetter
+from datetime import datetime
 
 import numpy as np
 
 from task_scheduling.util import results
+
+TIME_STR = datetime.now().isoformat(timespec='seconds').replace(':', '_')
+
 
 SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
 SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))

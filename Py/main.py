@@ -1,20 +1,17 @@
 from functools import partial
 from itertools import product
-from time import strftime
-# from datetime import datetime
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-# from tensorflow import keras
 from torch import nn, optim
 from torch.nn import functional
 import pytorch_lightning as pl
 
 from task_scheduling.util.results import evaluate_algorithms, evaluate_algorithms_train
-from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix
+from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix, TIME_STR
 from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.algorithms import free
 from task_scheduling.learning.supervised.base import Base as BaseSupervisedScheduler
@@ -26,10 +23,6 @@ from task_scheduling.learning import environments as envs
 np.set_printoptions(precision=3)
 pd.options.display.float_format = '{:,.3f}'.format
 plt.style.use('seaborn')
-# plt.rc('axes', grid=True)
-
-# time_str = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
-time_str = strftime('%Y-%m-%dT%H_%M_%S')
 
 # seed = None
 seed = 12345
@@ -245,11 +238,11 @@ algorithms = np.array([
 log_path = 'docs/temp/PGR_results.md'
 # log_path = 'docs/discrete_relu_c1t8.md'
 
-image_path = f'images/temp/{time_str}'
+image_path = f'images/temp/{TIME_STR}'
 
 learners = algorithms[[isinstance(alg['func'], BaseSupervisedScheduler) for alg in algorithms]]
 with open(log_path, 'a') as fid:
-    print(f"\n# {time_str}\n", file=fid)
+    print(f"\n# {TIME_STR}\n", file=fid)
 
     # print(f"Problem gen: ", end='', file=fid)
     # problem_gen.summary(fid)
@@ -268,7 +261,7 @@ with open(log_path, 'a') as fid:
 n_mc = 1
 l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=100, n_mc=n_mc, solve=True,
                                               verbose=2, plotting=2, log_path=log_path)
-np.savez(data_path / f'results/temp/{time_str}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
+np.savez(data_path / f'results/temp/{TIME_STR}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
 
 
 fig_name = 'Train' if n_mc > 1 else 'Gen'
