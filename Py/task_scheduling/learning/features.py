@@ -53,7 +53,7 @@ def param_features(problem_gen, time_shift=False):
             space = _shift_space(space)
         data.append((name, _get_param(name), space))
 
-    return np.array(data, dtype=[('name', '<U16'), ('func', object), ('space', object)])
+    return np.array(data, dtype=[('name', '<U32'), ('func', object), ('space', object)])
 
 
 def _encode_param(name, space):
@@ -78,4 +78,4 @@ def encode_discrete_features(problem_gen):
 
         data.append((name, func, space))
 
-    return np.array(data, dtype=[('name', '<U16'), ('func', object), ('space', object)])
+    return np.array(data, dtype=[('name', '<U32'), ('func', object), ('space', object)])

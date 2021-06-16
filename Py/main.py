@@ -15,7 +15,7 @@ from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix, TIME_ST
 from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.algorithms import free
 from task_scheduling.learning.supervised.base import Base as BaseSupervisedScheduler
-from task_scheduling.learning.supervised.tf import Scheduler as tfScheduler, keras
+# from task_scheduling.learning.supervised.tf import Scheduler as tfScheduler, keras
 from task_scheduling.learning.supervised.torch import TorchScheduler, LitScheduler
 from task_scheduling.learning import environments as envs
 
@@ -66,35 +66,36 @@ env_params = {
 }
 
 env = envs.StepTasking(problem_gen, **env_params)
+# env = envs.StepTasking(None, **env_params)
 
 
-def _weight_init():
-    return keras.initializers.GlorotUniform(seed)
-
-
-layers = [keras.layers.Flatten(),
-          keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
-          keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
-          # keras.layers.Dropout(0.2),
-          ]
-
-# layers = [keras.layers.Conv1D(30, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-#           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-#           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-#           # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
-#           keras.layers.Flatten(),
+# def _weight_init():
+#     return keras.initializers.GlorotUniform(seed)
+#
+#
+# layers = [keras.layers.Flatten(),
+#           keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
+#           keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
+#           # keras.layers.Dropout(0.2),
 #           ]
-
-# layers = [keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
-#           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu', kernel_initializer=_weight_init())]
-
-
-model_tf = keras.Sequential([keras.Input(shape=env.observation_space.shape),
-                             *layers,
-                             keras.layers.Dense(env.action_space.n, activation='softmax',
-                                                kernel_initializer=_weight_init())
-                             ])
-model_tf.compile(optimizer='sgd', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+#
+# # layers = [keras.layers.Conv1D(30, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+# #           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+# #           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+# #           # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
+# #           keras.layers.Flatten(),
+# #           ]
+#
+# # layers = [keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
+# #           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu', kernel_initializer=_weight_init())]
+#
+#
+# model_tf = keras.Sequential([keras.Input(shape=env.observation_space.shape),
+#                              *layers,
+#                              keras.layers.Dense(env.action_space.n, activation='softmax',
+#                                                 kernel_initializer=_weight_init())
+#                              ])
+# model_tf.compile(optimizer='sgd', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
 
 # n_gen_train = 900
@@ -140,6 +141,8 @@ n_gen_train = (train_args['n_batch_train'] * train_args['batch_size_train']
 #  OR just instantiate scheduler objects with their own set of params!!
 #  Refactor for n_problem_train instead of n_batch_train?
 #  Only commonly used variables are the ones that make the DATA!!!
+
+# FIXME: remove problem_gen from envs, just pass needed attributes. Make schedulers learn from problem_gen arg.
 
 
 # RL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
@@ -280,7 +283,7 @@ with open(log_path, 'a') as fid:
 #     ('MCTS', partial(algs.limit.mcts, verbose=False), 5),
 #     ('Policy', runtime_wrapper(policy_model), 5),
 #     # ('DQN Agent', dqn_agent, 5),
-# ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
+# ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 #
 # runtimes = np.logspace(-2, -1, 20, endpoint=False)
 # evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=40, solve=True, verbose=2, plotting=1,
