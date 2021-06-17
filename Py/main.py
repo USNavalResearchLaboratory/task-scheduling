@@ -163,13 +163,14 @@ model_pl = LitModel()
 # dqn_agent = StableBaselinesScheduler
 # dqn_agent = RL_Scheduler.load('temp/DQN_2020-10-28_15-44-00', env=None, model_cls='DQN')
 
-model_cls, model_params = StableBaselinesScheduler.model_defaults['DQN']
-model_sb = model_cls(env=env, **model_params)
+model_cls, model_params = StableBaselinesScheduler.model_defaults['DQN_MLP']
+# model_sb = model_cls(env=env, **model_params)
 
 
-# n_gen_train = 900
-#
-# train_params_tf = {'batch_size_train': 20,
+n_gen_learn = 900
+
+# train_params_tf = {'n_gen_train': n_gen_train,
+#                    'batch_size_train': 20,
 #                    # 'n_problems_val': 300,
 #                    'validation_split': 1/3,
 #                    'batch_size_val': 30,
@@ -179,36 +180,37 @@ model_sb = model_cls(env=env, **model_params)
 #                    'shuffle': True,
 #                    'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=20, min_delta=0.)]
 #                    }
-#
-# train_params_pl = {'batch_size_train': 20,
-#                    'n_problems_val': 300, 'batch_size_val': 30,
-#                    'weight_func': None,
-#                    # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-#                    'epochs': 400,
-#                    'shuffle': True,
-#                    'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=20)]
-#                    }
 
-train_args = {'n_batch_train': 30, 'batch_size_train': 20, 'n_batch_val': 10, 'batch_size_val': 30,
-              'weight_func': None,
-              # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-              'fit_params': {'epochs': 400,
-                             'shuffle': True,
-                             # 'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=20, min_delta=0.)]
-                             # 'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=20)]
-                             },
-              # 'plot_history': True,
-              # 'do_tensorboard': True,
-              }
+learn_params_pl = {'batch_size_train': 20,
+                   'n_gen_val': 1/3, 'batch_size_val': 30,
+                   'weight_func': None,
+                   # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
+                   'max_epochs': 400,
+                   'shuffle': True,
+                   # 'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=20)]
+                   }
 
-n_gen_train = (train_args['n_batch_train'] * train_args['batch_size_train']
-               + train_args['n_batch_val'] * train_args['batch_size_val'])
+learn_params_sb = {}
+
+# train_args = {'n_batch_train': 30, 'batch_size_train': 20, 'n_batch_val': 10, 'batch_size_val': 30,
+#               'weight_func': None,
+#               # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
+#               'fit_params': {'epochs': 400,
+#                              'shuffle': True,
+#                              # 'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=20, min_delta=0.)]
+#                              # 'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=20)]
+#                              },
+#               # 'plot_history': True,
+#               # 'do_tensorboard': True,
+#               }
+
+# n_gen_train = (train_args['n_batch_train'] * train_args['batch_size_train']
+#                + train_args['n_batch_val'] * train_args['batch_size_val'])
 
 
-# FIXME: need common train param format for tf and pl learners?
-#  OR just instantiate scheduler objects with their own set of params!!
-#  Refactor for n_problem_train instead of n_batch_train?
+# FIXME: instantiate scheduler objects with their own set of params!!
 #  Only commonly used variables are the ones that make the DATA!!!
+#  Torch done, TF INCOMPLETE!!
 
 # FIXME: integrate SB3 before making any sweeping environment/learn API changes!!!
 
@@ -234,9 +236,10 @@ algorithms = np.array([
     #                                   rng=RNGMix.make_rng(seed)), 10) for c, t in product([0.05], [15])),
     # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, n_mc=50, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10]),
     # ('TF Policy', tfScheduler(env, model_tf), 10),
-    # ('Torch Policy', TorchScheduler(env, model_torch, loss_func, opt), 10),
+    # ('Torch Policy', TorchScheduler(env, model_torch, loss_func, opt, learn_params_pl), 10),
     # ('Torch Policy', TorchScheduler.load('models/temp/2021-06-16T12_14_41.pkl'), 10),
-    ('Lit Policy', LitScheduler(env, model_pl), 10),
+    # ('Lit Policy', LitScheduler(env, model_pl, learn_params_pl), 10),
+    ('DQN Agent', StableBaselinesScheduler.make_model(model_cls, model_params, env), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
@@ -264,7 +267,7 @@ with open(log_path, 'a') as fid:
     # problem_gen.summary(fid)
 
     if len(learners) > 0:
-        print(f"Training problems = {n_gen_train}\n", file=fid)
+        print(f"Training problems = {n_gen_learn}\n", file=fid)
 
     print(f"## Learners\n", file=fid)
     for learner in learners:
@@ -275,7 +278,7 @@ with open(log_path, 'a') as fid:
 
 
 n_mc = 1
-l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, train_args, problem_gen, n_gen=100, n_mc=n_mc, solve=True,
+l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=100, n_mc=n_mc, solve=True,
                                               verbose=2, plotting=2, log_path=log_path)
 np.savez(data_path / f'results/temp/{time_str}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
 

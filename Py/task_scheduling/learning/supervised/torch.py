@@ -2,6 +2,7 @@ import os
 from functools import partial
 from pathlib import Path
 from abc import abstractmethod
+import math
 
 import numpy as np
 
@@ -30,6 +31,14 @@ def weights_init(model):
 
 
 class Base(BaseLearningScheduler):
+    _learn_params_default = {'batch_size_train': 1,
+                             'n_gen_val': 0,
+                             'batch_size_val': 1,
+                             'weight_func': None,
+                             'max_epochs': 1,
+                             'shuffle': False,
+                             'callbacks': []}
+
     def obs_to_prob(self, obs):
         with torch.no_grad():
             input_ = torch.from_numpy(obs[np.newaxis]).float()  # TODO: tensor conversion in model?
@@ -38,36 +47,41 @@ class Base(BaseLearningScheduler):
 
         return prob
 
-    # def _print_model(self, file=None):
-    #     print(self.model, file=file)
-
     def reset(self):
         self.model.apply(weights_init)
 
     @abstractmethod
-    def _fit(self, dl_train, dl_val, fit_params=None, verbose=0):
+    def _fit(self, dl_train, dl_val, verbose=0):
         raise NotImplementedError
 
-    def learn(self, n_batch_train, batch_size_train=1, n_batch_val=0, batch_size_val=1, weight_func=None,
-              fit_params=None, verbose=0, do_tensorboard=False, plot_history=False):
+    def learn(self, n_gen_learn, verbose=0):
+
+        n_gen_val = self.learn_params['n_gen_val']
+        if isinstance(n_gen_val, float) and n_gen_val < 1:  # convert fraction to number of problems
+            n_gen_val = math.floor(n_gen_learn * n_gen_val)
+
+        n_gen_train = n_gen_learn - n_gen_val
+
+        batch_size_train = self.learn_params['batch_size_train']
+        batch_size_val = self.learn_params['batch_size_val']
+        weight_func = self.learn_params['weight_func']
+        shuffle = self.learn_params['shuffle']
 
         if verbose >= 1:
             print("Generating training data...")
-        x_train, y_train, *__ = self.env.data_gen_numpy(n_batch_train * batch_size_train, weight_func=weight_func,
-                                                        verbose=verbose)
+        x_train, y_train, *__ = self.env.data_gen_full(n_gen_train, weight_func=weight_func, verbose=verbose)
 
         if verbose >= 1:
             print("Generating validation data...")
-        x_val, y_val, *__ = self.env.data_gen_numpy(n_batch_val * batch_size_val, weight_func=weight_func,
-                                                    verbose=verbose)
+        x_val, y_val, *__ = self.env.data_gen_full(n_gen_val, weight_func=weight_func, verbose=verbose)
 
         # x_train, y_train, x_val, y_val = map(torch.tensor, (x_train, y_train, x_val, y_val))
         x_train, x_val = map(partial(torch.tensor, dtype=torch.float32), (x_train, x_val))
         y_train, y_val = map(partial(torch.tensor, dtype=torch.int64), (y_train, y_val))
 
         ds_train = TensorDataset(x_train, y_train)
-        dl_train = DataLoader(ds_train, batch_size=batch_size_train * self.env.steps_per_episode,
-                              shuffle=fit_params['shuffle'], pin_memory=PIN_MEMORY)
+        dl_train = DataLoader(ds_train, batch_size=batch_size_train * self.env.steps_per_episode, shuffle=shuffle,
+                              pin_memory=PIN_MEMORY)
 
         # if callable(weight_func):  # FIXME: add sample weighting (validation, too)
         #     fit_params['sample_weight'] = d_train[2]
@@ -76,20 +90,50 @@ class Base(BaseLearningScheduler):
         dl_val = DataLoader(ds_val, batch_size=batch_size_val * self.env.steps_per_episode, shuffle=False,
                             pin_memory=PIN_MEMORY)
 
-        self._fit(dl_train, dl_val, fit_params, verbose)
+        self._fit(dl_train, dl_val, verbose)
+
+    # def learn(self, n_batch_train, batch_size_train=1, n_batch_val=0, batch_size_val=1, weight_func=None,
+    #           fit_params=None, verbose=0):
+    #
+    #     if verbose >= 1:
+    #         print("Generating training data...")
+    #     x_train, y_train, *__ = self.env.data_gen_full(n_batch_train * batch_size_train, weight_func=weight_func,
+    #                                                    verbose=verbose)
+    #
+    #     if verbose >= 1:
+    #         print("Generating validation data...")
+    #     x_val, y_val, *__ = self.env.data_gen_full(n_batch_val * batch_size_val, weight_func=weight_func,
+    #                                                verbose=verbose)
+    #
+    #     # x_train, y_train, x_val, y_val = map(torch.tensor, (x_train, y_train, x_val, y_val))
+    #     x_train, x_val = map(partial(torch.tensor, dtype=torch.float32), (x_train, x_val))
+    #     y_train, y_val = map(partial(torch.tensor, dtype=torch.int64), (y_train, y_val))
+    #
+    #     ds_train = TensorDataset(x_train, y_train)
+    #     dl_train = DataLoader(ds_train, batch_size=batch_size_train * self.env.steps_per_episode,
+    #                           shuffle=fit_params['shuffle'], pin_memory=PIN_MEMORY)
+    #
+    #     # if callable(weight_func):  # FIXME: add sample weighting (validation, too)
+    #     #     fit_params['sample_weight'] = d_train[2]
+    #
+    #     ds_val = TensorDataset(x_val, y_val)
+    #     dl_val = DataLoader(ds_val, batch_size=batch_size_val * self.env.steps_per_episode, shuffle=False,
+    #                         pin_memory=PIN_MEMORY)
+    #
+    #     self._fit(dl_train, dl_val, fit_params, verbose)
 
 
 class TorchScheduler(Base):
     log_dir = Path.cwd() / 'logs' / 'torch_train'
 
-    def __init__(self, env, model, loss_func, opt):
-        super().__init__(env, model)
+    def __init__(self, env, model, loss_func, opt, learn_params=None):
+        super().__init__(env, model, learn_params)
 
         # self.model = model.to(device)
         self.loss_func = loss_func
         self.opt = opt
 
-    def _fit(self, dl_train, dl_val, fit_params=None, verbose=0):
+    def _fit(self, dl_train, dl_val, verbose=0):
 
         if verbose >= 1:
             print('Training model...')
@@ -105,8 +149,7 @@ class TorchScheduler(Base):
 
             return loss.item(), len(xb)
 
-        epochs = fit_params['epochs']
-        for epoch in range(epochs):
+        for epoch in range(self.learn_params['max_epochs']):
             self.model.train()
             for xb, yb in dl_train:
                 loss_batch(self.model, self.loss_func, xb, yb, self.opt)
@@ -123,13 +166,18 @@ class TorchScheduler(Base):
 
         # TODO: loss/acc plots, tensorboard, etc.
 
-    def learn(self, n_batch_train, batch_size_train=1, n_batch_val=0, batch_size_val=1, weight_func=None,
-              fit_params=None, verbose=0, do_tensorboard=False, plot_history=False):
-
+    def learn(self, n_gen_learn, verbose=0):
         self.model = self.model.to(device)
-        super().learn(n_batch_train, batch_size_train, n_batch_val, batch_size_val, weight_func, fit_params, verbose,
-                      do_tensorboard, plot_history)
+        super().learn(n_gen_learn, verbose)
         self.model = self.model.to('cpu')  # move back to CPU for single sample evaluations in `__call__`
+
+    # def learn(self, n_batch_train, batch_size_train=1, n_batch_val=0, batch_size_val=1, weight_func=None,
+    #           fit_params=None, verbose=0, do_tensorboard=False, plot_history=False):
+    #
+    #     self.model = self.model.to(device)
+    #     super().learn(n_batch_train, batch_size_train, n_batch_val, batch_size_val, weight_func, fit_params, verbose,
+    #                   do_tensorboard, plot_history)
+    #     self.model = self.model.to('cpu')  # move back to CPU for single sample evaluations in `__call__`
 
     # def save(self, save_path=None):  # FIXME FIXME
     #     if save_path is None:
@@ -169,33 +217,31 @@ class TorchScheduler(Base):
 class LitScheduler(Base):
     log_dir = Path.cwd() / 'logs'
 
-    def __init__(self, env, model):
-        super().__init__(env, model)
+    def __init__(self, env, model, learn_params):
+        super().__init__(env, model, learn_params)
 
-        # self.trainer = pl.Trainer(gpus=AVAIL_GPUS)
+        trainer_kwargs = {
+            'gpus': AVAIL_GPUS,
+            'logger': True,
+            'default_root_dir': str(self.log_dir),
+            # 'progress_bar_refresh_rate': 0,
+            'max_epochs': self.learn_params['max_epochs'],
+            'callbacks': self.learn_params['callbacks'],
+        }
+        self.trainer = pl.Trainer(**trainer_kwargs)
 
-    def _fit(self, dl_train, dl_val, fit_params=None, verbose=0):
+    def _fit(self, dl_train, dl_val, verbose=0):
 
         # TODO: sample weighting?
 
         if verbose >= 1:
             print('Training model...')
 
-        trainer_kwargs = {
-            'gpus': AVAIL_GPUS,
-            'logger': True,
-            'default_root_dir': str(self.log_dir),
-            'progress_bar_refresh_rate': int(verbose > 0),
-        }
+        for cb in self.trainer.callbacks:
+            if isinstance(cb, pl.callbacks.progress.ProgressBar):
+                cb._refresh_rate = int(verbose >= 1)
 
-        try:
-            callbacks = fit_params['callbacks']  # FIXME: rework, remove
-        except KeyError:
-            callbacks = None
-
-        trainer = pl.Trainer(max_epochs=fit_params['epochs'], callbacks=callbacks, **trainer_kwargs)
-        trainer.fit(self.model, dl_train, dl_val)
-        # self.trainer.fit(self.model, dl_train, dl_val)
+        self.trainer.fit(self.model, dl_train, dl_val)
 
         # TODO: loss/acc plots, tensorboard, etc.
 

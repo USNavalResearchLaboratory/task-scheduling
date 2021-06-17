@@ -6,12 +6,17 @@ from task_scheduling.learning.environments import BaseTasking
 
 
 class Base(ABC):
-    def __init__(self, env, model):
+    _learn_params_default = {}
+
+    def __init__(self, env, model, learn_params=None):
         self.model = model
 
         self.env = env
         # if not isinstance(self.env.action_space, Discrete):
         #     raise TypeError("Action space must be Discrete.")
+
+        self._set_learn_params(learn_params)
+        # self.learn_params = learn_params
 
     def __call__(self, tasks, ch_avail):
         """
@@ -57,12 +62,20 @@ class Base(ABC):
 
         return self.env.node.t_ex, self.env.node.ch_ex
 
+    def _set_learn_params(self, learn_params):
+        # if learn_params is None:
+        #     learn_params = {}
+        # self.learn_params = self._learn_params_default | learn_params
+        self.learn_params = self._learn_params_default.copy()
+        if learn_params is not None:
+            self.learn_params.update(learn_params)
+
     @abstractmethod
     def obs_to_prob(self, obs):
         raise NotImplementedError
 
     @abstractmethod
-    def learn(self, *args, **kwargs):
+    def learn(self, n_gen_learn, verbose=0):
         raise NotImplementedError
 
     @abstractmethod

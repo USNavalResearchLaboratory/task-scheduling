@@ -109,7 +109,7 @@ class Scheduler(Base):
 
         if verbose >= 1:
             print("Generating training data...")
-        d_train = self.env.data_gen_numpy(n_batch_train * batch_size_train, weight_func=weight_func, verbose=verbose)
+        d_train = self.env.data_gen_full(n_batch_train * batch_size_train, weight_func=weight_func, verbose=verbose)
 
         x_train, y_train = d_train[:2]
         if callable(weight_func):
@@ -118,8 +118,8 @@ class Scheduler(Base):
         if n_batch_val > 0:  # use validation data
             if verbose >= 1:
                 print("Generating validation data...")
-            fit_params['validation_data'] = self.env.data_gen_numpy(n_batch_val * batch_size_val,
-                                                                    weight_func=weight_func, verbose=verbose)
+            fit_params['validation_data'] = self.env.data_gen_full(n_batch_val * batch_size_val,
+                                                                   weight_func=weight_func, verbose=verbose)
 
         # gen_callable = partial(env.data_gen, weight_func=weight_func)  # function type not supported by from_generator
         #

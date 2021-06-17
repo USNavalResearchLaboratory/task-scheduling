@@ -302,15 +302,15 @@ class BaseTasking(Env, ABC):
             else:
                 yield x_set, y_set
 
-    def data_gen_numpy(self, n_gen, weight_func=None, verbose=0):
-        """Generate state-action data as NumPy arrays."""
+    def data_gen_full(self, n_gen, weight_func=None, verbose=0):
+        """Generate state-action data, return in single feature/class arrays."""
         data, = self.data_gen(n_batch=1, batch_size=n_gen, weight_func=weight_func, verbose=verbose)
         return data
 
     def data_gen_baselines(self, n_gen):
         steps_total = n_gen * self.steps_per_episode
 
-        observations, actions = self.data_gen_numpy(n_gen)
+        observations, actions = self.data_gen_full(n_gen)
         if observations.ndim == 1:
             observations.shape = (steps_total, 1)
         if actions.ndim == 1:
