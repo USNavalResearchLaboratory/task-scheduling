@@ -11,7 +11,7 @@ from task_scheduling.learning.base import Base as BaseLearningScheduler
 
 # logging.basicConfig(level=logging.INFO,       # TODO: logging?
 #                     format='%(asctime)s - %(levelname)s - %(message)s',
-#                     datefmt='%H:%M:%S')
+#                     datefmt='%Y-%m-%dT%H:%M:%S')
 
 
 #%% Schedule evaluation

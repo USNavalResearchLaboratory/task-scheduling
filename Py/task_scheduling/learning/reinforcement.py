@@ -1,4 +1,3 @@
-import time
 from collections import namedtuple
 from pathlib import Path
 import dill
@@ -10,6 +9,7 @@ from stable_baselines3.common.results_plotter import plot_results
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 from task_scheduling.learning.supervised.torch import weights_init
+# from task_scheduling.util.generic import NOW_STR
 
 
 # from stable_baselines.common.vec_env import DummyVecEnv
@@ -91,11 +91,14 @@ class StableBaselinesScheduler(BaseLearningScheduler):
             raise TypeError("Environment must be an instance of BaseTasking.")
 
     def obs_to_prob(self, obs):
-        return self.model.action_probability(obs)
+        return self.model.action_probability(obs)  # TODO: need `env.env_method` to access my reset?
 
     def learn(self, n_gen_learn, verbose=0):
+        # TODO: consider using `eval_env` argument to pass original env for `model.learn` call
 
-        self.model.learn(total_timesteps=n_gen_learn * self.env.steps_per_episode)
+        # steps_per_episode = 8  # FIXME: HACK
+        steps_per_episode = self.env.steps_per_episode
+        self.model.learn(total_timesteps=n_gen_learn * steps_per_episode)
 
         if self.do_monitor:
             plot_results([str(self.log_dir)], num_timesteps=None, x_axis='timesteps', task_name='Training history')
@@ -106,7 +109,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
     # def save(self, save_path=None):
     #     if save_path is None:
     #         cls_str = self.model.__class__.__name__
-    #         save_path = f"temp/{cls_str}_{time.strftime('%Y-%m-%dT%H_%M_%S')}"
+    #         save_path = f"temp/{cls_str}_{NOW_STR}"
     #
     #     save_path = Path.cwd() / 'agents' / save_path
     #     save_path.parent.mkdir(exist_ok=True)

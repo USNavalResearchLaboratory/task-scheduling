@@ -1,7 +1,5 @@
 from functools import partial
 from itertools import product
-from time import strftime
-# from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -14,7 +12,7 @@ from torch.nn import functional
 import pytorch_lightning as pl
 
 from task_scheduling.util.results import evaluate_algorithms_train
-from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix
+from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix, NOW_STR
 from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.algorithms import free
 from task_scheduling.learning import environments as envs
@@ -29,8 +27,6 @@ pd.options.display.float_format = '{:,.3f}'.format
 plt.style.use('seaborn')
 # plt.rc('axes', grid=True)
 
-# time_str = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
-time_str = strftime('%Y-%m-%dT%H_%M_%S')
 
 # seed = None
 seed = 12345
@@ -238,8 +234,8 @@ algorithms = np.array([
     # ('TF Policy', tfScheduler(env, model_tf), 10),
     # ('Torch Policy', TorchScheduler(env, model_torch, loss_func, opt, learn_params_pl), 10),
     # ('Torch Policy', TorchScheduler.load('models/temp/2021-06-16T12_14_41.pkl'), 10),
-    # ('Lit Policy', LitScheduler(env, model_pl, learn_params_pl), 10),
-    ('DQN Agent', StableBaselinesScheduler.make_model(model_cls, model_params, env), 5),
+    ('Lit Policy', LitScheduler(env, model_pl, learn_params_pl), 10),
+    # ('DQN Agent', StableBaselinesScheduler.make_model(model_cls, model_params, env), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
@@ -257,11 +253,11 @@ algorithms = np.array([
 log_path = 'docs/temp/PGR_results.md'
 # log_path = 'docs/discrete_relu_c1t8.md'
 
-image_path = f'images/temp/{time_str}'
+image_path = f'images/temp/{NOW_STR}'
 
 learners = algorithms[[isinstance(alg['func'], BaseLearningScheduler) for alg in algorithms]]
 with open(log_path, 'a') as fid:
-    print(f"\n# {time_str}\n", file=fid)
+    print(f"\n# {NOW_STR}\n", file=fid)
 
     # print(f"Problem gen: ", end='', file=fid)
     # problem_gen.summary(fid)
@@ -280,7 +276,7 @@ with open(log_path, 'a') as fid:
 n_mc = 1
 l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=100, n_mc=n_mc, solve=True,
                                               verbose=2, plotting=2, log_path=log_path)
-np.savez(data_path / f'results/temp/{time_str}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
+np.savez(data_path / f'results/temp/{NOW_STR}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
 
 
 fig_name = 'Train' if n_mc > 1 else 'Gen'

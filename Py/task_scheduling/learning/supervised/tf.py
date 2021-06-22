@@ -1,5 +1,4 @@
 import shutil
-from time import strftime
 import webbrowser
 from functools import partial
 from pathlib import Path
@@ -13,6 +12,7 @@ from tensorflow import keras
 
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.base import Base
+from task_scheduling.util.generic import NOW_STR
 
 for device in tf.config.experimental.list_physical_devices('GPU'):
     tf.config.experimental.set_memory_growth(device, True)  # TODO: compatibility issue workaround
@@ -145,7 +145,7 @@ class Scheduler(Base):
 
     def save(self, save_path=None):
         if save_path is None:
-            save_path = f"models/temp/{strftime('%Y-%m-%dT%H_%M_%S')}"
+            save_path = f"models/temp/{NOW_STR}"
 
         self.model.save(save_path)  # save TF model
 

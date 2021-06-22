@@ -5,7 +5,6 @@ from collections import deque
 from copy import deepcopy
 from functools import partial
 from pathlib import Path
-from time import strftime
 from typing import Iterable
 
 import dill
@@ -15,7 +14,8 @@ import pandas as pd
 import task_scheduling.tasks
 from task_scheduling.algorithms.free import branch_bound_priority, earliest_release
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
-from task_scheduling.util.generic import RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution
+from task_scheduling.util.generic import (RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution,
+                                          NOW_STR)
 
 
 class Base(RandomGeneratorMixin, ABC):
@@ -77,7 +77,7 @@ class Base(RandomGeneratorMixin, ABC):
         solutions = [] if solve else None
 
         if save_path is None and self.temp_path is not None:
-            save_path = Path(self.temp_path) / strftime('%Y-%m-%dT%H_%M_%S')
+            save_path = Path(self.temp_path) / NOW_STR
 
         save = save_path is not None
 

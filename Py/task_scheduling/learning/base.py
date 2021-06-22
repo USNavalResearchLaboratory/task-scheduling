@@ -91,10 +91,6 @@ class Base(ABC):
         self._print_model(file)
         print('```', end='\n\n', file=file)
 
-    # @abstractmethod
-    # def _print_model(self, file=None):
-    #     raise NotImplementedError
-
     def _print_env(self, file=None):
         if isinstance(self.env, BaseTasking):
             self.env.summary(file)

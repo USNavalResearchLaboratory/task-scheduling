@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 
 from task_scheduling.learning.base import Base as BaseLearningScheduler
+# from task_scheduling.util.generic import NOW_STR
 
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -181,7 +182,7 @@ class TorchScheduler(Base):
 
     # def save(self, save_path=None):  # FIXME FIXME
     #     if save_path is None:
-    #         save_path = f"models/temp/{strftime('%Y-%m-%dT%H_%M_%S')}.pkl"
+    #         save_path = f"models/temp/{NOW_STR}.pkl"
     #
     #     with Path(save_path).open(mode='wb') as fid:
     #         dill.dump(self, fid)
@@ -195,7 +196,7 @@ class TorchScheduler(Base):
 
     # def save(self, save_path=None):  # FIXME FIXME
     #     if save_path is None:
-    #         save_path = f"models/temp/{strftime('%Y-%m-%dT%H_%M_%S')}.pth"
+    #         save_path = f"models/temp/{NOW_STR}.pth"
     #
     #     with Path(save_path).joinpath('env').open(mode='wb') as fid:
     #         dill.dump(self.env, fid)  # save environment
@@ -247,7 +248,7 @@ class LitScheduler(Base):
 
     # def save(self, save_path=None):  # FIXME FIXME
     #     if save_path is None:
-    #         save_path = f"models/temp/{strftime('%Y-%m-%dT%H_%M_%S')}.pth"
+    #         save_path = f"models/temp/{NOW_STR}.pth"
     #
     #     with Path(save_path).joinpath('env').open(mode='wb') as fid:
     #         dill.dump(self.env, fid)  # save environment
