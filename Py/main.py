@@ -165,17 +165,15 @@ model_cls, model_params = StableBaselinesScheduler.model_defaults['DQN_MLP']
 
 n_gen_learn = 900
 
-# train_params_tf = {'n_gen_train': n_gen_train,
-#                    'batch_size_train': 20,
-#                    # 'n_problems_val': 300,
-#                    'validation_split': 1/3,
-#                    'batch_size_val': 30,
-#                    'weight_func': None,
-#                    # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-#                    'epochs': 400,
-#                    'shuffle': True,
-#                    'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=20, min_delta=0.)]
-#                    }
+train_params_tf = {'batch_size_train': 20,
+                   'n_gen_val': 1/3,
+                   'batch_size_val': 30,
+                   'weight_func': None,
+                   # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
+                   'epochs': 400,
+                   'shuffle': True,
+                   # 'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=20, min_delta=0.)]
+                   }
 
 learn_params_pl = {'batch_size_train': 20,
                    'n_gen_val': 1/3, 'batch_size_val': 30,
@@ -204,12 +202,9 @@ learn_params_sb = {}
 #                + train_args['n_batch_val'] * train_args['batch_size_val'])
 
 
-# FIXME: instantiate scheduler objects with their own set of params!!
-#  Only commonly used variables are the ones that make the DATA!!!
-#  Torch done, TF INCOMPLETE!!
-
 # FIXME: integrate SB3 before making any sweeping environment/learn API changes!!!
 
+# TODO: generalize for multiple learners, ensure same data is used for each training op
 
 # FIXME: no faster on GPU!?!?
 # FIXME: INVESTIGATE huge PyTorch speed-up over Tensorflow!!
@@ -231,7 +226,7 @@ algorithms = np.array([
     # *((f'MCTS, c={c}, t={t}', partial(free.mcts, n_mc=50, c_explore=c, visit_threshold=t,
     #                                   rng=RNGMix.make_rng(seed)), 10) for c, t in product([0.05], [15])),
     # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, n_mc=50, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10]),
-    # ('TF Policy', tfScheduler(env, model_tf), 10),
+    # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
     # ('Torch Policy', TorchScheduler(env, model_torch, loss_func, opt, learn_params_pl), 10),
     # ('Torch Policy', TorchScheduler.load('models/temp/2021-06-16T12_14_41.pkl'), 10),
     ('Lit Policy', LitScheduler(env, model_pl, learn_params_pl), 10),
@@ -241,9 +236,6 @@ algorithms = np.array([
 
 
 # %% Evaluate and record results
-
-# TODO: generalize for multiple learners, ensure same data is used for each training op
-
 # TODO: generate new, larger datasets
 # TODO: try making new features
 # TODO: make problem a shared node class attribute? Setting them seems hackish...

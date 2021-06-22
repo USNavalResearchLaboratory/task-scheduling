@@ -2,6 +2,7 @@ import shutil
 import webbrowser
 from functools import partial
 from pathlib import Path
+import math
 
 import dill
 import matplotlib.pyplot as plt
@@ -36,10 +37,19 @@ def reset_weights(model):      # from https://github.com/keras-team/keras/issues
 class Scheduler(Base):
     log_dir = Path.cwd() / 'logs' / 'tf'
 
-    def __init__(self, env, model):
-        super().__init__(env, model)
+    _learn_params_default = {'batch_size_train': 1,
+                             'n_gen_val': 0,
+                             'batch_size_val': 1,
+                             'weight_func': None,
+                             'callbacks': None,
+                             'do_tensorboard': False,
+                             'plot_history': False,
+                             }
 
-        # self.train_params = train_params
+    # def __init__(self, env, model):
+    #     super().__init__(env, model)
+    #
+    #     # self.train_params = train_params
 
     def obs_to_prob(self, obs):
         input_ = obs[np.newaxis].astype('float32')
@@ -95,31 +105,40 @@ class Scheduler(Base):
 
         return history
 
-    def learn(self, n_batch_train, batch_size_train=1, n_batch_val=0, batch_size_val=1, weight_func=None,
-              fit_params=None, verbose=0, do_tensorboard=False, plot_history=False):
+    def learn(self, n_gen_learn, verbose=0):
 
-        if fit_params is None:
-            fit_params = {}
-        fit_params.update({'batch_size': batch_size_train * self.env.steps_per_episode,
-                           'validation_batch_size': batch_size_val * self.env.steps_per_episode,
-                           # 'batch_size': None,   # generator Dataset
-                           # 'validation_freq': 1,
-                           'verbose': verbose,
-                           })
+        n_gen_val = self.learn_params['n_gen_val']
+        if isinstance(n_gen_val, float) and n_gen_val < 1:  # convert fraction to number of problems
+            n_gen_val = math.floor(n_gen_learn * n_gen_val)
+
+        n_gen_train = n_gen_learn - n_gen_val
+
+        batch_size_train = self.learn_params['batch_size_train']
+        batch_size_val = self.learn_params['batch_size_val']
+        weight_func = self.learn_params['weight_func']
+
+        do_tensorboard = self.learn_params['do_tensorboard']
+        plot_history = self.learn_params['plot_history']
+
+        fit_params = {'batch_size': batch_size_train * self.env.steps_per_episode,
+                      'validation_batch_size': batch_size_val * self.env.steps_per_episode,
+                      'epochs': self.learn_params['epochs'],
+                      'shuffle': self.learn_params['shuffle'],
+                      'callbacks': self.learn_params['callbacks'],
+                      'verbose': verbose}
 
         if verbose >= 1:
             print("Generating training data...")
-        d_train = self.env.data_gen_full(n_batch_train * batch_size_train, weight_func=weight_func, verbose=verbose)
+        d_train = self.env.data_gen_full(n_gen_train, weight_func=weight_func, verbose=verbose)
 
         x_train, y_train = d_train[:2]
         if callable(weight_func):
             fit_params['sample_weight'] = d_train[2]
 
-        if n_batch_val > 0:  # use validation data
+        if n_gen_val > 0:  # use validation data
             if verbose >= 1:
                 print("Generating validation data...")
-            fit_params['validation_data'] = self.env.data_gen_full(n_batch_val * batch_size_val,
-                                                                   weight_func=weight_func, verbose=verbose)
+            fit_params['validation_data'] = self.env.data_gen_full(n_gen_val, weight_func=weight_func, verbose=verbose)
 
         # gen_callable = partial(env.data_gen, weight_func=weight_func)  # function type not supported by from_generator
         #
@@ -139,6 +158,51 @@ class Scheduler(Base):
 
         self._fit(x_train, y_train, do_tensorboard, plot_history, **fit_params)
         # self._fit(*d_train, do_tensorboard, plot_history, **fit_params)
+
+    # def learn(self, n_batch_train, batch_size_train=1, n_batch_val=0, batch_size_val=1, weight_func=None,
+    #           fit_params=None, verbose=0, do_tensorboard=False, plot_history=False):
+    #
+    #     if fit_params is None:
+    #         fit_params = {}
+    #     fit_params.update({'batch_size': batch_size_train * self.env.steps_per_episode,
+    #                        'validation_batch_size': batch_size_val * self.env.steps_per_episode,
+    #                        # 'batch_size': None,   # generator Dataset
+    #                        # 'validation_freq': 1,
+    #                        'verbose': verbose,
+    #                        })
+    #
+    #     if verbose >= 1:
+    #         print("Generating training data...")
+    #     d_train = self.env.data_gen_full(n_batch_train * batch_size_train, weight_func=weight_func, verbose=verbose)
+    #
+    #     x_train, y_train = d_train[:2]
+    #     if callable(weight_func):
+    #         fit_params['sample_weight'] = d_train[2]
+    #
+    #     if n_batch_val > 0:  # use validation data
+    #         if verbose >= 1:
+    #             print("Generating validation data...")
+    #         fit_params['validation_data'] = self.env.data_gen_full(n_batch_val * batch_size_val,
+    #                                                                weight_func=weight_func, verbose=verbose)
+    #
+    #     # gen_callable = partial(env.data_gen, weight_func=weight_func)  # function type not supported by from_generator
+    #     #
+    #     # output_types = (tf.float32, tf.int32)
+    #     # output_shapes = ((None,) + env.observation_space.shape, (None,) + env.action_space.shape)
+    #     # if callable(weight_func):
+    #     #     output_types += (tf.float32,)
+    #     #     output_shapes += ((None,),)
+    #     #
+    #     # d_train = tf.data.Dataset.from_generator(gen_callable, output_types,
+    #     #                                          output_shapes, args=(n_batch_train, batch_size))
+    #     # d_val = tf.data.Dataset.from_generator(gen_callable, output_types,
+    #     #                                        output_shapes, args=(n_batch_val, batch_size))
+    #
+    #     if verbose >= 1:
+    #         print('Training model...')
+    #
+    #     self._fit(x_train, y_train, do_tensorboard, plot_history, **fit_params)
+    #     # self._fit(*d_train, do_tensorboard, plot_history, **fit_params)
 
     def reset(self):
         reset_weights(self.model)
