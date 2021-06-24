@@ -1,4 +1,5 @@
 from math import factorial
+from typing import Sequence
 
 import numpy as np
 from gym.spaces import Space, Discrete, MultiDiscrete, Box
@@ -116,10 +117,16 @@ class Permutation(Space):
 
 
 class DiscreteSet(Space):
-    """Gym Space for discrete, non-integral elements."""
-
     def __init__(self, elements):
-        self.elements = np.unique(np.array(list(elements)).flatten())  # sorted, flattened
+        """
+        Gym Space for discrete, non-integral elements.
+
+        Parameters
+        ----------
+        elements : Sequence
+
+        """
+        self.elements = np.unique(np.array(elements).flatten())  # sorted, flattened
         super().__init__(shape=(), dtype=self.elements.dtype)
 
     def sample(self):
@@ -139,3 +146,55 @@ class DiscreteSet(Space):
 
     def __len__(self):
         return self.elements.size
+
+
+class DiscreteMasked(Discrete):
+    def __init__(self, n, mask=np.ma.nomask):
+        # self._mask = mask
+        super().__init__(n)
+        self.mask = mask
+
+        self._rng = np.random.default_rng()
+
+    @property
+    def n(self):
+        # return self._n
+        return self._ma.size
+
+    @n.setter
+    def n(self, val):
+        # self._n = int(val)
+        # self._ma = np.ma.masked_array(range(int(val)), self._mask)
+        self._ma = np.ma.masked_array(range(int(val)))
+
+    @property
+    def mask(self):
+        # return self._mask
+        return self._ma.mask
+
+    @mask.setter
+    def mask(self, val):
+        # self._mask = np.array(val, dtype=bool)
+        # self._ma = np.ma.masked_array(range(self.n), self._mask)
+        # self._ma.mask = np.ma.make_mask(val)  # TODO: use `ma.masked` instead?
+        self._ma.mask = np.ma.nomask
+        self._ma[np.array(val, dtype=bool)] = np.ma.masked
+
+    @property
+    def valid_entries(self):
+        return self._ma.compressed()
+
+    def sample(self):
+        # unmasked_values = self._ma[~self._ma.mask]
+        # return self._rng.choice(unmasked_values)
+        return self._rng.choice(self.valid_entries)
+        # return self.np_random.randint(self.n)
+
+    def contains(self, x):
+        return x in self.valid_entries
+
+    def __repr__(self):
+        return f"DiscreteMasked({self.n}, mask={self.mask})"
+
+    def __eq__(self, other):
+        return isinstance(other, DiscreteMasked) and self._ma == other._ma

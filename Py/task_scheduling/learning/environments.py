@@ -504,9 +504,11 @@ class StepTasking(BaseTasking):
                                                              shape=(self.n_tasks, *obs_space_concat.shape))
 
         if self.do_valid_actions:
-            self.action_space = spaces_tasking.DiscreteSet(set(range(self.n_tasks)))
+            # self.action_space = spaces_tasking.DiscreteSet(range(self.n_tasks))
+            self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)
         else:
             self.action_space = Discrete(self.n_tasks)
+        # self.action_space = self._action_space_map(self.n_tasks)
 
     def summary(self, file=None):
         # super().summary(file)
@@ -524,8 +526,12 @@ class StepTasking(BaseTasking):
     def infer_action_space(self, obs):
         """Determines the action Gym.Space from an observation."""
         if self.do_valid_actions:
-            _state_seq = obs[:, :self.len_seq_encode]
-            return spaces_tasking.DiscreteSet(np.flatnonzero(1 - _state_seq.sum(1)))
+            state_seq = obs[:, :self.len_seq_encode]
+            seq_rem_sort = np.flatnonzero(1 - state_seq.sum(1))
+            # return spaces_tasking.DiscreteSet(seq_rem_sort)
+            mask = np.ones(self.n_tasks, dtype=bool)
+            mask[seq_rem_sort] = False
+            return spaces_tasking.DiscreteMasked(self.n_tasks, mask)
         else:
             return Discrete(len(obs))
 

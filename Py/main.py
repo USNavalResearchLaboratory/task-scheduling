@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 from torch import nn, optim
 from torch.nn import functional
 import pytorch_lightning as pl
+from stable_baselines3.common.env_checker import check_env
 
 from task_scheduling.util.results import evaluate_algorithms_train
 from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix, NOW_STR
@@ -62,14 +63,16 @@ env_params = {
     'sort_func': 't_release',
     # 'time_shift': False,
     'time_shift': True,
-    # 'masking': False,
-    'masking': True,
-    'action_type': 'any',
+    'masking': False,
+    # 'masking': True,
+    'action_type': 'valid',
+    # 'action_type': 'any',
     # 'seq_encoding': None,
     'seq_encoding': 'one-hot',
 }
 
 env = envs.StepTasking(problem_gen, **env_params)
+# check_env(env)
 
 
 # def _weight_init():
@@ -203,6 +206,7 @@ learn_params_sb = {}
 
 
 # FIXME: integrate SB3 before making any sweeping environment/learn API changes!!!
+# TODO: `check_env`: cast 2-d env spaces to 3-d image-like?
 
 # TODO: generalize for multiple learners, ensure same data is used for each training op
 
@@ -229,8 +233,8 @@ algorithms = np.array([
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
     # ('Torch Policy', TorchScheduler(env, model_torch, loss_func, opt, learn_params_pl), 10),
     # ('Torch Policy', TorchScheduler.load('models/temp/2021-06-16T12_14_41.pkl'), 10),
-    ('Lit Policy', LitScheduler(env, model_pl, learn_params_pl), 10),
-    # ('DQN Agent', StableBaselinesScheduler.make_model(model_cls, model_params, env), 5),
+    # ('Lit Policy', LitScheduler(env, model_pl, learn_params_pl), 10),
+    ('DQN Agent', StableBaselinesScheduler.make_model(model_cls, model_params, env), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
@@ -238,8 +242,12 @@ algorithms = np.array([
 # %% Evaluate and record results
 # TODO: generate new, larger datasets
 # TODO: try making new features
+
 # TODO: make problem a shared node class attribute? Setting them seems hackish...
+
 # TODO: value networks
+# TODO: make custom output layers to avoid illegal actions?
+# TODO: make loss func for full seq targets, penalize in proportion to seq similarity?
 
 
 log_path = 'docs/temp/PGR_results.md'
