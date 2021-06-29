@@ -9,11 +9,11 @@ class Base(ABC):
     _learn_params_default = {}
 
     def __init__(self, env, model, learn_params=None):
-        self.model = model
-
         self.env = env
-        # if not isinstance(self.env.action_space, Discrete):
+        # if not isinstance(self.env.action_space, Discrete):  # TODO: delete?
         #     raise TypeError("Action space must be Discrete.")
+
+        self.model = model
 
         self._set_learn_params(learn_params)
         # self.learn_params = learn_params
@@ -54,6 +54,9 @@ class Base(ABC):
                 action = prob.argmax()
                 obs, reward, done, info = self.env.step(action)
 
+            # action = self.predict(obs)
+            # obs, reward, done, info = self.env.step(action)
+
             # if ensure_valid:
             #     prob = self.env.mask_probability(prob)
             # action = prob.argmax()
@@ -72,6 +75,10 @@ class Base(ABC):
 
     @abstractmethod
     def obs_to_prob(self, obs):
+        raise NotImplementedError
+
+    @abstractmethod
+    def predict(self, obs):
         raise NotImplementedError
 
     @abstractmethod

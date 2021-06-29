@@ -7,8 +7,7 @@ import math
 import numpy as np
 
 import torch
-from torch.utils.data import TensorDataset
-from torch.utils.data import DataLoader
+from torch.utils.data import TensorDataset, DataLoader
 
 import pytorch_lightning as pl
 
@@ -19,7 +18,9 @@ from task_scheduling.learning.base import Base as BaseLearningScheduler
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 # device = torch.device("cpu")
 
-AVAIL_CPUS = os.cpu_count()
+NUM_WORKERS = 0
+# NUM_WORKERS = os.cpu_count()
+
 AVAIL_GPUS = min(1, torch.cuda.device_count())
 
 PIN_MEMORY = True
@@ -47,6 +48,10 @@ class Base(BaseLearningScheduler):
             prob = self.model(input_).squeeze(0)
 
         return prob
+
+    def predict(self, obs):
+        p = self.obs_to_prob(obs)
+        return p.argmax()
 
     def reset(self):
         self.model.apply(weights_init)
@@ -82,14 +87,14 @@ class Base(BaseLearningScheduler):
 
         ds_train = TensorDataset(x_train, y_train)
         dl_train = DataLoader(ds_train, batch_size=batch_size_train * self.env.steps_per_episode, shuffle=shuffle,
-                              pin_memory=PIN_MEMORY)
+                              pin_memory=PIN_MEMORY, num_workers=NUM_WORKERS)
 
         # if callable(weight_func):  # FIXME: add sample weighting (validation, too)
         #     fit_params['sample_weight'] = d_train[2]
 
         ds_val = TensorDataset(x_val, y_val)
         dl_val = DataLoader(ds_val, batch_size=batch_size_val * self.env.steps_per_episode, shuffle=False,
-                            pin_memory=PIN_MEMORY)
+                            pin_memory=PIN_MEMORY, num_workers=NUM_WORKERS)
 
         self._fit(dl_train, dl_val, verbose)
 
@@ -223,6 +228,9 @@ class LitScheduler(Base):
 
         trainer_kwargs = {
             'gpus': AVAIL_GPUS,
+            # 'distributed_backend': 'ddp',
+            # 'profiler': 'simple',
+            'checkpoint_callback': False,
             'logger': True,
             'default_root_dir': str(self.log_dir),
             # 'progress_bar_refresh_rate': 0,

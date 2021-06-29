@@ -60,44 +60,45 @@ class StableBaselinesScheduler(BaseLearningScheduler):
 
     do_monitor = False
 
-    def __init__(self, model, env=None, learn_params=None):  # TODO: remove `env` arg? Change inheritance?
+    def __init__(self, env, model, learn_params=None):  # TODO: remove `env` arg? Change inheritance?
         super().__init__(env, model, learn_params)
 
         # self.model = model
         # self.env = env  # invokes setter
 
+        # self.steps_per_episode = env.steps_per_episode  # FIXME: weak hack...
+
     @classmethod
-    def make_model(cls, model_cls, model_params, env, learn_params=None):
+    def make_model(cls, env, model_cls, model_params, learn_params=None):
         model = model_cls(env=env, **model_params)
-        return cls(model, env=None, learn_params=learn_params)
+        return cls(env, model, learn_params)
 
-    # Environment access
-    @property
-    def env(self):
-        return self.model.get_env()
-
-    @env.setter
-    def env(self, env):
-        if env is None:
-            pass
-        elif isinstance(env, envs.BaseTasking):
-            if self.do_monitor:
-                env = Monitor(env, str(self.log_dir))
-            self.model.set_env(env)
-
-            self.steps_per_episode = env.steps_per_episode  # FIXME: weak hack...
-
-        else:
-            raise TypeError("Environment must be an instance of BaseTasking.")
+    # @property
+    # def env(self):
+    #     return self.model.get_env()
+    #
+    # @env.setter
+    # def env(self, env):
+    #     if isinstance(env, envs.BaseTasking):
+    #         if self.do_monitor:
+    #             env = Monitor(env, str(self.log_dir))
+    #         self.model.set_env(env)
+    #     elif env is not None:
+    #         raise TypeError("Environment must be an instance of BaseTasking.")
 
     def obs_to_prob(self, obs):
         return self.model.action_probability(obs)  # TODO: need `env.env_method` to access my reset?
 
+    def predict(self, obs):
+        action, _state = self.model.predict(obs)  # TODO: include state output, change base class?
+        return action
+
     def learn(self, n_gen_learn, verbose=0):
         # TODO: consider using `eval_env` argument to pass original env for `model.learn` call
 
-        # steps_per_episode = 8  # FIXME: HACK
-        steps_per_episode = self.env.steps_per_episode
+        # steps_per_episode = 8
+        # steps_per_episode = self.steps_per_episode
+        steps_per_episode = self.env.steps_per_episode  # TODO: breaks due to env vectorization
         self.model.learn(total_timesteps=n_gen_learn * steps_per_episode)
 
         if self.do_monitor:

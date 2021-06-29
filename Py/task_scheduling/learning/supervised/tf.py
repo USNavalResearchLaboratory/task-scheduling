@@ -46,14 +46,13 @@ class Scheduler(Base):
                              'plot_history': False,
                              }
 
-    # def __init__(self, env, model):
-    #     super().__init__(env, model)
-    #
-    #     # self.train_params = train_params
-
     def obs_to_prob(self, obs):
         input_ = obs[np.newaxis].astype('float32')
         return self.model(input_).numpy().squeeze(0)
+
+    def predict(self, obs):
+        p = self.obs_to_prob(obs)
+        return p.argmax()
 
     def _print_model(self, file=None):
         self.model.summary(print_fn=partial(print, file=file))
