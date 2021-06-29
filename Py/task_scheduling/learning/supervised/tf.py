@@ -19,9 +19,6 @@ for device in tf.config.experimental.list_physical_devices('GPU'):
     tf.config.experimental.set_memory_growth(device, True)  # TODO: compatibility issue workaround
 
 
-# TODO: make loss func for full seq targets?
-# TODO: make custom output layers to avoid illegal actions?
-
 def reset_weights(model):      # from https://github.com/keras-team/keras/issues/341#issuecomment-539198392
     for layer in model.layers:
         if isinstance(layer, keras.Model):
@@ -224,81 +221,81 @@ class Scheduler(Base):
 
         return cls(env, model)
 
-    @classmethod
-    def train_from_gen(cls, problem_gen, env_cls=envs.StepTasking, env_params=None, layers=None, compile_params=None,
-                       n_batch_train=1, n_batch_val=1, batch_size=1, weight_func=None, fit_params=None,
-                       do_tensorboard=False, plot_history=False, save=False, save_path=None):
-        """
-        Create and train a supervised learning scheduler.
-
-        Parameters
-        ----------
-        problem_gen : generators.scheduling_problems.Base
-            Scheduling problem generation object.
-        env_cls : class, optional
-            Gym environment class.
-        env_params : dict, optional
-            Parameters for environment initialization.
-        layers : Sequence of tensorflow.keras.layers.Layer
-            Neural network layers.
-        compile_params : dict, optional
-            Parameters for the model compile method.
-        n_batch_train : int
-            Number of batches of state-action pair data to generate for model training.
-        n_batch_val : int
-            Number of batches of state-action pair data to generate for model validation.
-        batch_size : int
-            Number of scheduling problems to make data from per yielded batch.
-        weight_func : callable, optional
-            Function mapping environment object to a training weight.
-        fit_params : dict, optional
-            Parameters for the model fit method.
-        do_tensorboard : bool, optional
-            If True, Tensorboard is used for training visualization.
-        plot_history : bool, optional
-            If True, training is visualized using plotting modules.
-        save : bool, optional
-            If True, the network and environment are serialized.
-        save_path : str, optional
-            String representation of sub-directory to save to.
-
-        Returns
-        -------
-        Scheduler
-
-        """
-
-        # Create environment
-        if env_params is None:
-            env = env_cls(problem_gen)
-        else:
-            env = env_cls(problem_gen, **env_params)
-
-        # Create model
-        if layers is None:
-            layers = []
-
-        model = keras.Sequential()
-        model.add(keras.Input(shape=env.observation_space.shape))
-        for layer in layers:  # add user-defined layers
-            model.add(layer)
-        if len(model.output_shape) > 2:  # flatten to 1-D for softmax output layer
-            model.add(keras.layers.Flatten())
-        model.add(keras.layers.Dense(env.action_space.n, activation='softmax',
-                                     kernel_initializer=keras.initializers.GlorotUniform()))
-
-        if compile_params is None:
-            compile_params = {'optimizer': 'rmsprop',
-                              'loss': 'sparse_categorical_crossentropy',
-                              'metrics': ['accuracy'],
-                              }
-        model.compile(**compile_params)
-
-        # Create and train scheduler
-        scheduler = cls(env, model)
-        scheduler.learn(n_batch_train, batch_size, n_batch_val, weight_func=weight_func, fit_params=fit_params,
-                        verbose=do_tensorboard, do_tensorboard=plot_history)
-        if save:
-            scheduler.save(save_path)
-
-        return scheduler
+    # @classmethod  # TODO: deprecate or update
+    # def train_from_gen(cls, problem_gen, env_cls=envs.StepTasking, env_params=None, layers=None, compile_params=None,
+    #                    n_batch_train=1, n_batch_val=1, batch_size=1, weight_func=None, fit_params=None,
+    #                    do_tensorboard=False, plot_history=False, save=False, save_path=None):
+    #     """
+    #     Create and train a supervised learning scheduler.
+    #
+    #     Parameters
+    #     ----------
+    #     problem_gen : generators.scheduling_problems.Base
+    #         Scheduling problem generation object.
+    #     env_cls : class, optional
+    #         Gym environment class.
+    #     env_params : dict, optional
+    #         Parameters for environment initialization.
+    #     layers : Sequence of tensorflow.keras.layers.Layer
+    #         Neural network layers.
+    #     compile_params : dict, optional
+    #         Parameters for the model compile method.
+    #     n_batch_train : int
+    #         Number of batches of state-action pair data to generate for model training.
+    #     n_batch_val : int
+    #         Number of batches of state-action pair data to generate for model validation.
+    #     batch_size : int
+    #         Number of scheduling problems to make data from per yielded batch.
+    #     weight_func : callable, optional
+    #         Function mapping environment object to a training weight.
+    #     fit_params : dict, optional
+    #         Parameters for the model fit method.
+    #     do_tensorboard : bool, optional
+    #         If True, Tensorboard is used for training visualization.
+    #     plot_history : bool, optional
+    #         If True, training is visualized using plotting modules.
+    #     save : bool, optional
+    #         If True, the network and environment are serialized.
+    #     save_path : str, optional
+    #         String representation of sub-directory to save to.
+    #
+    #     Returns
+    #     -------
+    #     Scheduler
+    #
+    #     """
+    #
+    #     # Create environment
+    #     if env_params is None:
+    #         env = env_cls(problem_gen)
+    #     else:
+    #         env = env_cls(problem_gen, **env_params)
+    #
+    #     # Create model
+    #     if layers is None:
+    #         layers = []
+    #
+    #     model = keras.Sequential()
+    #     model.add(keras.Input(shape=env.observation_space.shape))
+    #     for layer in layers:  # add user-defined layers
+    #         model.add(layer)
+    #     if len(model.output_shape) > 2:  # flatten to 1-D for softmax output layer
+    #         model.add(keras.layers.Flatten())
+    #     model.add(keras.layers.Dense(env.action_space.n, activation='softmax',
+    #                                  kernel_initializer=keras.initializers.GlorotUniform()))
+    #
+    #     if compile_params is None:
+    #         compile_params = {'optimizer': 'rmsprop',
+    #                           'loss': 'sparse_categorical_crossentropy',
+    #                           'metrics': ['accuracy'],
+    #                           }
+    #     model.compile(**compile_params)
+    #
+    #     # Create and train scheduler
+    #     scheduler = cls(env, model)
+    #     scheduler.learn(n_batch_train, batch_size, n_batch_val, weight_func=weight_func, fit_params=fit_params,
+    #                     verbose=do_tensorboard, do_tensorboard=plot_history)
+    #     if save:
+    #         scheduler.save(save_path)
+    #
+    #     return scheduler

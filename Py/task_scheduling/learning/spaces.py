@@ -150,7 +150,8 @@ class DiscreteSet(Space):
 
 class DiscreteMasked(Discrete):
     def __init__(self, n, mask=np.ma.nomask):
-        # self._mask = mask
+        """A Discrete space with masked elements for sampling and membership testing."""
+
         super().__init__(n)
         self.mask = mask
 
@@ -158,24 +159,18 @@ class DiscreteMasked(Discrete):
 
     @property
     def n(self):
-        # return self._n
         return self._ma.size
 
     @n.setter
     def n(self, val):
-        # self._n = int(val)
-        # self._ma = np.ma.masked_array(range(int(val)), self._mask)
         self._ma = np.ma.masked_array(range(int(val)))
 
     @property
     def mask(self):
-        # return self._mask
         return self._ma.mask
 
     @mask.setter
     def mask(self, val):
-        # self._mask = np.array(val, dtype=bool)
-        # self._ma = np.ma.masked_array(range(self.n), self._mask)
         # self._ma.mask = np.ma.make_mask(val)  # TODO: use `ma.masked` instead?
         self._ma.mask = np.ma.nomask
         self._ma[np.array(val, dtype=bool)] = np.ma.masked
@@ -185,10 +180,7 @@ class DiscreteMasked(Discrete):
         return self._ma.compressed()
 
     def sample(self):
-        # unmasked_values = self._ma[~self._ma.mask]
-        # return self._rng.choice(unmasked_values)
         return self._rng.choice(self.valid_entries)
-        # return self.np_random.randint(self.n)
 
     def contains(self, x):
         return x in self.valid_entries

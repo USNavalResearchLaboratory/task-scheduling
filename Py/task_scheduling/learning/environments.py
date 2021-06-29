@@ -3,6 +3,7 @@ from copy import deepcopy
 from math import factorial
 from types import MethodType
 from operator import attrgetter
+from warnings import warn
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -64,6 +65,8 @@ class BaseTasking(Env, ABC):
             self._sort_func_str = None
 
         self.masking = masking
+        if masking:
+            warn("NotImplemented: observation space lower limits not properly modified!")  # FIXME
 
         self.reward_range = (-float('inf'), 0)
         self.loss_agg = None
@@ -142,10 +145,9 @@ class BaseTasking(Env, ABC):
         """Determines the action Gym.Space from an observation."""
         raise NotImplementedError
 
-    @abstractmethod
     def _update_spaces(self):
         """Update observation and action spaces."""
-        raise NotImplementedError
+        pass
 
     def reset(self, tasks=None, ch_avail=None, persist=False, solve=False, rng=None):
         """
@@ -387,17 +389,9 @@ class SeqTasking(BaseTasking):
         """Determines the action Gym.Space from an observation."""
         return self._action_space_map(len(obs))
 
-    def _update_spaces(self):
-        """Update observation and action spaces."""
-        pass
-
     def step(self, action):
-        if self.action_type == 'seq':
-            pass
-        elif self.action_type == 'int':
+        if self.action_type == 'int':
             action = list(num2seq(action, self.n_tasks))  # decode integer to sequence
-        else:
-            raise ValueError
 
         return super().step(action)
 
@@ -485,11 +479,13 @@ class StepTasking(BaseTasking):
             self.seq_encoding = MethodType(_seq_encoding, self)
 
         elif callable(seq_encoding):
-            self.seq_encoding = MethodType(seq_encoding, self)
+            raise NotImplementedError
 
-            env_copy = deepcopy(self)  # FIXME: hacked - find better way!
-            env_copy.reset()
-            self.len_seq_encode = len(env_copy.seq_encoding(0))
+            # self.seq_encoding = MethodType(seq_encoding, self)
+            #
+            # env_copy = deepcopy(self)  # FIXME: hacked - find better way!
+            # env_copy.reset()
+            # self.len_seq_encode = len(env_copy.seq_encoding(0))
         else:
             raise TypeError("Permutation encoding input must be callable or str.")
 
@@ -539,9 +535,10 @@ class StepTasking(BaseTasking):
         """Update observation and action spaces."""
         if self.do_valid_actions:
             seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
-            self.action_space = spaces_tasking.DiscreteSet(seq_rem_sort)
-        else:
-            pass
+            # self.action_space = spaces_tasking.DiscreteSet(seq_rem_sort)
+            mask = np.ones(self.n_tasks, dtype=bool)
+            mask[seq_rem_sort] = False
+            self.action_space.mask = mask
 
     # def step(self, action):   # TODO: improve or delete
     #     if self.do_valid_actions or self.sorted_index[action] in self.node.seq_rem:

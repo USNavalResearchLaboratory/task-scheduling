@@ -314,8 +314,8 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
         for learner in algorithms['func']:
             if isinstance(learner, BaseLearningScheduler):
                 learner.reset()
-                # learner.learn(verbose=verbose - 1, **train_args)  # note: calls `problem_gen` via environment reset
-                learner.learn(n_gen_learn, verbose=verbose - 1)
+                # learner.learn(verbose=verbose - 1, **train_args)
+                learner.learn(n_gen_learn, verbose=verbose - 1)  # note: calls `problem_gen` via environment reset
 
         # Evaluate performance
         l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen, solve, verbose - 1, plotting - 1)

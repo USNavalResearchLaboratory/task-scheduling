@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-# from tensorflow import keras
 from torch import nn, optim
 from torch.nn import functional
 import pytorch_lightning as pl
@@ -63,10 +62,10 @@ env_params = {
     'sort_func': 't_release',
     # 'time_shift': False,
     'time_shift': True,
-    'masking': False,
-    # 'masking': True,
-    'action_type': 'valid',
-    # 'action_type': 'any',
+    # 'masking': False,
+    'masking': True,
+    # 'action_type': 'valid',
+    'action_type': 'any',
     # 'seq_encoding': None,
     'seq_encoding': 'one-hot',
 }
@@ -79,29 +78,32 @@ env = envs.StepTasking(problem_gen, **env_params)
 #     return keras.initializers.GlorotUniform(seed)
 #
 #
-# layers = [keras.layers.Flatten(),
-#           keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
-#           keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
-#           # keras.layers.Dropout(0.2),
-#           ]
+# layers = [
+#     keras.layers.Flatten(),
+#     keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
+#     keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
+#     # keras.layers.Dropout(0.2),
+# ]
 #
-# # layers = [keras.layers.Conv1D(30, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-# #           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-# #           keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-# #           # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
-# #           keras.layers.Flatten(),
-# #           ]
+# # layers = [
+# #     keras.layers.Conv1D(30, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+# #     keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+# #     keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+# #     # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
+# #     # keras.layers.Flatten(),
+# # ]
 #
-# # layers = [keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
-# #           keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu', kernel_initializer=_weight_init())]
+# # layers = [
+# #     keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
+# #     keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu', kernel_initializer=_weight_init())
+# # ]
 #
 #
 # model_tf = keras.Sequential([keras.Input(shape=env.observation_space.shape),
 #                              *layers,
 #                              keras.layers.Dense(env.action_space.n, activation='softmax',
-#                                                 kernel_initializer=_weight_init())
-#                              ])
-# model_tf.compile(optimizer='sgd', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+#                                                 kernel_initializer=_weight_init())])
+# model_tf.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
 
 model_torch = nn.Sequential(
@@ -115,7 +117,8 @@ model_torch = nn.Sequential(
 )
 
 loss_func = nn.CrossEntropyLoss()
-opt = optim.SGD(model_torch.parameters(), lr=1e-2)
+opt = optim.Adam(model_torch.parameters(), lr=1e-3)
+# opt = optim.SGD(model_torch.parameters(), lr=1e-2)
 
 
 class LitModel(pl.LightningModule):
@@ -149,7 +152,8 @@ class LitModel(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        return optim.SGD(self.parameters(), lr=1e-2)
+        return optim.Adam(self.parameters(), lr=1e-3)
+        # return optim.SGD(self.parameters(), lr=1e-2)
 
 
 model_pl = LitModel()
@@ -176,10 +180,12 @@ train_params_tf = {'batch_size_train': 20,
                    'epochs': 400,
                    'shuffle': True,
                    # 'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=20, min_delta=0.)]
+                   'plot_history': True,
                    }
 
 learn_params_pl = {'batch_size_train': 20,
-                   'n_gen_val': 1/3, 'batch_size_val': 30,
+                   'n_gen_val': 1/3,
+                   'batch_size_val': 30,
                    'weight_func': None,
                    # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
                    'max_epochs': 400,
@@ -233,8 +239,8 @@ algorithms = np.array([
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
     # ('Torch Policy', TorchScheduler(env, model_torch, loss_func, opt, learn_params_pl), 10),
     # ('Torch Policy', TorchScheduler.load('models/temp/2021-06-16T12_14_41.pkl'), 10),
-    # ('Lit Policy', LitScheduler(env, model_pl, learn_params_pl), 10),
-    ('DQN Agent', StableBaselinesScheduler.make_model(model_cls, model_params, env), 5),
+    ('Lit Policy', LitScheduler(env, model_pl, learn_params_pl), 10),
+    # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
