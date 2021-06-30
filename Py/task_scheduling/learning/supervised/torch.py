@@ -11,8 +11,8 @@ from torch.utils.data import TensorDataset, DataLoader
 
 import pytorch_lightning as pl
 
-from task_scheduling.learning.base import Base as BaseLearningScheduler
 # from task_scheduling.util.generic import NOW_STR
+from task_scheduling.learning.base import Base as BaseLearningScheduler
 
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -41,17 +41,23 @@ class Base(BaseLearningScheduler):
                              'shuffle': False,
                              'callbacks': []}
 
-    def obs_to_prob(self, obs):
+    def predict_prob(self, obs):
         with torch.no_grad():
             input_ = torch.from_numpy(obs[np.newaxis]).float()  # TODO: tensor conversion in model?
             # input_ = input_.to(device)
             prob = self.model(input_).squeeze(0)
 
-        return prob
+        return prob.numpy()
 
     def predict(self, obs):
-        p = self.obs_to_prob(obs)
-        return p.argmax()
+        p = self.predict_prob(obs)
+        action = p.argmax()
+
+        if action not in self.env.action_space:  # mask out invalid actions
+            p = self.env.mask_probability(p)
+            action = p.argmax()
+
+        return action
 
     def reset(self):
         self.model.apply(weights_init)

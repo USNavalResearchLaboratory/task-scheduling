@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-# from gym.spaces import Discrete
+from gym.spaces import Discrete
 
 from task_scheduling.learning.environments import BaseTasking
 
@@ -10,13 +10,12 @@ class Base(ABC):
 
     def __init__(self, env, model, learn_params=None):
         self.env = env
-        # if not isinstance(self.env.action_space, Discrete):  # TODO: delete?
-        #     raise TypeError("Action space must be Discrete.")
+        if not isinstance(self.env.action_space, Discrete):
+            raise TypeError("Action space must be Discrete.")
 
         self.model = model
 
         self._set_learn_params(learn_params)
-        # self.learn_params = learn_params
 
     def __call__(self, tasks, ch_avail):
         """
@@ -36,32 +35,12 @@ class Base(ABC):
             Task execution channels.
         """
 
-        # ensure_valid = isinstance(self.env, envs.StepTasking) and not self.env.do_valid_actions
-        # # ensure_valid = False
-
         obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)
 
         done = False
         while not done:
-            prob = self.obs_to_prob(obs)
-            # prob = np.zeros(self.env.action_space.n)
-
-            try:
-                action = prob.argmax()
-                obs, reward, done, info = self.env.step(action)
-            except ValueError:
-                prob = self.env.mask_probability(prob)
-                action = prob.argmax()
-                obs, reward, done, info = self.env.step(action)
-
-            # action = self.predict(obs)
-            # obs, reward, done, info = self.env.step(action)
-
-            # if ensure_valid:
-            #     prob = self.env.mask_probability(prob)
-            # action = prob.argmax()
-            #
-            # obs, reward, done, info = self.env.step(action)
+            action = self.predict(obs)
+            obs, reward, done, info = self.env.step(action)
 
         return self.env.node.t_ex, self.env.node.ch_ex
 
@@ -73,9 +52,9 @@ class Base(ABC):
         if learn_params is not None:
             self.learn_params.update(learn_params)
 
-    @abstractmethod
-    def obs_to_prob(self, obs):
-        raise NotImplementedError
+    # @abstractmethod
+    # def predict_prob(self, obs):
+    #     raise NotImplementedError
 
     @abstractmethod
     def predict(self, obs):

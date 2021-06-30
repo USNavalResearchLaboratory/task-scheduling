@@ -43,13 +43,19 @@ class Scheduler(Base):
                              'plot_history': False,
                              }
 
-    def obs_to_prob(self, obs):
+    def predict_prob(self, obs):
         input_ = obs[np.newaxis].astype('float32')
         return self.model(input_).numpy().squeeze(0)
 
     def predict(self, obs):
-        p = self.obs_to_prob(obs)
-        return p.argmax()
+        p = self.predict_prob(obs)
+        action = p.argmax()
+
+        if action not in self.env.action_space:  # mask out invalid actions
+            p = self.env.mask_probability(p)
+            action = p.argmax()
+
+        return action
 
     def _print_model(self, file=None):
         self.model.summary(print_fn=partial(print, file=file))

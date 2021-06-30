@@ -86,8 +86,8 @@ class StableBaselinesScheduler(BaseLearningScheduler):
     #     elif env is not None:
     #         raise TypeError("Environment must be an instance of BaseTasking.")
 
-    def obs_to_prob(self, obs):
-        return self.model.action_probability(obs)  # TODO: need `env.env_method` to access my reset?
+    # def predict_prob(self, obs):
+    #     return self.model.action_probability(obs)  # TODO: need `env.env_method` to access my reset?
 
     def predict(self, obs):
         action, _state = self.model.predict(obs)  # TODO: include state output, change base class?

@@ -64,8 +64,8 @@ env_params = {
     'time_shift': True,
     # 'masking': False,
     'masking': True,
-    # 'action_type': 'valid',
-    'action_type': 'any',
+    'action_type': 'valid',
+    # 'action_type': 'any',
     # 'seq_encoding': None,
     'seq_encoding': 'one-hot',
 }
@@ -216,10 +216,11 @@ learn_params_sb = {}
 
 # TODO: generalize for multiple learners, ensure same data is used for each training op
 
-# FIXME: no faster on GPU!?!?
+# FIXME: no faster on GPU!?!? CHECK batch size effects!
 # FIXME: INVESTIGATE huge PyTorch speed-up over Tensorflow!!
 
 # TODO: new MCTS parameter search for shorter runtime
+# TODO: make problem a shared node class attribute? Setting them seems hackish...
 
 
 algorithms = np.array([
@@ -248,8 +249,6 @@ algorithms = np.array([
 # %% Evaluate and record results
 # TODO: generate new, larger datasets
 # TODO: try making new features
-
-# TODO: make problem a shared node class attribute? Setting them seems hackish...
 
 # TODO: value networks
 # TODO: make custom output layers to avoid illegal actions?

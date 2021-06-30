@@ -335,7 +335,7 @@ class BaseTasking(Env, ABC):
 
 
 class SeqTasking(BaseTasking):
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='seq'):
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='int'):
         """
         Tasking environment with single action of a complete task index sequence.
 
@@ -448,9 +448,10 @@ class StepTasking(BaseTasking):
         super().__init__(problem_gen, features, sort_func, time_shift, masking)
 
         # Action types
-        if action_type == 'valid':
+        self.action_type = action_type
+        if self.action_type == 'valid':
             self.do_valid_actions = True
-        elif action_type == 'any':
+        elif self.action_type == 'any':
             self.do_valid_actions = False
         else:
             raise ValueError("Action type must be 'valid' or 'any'.")
@@ -509,7 +510,7 @@ class StepTasking(BaseTasking):
     def summary(self, file=None):
         # super().summary(file)
         str_ = self._base_summary()
-        str_ += f"\n- Valid actions: {self.do_valid_actions}"
+        str_ += f"\n- Action type: {self.action_type}"
         str_ += f"\n- Sequence encoding: {self._seq_encode_str}"
         print(str_, file=file, end='\n\n')
 
@@ -536,9 +537,7 @@ class StepTasking(BaseTasking):
         if self.do_valid_actions:
             seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
             # self.action_space = spaces_tasking.DiscreteSet(seq_rem_sort)
-            mask = np.ones(self.n_tasks, dtype=bool)
-            mask[seq_rem_sort] = False
-            self.action_space.mask = mask
+            self.action_space.mask = np.isin(np.arange(self.n_tasks), seq_rem_sort, invert=True)
 
     # def step(self, action):   # TODO: improve or delete
     #     if self.do_valid_actions or self.sorted_index[action] in self.node.seq_rem:
