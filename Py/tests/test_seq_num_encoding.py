@@ -1,3 +1,7 @@
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from math import factorial
 
 import numpy as np
@@ -5,9 +9,11 @@ import numpy as np
 from task_scheduling.util.generic import num2seq, seq2num
 
 
-def main():
+def test_encode_decode():
     length = 5
-    for _ in range(100):
+    for i in range(100):
+        print(f"{i}", end='\n')
+
         seq = tuple(np.random.permutation(length))
         assert seq == num2seq(seq2num(seq), length)
 
@@ -16,4 +22,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    test_encode_decode()
