@@ -8,7 +8,7 @@ from stable_baselines3.common.results_plotter import plot_results
 
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.base import Base as BaseLearningScheduler
-from task_scheduling.learning.supervised.torch import weights_init
+from task_scheduling.learning.supervised.torch import reset_weights
 # from task_scheduling.util.generic import NOW_STR
 
 
@@ -105,7 +105,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
             plot_results([str(self.log_dir)], num_timesteps=None, x_axis='timesteps', task_name='Training history')
 
     def reset(self):
-        self.model.policy.apply(weights_init)
+        self.model.policy.apply(reset_weights)
 
     # def save(self, save_path=None):
     #     if save_path is None:

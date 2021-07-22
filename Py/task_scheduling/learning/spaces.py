@@ -171,7 +171,6 @@ class DiscreteMasked(Discrete):
 
     @mask.setter
     def mask(self, val):
-        # self._ma.mask = np.ma.make_mask(val)  # TODO: use `ma.masked` instead?
         self._ma.mask = np.ma.nomask
         self._ma[np.array(val, dtype=bool)] = np.ma.masked
 

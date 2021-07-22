@@ -365,5 +365,3 @@ def brute_force(tasks, ch_avail, verbose=False):
     node_best = node.brute_force(inplace=False, verbose=verbose)
 
     return node_best.t_ex, node_best.ch_ex
-
-
