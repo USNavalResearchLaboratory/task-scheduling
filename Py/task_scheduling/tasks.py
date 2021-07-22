@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 
-# %% Task utilities
+#%% Task utilities
 
 def check_task_types(tasks):
     cls_task = tasks[0].__class__
@@ -29,7 +29,7 @@ def summarize_tasks(tasks, file=None, **tabulate_kwargs):
     # print(tasks_to_dataframe(tasks).to_markdown(tablefmt='github', floatfmt='.3f'))
 
 
-# %% Task objects
+#%% Task objects
 
 class Base(ABC):
     """
@@ -291,7 +291,7 @@ class ReluDrop(Shift):
         return self.t_release, self.t_release + self.t_drop + 1
 
 
-# %% Radar tasks
+#%% Radar tasks
 
 class ReluDropRadar(ReluDrop):
     # param_names = ('duration', 't_release', 'slope', 't_drop', 'l_drop', 't_dwell', 't_revisit')

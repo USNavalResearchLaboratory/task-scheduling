@@ -34,7 +34,7 @@ seed = 12345
 # tf.random.set_seed(seed)
 
 
-# %% Define scheduling problem and algorithms
+#%% Define scheduling problem and algorithms
 
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
@@ -246,7 +246,7 @@ algorithms = np.array([
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
 
-# %% Evaluate and record results
+#%% Evaluate and record results
 # TODO: generate new, larger datasets
 # TODO: try making new features
 
@@ -291,7 +291,7 @@ with open(log_path, 'a') as fid:
     print(f"![](../../{image_path}.png)\n", file=fid)
 
 
-# %% Limited Runtime
+#%% Limited Runtime
 
 # algorithms = np.array([
 #     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
