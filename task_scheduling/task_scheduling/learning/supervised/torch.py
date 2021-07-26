@@ -256,14 +256,11 @@ class LitScheduler(Base):
             'max_epochs': self.learn_params['max_epochs'],
             'callbacks': self.learn_params['callbacks'],
         }
-        # self.trainer = pl.Trainer(**self.trainer_params)
-        # self._trainer_init = deepcopy(self.trainer)
         self.trainer = pl.Trainer(**self.trainer_params)
 
     def reset(self):  # TODO: add reset method to predictor base class?
         super().reset()
-        # self.trainer = deepcopy(self._trainer_init)
-        self.trainer = pl.Trainer(**self.trainer_params)
+        self.trainer = pl.Trainer(**deepcopy(self.trainer_params))
 
     def _fit(self, dl_train, dl_val, verbose=0):
 
