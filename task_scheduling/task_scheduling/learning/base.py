@@ -15,7 +15,9 @@ class Base(ABC):
 
         self.model = model
 
-        self._set_learn_params(learn_params)
+        self._learn_params = self._learn_params_default.copy()
+        self.learn_params = learn_params
+        # self._set_learn_params(learn_params)
 
     def __call__(self, tasks, ch_avail):
         """
@@ -44,13 +46,23 @@ class Base(ABC):
 
         return self.env.node.t_ex, self.env.node.ch_ex
 
-    def _set_learn_params(self, learn_params):
-        # if learn_params is None:
-        #     learn_params = {}
-        # self.learn_params = self._learn_params_default | learn_params
-        self.learn_params = self._learn_params_default.copy()
-        if learn_params is not None:
-            self.learn_params.update(learn_params)
+    @property
+    def learn_params(self):
+        return self._learn_params
+
+    @learn_params.setter
+    def learn_params(self, params):
+        # self._learn_params = self._learn_params_default.copy()
+        if params is not None:
+            self._learn_params.update(params)
+
+    # def _set_learn_params(self, learn_params):
+    #     # if learn_params is None:
+    #     #     learn_params = {}
+    #     # self.learn_params = self._learn_params_default | learn_params
+    #     self.learn_params = self._learn_params_default.copy()
+    #     if learn_params is not None:
+    #         self.learn_params.update(learn_params)
 
     # @abstractmethod
     # def predict_prob(self, obs):

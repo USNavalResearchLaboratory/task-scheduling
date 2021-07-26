@@ -3,6 +3,7 @@ from functools import partial
 from pathlib import Path
 from abc import abstractmethod
 import math
+from copy import deepcopy
 
 import numpy as np
 
@@ -27,27 +28,42 @@ PIN_MEMORY = True
 # PIN_MEMORY = False
 
 
-def weights_init(model):
+def reset_weights(model):
     if hasattr(model, 'reset_parameters'):
         model.reset_parameters()
 
 
 class Base(BaseLearningScheduler):
-    _learn_params_default = {'batch_size_train': 1,
-                             'n_gen_val': 0,
-                             'batch_size_val': 1,
-                             'weight_func': None,
-                             'max_epochs': 1,
-                             'shuffle': False,
-                             'callbacks': []}
+    _learn_params_default = {
+        'batch_size_train': 1,
+        'n_gen_val': 0,
+        'batch_size_val': 1,
+        'weight_func': None,
+        'max_epochs': 1,
+        'shuffle': False,
+        'callbacks': []
+    }
 
     def predict_prob(self, obs):
-        with torch.no_grad():
-            input_ = torch.from_numpy(obs[np.newaxis]).float()  # TODO: tensor conversion in model?
-            # input_ = input_.to(device)
-            prob = self.model(input_).squeeze(0)
+        _batch = True
+        if obs.shape == self.env.observation_space.shape:
+            _batch = False
+            obs = obs[np.newaxis]
+        else:
+            raise NotImplementedError("Batch prediction not supported.")
+        obs = obs.astype('float32')
 
-        return prob.numpy()
+        with torch.no_grad():
+            # input_ = torch.from_numpy(obs[np.newaxis]).float()  # TODO: tensor conversion in model?
+            input_ = torch.from_numpy(obs)
+            # input_ = input_.to(device)
+            prob = self.model(input_)
+
+        prob = prob.numpy()
+        if not _batch:
+            prob = prob.squeeze(axis=0)
+
+        return prob
 
     def predict(self, obs):
         p = self.predict_prob(obs)
@@ -60,7 +76,7 @@ class Base(BaseLearningScheduler):
         return action
 
     def reset(self):
-        self.model.apply(weights_init)
+        self.model.apply(reset_weights)
 
     @abstractmethod
     def _fit(self, dl_train, dl_val, verbose=0):
@@ -74,33 +90,30 @@ class Base(BaseLearningScheduler):
 
         n_gen_train = n_gen_learn - n_gen_val
 
-        batch_size_train = self.learn_params['batch_size_train']
-        batch_size_val = self.learn_params['batch_size_val']
-        weight_func = self.learn_params['weight_func']
-        shuffle = self.learn_params['shuffle']
-
         if verbose >= 1:
             print("Generating training data...")
-        x_train, y_train, *__ = self.env.data_gen_full(n_gen_train, weight_func=weight_func, verbose=verbose)
+        x_train, y_train, *__ = self.env.data_gen_full(n_gen_train, weight_func=self.learn_params['weight_func'],
+                                                       verbose=verbose)
 
         if verbose >= 1:
             print("Generating validation data...")
-        x_val, y_val, *__ = self.env.data_gen_full(n_gen_val, weight_func=weight_func, verbose=verbose)
+        x_val, y_val, *__ = self.env.data_gen_full(n_gen_val, weight_func=self.learn_params['weight_func'],
+                                                   verbose=verbose)
 
         # x_train, y_train, x_val, y_val = map(torch.tensor, (x_train, y_train, x_val, y_val))
         x_train, x_val = map(partial(torch.tensor, dtype=torch.float32), (x_train, x_val))
         y_train, y_val = map(partial(torch.tensor, dtype=torch.int64), (y_train, y_val))
 
         ds_train = TensorDataset(x_train, y_train)
-        dl_train = DataLoader(ds_train, batch_size=batch_size_train * self.env.steps_per_episode, shuffle=shuffle,
-                              pin_memory=PIN_MEMORY, num_workers=NUM_WORKERS)
+        dl_train = DataLoader(ds_train, batch_size=self.learn_params['batch_size_train'] * self.env.steps_per_episode,
+                              shuffle=self.learn_params['shuffle'], pin_memory=PIN_MEMORY, num_workers=NUM_WORKERS)
 
         # if callable(weight_func):  # FIXME: add sample weighting (validation, too)
         #     fit_params['sample_weight'] = d_train[2]
 
         ds_val = TensorDataset(x_val, y_val)
-        dl_val = DataLoader(ds_val, batch_size=batch_size_val * self.env.steps_per_episode, shuffle=False,
-                            pin_memory=PIN_MEMORY, num_workers=NUM_WORKERS)
+        dl_val = DataLoader(ds_val, batch_size=self.learn_params['batch_size_val'] * self.env.steps_per_episode,
+                            shuffle=False, pin_memory=PIN_MEMORY, num_workers=NUM_WORKERS)
 
         self._fit(dl_train, dl_val, verbose)
 
@@ -232,7 +245,7 @@ class LitScheduler(Base):
     def __init__(self, env, model, learn_params):
         super().__init__(env, model, learn_params)
 
-        trainer_kwargs = {
+        self.trainer_params = {
             'gpus': AVAIL_GPUS,
             # 'distributed_backend': 'ddp',
             # 'profiler': 'simple',
@@ -243,7 +256,14 @@ class LitScheduler(Base):
             'max_epochs': self.learn_params['max_epochs'],
             'callbacks': self.learn_params['callbacks'],
         }
-        self.trainer = pl.Trainer(**trainer_kwargs)
+        # self.trainer = pl.Trainer(**self.trainer_params)
+        # self._trainer_init = deepcopy(self.trainer)
+        self.trainer = pl.Trainer(**self.trainer_params)
+
+    def reset(self):  # TODO: add reset method to predictor base class?
+        super().reset()
+        # self.trainer = deepcopy(self._trainer_init)
+        self.trainer = pl.Trainer(**self.trainer_params)
 
     def _fit(self, dl_train, dl_val, verbose=0):
 

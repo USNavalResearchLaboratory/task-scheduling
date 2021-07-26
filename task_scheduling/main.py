@@ -1,20 +1,23 @@
 from functools import partial
 from itertools import product
 from pathlib import Path
+# from operator import methodcaller
 
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
+import torch
 from torch import nn, optim
 from torch.nn import functional
 import pytorch_lightning as pl
-from stable_baselines3.common.env_checker import check_env
+# from stable_baselines3.common.env_checker import check_env
 
 from task_scheduling.util.results import evaluate_algorithms_train
 from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix, NOW_STR
 from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.algorithms import free
+from task_scheduling.algorithms.ensemble import ensemble_scheduler
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 # from task_scheduling.learning.supervised.tf import keras, Scheduler as tfScheduler
@@ -64,8 +67,8 @@ env_params = {
     'time_shift': True,
     # 'masking': False,
     'masking': True,
-    'action_type': 'valid',
     # 'action_type': 'any',
+    'action_type': 'valid',
     # 'seq_encoding': None,
     'seq_encoding': 'one-hot',
 }
@@ -106,22 +109,13 @@ env = envs.StepTasking(problem_gen, **env_params)
 # model_tf.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
 
-model_torch = nn.Sequential(
-    nn.Flatten(),
-    nn.Linear(np.prod(env.observation_space.shape).item(), 30),
-    nn.ReLU(),
-    nn.Linear(30, 30),
-    nn.ReLU(),
-    nn.Linear(30, env.action_space.n),
-    # nn.Softmax(dim=1),
-)
-
-loss_func = nn.CrossEntropyLoss()
-opt = optim.Adam(model_torch.parameters(), lr=1e-3)
-# opt = optim.SGD(model_torch.parameters(), lr=1e-2)
+def valid_mask(obs):  # vectorized variant of `env.infer_action_space`
+    state_seq = obs[..., :env.len_seq_encode]
+    mask = state_seq.sum(axis=-1)
+    return mask
 
 
-class LitModel(pl.LightningModule):
+class TorchModel(nn.Module):
     def __init__(self):
         super().__init__()
         self.model = nn.Sequential(
@@ -131,23 +125,67 @@ class LitModel(pl.LightningModule):
             nn.Linear(30, 30),
             nn.ReLU(),
             nn.Linear(30, env.action_space.n),
-            # nn.Softmax(dim=1),
+            nn.LogSoftmax(dim=1),
         )
+
+    def forward(self, x):
+        # return self.model(x)
+
+        p = self.model(x)
+        with torch.no_grad():
+            mask = valid_mask(x)
+            p *= mask
+        return p
+
+
+model_torch = TorchModel()
+
+# loss_func = functional.cross_entropy
+loss_func = functional.nll_loss
+
+opt = optim.Adam(model_torch.parameters(), lr=1e-3)
+# opt = optim.SGD(model_torch.parameters(), lr=1e-2)
+
+
+class LitModel(pl.LightningModule):
+    def __init__(self):
+        super().__init__()
+        # self.model = model_torch
+        # self.loss_func = loss_func
+
+        self.model = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(np.prod(env.observation_space.shape).item(), 30),
+            nn.ReLU(),
+            nn.Linear(30, 30),
+            nn.ReLU(),
+            nn.Linear(30, env.action_space.n),
+            nn.LogSoftmax(dim=1),
+        )
+
+        # self.loss_func = functional.cross_entropy
+        self.loss_func = functional.nll_loss
 
     def forward(self, x):
         return self.model(x)
 
+        # p = self.model(x)
+        # # with torch.no_grad():
+        # #     mask = valid_mask(x)
+        # #     p *= mask
+        # return p
+
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = functional.cross_entropy(y_hat, y)
+        loss = self.loss_func(y_hat, y)
         self.log('train_loss', loss)
         return loss
 
     def validation_step(self, batch, batch_idx):  # TODO: DRY? default?
         x, y = batch
         y_hat = self(x)
-        loss = functional.cross_entropy(y_hat, y)
+        loss = self.loss_func(y_hat, y)
         self.log('val_loss', loss)
         return loss
 
@@ -225,7 +263,8 @@ learn_params_sb = {}
 
 algorithms = np.array([
     # ('BB', partial(free.branch_bound, rng=RNGMix.make_rng(seed)), 1),
-    # ('BB_p', partial(free.branch_bound_priority, heuristic=methodcaller('roll_out', inplace=False, rng=RNGMix.make_rng(seed))), 1),
+    # ('BB_p', partial(free.branch_bound_priority, heuristic=methodcaller('roll_out', inplace=False,
+    #                                                                     rng=RNGMix.make_rng(seed))), 1),
     # ('BB_p_ERT', partial(free.branch_bound_priority, heuristic=methodcaller('earliest_release', inplace=False)), 1),
     # ('B&B sort', sort_wrapper(partial(free.branch_bound, verbose=False), 't_release'), 1),
     # ('Ensemble', ensemble_scheduler(free.random_sequencer, free.earliest_release), 5),
@@ -233,7 +272,8 @@ algorithms = np.array([
     ('ERT', free.earliest_release, 10),
     *((f'MCTS: c={c}, t={t}', partial(free.mcts, runtime=.002, c_explore=c, visit_threshold=t,
                                       rng=RNGMix.make_rng(seed)), 10) for c, t in product([.035], [15])),
-    # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, runtime=.02, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [15]),
+    # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, runtime=.02, c_explore=c,
+    #                               rng=RNGMix.make_rng(seed)), 10) for c in [15]),
     # *((f'MCTS, c={c}, t={t}', partial(free.mcts, n_mc=50, c_explore=c, visit_threshold=t,
     #                                   rng=RNGMix.make_rng(seed)), 10) for c, t in product([0.05], [15])),
     # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, n_mc=50, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10]),

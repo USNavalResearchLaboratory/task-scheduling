@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from copy import deepcopy
+# from copy import deepcopy
 from math import factorial
 from types import MethodType
 from operator import attrgetter
@@ -524,10 +524,10 @@ class StepTasking(BaseTasking):
         """Determines the action Gym.Space from an observation."""
         if self.do_valid_actions:
             state_seq = obs[:, :self.len_seq_encode]
-            seq_rem_sort = np.flatnonzero(1 - state_seq.sum(1))
+            # seq_rem_sort = np.flatnonzero(1 - state_seq.sum(1))
             # return spaces_tasking.DiscreteSet(seq_rem_sort)
-            mask = np.ones(self.n_tasks, dtype=bool)
-            mask[seq_rem_sort] = False
+
+            mask = state_seq.sum(axis=1).astype(bool)
             return spaces_tasking.DiscreteMasked(self.n_tasks, mask)
         else:
             return Discrete(len(obs))
@@ -564,10 +564,15 @@ class StepTasking(BaseTasking):
 
         return x_set, y_set, w_set
 
-    def mask_probability(self, p):
+    def mask_probability(self, p):  # TODO: generalize/move for base class, or move to scheduler class?
         """Returns masked action probabilities based on unscheduled task indices."""
 
-        seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
-        mask = np.isin(np.arange(self.n_tasks), seq_rem_sort, invert=True)
+        # seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
+        # mask = np.isin(np.arange(self.n_tasks), seq_rem_sort, invert=True)
+        # return np.ma.masked_array(p, mask)
 
-        return np.ma.masked_array(p, mask)
+        # if isinstance(self.action_space, spaces_tasking.DiscreteMasked):
+        if self.do_valid_actions:
+            return np.ma.masked_array(p, self.action_space.mask)
+        else:
+            return np.array(p)
