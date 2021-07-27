@@ -23,8 +23,7 @@ class BaseTasking(Env, ABC):
     # FIXME: add normalization option for RL learners!? Or just use gym.Wrappers?
 
     def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False):
-        """
-        Base environment for task scheduling.
+        """Base environment for task scheduling.
 
         Parameters
         ----------
@@ -40,7 +39,6 @@ class BaseTasking(Env, ABC):
             If True, features are zeroed out for scheduled tasks.
 
         """
-
         self.problem_gen = problem_gen
         self.solution = None
 
@@ -336,8 +334,7 @@ class BaseTasking(Env, ABC):
 
 class SeqTasking(BaseTasking):
     def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='int'):
-        """
-        Tasking environment with single action of a complete task index sequence.
+        """Tasking environment with single action of a complete task index sequence.
 
         Parameters
         ----------
@@ -351,12 +348,11 @@ class SeqTasking(BaseTasking):
             Enables task re-parameterization after sequence updates.
         masking : bool, optional
             If True, features are zeroed out for scheduled tasks.
-        action_type : str, optional
+        action_type : {'seq', 'int'}, optional
             If 'seq', action type is index sequence `Permutation`; if 'int', action space is `Discrete` and
             index sequences are mapped to integers.
 
         """
-
         super().__init__(problem_gen, features, sort_func, time_shift, masking)
 
         self.action_type = action_type  # 'seq' for sequences, 'int' for integers
@@ -421,8 +417,7 @@ class SeqTasking(BaseTasking):
 class StepTasking(BaseTasking):
     def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='valid',
                  seq_encoding=None):
-        """
-        Tasking environment with actions of single task indices.
+        """Tasking environment with actions of single task indices.
 
         Parameters
         ----------
@@ -436,7 +431,7 @@ class StepTasking(BaseTasking):
             Enables task re-parameterization after sequence updates.
         masking : bool, optional
             If True, features are zeroed out for scheduled tasks.
-        action_type : str, optional
+        action_type : {'valid', 'any'}, optional
             If 'valid', action type is `DiscreteSet` of valid indices; if 'any', action space is `Discrete` and
             repeated actions are allowed (for experimental purposes only).
         seq_encoding : function or str, optional
@@ -444,7 +439,6 @@ class StepTasking(BaseTasking):
             encoded array sums to one for scheduled tasks and to zero for unscheduled tasks.
 
         """
-
         super().__init__(problem_gen, features, sort_func, time_shift, masking)
 
         # Action types
