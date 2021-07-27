@@ -1,4 +1,4 @@
-### CRM specific
+### Project files
 agents/temp/
 models/temp/
 data/schedules/temp/
@@ -15,7 +15,8 @@ logs/learn
 /FlexDARscheduler/__init__.py
 
 
-### Pycharm
+### JetBrains
+# TODO: use github/gitignore/Global/PyCharm.gitignore ?
 .idea/
 
 
