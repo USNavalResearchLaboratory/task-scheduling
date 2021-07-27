@@ -1,17 +1,15 @@
 # Pycharm
 .idea/
 
-# Logs
-logs/
-
-# Temporary agents and models
+# Project temp files
 agents/temp/
 models/temp/
 data/schedules/temp/
 data/schedules/_deprecated/
 data/results/temp/
 images/temp
-docs/temp
+logs/temp
+logs/learn
 
 /radar_scheduling/
 /myscript.cprof

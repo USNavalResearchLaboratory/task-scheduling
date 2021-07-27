@@ -295,8 +295,8 @@ algorithms = np.array([
 # TODO: make loss func for full seq targets, penalize in proportion to seq similarity?
 
 
-log_path = 'docs/temp/PGR_results.md'
-# log_path = 'docs/discrete_relu_c1t8.md'
+log_path = 'logs/temp/PGR_results.md'
+# log_path = 'logs/discrete_relu_c1t8.md'
 
 image_path = f'images/temp/{NOW_STR}'
 

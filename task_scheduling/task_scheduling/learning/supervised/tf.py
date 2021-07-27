@@ -32,7 +32,7 @@ def reset_weights(model):      # from https://github.com/keras-team/keras/issues
 
 
 class Scheduler(Base):
-    log_dir = Path.cwd() / 'logs' / 'tf'
+    log_dir = Path.cwd() / 'logs/learn' / 'tf'
 
     _learn_params_default = {'batch_size_train': 1,
                              'n_gen_val': 0,

@@ -149,7 +149,7 @@ class Base(BaseLearningScheduler):
 
 
 class TorchScheduler(Base):
-    log_dir = Path.cwd() / 'logs' / 'torch_train'
+    log_dir = Path.cwd() / 'logs/learn'
 
     def __init__(self, env, model, loss_func, opt, learn_params=None):
         super().__init__(env, model, learn_params)
@@ -240,7 +240,7 @@ class TorchScheduler(Base):
 
 
 class LitScheduler(Base):
-    log_dir = Path.cwd() / 'logs'
+    log_dir = Path.cwd() / 'logs/learn'
 
     def __init__(self, env, model, learn_params):
         super().__init__(env, model, learn_params)

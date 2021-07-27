@@ -47,7 +47,7 @@ class RandomAgent:
 
 # Schedulers
 class StableBaselinesScheduler(BaseLearningScheduler):
-    log_dir = Path.cwd() / 'logs' / 'sb'
+    log_dir = Path.cwd() / 'logs/learn' / 'sb'
 
     _default_tuple = namedtuple('ModelDefault', ['cls', 'kwargs'])
     model_defaults = {'Random': _default_tuple(RandomAgent, {}),
