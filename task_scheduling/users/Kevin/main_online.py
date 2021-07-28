@@ -174,7 +174,7 @@ def test_rl_train():
                                             model_cls='DQN_LN', model_params={'verbose': 1}, n_episodes=n_train * 100,
                                             # model_cls='CNN', model_params={'verbose': 1}, n_episodes=n_train*100,
                                             # model_cls='DQN', model_params={'verbose': 1}, n_episodes=n_train * 100,
-                                            save=False, save_path='./')
+                                            save=False, save_path='../../')
 
     algorithms = np.array([
         # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),

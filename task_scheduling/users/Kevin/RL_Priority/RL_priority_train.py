@@ -1,20 +1,12 @@
-
-import gym
 import numpy as np
-import pickle
-import kneed
-import os
 import sys, os
 import matplotlib.pyplot as plt
 # sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/../anotherproject")
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
-from RL_Priority.env_priority import PriorityQueue, PriorityQueueDiscrete, TaskAssignmentDiscrete
-from RL_Priority.env_priority import DiscretizedObservationWrapper
-from collections import defaultdict
+from users.Kevin.RL_Priority.env_priority import TaskAssignmentDiscrete
 from stable_baselines import A2C, PPO2
 from stable_baselines.common.policies import MlpPolicy
-from stable_baselines.common.env_checker import check_env
 
 from stable_baselines.common.evaluation import evaluate_policy
 from stable_baselines.bench.monitor import Monitor

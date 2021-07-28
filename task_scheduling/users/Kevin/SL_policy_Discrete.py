@@ -130,7 +130,7 @@ def train_policy(n_tasks, task_gen, n_ch, ch_avail_gen,
     model.compile(**compile_params)
 
     if do_tensorboard:
-        log_dir = 'logs/learn/tf'
+        log_dir = '../../logs/learn/tf'
         try:
             shutil.rmtree(log_dir)
         except FileNotFoundError:

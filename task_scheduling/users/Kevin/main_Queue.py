@@ -227,7 +227,7 @@ if train_RL_flag:
                                             # model_cls='DQN_LN', model_params={'verbose': 1}, n_episodes=n_train * 10,
                                             # model_cls='CNN', model_params={'verbose': 1}, n_episodes=n_train*100,
                                             model_cls='DQN', model_params={'verbose': 1}, n_episodes=n_train * 1,
-                                            save=False, save_path='./')
+                                            save=False, save_path='../../')
 
 
 # Train SL Approach

@@ -20,7 +20,7 @@ from scheduling_algorithms import stats2nnXYgen
 from task_scheduling.generators.scheduling_problems import ReluDrop
 from task_scheduling.tree_search import TreeNodeShift
 from task_scheduling.algorithms.free import branch_bound
-from Kevin.bb_w_stats import branch_bound_with_stats
+from users.Kevin.bb_w_stats import branch_bound_with_stats
 from learning.environments import StepTaskingEnv
 
 plt.style.use('seaborn')
@@ -116,7 +116,7 @@ def train_sl(env, n_gen_train, n_gen_val, plot_history=True, do_tensorboard=Fals
     callbacks = [keras.callbacks.EarlyStopping(patience=20, monitor='val_loss', min_delta=0.)]
 
     if do_tensorboard:
-        log_dir = 'logs/learn/tf'
+        log_dir = '../../logs/learn/tf'
         try:
             shutil.rmtree(log_dir)
         except FileNotFoundError:
