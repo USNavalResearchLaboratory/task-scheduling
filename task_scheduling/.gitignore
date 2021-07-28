@@ -5,12 +5,6 @@ images/temp
 logs/temp
 logs/learn
 
-/radar_scheduling/
-/myscript.cprof
-/radar.zip
-/Taylor/RL/Q_old/
-/FlexDARscheduler/__init__.py
-
 
 ### JetBrains
 # TODO: use github/gitignore/Global/PyCharm.gitignore ?
