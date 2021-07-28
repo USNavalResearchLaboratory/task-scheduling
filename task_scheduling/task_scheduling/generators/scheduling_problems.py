@@ -2,17 +2,13 @@
 
 from abc import ABC, abstractmethod
 from collections import deque
-from copy import deepcopy
 from functools import partial
 from pathlib import Path
-from typing import Iterable
 
 import dill
 import numpy as np
-import pandas as pd
 
-import task_scheduling.tasks
-from task_scheduling.algorithms.free import branch_bound_priority, earliest_release
+from task_scheduling.algorithms.free import branch_bound_priority
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
 from task_scheduling.util.generic import (RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution,
                                           NOW_STR)
@@ -378,8 +374,6 @@ class Dataset(Base):
 
         problems = [self.problems.pop() for __ in range(n)]
         solutions = [self.solutions.pop() for __ in range(n)]
-        # return Dataset(problems, solutions, shuffle, repeat, self.n_tasks, self.n_ch, self.task_gen, self.ch_avail_gen,
-        #                rng)
         return Dataset(problems, solutions, shuffle, repeat, self.task_gen, self.ch_avail_gen, rng)
 
     def add_problems(self, problems, solutions=None):
@@ -429,123 +423,3 @@ class Dataset(Base):
     def summary(self, file=None):
         super().summary(file)
         print(f"Number of problems: {self.n_problems}\n", file=file)
-
-
-
-class QueueFlexDAR(Base):
-    def __init__(self, n_tasks, tasks_full, ch_avail, RP=0.04, clock=0, scheduler=earliest_release,
-                 record_revisit=True):
-
-        self._cls_task = task_scheduling.tasks.check_task_types(tasks_full)
-
-        # FIXME: make a task_gen???
-        super().__init__(n_tasks, len(ch_avail), task_gen=None, ch_avail_gen=None, rng=None)
-
-        self.queue = deque()
-        self.add_tasks(tasks_full)
-        self.ch_avail = np.array(ch_avail, dtype=float)
-        self.clock = np.array(0, dtype=float)
-        self.RP = RP
-        self.record_revisit = record_revisit
-        self.scheduler = scheduler
-
-    def _gen_problem(self, rng):
-        """Return a single scheduling problem (and optional solution)."""
-
-        ch_avail_input = deepcopy(self.ch_avail)  # This is what you want to pass out in the scheduling problem
-        self.reprioritize()  # Reprioritize
-        tasks = [self.queue.pop() for _ in range(self.n_tasks)]  # Pop tasks
-
-        t_ex, ch_ex, t_run = timing_wrapper(self.scheduler)(tasks, self.ch_avail)  # Scheduling using ERT
-
-        # TODO: use t_run to check validity of t_ex
-        # t_ex = np.max([t_ex, [t_run for _ in range(len(t_ex))]], axis=0)
-
-        # obs, reward, done, info = env.step()
-
-        # done = False
-        # while not done:
-        #     obs, reward, done, info = env.step(action)
-
-        self.updateFlexDAR(deepcopy(tasks), t_ex, ch_ex)  # Add tasks back on queue
-        self.clock += self.RP  # Update clock
-
-        # TODO: add prioritization?
-
-        return SchedulingProblem(tasks, ch_avail_input.copy())
-
-    def add_tasks(self, tasks):
-        if isinstance(tasks, Iterable):
-            self.queue.extendleft(tasks)
-        else:
-            self.queue.appendleft(tasks)  # for single tasks
-
-    def update(self, tasks, t_ex, ch_ex):
-        for task, t_ex_i, ch_ex_i in zip(tasks, t_ex, ch_ex):
-            task.t_release = t_ex_i + task.duration
-            self.ch_avail[int(ch_ex_i)] = max(self.ch_avail[int(ch_ex_i)], task.t_release)
-            self.add_tasks(task)
-
-        # for task, t_ex_i in zip(tasks, t_ex):
-        #     task.t_release = t_ex_i + task.duration
-        #
-        # for ch in range(self.n_ch):
-        #     tasks_ch = np.array(tasks)[ch_ex == ch].tolist()
-        #     self.ch_avail[ch] = max(self.ch_avail[ch], *(task.t_release for task in tasks_ch))
-        #
-        # self.add_tasks(tasks)
-
-    def updateFlexDAR(self, tasks, t_ex, ch_ex):
-        for task, t_ex_i, ch_ex_i in zip(tasks, t_ex, ch_ex):
-            # duration = np.array([task.duration for task in job_scheduler])
-            # executed_tasks = t_complete <= timeSec + RP # Task that are executed
-            t_complete_i = t_ex_i + task.duration
-            if t_complete_i <= self.RP + self.clock:
-                task.t_release = t_ex_i + task.duration
-                if self.record_revisit:
-                    task.revisit_times.append(t_ex_i)
-                # task.count_revisit += 1  Node need as count is = len(revisit_times) in ReluDropRadar
-                self.ch_avail[ch_ex_i] = max(self.ch_avail[ch_ex_i], task.t_release)
-                self.add_tasks(task)
-            else:
-                self.add_tasks(task)
-
-        # self.clock += self.RP # Update Overall Clock
-
-        # for task, t_ex_i in zip(tasks, t_ex):
-        #     task.t_release = t_ex_i + task.duration
-        #
-        # for ch in range(self.n_ch):
-        #     tasks_ch = np.array(tasks)[ch_ex == ch].tolist()
-        #     self.ch_avail[ch] = max(self.ch_avail[ch], *(task.t_release for task in tasks_ch))
-        #
-        # self.add_tasks(tasks)
-
-    def reprioritize(self):
-
-        # Evaluate tasks at current time
-        # clock = 1 # For debugging
-        priority = np.array([task(self.clock) for task in self.queue])
-        index = np.argsort(-1 * priority, kind='mergesort')  # -1 used to reverse order
-        tasks = []
-        tasks_sorted = []
-        for task in self.queue:
-            tasks.append(task)
-
-        tasks_sorted = [self.queue[idx] for idx in index]
-
-        # for idx in range(len(self.queue)):
-        #     task = self.queue[index[idx]]
-        #     tasks_sorted = tasks_sorted.append(task)
-
-        self.queue.clear()
-        self.add_tasks(tasks_sorted)
-
-    def summary(self):
-        print(f"Channel availabilities: {self.ch_avail}")
-        print(f"Task queue:")
-        df = pd.DataFrame({name: [getattr(task, name) for task in self.queue]
-                           for name in self._cls_task.param_names})
-        priority = np.array([task(self.clock) for task in self.queue])
-        df['priority'] = priority
-        print(df)
