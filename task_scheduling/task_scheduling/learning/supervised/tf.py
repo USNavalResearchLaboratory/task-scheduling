@@ -4,16 +4,16 @@ from functools import partial
 from pathlib import Path
 import math
 
-import dill
+# import dill
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from tensorboard import program
 from tensorflow import keras
 
-from task_scheduling.learning import environments as envs
 from task_scheduling.learning.base import Base
-from task_scheduling.util.generic import NOW_STR
+# from task_scheduling.learning import environments as envs
+# from task_scheduling.util.generic import NOW_STR
 
 for device in tf.config.experimental.list_physical_devices('GPU'):
     tf.config.experimental.set_memory_growth(device, True)  # TODO: compatibility issue workaround
@@ -115,15 +115,11 @@ class Scheduler(Base):
 
         n_gen_train = n_gen_learn - n_gen_val
 
-        batch_size_train = self.learn_params['batch_size_train']
-        batch_size_val = self.learn_params['batch_size_val']
-        weight_func = self.learn_params['weight_func']
-
         do_tensorboard = self.learn_params['do_tensorboard']
         plot_history = self.learn_params['plot_history']
 
-        fit_params = {'batch_size': batch_size_train * self.env.steps_per_episode,
-                      'validation_batch_size': batch_size_val * self.env.steps_per_episode,
+        fit_params = {'batch_size': self.learn_params['batch_size_train'] * self.env.steps_per_episode,
+                      'validation_batch_size': self.learn_params['batch_size_val'] * self.env.steps_per_episode,
                       'epochs': self.learn_params['epochs'],
                       'shuffle': self.learn_params['shuffle'],
                       'callbacks': self.learn_params['callbacks'],
@@ -131,6 +127,7 @@ class Scheduler(Base):
 
         if verbose >= 1:
             print("Generating training data...")
+        weight_func = self.learn_params['weight_func']
         d_train = self.env.data_gen_full(n_gen_train, weight_func=weight_func, verbose=verbose)
 
         x_train, y_train = d_train[:2]
@@ -161,71 +158,26 @@ class Scheduler(Base):
         self._fit(x_train, y_train, do_tensorboard, plot_history, **fit_params)
         # self._fit(*d_train, do_tensorboard, plot_history, **fit_params)
 
-    # def learn(self, n_batch_train, batch_size_train=1, n_batch_val=0, batch_size_val=1, weight_func=None,
-    #           fit_params=None, verbose=0, do_tensorboard=False, plot_history=False):
-    #
-    #     if fit_params is None:
-    #         fit_params = {}
-    #     fit_params.update({'batch_size': batch_size_train * self.env.steps_per_episode,
-    #                        'validation_batch_size': batch_size_val * self.env.steps_per_episode,
-    #                        # 'batch_size': None,   # generator Dataset
-    #                        # 'validation_freq': 1,
-    #                        'verbose': verbose,
-    #                        })
-    #
-    #     if verbose >= 1:
-    #         print("Generating training data...")
-    #     d_train = self.env.data_gen_full(n_batch_train * batch_size_train, weight_func=weight_func, verbose=verbose)
-    #
-    #     x_train, y_train = d_train[:2]
-    #     if callable(weight_func):
-    #         fit_params['sample_weight'] = d_train[2]
-    #
-    #     if n_batch_val > 0:  # use validation data
-    #         if verbose >= 1:
-    #             print("Generating validation data...")
-    #         fit_params['validation_data'] = self.env.data_gen_full(n_batch_val * batch_size_val,
-    #                                                                weight_func=weight_func, verbose=verbose)
-    #
-    #     # gen_callable = partial(env.data_gen, weight_func=weight_func)  # function type not supported by from_generator
-    #     #
-    #     # output_types = (tf.float32, tf.int32)
-    #     # output_shapes = ((None,) + env.observation_space.shape, (None,) + env.action_space.shape)
-    #     # if callable(weight_func):
-    #     #     output_types += (tf.float32,)
-    #     #     output_shapes += ((None,),)
-    #     #
-    #     # d_train = tf.data.Dataset.from_generator(gen_callable, output_types,
-    #     #                                          output_shapes, args=(n_batch_train, batch_size))
-    #     # d_val = tf.data.Dataset.from_generator(gen_callable, output_types,
-    #     #                                        output_shapes, args=(n_batch_val, batch_size))
-    #
-    #     if verbose >= 1:
-    #         print('Training model...')
-    #
-    #     self._fit(x_train, y_train, do_tensorboard, plot_history, **fit_params)
-    #     # self._fit(*d_train, do_tensorboard, plot_history, **fit_params)
-
     def reset(self):
         reset_weights(self.model)
 
-    def save(self, save_path=None):
-        if save_path is None:
-            save_path = f"models/temp/{NOW_STR}"
-
-        self.model.save(save_path)  # save TF model
-
-        with Path(save_path).joinpath('env').open(mode='wb') as fid:
-            dill.dump(self.env, fid)  # save environment
-
-    @classmethod
-    def load(cls, load_path):
-        model = keras.models.load_model(load_path)
-
-        with Path(load_path).joinpath('env').open(mode='rb') as fid:
-            env = dill.load(fid)
-
-        return cls(env, model)
+    # def save(self, save_path=None):
+    #     if save_path is None:
+    #         save_path = f"models/temp/{NOW_STR}"
+    #
+    #     self.model.save(save_path)  # save TF model
+    #
+    #     with Path(save_path).joinpath('env').open(mode='wb') as fid:
+    #         dill.dump(self.env, fid)  # save environment
+    #
+    # @classmethod
+    # def load(cls, load_path):
+    #     model = keras.models.load_model(load_path)
+    #
+    #     with Path(load_path).joinpath('env').open(mode='rb') as fid:
+    #         env = dill.load(fid)
+    #
+    #     return cls(env, model)
 
     # @classmethod  # TODO: deprecate or update
     # def train_from_gen(cls, problem_gen, env_cls=envs.StepTasking, env_params=None, layers=None, compile_params=None,
