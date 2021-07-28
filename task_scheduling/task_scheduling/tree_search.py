@@ -2,7 +2,8 @@ from collections import deque
 from copy import deepcopy
 from math import factorial
 from typing import Sequence
-from operator import attrgetter, methodcaller
+from operator import methodcaller
+# from operator import attrgetter
 from itertools import permutations
 from time import perf_counter
 
@@ -10,7 +11,7 @@ import numpy as np
 import pandas as pd
 from sortedcontainers import SortedKeyList
 
-from task_scheduling.tasks import Base as BaseTask, Shift as ShiftTask
+from task_scheduling.tasks import Shift as ShiftTask
 from task_scheduling.util.generic import RandomGeneratorMixin
 
 

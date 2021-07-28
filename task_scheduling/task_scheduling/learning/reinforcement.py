@@ -30,7 +30,7 @@ class RandomAgent:
     def __init__(self, env):
         self.env = env
 
-    def predict(self, obs):
+    def predict(self, _obs):
         action_space = self.env.action_space
         # action_space = self.env.infer_action_space(obs)
         return action_space.sample(), None  # randomly selected action

@@ -11,7 +11,7 @@ from task_scheduling.tasks import ReluDrop
 def _get_param(name):
     """Make a feature function to extract parameter attributes from tasks."""
 
-    def func(tasks, ch_avail):
+    def func(tasks, _ch_avail):
         return [getattr(task, name) for task in tasks]
 
     return func
@@ -59,7 +59,7 @@ def param_features(problem_gen, time_shift=False):
 def _encode_param(name, space):
     """Make a feature function to encode a parameter value to the corresponding DiscreteSet index."""
 
-    def func(tasks, ch_avail):
+    def func(tasks, _ch_avail):
         return [np.flatnonzero(space.elements == getattr(task, name)).item() for task in tasks]
 
     return func

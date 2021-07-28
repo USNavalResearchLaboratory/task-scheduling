@@ -33,10 +33,9 @@ def mcts(tasks, ch_avail, runtimes, c_explore=0., visit_threshold=0, verbose=Fal
     """
 
     node = TreeNode(tasks, ch_avail, rng=rng)
-    # node = node.mcts_runtime(runtimes, c_explore, visit_threshold, inplace=False, verbose=verbose)
-    #
-    # return node.t_ex, node.ch_ex
-    return node.mcts_runtime(runtimes, c_explore, visit_threshold, inplace=False, verbose=verbose)
+    node = node.mcts(runtimes, c_explore, visit_threshold, inplace=False, verbose=verbose)
+
+    return node.t_ex, node.ch_ex
 
 
 def mcts_v1(tasks, ch_avail, runtimes, c_explore=1., verbose=False, rng=None):
@@ -67,7 +66,7 @@ def mcts_v1(tasks, ch_avail, runtimes, c_explore=1., verbose=False, rng=None):
     """
 
     node = TreeNode(tasks, ch_avail, rng=rng)
-    node = node.mcts_runtime_v1(runtimes, c_explore, inplace=False, verbose=verbose)
+    node = node.mcts_v1(runtimes, c_explore, inplace=False, verbose=verbose)
 
     return node.t_ex, node.ch_ex
 
