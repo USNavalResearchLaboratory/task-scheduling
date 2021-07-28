@@ -1,77 +1,8 @@
 from time import perf_counter
 
-from task_scheduling.tree_search import TreeNode, TreeNodeBound
+from task_scheduling.tree_search import TreeNodeBound
 
 
-def mcts(tasks, ch_avail, runtimes, c_explore=0., visit_threshold=0, verbose=False, rng=None):
-    """
-    Monte Carlo tree search algorithm.
-
-    Parameters
-    ----------
-    tasks : Sequence of task_scheduling.tasks.Base
-    ch_avail : Sequence of float
-        Channel availability times.
-    runtimes : float or Sequence of float
-            Allotted algorithm runtimes.
-    c_explore : float, optional
-        Exploration weight. Higher values prioritize less frequently visited notes.
-    visit_threshold : int, optional
-        Nodes with up to this number of visits will select children using the `expansion` method.
-    verbose : bool
-        Enables printing of algorithm state information.
-    rng : int or RandomState or Generator, optional
-        NumPy random number generator or seed. Instance RNG if None.
-
-    Returns
-    -------
-    t_ex : ndarray
-        Task execution times.
-    ch_ex : ndarray
-        Task execution channels.
-
-    """
-
-    node = TreeNode(tasks, ch_avail, rng=rng)
-    node = node.mcts(runtimes, c_explore, visit_threshold, inplace=False, verbose=verbose)
-
-    return node.t_ex, node.ch_ex
-
-
-def mcts_v1(tasks, ch_avail, runtimes, c_explore=1., verbose=False, rng=None):
-    """
-    Monte Carlo tree search algorithm.
-
-    Parameters
-    ----------
-    tasks : Sequence of task_scheduling.tasks.Base
-    ch_avail : Sequence of float
-        Channel availability times.
-    runtimes : float or Sequence of float
-            Allotted algorithm runtimes.
-    c_explore : float, optional
-        Exploration weight. Higher values prioritize unexplored tree nodes.
-    verbose : bool
-        Enables printing of algorithm state information.
-    rng : int or RandomState or Generator, optional
-        NumPy random number generator or seed. Instance RNG if None.
-
-    Returns
-    -------
-    t_ex : ndarray
-        Task execution times.
-    ch_ex : ndarray
-        Task execution channels.
-
-    """
-
-    node = TreeNode(tasks, ch_avail, rng=rng)
-    node = node.mcts_v1(runtimes, c_explore, inplace=False, verbose=verbose)
-
-    return node.t_ex, node.ch_ex
-
-
-#%%
 def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng=None):
     """
     Branch and Bound algorithm.
@@ -132,6 +63,76 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 
     for _ in range(i_time, n_times):
         yield node_best.t_ex, node_best.ch_ex
+
+
+#%% MCTS WIP
+
+# def mcts(tasks, ch_avail, runtimes, c_explore=0., visit_threshold=0, verbose=False, rng=None):
+#     """
+#     Monte Carlo tree search algorithm.
+#
+#     Parameters
+#     ----------
+#     tasks : Sequence of task_scheduling.tasks.Base
+#     ch_avail : Sequence of float
+#         Channel availability times.
+#     runtimes : float or Sequence of float
+#             Allotted algorithm runtimes.
+#     c_explore : float, optional
+#         Exploration weight. Higher values prioritize less frequently visited notes.
+#     visit_threshold : int, optional
+#         Nodes with up to this number of visits will select children using the `expansion` method.
+#     verbose : bool
+#         Enables printing of algorithm state information.
+#     rng : int or RandomState or Generator, optional
+#         NumPy random number generator or seed. Instance RNG if None.
+#
+#     Returns
+#     -------
+#     t_ex : ndarray
+#         Task execution times.
+#     ch_ex : ndarray
+#         Task execution channels.
+#
+#     """
+#
+#     # node = TreeNode(tasks, ch_avail, rng=rng)
+#     # node = node.mcts(runtimes, c_explore, visit_threshold, inplace=False, verbose=verbose)
+#     # return node.t_ex, node.ch_ex
+#     raise NotImplementedError
+
+
+# def mcts_v1(tasks, ch_avail, runtimes, c_explore=1., verbose=False, rng=None):
+#     """
+#     Monte Carlo tree search algorithm.
+#
+#     Parameters
+#     ----------
+#     tasks : Sequence of task_scheduling.tasks.Base
+#     ch_avail : Sequence of float
+#         Channel availability times.
+#     runtimes : float or Sequence of float
+#             Allotted algorithm runtimes.
+#     c_explore : float, optional
+#         Exploration weight. Higher values prioritize unexplored tree nodes.
+#     verbose : bool
+#         Enables printing of algorithm state information.
+#     rng : int or RandomState or Generator, optional
+#         NumPy random number generator or seed. Instance RNG if None.
+#
+#     Returns
+#     -------
+#     t_ex : ndarray
+#         Task execution times.
+#     ch_ex : ndarray
+#         Task execution channels.
+#
+#     """
+#
+#     # node = TreeNode(tasks, ch_avail, rng=rng)
+#     # node = node.mcts_v1(runtimes, c_explore, inplace=False, verbose=verbose)
+#     # return node.t_ex, node.ch_ex
+#     raise NotImplementedError
 
 
 # def mcts(tasks: list, ch_avail: list, runtimes: list, verbose=False):
