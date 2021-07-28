@@ -19,7 +19,8 @@ from task_scheduling.util.generic import check_rng
 from scheduling_algorithms import stats2nnXYgen
 from task_scheduling.generators.scheduling_problems import ReluDrop
 from task_scheduling.tree_search import TreeNodeShift
-from task_scheduling.algorithms.free import branch_bound, branch_bound_with_stats
+from task_scheduling.algorithms.free import branch_bound
+from Kevin.bb_w_stats import branch_bound_with_stats
 from learning.environments import StepTaskingEnv
 
 plt.style.use('seaborn')
