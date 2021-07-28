@@ -19,7 +19,7 @@
 
 project = 'task-scheduling'
 copyright = '2021, Paul Rademacher'
-author = 'Paul Rademacher'
+author = 'Paul Rademacher, Kevin Wagner'
 
 
 # -- General configuration ---------------------------------------------------

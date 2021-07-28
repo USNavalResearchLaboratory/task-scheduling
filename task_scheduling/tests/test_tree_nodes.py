@@ -2,20 +2,17 @@ from math import isclose
 
 import numpy as np
 
-from task_scheduling.tree_search import TreeNode, TreeNodeShift, TreeNodeBound
+from task_scheduling.tree_search import TreeNode, TreeNodeShift
 from task_scheduling.algorithms.free import branch_bound
 from task_scheduling.util.results import evaluate_schedule
-from task_scheduling.generators import scheduling_problems as problem_gens, tasks as task_gens
-
-# TODO: use proper testing w/ builtin module
+from task_scheduling.generators import scheduling_problems as problem_gens
 
 problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1)
+n_iter = 10
 
 
-# def test_argsort(problem_gen, n_iter=1):
 def test_argsort():
-    """check that seq=np.argsort(t_ex) maps to an optimal schedule"""
-    n_iter = 10
+    """Check that seq=np.argsort(t_ex) maps to an optimal schedule."""
     for i in range(n_iter):
         print(f"{i}", end='\n')
 
@@ -36,10 +33,8 @@ def test_argsort():
         # assert seq.tolist() == seq_sort.tolist()
 
 
-# def test_shift(problem_gen, n_iter=1):
 def test_shift():
-    """check accuracy of TreeNodeShift solution"""
-    n_iter = 10
+    """Check accuracy of TreeNodeShift solution."""
     for i in range(n_iter):
         print(f"{i}", end='\n')
 
@@ -53,13 +48,6 @@ def test_shift():
 
 
 def main():
-    # tasks = list(task_gens.ContinuousUniformIID.relu_drop()(4))
-    # # node = TreeNodeBound(tasks, ch_avail=[0, 0], seq=[2, 0])
-    # branch_bound(tasks, ch_avail)
-
-    # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1)
-    # test_argsort(problem_gen, n_iter=10)
-    # test_shift(problem_gen, n_iter=10)
     test_argsort()
     test_shift()
 
