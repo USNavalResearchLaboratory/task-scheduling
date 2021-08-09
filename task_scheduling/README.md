@@ -13,8 +13,6 @@ The common API for the task scheduling problem assumes that an algorithm is a Py
 - `tasks` - an array of task objects
 - `ch_avail` - an array of channel availability times
 
-The number of tasks is the `len(tasks)` and the number of channels is `len(ch_avail)`
-
 Each algorithm returns two objects:
 - `t_ex` - an array of execution times, one for each task
 - `ch_ex` - an array of execution channels, one for each task
@@ -38,9 +36,10 @@ Task objects must expose two attributes:
 The tasks must implement a `__call__` method that provides a monotonic non-decreasing loss function quantifying the
 penalty for delayed execution. 
 
-One built-in task type is provided: `task_scheduling.tasks.ReluDrop`. It is so-named because it implements a loss function
-that is linearly increasing from zero until a "drop" time, after which a constant loss is incurred. It uses additional
-parameters `slope`, `t_drop`, and `l_drop` to quantify the dropping behavior. Example loss functions are shown below.
+One built-in task type is provided: `task_scheduling.tasks.ReluDrop`. It is so-named because it implements a loss 
+function that increases linearly from zero according to a positive parameter `slope`, like the rectified linear 
+function popularized by neural networks. After a "drop" time `t_drop`, a large constant loss `l_drop` is incurred. 
+Example loss functions are shown below.
 
 ![Task loss functions](images/ex_relu_drop.png)
 
