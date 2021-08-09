@@ -9,6 +9,9 @@ import numpy as np
 
 NOW_STR = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
 
+TIME_STR = datetime.now().isoformat(timespec='seconds').replace(':', '_')
+
+
 SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
 SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
 

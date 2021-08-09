@@ -42,8 +42,8 @@ class BaseTasking(Env, ABC):
         self.problem_gen = problem_gen
         self.solution = None
 
-        self.n_tasks = self.problem_gen.n_tasks
-        self.n_ch = self.problem_gen.n_ch
+        # self.n_tasks = self.problem_gen.n_tasks
+        # self.n_ch = self.problem_gen.n_ch
 
         # Set features and state bounds
         if features is not None:
@@ -82,8 +82,21 @@ class BaseTasking(Env, ABC):
         self.observation_space = None
         self.action_space = None
 
+    n_tasks = property(lambda self: self.problem_gen.n_tasks)
+    n_ch = property(lambda self: self.problem_gen.n_ch)
     tasks = property(lambda self: self.node.tasks)
     ch_avail = property(lambda self: self.node.ch_avail)
+
+    # @property
+    # def features(self):
+    #     if self._features is None:
+    #         time_shift = (self.node_cls == tree_search.TreeNodeShift)
+    #         self._features = param_features(self.problem_gen, time_shift)
+    #     return self._features
+    #
+    # @features.setter
+    # def features(self, val):
+    #     self._features = val
 
     def __repr__(self):
         if self.node is None:
@@ -474,8 +487,7 @@ class StepTasking(BaseTasking):
             self.seq_encoding = MethodType(_seq_encoding, self)
 
         elif callable(seq_encoding):
-            raise NotImplementedError
-
+            raise NotImplementedError('Generic callables not yet supported.')
             # self.seq_encoding = MethodType(seq_encoding, self)
             #
             # env_copy = deepcopy(self)  # FIXME: hacked - find better way!
