@@ -1,4 +1,4 @@
-# Cognitive Resource Management
+# Task Scheduling
 This package provides a framework for implementing task scheduling algorithms and assessing their performance. It includes
 traditional schedulers as well as both supervised and reinforcement learning schedulers.
 
