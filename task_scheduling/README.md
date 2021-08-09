@@ -50,4 +50,4 @@ TODO
 
 
 ## Evaluation
-TODO: detail functions, provide example output
+TODO: detail functions, provide example output.
