@@ -17,9 +17,9 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'task-scheduling'
+project = 'Task Scheduling'
 copyright = '2021, Paul Rademacher'
-author = 'Paul Rademacher, Kevin Wagner'
+author = 'Paul Rademacher'
 
 
 # -- General configuration ---------------------------------------------------
@@ -28,9 +28,7 @@ author = 'Paul Rademacher, Kevin Wagner'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
-    # 'numpydoc',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
