@@ -16,8 +16,9 @@ import pytorch_lightning as pl
 from task_scheduling.util.results import evaluate_algorithms_train
 from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix, NOW_STR
 from task_scheduling.generators import scheduling_problems as problem_gens
-from task_scheduling.algorithms import free
-from task_scheduling.algorithms.ensemble import ensemble_scheduler
+# from task_scheduling.algorithms import free
+# from task_scheduling.algorithms.ensemble import ensemble_scheduler
+from task_scheduling.algorithms import ensemble_scheduler, mcts, random_sequencer, earliest_release
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 # from task_scheduling.learning.supervised.tf import keras, Scheduler as tfScheduler
@@ -268,9 +269,9 @@ algorithms = np.array([
     # ('BB_p_ERT', partial(free.branch_bound_priority, heuristic=methodcaller('earliest_release', inplace=False)), 1),
     # ('B&B sort', sort_wrapper(partial(free.branch_bound, verbose=False), 't_release'), 1),
     # ('Ensemble', ensemble_scheduler(free.random_sequencer, free.earliest_release), 5),
-    ('Random', partial(free.random_sequencer, rng=RNGMix.make_rng(seed)), 10),
-    ('ERT', free.earliest_release, 10),
-    *((f'MCTS: c={c}, t={t}', partial(free.mcts, runtime=.002, c_explore=c, visit_threshold=t,
+    ('Random', partial(random_sequencer, rng=RNGMix.make_rng(seed)), 10),
+    ('ERT', earliest_release, 10),
+    *((f'MCTS: c={c}, t={t}', partial(mcts, runtime=.002, c_explore=c, visit_threshold=t,
                                       rng=RNGMix.make_rng(seed)), 10) for c, t in product([.035], [15])),
     # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, runtime=.02, c_explore=c,
     #                               rng=RNGMix.make_rng(seed)), 10) for c in [15]),
@@ -291,6 +292,7 @@ algorithms = np.array([
 # TODO: try making new features
 
 # TODO: value networks
+# TODO: avoid state correlation? Do Env transforms already achieve this?
 # TODO: make custom output layers to avoid illegal actions?
 # TODO: make loss func for full seq targets, penalize in proportion to seq similarity?
 

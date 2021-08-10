@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from task_scheduling.util.generic import timing_wrapper
-from task_scheduling.util.plot import plot_task_losses, plot_schedule, scatter_loss_runtime, plot_loss_runtime
+from task_scheduling.util.plot import plot_schedule, scatter_loss_runtime
 from task_scheduling.generators.scheduling_problems import Dataset
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 
@@ -337,75 +337,75 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
 
 
 #%% Runtime limited operation
-def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0,
-                                save_path=None):
-
-    l_ex_iter = np.array([[tuple([np.nan] * alg['n_iter'] for alg in algorithms)] * n_gen] * len(runtimes),
-                         dtype=[(alg['name'], float, (alg['n_iter'],)) for alg in algorithms])
-    l_ex_mean = np.array([[(np.nan,) * len(algorithms)] * n_gen] * len(runtimes),
-                         dtype=[(alg['name'], float) for alg in algorithms])
-
-    l_ex_opt = np.full(n_gen, np.nan)
-    t_run_opt = np.full(n_gen, np.nan)  # TODO: use in plots?
-
-    # Generate scheduling problems
-    for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose, save_path)):
-        if solve:
-            (tasks, ch_avail), (t_ex, ch_ex, t_run) = out_gen
-            check_schedule(tasks, t_ex, ch_ex)
-            l_ex_opt[i_gen] = evaluate_schedule(tasks, t_ex)
-            t_run_opt[i_gen] = t_run
-        else:
-            tasks, ch_avail = out_gen
-
-        for name, func, n_iter in algorithms:
-            for iter_ in range(n_iter):  # perform new algorithm runs
-                if verbose >= 2:
-                    print(f'  {name}: Iteration: {iter_ + 1}/{n_iter}', end='\r')
-
-                # Evaluate schedule
-                for i_time, solution in enumerate(func(tasks, ch_avail, runtimes)):
-                    if solution is None:
-                        continue  # TODO
-
-                    t_ex, ch_ex = solution
-
-                    check_schedule(tasks, t_ex, ch_ex)
-                    l_ex = evaluate_schedule(tasks, t_ex)
-
-                    l_ex_iter[name][i_time, i_gen, iter_] = l_ex
-
-                    if plotting >= 3:
-                        plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, name=name, ax=None)
-
-            l_ex_mean[name][:, i_gen] = l_ex_iter[name][:, i_gen].mean(-1)
-
-        if plotting >= 2:
-            _, ax_gen = plt.subplots(2, 1, num=f'Scheduling Problem: {i_gen + 1}', clear=True)
-            plot_task_losses(tasks, ax=ax_gen[0])
-            plot_loss_runtime(runtimes, l_ex_iter[:, i_gen], do_std=False, ax=ax_gen[1])
-
-    # Results
-    if plotting >= 1:
-        _, ax_results = plt.subplots(num='Results', clear=True)
-        plot_loss_runtime(runtimes, l_ex_mean, do_std=True,
-                          ax=ax_results,
-                          # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
-                          )
-
-    if solve:  # relative to B&B
-        l_ex_mean_rel = l_ex_mean.copy()
-        for name in algorithms['name']:
-            l_ex_mean_rel[name] -= l_ex_opt
-            # l_ex_mean_rel[name] /= l_ex_opt
-
-        if plotting >= 1:
-            _, ax_results_rel = plt.subplots(num='Results (Relative)', clear=True)
-            plot_loss_runtime(runtimes, l_ex_mean_rel, do_std=True,
-                              ax=ax_results_rel,
-                              ax_kwargs={'ylabel': 'Excess Loss',
-                                         # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
-                                         }
-                              )
-
-    return l_ex_iter, l_ex_opt
+# def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0,
+#                                 save_path=None):
+#
+#     l_ex_iter = np.array([[tuple([np.nan] * alg['n_iter'] for alg in algorithms)] * n_gen] * len(runtimes),
+#                          dtype=[(alg['name'], float, (alg['n_iter'],)) for alg in algorithms])
+#     l_ex_mean = np.array([[(np.nan,) * len(algorithms)] * n_gen] * len(runtimes),
+#                          dtype=[(alg['name'], float) for alg in algorithms])
+#
+#     l_ex_opt = np.full(n_gen, np.nan)
+#     t_run_opt = np.full(n_gen, np.nan)  # TODO: use in plots?
+#
+#     # Generate scheduling problems
+#     for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose, save_path)):
+#         if solve:
+#             (tasks, ch_avail), (t_ex, ch_ex, t_run) = out_gen
+#             check_schedule(tasks, t_ex, ch_ex)
+#             l_ex_opt[i_gen] = evaluate_schedule(tasks, t_ex)
+#             t_run_opt[i_gen] = t_run
+#         else:
+#             tasks, ch_avail = out_gen
+#
+#         for name, func, n_iter in algorithms:
+#             for iter_ in range(n_iter):  # perform new algorithm runs
+#                 if verbose >= 2:
+#                     print(f'  {name}: Iteration: {iter_ + 1}/{n_iter}', end='\r')
+#
+#                 # Evaluate schedule
+#                 for i_time, solution in enumerate(func(tasks, ch_avail, runtimes)):
+#                     if solution is None:
+#                         continue  # TODO
+#
+#                     t_ex, ch_ex = solution
+#
+#                     check_schedule(tasks, t_ex, ch_ex)
+#                     l_ex = evaluate_schedule(tasks, t_ex)
+#
+#                     l_ex_iter[name][i_time, i_gen, iter_] = l_ex
+#
+#                     if plotting >= 3:
+#                         plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, name=name, ax=None)
+#
+#             l_ex_mean[name][:, i_gen] = l_ex_iter[name][:, i_gen].mean(-1)
+#
+#         if plotting >= 2:
+#             _, ax_gen = plt.subplots(2, 1, num=f'Scheduling Problem: {i_gen + 1}', clear=True)
+#             plot_task_losses(tasks, ax=ax_gen[0])
+#             plot_loss_runtime(runtimes, l_ex_iter[:, i_gen], do_std=False, ax=ax_gen[1])
+#
+#     # Results
+#     if plotting >= 1:
+#         _, ax_results = plt.subplots(num='Results', clear=True)
+#         plot_loss_runtime(runtimes, l_ex_mean, do_std=True,
+#                           ax=ax_results,
+#                           # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
+#                           )
+#
+#     if solve:  # relative to B&B
+#         l_ex_mean_rel = l_ex_mean.copy()
+#         for name in algorithms['name']:
+#             l_ex_mean_rel[name] -= l_ex_opt
+#             # l_ex_mean_rel[name] /= l_ex_opt
+#
+#         if plotting >= 1:
+#             _, ax_results_rel = plt.subplots(num='Results (Relative)', clear=True)
+#             plot_loss_runtime(runtimes, l_ex_mean_rel, do_std=True,
+#                               ax=ax_results_rel,
+#                               ax_kwargs={'ylabel': 'Excess Loss',
+#                                          # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
+#                                          }
+#                               )
+#
+#     return l_ex_iter, l_ex_opt

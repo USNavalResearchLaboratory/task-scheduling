@@ -17,7 +17,7 @@ def check_task_types(tasks):
         raise TypeError("All tasks must be of the same type.")
 
 
-def tasks_to_dataframe(tasks):
+def _tasks_to_dataframe(tasks):
     return pd.DataFrame([task.to_series() for task in tasks])
 
 
@@ -25,8 +25,8 @@ def summarize_tasks(tasks, file=None, **tabulate_kwargs):
     """Create and print a Pandas DataFrame detailing tasks."""
     tabulate_kwargs_ = {'tablefmt': 'github', 'floatfmt': '.3f'}
     tabulate_kwargs_.update(tabulate_kwargs)
-    print(tasks_to_dataframe(tasks).to_markdown(**tabulate_kwargs_), file=file)
-    # print(tasks_to_dataframe(tasks).to_markdown(tablefmt='github', floatfmt='.3f'))
+    print(_tasks_to_dataframe(tasks).to_markdown(**tabulate_kwargs_), file=file)
+    # print(_tasks_to_dataframe(tasks).to_markdown(tablefmt='github', floatfmt='.3f'))
 
 
 #%% Task objects

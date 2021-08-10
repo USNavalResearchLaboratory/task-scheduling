@@ -21,7 +21,7 @@ from task_scheduling.util.generic import RandomGeneratorMixin
 class TreeNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
         """
-        Node object for mapping sequences into optimal execution times and channels.
+        Node object for mapping task sequences into execution schedules.
 
         Parameters
         ----------
@@ -568,7 +568,7 @@ class TreeNodeBound(TreeNode):
 
     def branch_bound_priority(self, priority_func=None, heuristic=None, inplace=True, verbose=False):
         """
-        Branch-and-Bound with priority queueing and variable heuristics.
+        Branch-and-Bound with priority queueing and user-defined heuristics.
 
         Parameters
         ----------
@@ -594,7 +594,6 @@ class TreeNodeBound(TreeNode):
 
         if heuristic is None:
             heuristic = methodcaller('roll_out', inplace=False)
-            # heuristic = methodcaller('earliest_release', inplace=False)
 
         node_best = heuristic(self)
         stack = SortedKeyList([self], priority_func)
@@ -729,7 +728,7 @@ class SearchNode(RandomGeneratorMixin):
     def weight(self):
         """Weight for child selection. Combines average loss with a visit count bonus."""
 
-        value_loss = (self._bounds[1] - self._l_avg) / (self._bounds[1] - self._bounds[0])  # TODO: redundant eval!
+        value_loss = (self._bounds[1] - self._l_avg) / (self._bounds[1] - self._bounds[0])
         value_explore = np.sqrt(np.log(self.parent.n_visits) / self._n_visits)
         # value_explore = np.sqrt(self.parent.n_visits) / (self._n_visits + 1)
         return value_loss + self._c_explore * value_explore
