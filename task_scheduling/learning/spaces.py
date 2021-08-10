@@ -126,8 +126,15 @@ class DiscreteSet(Space):
         elements : Sequence
 
         """
-        self.elements = np.unique(np.array(elements).flatten())  # sorted, flattened
+
+        # self.elements = np.unique(np.array(elements).flatten())
+        self.elements = np.array([])
+        self.add_elements(elements)
         super().__init__(shape=(), dtype=self.elements.dtype)
+
+    def add_elements(self, elements):
+        elements = np.array(elements).flatten()
+        self.elements = np.unique(np.concatenate((self.elements, elements))) # sorted, flattened
 
     def sample(self):
         return self.np_random.choice(self.elements)

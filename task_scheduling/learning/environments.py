@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from math import factorial
 from types import MethodType
 from operator import attrgetter
-from warnings import warn
+# from warnings import warn
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -49,7 +49,7 @@ class BaseTasking(Env, ABC):
         if features is not None:
             self.features = features
         else:
-            self.features = param_features(self.problem_gen, time_shift)
+            self.features = param_features(self.problem_gen, time_shift, masking)
 
         # Set sorting method
         if callable(sort_func):
@@ -63,8 +63,8 @@ class BaseTasking(Env, ABC):
             self._sort_func_str = None
 
         self.masking = masking
-        if masking:
-            warn("NotImplemented: observation space lower limits not properly modified!")  # FIXME
+        # if masking:
+        #     warn("NotImplemented: observation space lower limits not properly modified!")  # FIXME
 
         self.reward_range = (-float('inf'), 0)
         self.loss_agg = None

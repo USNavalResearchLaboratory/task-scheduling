@@ -17,11 +17,25 @@ def _get_param(name):
     return func
 
 
+def _mask_space(space):
+    """Modify space to include zero as a possible value."""
+
+    if isinstance(space, Box):
+        space.low = 0
+        return space
+    elif isinstance(space, Discrete):
+        return space
+    elif isinstance(space, MultiDiscrete):
+        return space
+    elif isinstance(space, DiscreteSet):
+        space.add_elements(0)
+        return space
+    else:
+        raise NotImplementedError
+
+
 def _shift_space(space):
     """Convert scalar space to Box with zero lower bound."""
-
-    if space.shape != ():
-        raise NotImplementedError("Only supported for scalar spaces.")
 
     if isinstance(space, Box):
         high = space.high
@@ -34,10 +48,11 @@ def _shift_space(space):
     else:
         raise NotImplementedError
 
-    return Box(0., high, shape=(), dtype=float)
+    low = np.zeros(space.shape)
+    return Box(low, high, shape=space.shape, dtype=float)
 
 
-def param_features(problem_gen, time_shift=False):
+def param_features(problem_gen, time_shift=False, masking=False):
     """Create array of parameter features from parameter spaces."""
 
     if not time_shift:
@@ -45,10 +60,12 @@ def param_features(problem_gen, time_shift=False):
     elif problem_gen.task_gen.cls_task == ReluDrop:
         shift_params = ('t_release', 't_drop', 'l_drop')
     else:
-        raise TypeError
+        raise TypeError("Shift parameters only supported for `ReluDrop` task type.")
 
     data = []
     for name, space in problem_gen.task_gen.param_spaces.items():
+        if masking:
+            space = _mask_space(space)
         if name in shift_params:
             space = _shift_space(space)
         data.append((name, _get_param(name), space))
