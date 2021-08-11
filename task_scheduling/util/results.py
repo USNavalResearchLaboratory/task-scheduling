@@ -115,7 +115,7 @@ def _relative_loss(l_ex):
     return l_ex_rel
 
 
-def scatter_results(t_run, l_ex, label='Results', do_relative=False):
+def _scatter_results(t_run, l_ex, label='Results', do_relative=False):
 
     __, ax_results = plt.subplots(num=label, clear=True)
     scatter_loss_runtime(t_run, l_ex,
@@ -145,7 +145,7 @@ def scatter_results(t_run, l_ex, label='Results', do_relative=False):
                              )
 
 
-def print_averages(l_ex, t_run, log_path=None, do_relative=False):
+def _print_averages(l_ex, t_run, log_path=None, do_relative=False):
     names = list(l_ex.dtype.names)
 
     data = [[l_ex[name].mean(), t_run[name].mean()] for name in names]
@@ -207,14 +207,14 @@ def evaluate_algorithms_single(algorithms, tasks, ch_avail, solution_opt=None, v
 
     # Results
     if plotting >= 1:
-        scatter_results(t_run_iter, l_ex_iter, label='Problem', do_relative=solve)
+        _scatter_results(t_run_iter, l_ex_iter, label='Problem', do_relative=solve)
     if verbose >= 1:
-        print_averages(l_ex_iter, l_ex_iter, log_path, do_relative=solve)
+        _print_averages(l_ex_iter, l_ex_iter, log_path, do_relative=solve)
 
     return l_ex_iter, t_run_iter
 
 
-def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0, log_path=None):
+def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0, log_path=None):
     """
     Compare scheduling algorithms for numerous sets of tasks and channel availabilities.
 
@@ -269,7 +269,7 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
 
     # Results
     if plotting >= 1:
-        scatter_results(t_run_mean, l_ex_mean, label='Gen', do_relative=solve)
+        _scatter_results(t_run_mean, l_ex_mean, label='Gen', do_relative=solve)
     if verbose >= 1:
         if log_path is not None:
             with open(log_path, 'a') as fid:
@@ -277,7 +277,7 @@ def evaluate_algorithms(algorithms, problem_gen, n_gen=1, solve=False, verbose=0
         else:
             print(f'n_gen = {n_gen}', end='\n\n')
 
-        print_averages(l_ex_mean, t_run_mean, log_path, do_relative=solve)
+        _print_averages(l_ex_mean, t_run_mean, log_path, do_relative=solve)
 
     return l_ex_mean, t_run_mean
 
@@ -318,12 +318,12 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
                 learner.learn(n_gen_learn, verbose=verbose - 1)  # note: calls `problem_gen` via environment reset
 
         # Evaluate performance
-        l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen, solve, verbose - 1, plotting - 1)
+        l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, solve, verbose - 1, plotting - 1)
         l_ex_mc[i_mc], t_run_mc[i_mc] = _struct_mean(l_ex_mean), _struct_mean(t_run_mean)
 
     # Results
     if plotting >= 1:
-        scatter_results(t_run_mc, l_ex_mc, label='Train', do_relative=solve)
+        _scatter_results(t_run_mc, l_ex_mc, label='Train', do_relative=solve)
     if verbose >= 1:
         if log_path is not None:
             with open(log_path, 'a') as fid:
@@ -331,7 +331,7 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
         else:
             print(f'- n_mc = {n_mc}\n- n_gen = {n_gen}', end='\n\n')
 
-        print_averages(l_ex_mc, t_run_mc, log_path, do_relative=solve)
+        _print_averages(l_ex_mc, t_run_mc, log_path, do_relative=solve)
 
     return l_ex_mc, t_run_mc
 

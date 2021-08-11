@@ -82,14 +82,16 @@ def plot_schedule(tasks, t_ex, ch_ex, l_ex=None, name=None, ax=None, ax_kwargs=N
 
     # ax.broken_barh([(t_ex[n], tasks[n].duration) for n in range(len(tasks))], (-0.5, 1), facecolors=bar_colors)
     for n, task in enumerate(tasks):
+        label = str(task)
+        # label = f'Task #{n}'
         ax.broken_barh([(t_ex[n], task.duration)], (ch_ex[n] - 0.5, 1),
-                       facecolors=bar_colors[n % len(bar_colors)], edgecolor='black', label=f'Task #{n}')
+                       facecolors=bar_colors[n % len(bar_colors)], edgecolor='black', label=label)
 
     x_lim = min(t_ex), max(t_ex[n] + task.duration for n, task in enumerate(tasks))
     ax.set(xlim=x_lim, ylim=(-.5, n_ch - 1 + .5), xlabel='t',
            yticks=list(range(n_ch)), ylabel='Channel')
 
-    # ax.legend()
+    ax.legend()
 
     _temp = []
     if isinstance(name, str):
@@ -137,35 +139,36 @@ def scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
     ax.set(**ax_kwargs)
 
 
-def scatter_loss_runtime_stats(t_run, l_ex, ax=None, ax_kwargs=None):
-    if ax is None:
-        _, ax = plt.subplots()
+# def scatter_loss_runtime_stats(t_run, l_ex, ax=None, ax_kwargs=None):
+#     if ax is None:
+#         _, ax = plt.subplots()
+#
+#     if ax_kwargs is None:
+#         ax_kwargs = {}
+#
+#     for name in t_run.dtype.names:
+#         color = next(ax._get_lines.prop_cycler)['color']
+#
+#         # ax.scatter(t_run[name], l_ex[name], label=name)
+#
+#         x_mean = np.mean(t_run[name])
+#         y_mean = np.mean(l_ex[name])
+#         ax.scatter(x_mean, y_mean, label=name + '_mean', color=color, marker='*', s=400)
+#
+#         # x_median = np.median(t_run[name])
+#         # y_median = np.median(l_ex[name])
+#         # ax.scatter(x_median, y_median, label=name + '_median', color=color, marker='d', s=400)
+#
+#         # x_std = np.std(t_run[name])
+#         # y_std = np.std(l_ex[name])
+#         # ax.errorbar(x_mean, y_mean, xerr=x_std, yerr=y_std, color=color, capsize=2)
+#
+#     ax.set(xlabel='Runtime (s)', ylabel='Loss')
+#     ax.legend()
+#     ax.set(**ax_kwargs)
 
-    if ax_kwargs is None:
-        ax_kwargs = {}
 
-    for name in t_run.dtype.names:
-        color = next(ax._get_lines.prop_cycler)['color']
-
-        # ax.scatter(t_run[name], l_ex[name], label=name)
-
-        x_mean = np.mean(t_run[name])
-        y_mean = np.mean(l_ex[name])
-        ax.scatter(x_mean, y_mean, label=name + '_mean', color=color, marker='*', s=400)
-
-        # x_median = np.median(t_run[name])
-        # y_median = np.median(l_ex[name])
-        # ax.scatter(x_median, y_median, label=name + '_median', color=color, marker='d', s=400)
-
-        # x_std = np.std(t_run[name])
-        # y_std = np.std(l_ex[name])
-        # ax.errorbar(x_mean, y_mean, xerr=x_std, yerr=y_std, color=color, capsize=2)
-
-    ax.set(xlabel='Runtime (s)', ylabel='Loss')
-    ax.legend()
-    ax.set(**ax_kwargs)
-
-
+#%% Limited runtime results
 def plot_loss_runtime(t_run, l_ex, do_std=False, ax=None, ax_kwargs=None):
     """
     Line plot of total execution loss versus maximum runtime.

@@ -296,12 +296,12 @@ class TreeNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
 
             seq_ext = leaf_new.seq[len(self.seq):]
             node = self._extend_util(seq_ext, inplace=False)
-            node.roll_out()  # TODO: rollout with policy?
+            node.roll_out()  # TODO: rollout with learned policy?
             if node.l_ex < loss_best:
                 node_best, loss_best = node, node.l_ex
 
             # loss = leaf_new.evaluation()
-            loss = node.l_ex  # TODO: combine rollout with optional value func?
+            loss = node.l_ex  # TODO: mix rollout loss with value func, like AlphaGo?
             leaf_new.backup(loss)
 
         if inplace:
@@ -705,6 +705,7 @@ class SearchNode(RandomGeneratorMixin):
 
     n_tasks = property(lambda self: self._n_tasks)
     seq = property(lambda self: self._seq)
+    seq_rem = property(lambda self: self._seq_rem)
 
     parent = property(lambda self: self._parent)
     children = property(lambda self: self._children)
@@ -728,6 +729,8 @@ class SearchNode(RandomGeneratorMixin):
     def weight(self):
         """Weight for child selection. Combines average loss with a visit count bonus."""
 
+        # TODO: use parent policy eval to influence weighting
+
         value_loss = (self._bounds[1] - self._l_avg) / (self._bounds[1] - self._bounds[0])
         value_explore = np.sqrt(np.log(self.parent.n_visits) / self._n_visits)
         # value_explore = np.sqrt(self.parent.n_visits) / (self._n_visits + 1)
@@ -749,7 +752,7 @@ class SearchNode(RandomGeneratorMixin):
         node = self
         while not node.is_leaf:
             node = node.select_child()
-        if node.n_visits > 0 and len(node.seq) < node.n_tasks:  # node is not new, expand to create child
+        if node.n_visits > 0 and len(node.seq_rem) > 0:  # node is not new, expand to create child
             node = node.expansion()
 
         return node
