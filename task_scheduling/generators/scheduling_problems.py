@@ -4,14 +4,19 @@ from abc import ABC, abstractmethod
 from collections import deque
 from functools import partial
 from pathlib import Path
+from collections import namedtuple
+from datetime import datetime
 
 import dill
 import numpy as np
 
-from task_scheduling.algorithms.free import branch_bound_priority
+from task_scheduling.algorithms.base import branch_bound_priority
+from task_scheduling.algorithms.util import timing_wrapper
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
-from task_scheduling.util.generic import (RandomGeneratorMixin, timing_wrapper, SchedulingProblem, SchedulingSolution,
-                                          NOW_STR)
+from task_scheduling._core import RandomGeneratorMixin
+
+SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
+SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
 
 
 class Base(RandomGeneratorMixin, ABC):
@@ -73,7 +78,8 @@ class Base(RandomGeneratorMixin, ABC):
         solutions = [] if solve else None
 
         if save_path is None and self.temp_path is not None:
-            save_path = Path(self.temp_path) / NOW_STR
+            now = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
+            save_path = Path(self.temp_path) / now
 
         save = save_path is not None
 
@@ -323,22 +329,14 @@ class PermutedTasks(FixedTasks):
 
 
 class Dataset(Base):
-    # def __init__(self, problems, solutions=None, shuffle=False, repeat=False, n_tasks=None, n_ch=None,
-    #              task_gen=None, ch_avail_gen=None, rng=None):
     def __init__(self, problems, solutions=None, shuffle=False, repeat=False, task_gen=None, ch_avail_gen=None,
                  rng=None):
 
-        # if n_tasks is None:  # TODO: why are these args?? Exist in pickled datasets...
-        #     n_tasks = len(problems[0].tasks)
-        # if n_ch is None:
-        #     n_ch = len(problems[0].ch_avail)
         n_tasks = len(problems[0].tasks)
         n_ch = len(problems[0].ch_avail)
 
         super().__init__(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
-        # self.problems = deque(problems)
-        # self.solutions = deque(solutions) if solutions is not None else None
         self.problems = deque()  # TODO: single deque?
         self.solutions = deque()
         self.add_problems(problems, solutions)
@@ -358,13 +356,12 @@ class Dataset(Base):
         with Path(file_path).open(mode='rb') as fid:
             dict_gen = dill.load(fid)
 
-        # return cls(**dict_gen, shuffle=shuffle, repeat=repeat, rng=rng)
-        problems_solutions = (dict_gen['problems'],)
+        args = [dict_gen['problems']]
         if 'solutions' in dict_gen.keys():
-            problems_solutions += (dict_gen['solutions'],)
+            args.append(dict_gen['solutions'])
         kwargs = {'shuffle': shuffle, 'repeat': repeat, 'task_gen': dict_gen['task_gen'],
                   'ch_avail_gen': dict_gen['ch_avail_gen'], 'rng': rng}
-        return cls(*problems_solutions, **kwargs)
+        return cls(*args, **kwargs)
 
     def pop_dataset(self, n, shuffle=False, repeat=False, rng=None):
         """Create a new Dataset from elements of own queue."""

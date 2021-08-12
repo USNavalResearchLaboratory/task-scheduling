@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from task_scheduling.util.generic import RandomGeneratorMixin
+from task_scheduling._core import RandomGeneratorMixin
 
 
 class Base(RandomGeneratorMixin, ABC):

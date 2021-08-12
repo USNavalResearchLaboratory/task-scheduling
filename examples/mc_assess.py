@@ -11,9 +11,8 @@ from torch.nn import functional
 import pytorch_lightning as pl
 
 from task_scheduling.util.results import evaluate_algorithms_train
-from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix
 from task_scheduling.generators import scheduling_problems as problem_gens
-from task_scheduling.algorithms import mcts, random_sequencer, earliest_release, branch_bound_priority
+from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.supervised.torch import LitScheduler
 
@@ -93,10 +92,10 @@ learn_params_pl = {'batch_size_train': 20,
 algorithms = np.array([
     # ('BB_p', partial(branch_bound_priority, heuristic=methodcaller('roll_out', inplace=False,
     #                                                                rng=RNGMix.make_rng(seed))), 1),
-    ('Random', partial(random_sequencer, rng=RNGMix.make_rng(seed)), 10),
+    ('Random', partial(random_sequencer, rng=seed), 10),
     ('ERT', earliest_release, 10),
-    *((f'MCTS: c={c}, t={t}', partial(mcts, runtime=.002, c_explore=c, visit_threshold=t,
-                                      rng=RNGMix.make_rng(seed)), 10) for c, t in product([.035], [15])),
+    *((f'MCTS: c={c}, t={t}', partial(mcts, runtime=.002, c_explore=c, visit_threshold=t, rng=seed), 10)
+      for c, t in product([.035], [15])),
     ('Lit Policy', LitScheduler(env, LitModel(), learn_params_pl), 10),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 

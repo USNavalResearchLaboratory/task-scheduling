@@ -12,7 +12,7 @@ import pandas as pd
 from sortedcontainers import SortedKeyList
 
 from task_scheduling.tasks import Shift as ShiftTask
-from task_scheduling.util.generic import RandomGeneratorMixin
+from task_scheduling._core import RandomGeneratorMixin
 
 
 # TODO: modify classes and algorithms to efficiently handle repeated tasks!?

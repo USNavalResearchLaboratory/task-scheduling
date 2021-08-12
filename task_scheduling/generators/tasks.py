@@ -11,7 +11,7 @@ from gym import spaces
 
 from task_scheduling import tasks as task_types
 from task_scheduling.learning.spaces import DiscreteSet
-from task_scheduling.util.generic import RandomGeneratorMixin
+from task_scheduling._core import RandomGeneratorMixin
 
 
 # TODO: more generic Base class for heterogeneous task types?
@@ -282,7 +282,9 @@ class Fixed(Base, ABC):
             Random number generator seed or object.
         """
 
-        cls_task = task_types.check_task_types(tasks)
+        cls_task = tasks[0].__class__
+        if not all(isinstance(task, cls_task) for task in tasks[1:]):
+            raise TypeError("All tasks must be of the same type.")
 
         if param_spaces is None:
             param_spaces = {name: DiscreteSet([getattr(task, name) for task in tasks]) for name in cls_task.param_names}

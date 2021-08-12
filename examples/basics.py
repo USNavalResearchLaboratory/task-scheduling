@@ -1,10 +1,9 @@
 from matplotlib import pyplot as plt
 
 from task_scheduling import algorithms
-from task_scheduling.tasks import summarize_tasks
 from task_scheduling.generators import tasks as task_gens
-from task_scheduling.util.plot import plot_task_losses, plot_schedule
-from task_scheduling.util.results import check_schedule, evaluate_schedule
+from task_scheduling.util.info import plot_task_losses, summarize_tasks
+from task_scheduling.util.results import check_schedule, evaluate_schedule, plot_schedule
 
 plt.style.use('seaborn')
 

@@ -106,10 +106,9 @@ problem and the various solutions.
 from matplotlib import pyplot as plt
 
 from task_scheduling import algorithms
-from task_scheduling.tasks import summarize_tasks
 from task_scheduling.generators import tasks as task_gens
-from task_scheduling.util.plot import plot_task_losses, plot_schedule
-from task_scheduling.util.results import check_schedule, evaluate_schedule
+from task_scheduling.util.info import plot_task_losses, summarize_tasks
+from task_scheduling.util.results import check_schedule, evaluate_schedule, plot_schedule
 
 plt.style.use('seaborn')
 
@@ -164,9 +163,8 @@ from torch.nn import functional
 import pytorch_lightning as pl
 
 from task_scheduling.util.results import evaluate_algorithms_train
-from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix
 from task_scheduling.generators import scheduling_problems as problem_gens
-from task_scheduling.algorithms import mcts, random_sequencer, earliest_release, branch_bound_priority
+from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.supervised.torch import LitScheduler
 
@@ -181,7 +179,7 @@ seed = 12345
 #%% Define scheduling problem and algorithms
 
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=seed)
-problem_gen = problem_gens.Dataset.load('data/schedules/discrete_relu_c1t8', shuffle=True, repeat=True, rng=seed)
+problem_gen = problem_gens.Dataset.load('../data/schedules/discrete_relu_c1t8', shuffle=True, repeat=True, rng=seed)
 
 
 #%% Algorithms
@@ -246,10 +244,10 @@ learn_params_pl = {'batch_size_train': 20,
 algorithms = np.array([
     # ('BB_p', partial(branch_bound_priority, heuristic=methodcaller('roll_out', inplace=False,
     #                                                                rng=RNGMix.make_rng(seed))), 1),
-    ('Random', partial(random_sequencer, rng=RNGMix.make_rng(seed)), 10),
+    ('Random', partial(random_sequencer, rng=seed), 10),
     ('ERT', earliest_release, 10),
-    *((f'MCTS: c={c}, t={t}', partial(mcts, runtime=.002, c_explore=c, visit_threshold=t,
-                                      rng=RNGMix.make_rng(seed)), 10) for c, t in product([.035], [15])),
+    *((f'MCTS: c={c}, t={t}', partial(mcts, runtime=.002, c_explore=c, visit_threshold=t, rng=seed), 10)
+      for c, t in product([.035], [15])),
     ('Lit Policy', LitScheduler(env, LitModel(), learn_params_pl), 10),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
@@ -260,5 +258,4 @@ n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
 l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=n_gen, n_mc=n_mc, solve=True,
                                               verbose=2, plotting=2, log_path=None)
-
 ```

@@ -1,6 +1,7 @@
 from functools import partial
 from itertools import product
 from pathlib import Path
+from datetime import datetime
 # from operator import methodcaller
 
 import numpy as np
@@ -14,15 +15,12 @@ import pytorch_lightning as pl
 # from stable_baselines3.common.env_checker import check_env
 
 from task_scheduling.util.results import evaluate_algorithms_train
-from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix, NOW_STR
 from task_scheduling.generators import scheduling_problems as problem_gens
-# from task_scheduling.algorithms import free
-# from task_scheduling.algorithms.ensemble import ensemble_scheduler
-from task_scheduling.algorithms import ensemble_scheduler, mcts, random_sequencer, earliest_release
+from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 # from task_scheduling.learning.supervised.tf import keras, Scheduler as tfScheduler
-from task_scheduling.learning.supervised.torch import TorchScheduler, LitScheduler
+from task_scheduling.learning.supervised.torch import LitScheduler
 from task_scheduling.learning.reinforcement import StableBaselinesScheduler
 
 
@@ -151,8 +149,6 @@ opt = optim.Adam(model_torch.parameters(), lr=1e-3)
 class LitModel(pl.LightningModule):
     def __init__(self):
         super().__init__()
-        # self.model = model_torch
-        # self.loss_func = loss_func
 
         self.model = nn.Sequential(
             nn.Flatten(),
@@ -269,10 +265,10 @@ algorithms = np.array([
     # ('BB_p_ERT', partial(free.branch_bound_priority, heuristic=methodcaller('earliest_release', inplace=False)), 1),
     # ('B&B sort', sort_wrapper(partial(free.branch_bound, verbose=False), 't_release'), 1),
     # ('Ensemble', ensemble_scheduler(free.random_sequencer, free.earliest_release), 5),
-    ('Random', partial(random_sequencer, rng=RNGMix.make_rng(seed)), 10),
+    ('Random', partial(random_sequencer, rng=seed), 10),
     ('ERT', earliest_release, 10),
-    *((f'MCTS: c={c}, t={t}', partial(mcts, runtime=.002, c_explore=c, visit_threshold=t,
-                                      rng=RNGMix.make_rng(seed)), 10) for c, t in product([.035], [15])),
+    *((f'MCTS: c={c}, t={t}', partial(mcts, runtime=.0025, c_explore=c, visit_threshold=t, rng=seed), 10)
+      for c, t in product([.035], [15])),
     # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, runtime=.02, c_explore=c,
     #                               rng=RNGMix.make_rng(seed)), 10) for c in [15]),
     # *((f'MCTS, c={c}, t={t}', partial(free.mcts, n_mc=50, c_explore=c, visit_threshold=t,
@@ -296,15 +292,20 @@ algorithms = np.array([
 # TODO: make custom output layers to avoid illegal actions?
 # TODO: make loss func for full seq targets, penalize in proportion to seq similarity?
 
+# TODO: document class attributes, even if identical to init parameters?
+# TODO: document instantiation parameters under init or under the class def?
+# TODO: rework docstring parameter typing?
+
+now = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
 
 log_path = 'logs/temp/PGR_results.md'
 # log_path = 'logs/discrete_relu_c1t8.md'
 
-image_path = f'images/temp/{NOW_STR}'
+image_path = f'images/temp/{now}'
 
 learners = algorithms[[isinstance(alg['func'], BaseLearningScheduler) for alg in algorithms]]
 with open(log_path, 'a') as fid:
-    print(f"\n# {NOW_STR}\n", file=fid)
+    print(f"\n# {now}\n", file=fid)
 
     # print(f"Problem gen: ", end='', file=fid)
     # problem_gen.summary(fid)
@@ -323,7 +324,7 @@ with open(log_path, 'a') as fid:
 n_mc = 1
 l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=100, n_mc=n_mc, solve=True,
                                               verbose=2, plotting=2, log_path=log_path)
-np.savez(data_path / f'results/temp/{NOW_STR}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
+np.savez(data_path / f'results/temp/{now}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
 
 
 fig_name = 'Train' if n_mc > 1 else 'Gen'
@@ -331,22 +332,6 @@ fig_name += ' (Relative)'
 plt.figure(fig_name).savefig(image_path)
 with open(log_path, 'a') as fid:
     print(f"![](../../{image_path}.png)\n", file=fid)
-
-
-#%% Limited Runtime
-
-# algorithms = np.array([
-#     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
-#     ('Random', runtime_wrapper(algs.free.random_sequencer), 20),
-#     ('ERT', runtime_wrapper(algs.free.earliest_release), 1),
-#     ('MCTS', partial(algs.limit.mcts, verbose=False), 5),
-#     ('Policy', runtime_wrapper(policy_model), 5),
-#     # ('DQN Agent', dqn_agent, 5),
-# ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
-#
-# runtimes = np.logspace(-2, -1, 20, endpoint=False)
-# evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=40, solve=True, verbose=2, plotting=1,
-#                             save=False, file=None)
 
 
 #%% Deprecated

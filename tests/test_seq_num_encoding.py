@@ -2,7 +2,7 @@ from math import factorial
 
 import numpy as np
 
-from task_scheduling.util.generic import num2seq, seq2num
+from task_scheduling.learning.environments import num2seq, seq2num
 
 
 def test_encode_decode():

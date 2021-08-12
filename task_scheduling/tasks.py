@@ -7,30 +7,6 @@ import numpy as np
 import pandas as pd
 
 
-#%% Task utilities
-
-def check_task_types(tasks):
-    cls_task = tasks[0].__class__
-    if all(isinstance(task, cls_task) for task in tasks[1:]):
-        return cls_task
-    else:
-        raise TypeError("All tasks must be of the same type.")
-
-
-def _tasks_to_dataframe(tasks):
-    return pd.DataFrame([task.to_series() for task in tasks])
-
-
-def summarize_tasks(tasks, file=None, **tabulate_kwargs):
-    """Create and print a Pandas DataFrame detailing tasks."""
-    tabulate_kwargs_ = {'tablefmt': 'github', 'floatfmt': '.3f'}
-    tabulate_kwargs_.update(tabulate_kwargs)
-    print(_tasks_to_dataframe(tasks).to_markdown(**tabulate_kwargs_), file=file)
-    # print(_tasks_to_dataframe(tasks).to_markdown(tablefmt='github', floatfmt='.3f'))
-
-
-#%% Task objects
-
 class Base(ABC):
     """
     Base task objects.

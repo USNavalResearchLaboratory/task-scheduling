@@ -13,8 +13,7 @@ from gym.spaces import Discrete, MultiDiscrete
 from task_scheduling import tree_search
 from task_scheduling.learning import spaces as spaces_tasking
 from task_scheduling.learning.features import param_features
-from task_scheduling.util.generic import seq2num, num2seq
-from task_scheduling.util.plot import plot_task_losses
+from task_scheduling.util.info import plot_task_losses
 
 
 # Gym Environments
@@ -343,6 +342,71 @@ class BaseTasking(Env, ABC):
         }
 
         return numpy_dict  # used to instantiate ExpertDataset object via `traj_data` arg
+
+
+def seq2num(seq, check_input=True):
+    """
+    Map an index sequence permutation to a non-negative integer.
+
+    Parameters
+    ----------
+    seq : Sequence of int
+        Elements are unique in range(len(seq)).
+    check_input : bool
+        Enables value checking of input sequence.
+
+    Returns
+    -------
+    int
+        Takes values in range(factorial(len(seq))).
+    """
+
+    length = len(seq)
+    seq_rem = list(range(length))  # remaining elements
+    if check_input and set(seq) != set(seq_rem):
+        raise ValueError(f"Input must have unique elements in range({length}).")
+
+    num = 0
+    for i, n in enumerate(seq):
+        k = seq_rem.index(n)  # position of index in remaining elements
+        num += k * factorial(length - 1 - i)
+        seq_rem.remove(n)
+
+    return num
+
+
+def num2seq(num, length, check_input=True):
+    """
+    Map a non-negative integer to an index sequence permutation.
+
+    Parameters
+    ----------
+    num : int
+        In range(factorial(length))
+    length : int
+        Length of the output sequence.
+    check_input : bool
+        Enables value checking of input number.
+
+    Returns
+    -------
+    tuple
+        Elements are unique in factorial(len(seq)).
+    """
+
+    if check_input and num not in range(factorial(length)):
+        raise ValueError(f"Input 'num' must be in range(factorial({length})).")
+
+    seq_rem = list(range(length))  # remaining elements
+    seq = []
+    while len(seq_rem) > 0:
+        radix = factorial(len(seq_rem) - 1)
+        i, num = num // radix, num % radix
+
+        n = seq_rem.pop(i)
+        seq.append(n)
+
+    return tuple(seq)
 
 
 class SeqTasking(BaseTasking):

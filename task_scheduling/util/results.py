@@ -1,11 +1,10 @@
 from warnings import warn
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
 
-from task_scheduling.util.generic import timing_wrapper
-from task_scheduling.util.plot import plot_schedule, scatter_loss_runtime
+from task_scheduling.algorithms.util import timing_wrapper
 from task_scheduling.generators.scheduling_problems import Dataset
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 
@@ -14,7 +13,6 @@ from task_scheduling.learning.base import Base as BaseLearningScheduler
 #                     datefmt='%Y-%m-%dT%H:%M:%S')
 
 
-#%% Schedule evaluation
 def check_schedule(tasks, t_ex, ch_ex, tol=1e-12):
     """
     Check schedule validity.
@@ -76,6 +74,124 @@ def evaluate_schedule(tasks, t_ex):
         l_ex += task(t_ex)
 
     return l_ex
+
+
+def plot_schedule(tasks, t_ex, ch_ex, l_ex=None, name=None, ax=None, ax_kwargs=None):
+    """
+    Plot task schedule.
+
+    Parameters
+    ----------
+    tasks : list of task_scheduling.tasks.Base
+    t_ex : ndarray
+        Task execution times. NaN for unscheduled.
+    ch_ex : ndarray
+        Task execution channels. NaN for unscheduled.
+    l_ex : float or None
+        Total loss of scheduled tasks.
+    name : str or None
+        Algorithm string representation
+    ax : Axes or None
+        Matplotlib axes target object.
+    ax_kwargs : dict
+        Additional Axes keyword parameters.
+
+    """
+    if ax is None:
+        _, ax = plt.subplots()
+
+    if ax_kwargs is None:
+        ax_kwargs = {}
+
+    n_ch = len(np.unique(ch_ex))
+    bar_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+
+    # ax.broken_barh([(t_ex[n], tasks[n].duration) for n in range(len(tasks))], (-0.5, 1), facecolors=bar_colors)
+    for n, task in enumerate(tasks):
+        label = str(task)
+        # label = f'Task #{n}'
+        ax.broken_barh([(t_ex[n], task.duration)], (ch_ex[n] - 0.5, 1),
+                       facecolors=bar_colors[n % len(bar_colors)], edgecolor='black', label=label)
+
+    x_lim = min(t_ex), max(t_ex[n] + task.duration for n, task in enumerate(tasks))
+    ax.set(xlim=x_lim, ylim=(-.5, n_ch - 1 + .5), xlabel='t',
+           yticks=list(range(n_ch)), ylabel='Channel')
+
+    ax.legend()
+
+    _temp = []
+    if isinstance(name, str):
+        _temp.append(name)
+    if l_ex is not None:
+        _temp.append(f'Loss = {l_ex:.3f}')
+    title = ', '.join(_temp)
+    if len(title) > 0:
+        ax.set_title(title)
+
+    ax.set(**ax_kwargs)
+
+
+def scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
+    """
+    Scatter plot of total execution loss versus runtime.
+
+    Parameters
+    ----------
+    t_run : ndarray
+        Runtime of algorithm.
+    l_ex : ndarray
+        Total loss of scheduled tasks.
+    ax : Axes or None
+        Matplotlib axes target object.
+    ax_kwargs : dict
+        Additional Axes keyword parameters.
+
+    """
+    if ax is None:
+        _, ax = plt.subplots()
+
+    if ax_kwargs is None:
+        ax_kwargs = {}
+
+    for name in t_run.dtype.names:
+        kwargs = {}
+        if name == 'BB Optimal':
+            kwargs.update(c='k')
+
+        ax.scatter(t_run[name], l_ex[name], label=name, **kwargs)
+
+    ax.set(xlabel='Runtime (s)', ylabel='Loss')
+    ax.legend()
+    ax.set(**ax_kwargs)
+
+
+# def scatter_loss_runtime_stats(t_run, l_ex, ax=None, ax_kwargs=None):
+#     if ax is None:
+#         _, ax = plt.subplots()
+#
+#     if ax_kwargs is None:
+#         ax_kwargs = {}
+#
+#     for name in t_run.dtype.names:
+#         color = next(ax._get_lines.prop_cycler)['color']
+#
+#         # ax.scatter(t_run[name], l_ex[name], label=name)
+#
+#         x_mean = np.mean(t_run[name])
+#         y_mean = np.mean(l_ex[name])
+#         ax.scatter(x_mean, y_mean, label=name + '_mean', color=color, marker='*', s=400)
+#
+#         # x_median = np.median(t_run[name])
+#         # y_median = np.median(l_ex[name])
+#         # ax.scatter(x_median, y_median, label=name + '_median', color=color, marker='d', s=400)
+#
+#         # x_std = np.std(t_run[name])
+#         # y_std = np.std(l_ex[name])
+#         # ax.errorbar(x_mean, y_mean, xerr=x_std, yerr=y_std, color=color, capsize=2)
+#
+#     ax.set(xlabel='Runtime (s)', ylabel='Loss')
+#     ax.legend()
+#     ax.set(**ax_kwargs)
 
 
 #%% Utilities
@@ -334,78 +450,3 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
         _print_averages(l_ex_mc, t_run_mc, log_path, do_relative=solve)
 
     return l_ex_mc, t_run_mc
-
-
-#%% Runtime limited operation
-# def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0,
-#                                 save_path=None):
-#
-#     l_ex_iter = np.array([[tuple([np.nan] * alg['n_iter'] for alg in algorithms)] * n_gen] * len(runtimes),
-#                          dtype=[(alg['name'], float, (alg['n_iter'],)) for alg in algorithms])
-#     l_ex_mean = np.array([[(np.nan,) * len(algorithms)] * n_gen] * len(runtimes),
-#                          dtype=[(alg['name'], float) for alg in algorithms])
-#
-#     l_ex_opt = np.full(n_gen, np.nan)
-#     t_run_opt = np.full(n_gen, np.nan)  # TODO: use in plots?
-#
-#     # Generate scheduling problems
-#     for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose, save_path)):
-#         if solve:
-#             (tasks, ch_avail), (t_ex, ch_ex, t_run) = out_gen
-#             check_schedule(tasks, t_ex, ch_ex)
-#             l_ex_opt[i_gen] = evaluate_schedule(tasks, t_ex)
-#             t_run_opt[i_gen] = t_run
-#         else:
-#             tasks, ch_avail = out_gen
-#
-#         for name, func, n_iter in algorithms:
-#             for iter_ in range(n_iter):  # perform new algorithm runs
-#                 if verbose >= 2:
-#                     print(f'  {name}: Iteration: {iter_ + 1}/{n_iter}', end='\r')
-#
-#                 # Evaluate schedule
-#                 for i_time, solution in enumerate(func(tasks, ch_avail, runtimes)):
-#                     if solution is None:
-#                         continue  # TODO
-#
-#                     t_ex, ch_ex = solution
-#
-#                     check_schedule(tasks, t_ex, ch_ex)
-#                     l_ex = evaluate_schedule(tasks, t_ex)
-#
-#                     l_ex_iter[name][i_time, i_gen, iter_] = l_ex
-#
-#                     if plotting >= 3:
-#                         plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, name=name, ax=None)
-#
-#             l_ex_mean[name][:, i_gen] = l_ex_iter[name][:, i_gen].mean(-1)
-#
-#         if plotting >= 2:
-#             _, ax_gen = plt.subplots(2, 1, num=f'Scheduling Problem: {i_gen + 1}', clear=True)
-#             plot_task_losses(tasks, ax=ax_gen[0])
-#             plot_loss_runtime(runtimes, l_ex_iter[:, i_gen], do_std=False, ax=ax_gen[1])
-#
-#     # Results
-#     if plotting >= 1:
-#         _, ax_results = plt.subplots(num='Results', clear=True)
-#         plot_loss_runtime(runtimes, l_ex_mean, do_std=True,
-#                           ax=ax_results,
-#                           # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
-#                           )
-#
-#     if solve:  # relative to B&B
-#         l_ex_mean_rel = l_ex_mean.copy()
-#         for name in algorithms['name']:
-#             l_ex_mean_rel[name] -= l_ex_opt
-#             # l_ex_mean_rel[name] /= l_ex_opt
-#
-#         if plotting >= 1:
-#             _, ax_results_rel = plt.subplots(num='Results (Relative)', clear=True)
-#             plot_loss_runtime(runtimes, l_ex_mean_rel, do_std=True,
-#                               ax=ax_results_rel,
-#                               ax_kwargs={'ylabel': 'Excess Loss',
-#                                          # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
-#                                          }
-#                               )
-#
-#     return l_ex_iter, l_ex_opt
