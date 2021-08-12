@@ -4,6 +4,14 @@ task\_scheduling.algorithms package
 Submodules
 ----------
 
+task\_scheduling.algorithms.base module
+---------------------------------------
+
+.. automodule:: task_scheduling.algorithms.base
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 task\_scheduling.algorithms.ensemble module
 -------------------------------------------
 
@@ -12,18 +20,10 @@ task\_scheduling.algorithms.ensemble module
    :undoc-members:
    :show-inheritance:
 
-task\_scheduling.algorithms.free module
+task\_scheduling.algorithms.util module
 ---------------------------------------
 
-.. automodule:: task_scheduling.algorithms.free
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-task\_scheduling.algorithms.limit module
-----------------------------------------
-
-.. automodule:: task_scheduling.algorithms.limit
+.. automodule:: task_scheduling.algorithms.util
    :members:
    :undoc-members:
    :show-inheritance:

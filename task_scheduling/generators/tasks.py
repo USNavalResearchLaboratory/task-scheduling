@@ -1,4 +1,11 @@
-"""Generator objects for tasks."""
+"""
+Generator objects for tasks.
+
+Notes
+-----
+Assumes all tasks are instances of the same class. Heterogeneous task types will be supported in a future version.
+
+"""
 
 from abc import ABC, abstractmethod
 from collections import deque

@@ -4,18 +4,10 @@ task\_scheduling.util package
 Submodules
 ----------
 
-task\_scheduling.util.generic module
-------------------------------------
-
-.. automodule:: task_scheduling.util.generic
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-task\_scheduling.util.plot module
+task\_scheduling.util.info module
 ---------------------------------
 
-.. automodule:: task_scheduling.util.plot
+.. automodule:: task_scheduling.util.info
    :members:
    :undoc-members:
    :show-inheritance:
