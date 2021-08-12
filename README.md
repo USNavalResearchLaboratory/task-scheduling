@@ -107,8 +107,7 @@ from matplotlib import pyplot as plt
 
 from task_scheduling import algorithms
 from task_scheduling.generators import tasks as task_gens
-from task_scheduling.util.info import plot_task_losses, summarize_tasks
-from task_scheduling.util.results import check_schedule, evaluate_schedule, plot_schedule
+from task_scheduling.util import plot_task_losses, summarize_tasks, check_schedule, evaluate_schedule, plot_schedule
 
 plt.style.use('seaborn')
 
@@ -138,6 +137,7 @@ for algorithm, ax in zip(algorithms, axes):
     check_schedule(tasks, t_ex, ch_ex)
     loss = evaluate_schedule(tasks, t_ex)
     plot_schedule(tasks, t_ex, ch_ex, l_ex=loss, ax=ax)
+
 ```
 
 ### Policy learning and Monte Carlo assessment
@@ -162,9 +162,9 @@ from torch import nn, optim
 from torch.nn import functional
 import pytorch_lightning as pl
 
-from task_scheduling.util.results import evaluate_algorithms_train
-from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
+from task_scheduling.generators import scheduling_problems as problem_gens
+from task_scheduling.util import evaluate_algorithms_train
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.supervised.torch import LitScheduler
 
@@ -258,4 +258,5 @@ n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
 l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=n_gen, n_mc=n_mc, solve=True,
                                               verbose=2, plotting=2, log_path=None)
+
 ```

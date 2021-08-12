@@ -11,7 +11,6 @@ from torch.utils.data import TensorDataset, DataLoader
 
 import pytorch_lightning as pl
 
-# from task_scheduling.util.generic import NOW_STR
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 
 

@@ -10,10 +10,10 @@ from datetime import datetime
 import dill
 import numpy as np
 
-from task_scheduling.algorithms.base import branch_bound_priority
+from task_scheduling._core import RandomGeneratorMixin
+from task_scheduling.algorithms import branch_bound_priority
 from task_scheduling.algorithms.util import timing_wrapper
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
-from task_scheduling._core import RandomGeneratorMixin
 
 SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
 SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))

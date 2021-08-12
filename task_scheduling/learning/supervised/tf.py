@@ -13,7 +13,6 @@ from tensorflow import keras
 
 from task_scheduling.learning.base import Base
 # from task_scheduling.learning import environments as envs
-# from task_scheduling.util.generic import NOW_STR
 
 for device in tf.config.experimental.list_physical_devices('GPU'):
     tf.config.experimental.set_memory_growth(device, True)  # TODO: compatibility issue workaround

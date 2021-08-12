@@ -14,9 +14,9 @@ from torch.nn import functional
 import pytorch_lightning as pl
 # from stable_baselines3.common.env_checker import check_env
 
-from task_scheduling.util.results import evaluate_algorithms_train
-from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
+from task_scheduling.generators import scheduling_problems as problem_gens
+from task_scheduling.util import evaluate_algorithms_train
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 # from task_scheduling.learning.supervised.tf import keras, Scheduler as tfScheduler
