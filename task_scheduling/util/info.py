@@ -25,9 +25,6 @@ def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
     ax_kwargs : dict, optional
         Additional Axes keyword parameters.
 
-    Returns
-    -------
-
     """
     if ax_kwargs is None:
         ax_kwargs = {}

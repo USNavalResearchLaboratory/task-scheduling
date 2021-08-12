@@ -106,10 +106,6 @@ class ContinuousUniformIID(BaseIID):
         super().__init__(cls_task, param_spaces, rng)
 
         self.param_lims = param_lims
-        # if param_lims is None:
-        #     self.param_lims = {name: (-np.inf, np.inf) for name in cls_task.param_names}
-        # else:
-        #     self.param_lims = param_lims
 
     def _param_gen(self, rng):
         """Randomly generate task parameters."""

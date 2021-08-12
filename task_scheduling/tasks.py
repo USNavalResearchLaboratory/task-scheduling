@@ -53,7 +53,6 @@ class Base(ABC):
     def summary(self, file=None):
         """Print a string listing task parameters."""
         print(self.to_series(name='value').to_markdown(tablefmt='github', floatfmt='.3f'), file=file)
-        # summarize_tasks([self], index=False)
 
         # cls_str = self.__class__.__name__
         #
