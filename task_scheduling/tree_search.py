@@ -14,10 +14,7 @@ from task_scheduling._core import RandomGeneratorMixin
 from task_scheduling.tasks import Shift as ShiftTask
 
 
-# TODO: modify classes and algorithms to efficiently handle repeated tasks!?
-
-
-class ScheduleNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
+class ScheduleNode(RandomGeneratorMixin):
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
         """
         Node object for mapping task sequences into execution schedules.

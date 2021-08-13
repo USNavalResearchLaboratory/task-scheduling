@@ -13,6 +13,7 @@ from task_scheduling.learning.supervised.torch import reset_weights
 
 # from stable_baselines.common.vec_env import DummyVecEnv
 
+# FIXME: add normalization option for RL learners!? Or just use gym.Wrappers?
 
 # class DummyVecTaskingEnv(DummyVecEnv):
 #     def reset(self, *args, **kwargs):

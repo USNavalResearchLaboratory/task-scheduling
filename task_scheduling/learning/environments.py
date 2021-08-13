@@ -1,9 +1,7 @@
 from abc import ABC, abstractmethod
-# from copy import deepcopy
 from math import factorial
 from types import MethodType
 from operator import attrgetter
-# from warnings import warn
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,9 +16,6 @@ from task_scheduling.util.info import plot_task_losses
 
 # Gym Environments
 class BaseTasking(Env, ABC):
-
-    # FIXME: add normalization option for RL learners!? Or just use gym.Wrappers?
-
     def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False):
         """Base environment for task scheduling.
 
@@ -41,9 +36,6 @@ class BaseTasking(Env, ABC):
         self.problem_gen = problem_gen
         self.solution = None
 
-        # self.n_tasks = self.problem_gen.n_tasks
-        # self.n_ch = self.problem_gen.n_ch
-
         # Set features and state bounds
         if features is not None:
             self.features = features
@@ -61,17 +53,12 @@ class BaseTasking(Env, ABC):
             self.sort_func = None
             self._sort_func_str = None
 
+        self.time_shift = time_shift
         self.masking = masking
-        # if masking:
-        #     warn("NotImplemented: observation space lower limits not properly modified!")  # FIXME
 
         self.reward_range = (-float('inf'), 0)
         self.loss_agg = None
 
-        if time_shift:
-            self.node_cls = tree_search.ScheduleNodeShift
-        else:
-            self.node_cls = tree_search.ScheduleNode
         self.node = None
 
         self.steps_per_episode = None
@@ -86,17 +73,6 @@ class BaseTasking(Env, ABC):
     tasks = property(lambda self: self.node.tasks)
     ch_avail = property(lambda self: self.node.ch_avail)
 
-    # @property
-    # def features(self):
-    #     if self._features is None:
-    #         time_shift = (self.node_cls == tree_search.ScheduleNodeShift)
-    #         self._features = param_features(self.problem_gen, time_shift)
-    #     return self._features
-    #
-    # @features.setter
-    # def features(self, val):
-    #     self._features = val
-
     def __repr__(self):
         if self.node is None:
             _status = 'Initialized'
@@ -110,7 +86,7 @@ class BaseTasking(Env, ABC):
         str_ = f"{cls_str}"
         str_ += f"\n- Features: {self.features['name'].tolist()}"
         str_ += f"\n- Sorting: {self._sort_func_str}"
-        str_ += f"\n- Task shifting: {self.node_cls == tree_search.ScheduleNodeShift}"
+        str_ += f"\n- Task shifting: {self.time_shift}"
         str_ += f"\n- Masking: {self.masking}"
         return str_
 
@@ -184,11 +160,13 @@ class BaseTasking(Env, ABC):
         """
 
         if persist:
-            # tasks, ch_avail = self.tasks, self.ch_avail
-            raise NotImplementedError   # TODO: shift nodes cannot recover original task/ch_avail state!
+            if self.time_shift:
+                raise NotImplementedError("Shift nodes cannot recover original tasks")
+            else:
+                tasks, ch_avail = self.tasks, self.ch_avail
         else:
             if tasks is None or ch_avail is None:  # generate new scheduling problem
-                if solve:  # TODO: next()? Pass a generator, not a callable??
+                if solve:
                     ((tasks, ch_avail), self.solution), = self.problem_gen(1, solve=solve, rng=rng)
                 else:
                     (tasks, ch_avail), = self.problem_gen(1, solve=solve, rng=rng)
@@ -199,7 +177,10 @@ class BaseTasking(Env, ABC):
             elif len(ch_avail) != self.n_ch:
                 raise ValueError(f"Input 'ch_avail' must be None or an array of {self.n_ch} channel availabilities")
 
-        self.node = self.node_cls(tasks, ch_avail)
+        if self.time_shift:
+            self.node = tree_search.ScheduleNodeShift(tasks, ch_avail)
+        else:
+            self.node = tree_search.ScheduleNode(tasks, ch_avail)
         self.loss_agg = self.node.l_ex  # Loss can be non-zero due to time origin shift during node initialization
 
         self._update_spaces()
@@ -303,8 +284,6 @@ class BaseTasking(Env, ABC):
                 t_ex, ch_ex = self.solution.t_ex, self.solution.ch_ex
                 seq = np.argsort(t_ex)  # maps to optimal schedule (empirically supported...)
 
-                # TODO: train using complete tree info, not just B&B solution?
-
                 # Generate samples for each scheduling step of the optimal sequence
                 idx = i_gen * self.steps_per_episode + np.arange(self.steps_per_episode)
                 x_set[idx], y_set[idx], w_set[idx] = self._gen_single(seq, weight_func)
@@ -342,6 +321,10 @@ class BaseTasking(Env, ABC):
         }
 
         return numpy_dict  # used to instantiate ExpertDataset object via `traj_data` arg
+
+    def mask_probability(self, p):
+        """Returns masked action probabilities."""
+        return np.array(p)
 
 
 def seq2num(seq, check_input=True):
@@ -482,7 +465,7 @@ class SeqTasking(BaseTasking):
             raise ValueError
 
         if callable(weight_func):
-            w = weight_func(self)  # TODO: weighting based on loss value!? Use MethodType, or new call signature?
+            w = weight_func(self)
         else:
             w = 1.
 
@@ -554,7 +537,7 @@ class StepTasking(BaseTasking):
             raise NotImplementedError('Generic callables not yet supported.')
             # self.seq_encoding = MethodType(seq_encoding, self)
             #
-            # env_copy = deepcopy(self)  # FIXME: hacked - find better way!
+            # env_copy = deepcopy(self)
             # env_copy.reset()
             # self.len_seq_encode = len(env_copy.seq_encoding(0))
         else:
@@ -575,7 +558,6 @@ class StepTasking(BaseTasking):
             self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)
         else:
             self.action_space = Discrete(self.n_tasks)
-        # self.action_space = self._action_space_map(self.n_tasks)
 
     def summary(self, file=None):
         # super().summary(file)
@@ -609,12 +591,6 @@ class StepTasking(BaseTasking):
             # self.action_space = spaces_tasking.DiscreteSet(seq_rem_sort)
             self.action_space.mask = np.isin(np.arange(self.n_tasks), seq_rem_sort, invert=True)
 
-    # def step(self, action):   # TODO: improve or delete
-    #     if self.do_valid_actions or self.sorted_index[action] in self.node.seq_rem:
-    #         return super().step(action)
-    #     else:
-    #         return self.state, -100, False, {}
-
     def _gen_single(self, seq, weight_func):
         """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
 
@@ -634,15 +610,10 @@ class StepTasking(BaseTasking):
 
         return x_set, y_set, w_set
 
-    def mask_probability(self, p):  # TODO: generalize/move for base class, or move to scheduler class?
+    def mask_probability(self, p):
         """Returns masked action probabilities based on unscheduled task indices."""
 
-        # seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
-        # mask = np.isin(np.arange(self.n_tasks), seq_rem_sort, invert=True)
-        # return np.ma.masked_array(p, mask)
-
-        # if isinstance(self.action_space, spaces_tasking.DiscreteMasked):
         if self.do_valid_actions:
             return np.ma.masked_array(p, self.action_space.mask)
         else:
-            return np.array(p)
+            return super().mask_probability(p)

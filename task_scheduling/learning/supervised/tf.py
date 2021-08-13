@@ -15,7 +15,7 @@ from task_scheduling.learning.base import Base
 # from task_scheduling.learning import environments as envs
 
 for device in tf.config.experimental.list_physical_devices('GPU'):
-    tf.config.experimental.set_memory_growth(device, True)  # TODO: compatibility issue workaround
+    tf.config.experimental.set_memory_growth(device, True)  # compatibility issue workaround
 
 
 def reset_weights(model):      # from https://github.com/keras-team/keras/issues/341#issuecomment-539198392
