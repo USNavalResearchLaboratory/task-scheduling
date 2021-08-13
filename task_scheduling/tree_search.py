@@ -17,7 +17,7 @@ from task_scheduling.tasks import Shift as ShiftTask
 # TODO: modify classes and algorithms to efficiently handle repeated tasks!?
 
 
-class TreeNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
+class ScheduleNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
         """
         Node object for mapping task sequences into execution schedules.
@@ -54,10 +54,10 @@ class TreeNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
         self.seq = seq
 
     def __repr__(self):
-        return f"TreeNode(sequence: {self.seq}, loss incurred:{self.l_ex:.3f})"
+        return f"ScheduleNode(sequence: {self.seq}, loss incurred:{self.l_ex:.3f})"
 
     def __eq__(self, other):
-        if isinstance(other, TreeNode):
+        if isinstance(other, ScheduleNode):
             return (self.tasks, self.ch_avail, self.seq) == (other.tasks, other.ch_avail, other.seq)
         else:
             return NotImplemented
@@ -68,7 +68,7 @@ class TreeNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
         df = pd.Series({key: getattr(self, key) for key in keys})
         print(df.to_markdown(tablefmt='github', floatfmt='.3f'), file=file)
 
-        # str_out = f'TreeNode\n- sequence: {self.seq}\n- execution times: {self.t_ex}' \
+        # str_out = f'ScheduleNode\n- sequence: {self.seq}\n- execution times: {self.t_ex}' \
         #           f'\n- execution channels: {self.ch_ex}\n- loss incurred: {self.l_ex:.3f}'
         # print(str_out)
         # return str_out
@@ -176,7 +176,7 @@ class TreeNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
 
         Yields
         -------
-        TreeNode
+        ScheduleNode
             Descendant node with one additional task scheduled.
 
         """
@@ -196,13 +196,13 @@ class TreeNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
         Parameters
         ----------
         inplace : bool, optional
-            Update node in-place or return a new TreeNode object.
+            Update node in-place or return a new ScheduleNode object.
         rng : int or RandomState or Generator, optional
             NumPy random number generator or seed. Instance RNG if None.
 
         Returns
         -------
-        TreeNode
+        ScheduleNode
             Only if `inplace` is False.
 
         """
@@ -245,7 +245,7 @@ class TreeNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
 
         Returns
         -------
-        TreeNode, optional
+        ScheduleNode, optional
             Only if `inplace` is False.
 
         Notes
@@ -257,7 +257,7 @@ class TreeNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
         t_run = perf_counter()
 
         rng = self._get_rng(rng)
-        bounds = TreeNodeBound(self.tasks, self.ch_avail).bounds
+        bounds = ScheduleNodeBound(self.tasks, self.ch_avail).bounds
         root = MCTSNode(self.n_tasks, bounds, self.seq, c_explore, visit_threshold, rng=rng)
 
         node_best, loss_best = None, np.inf
@@ -297,7 +297,7 @@ class TreeNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
 
         Returns
         -------
-        TreeNode
+        ScheduleNode
             Only if `inplace` is False.
 
         """
@@ -321,13 +321,13 @@ class TreeNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
             return node_best
 
 
-class TreeNodeBound(TreeNode):
+class ScheduleNodeBound(ScheduleNode):
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
         self._bounds = [0., float('inf')]
         super().__init__(tasks, ch_avail, seq, rng)
 
     def __repr__(self):
-        return f"TreeNodeBound(sequence: {self.seq}, {self.l_lo:.3f} < loss < {self.l_up:.3f})"
+        return f"ScheduleNodeBound(sequence: {self.seq}, {self.l_lo:.3f} < loss < {self.l_up:.3f})"
 
     bounds = property(lambda self: self._bounds)
     l_lo = property(lambda self: self._bounds[0])
@@ -382,7 +382,7 @@ class TreeNodeBound(TreeNode):
 
         Returns
         -------
-        TreeNodeBound, optional
+        ScheduleNodeBound, optional
             Only if `inplace` is False.
 
         """
@@ -429,7 +429,7 @@ class TreeNodeBound(TreeNode):
         Parameters
         ----------
         priority_func : callable, optional
-            Key function that maps `TreeNode` objects to priority values. Defaults to negative lower bound.
+            Key function that maps `ScheduleNode` objects to priority values. Defaults to negative lower bound.
         heuristic : callable, optional
             Uses a partial node to generate a complete sequence node.
         inplace : bool, optional
@@ -439,7 +439,7 @@ class TreeNodeBound(TreeNode):
 
         Returns
         -------
-        TreeNodeBound, optional
+        ScheduleNodeBound, optional
             Only if `inplace` is False.
 
         """
@@ -482,7 +482,7 @@ class TreeNodeBound(TreeNode):
             return node_best
 
 
-class TreeNodeShift(TreeNode):
+class ScheduleNodeShift(ScheduleNode):
     _tasks: Sequence[ShiftTask]
 
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
@@ -493,7 +493,7 @@ class TreeNodeShift(TreeNode):
         self.shift_origin()  # performs initial shift when initialized with empty sequence
 
     def __repr__(self):
-        return f"TreeNodeShift(sequence: {self.seq}, loss incurred:{self.l_ex:.3f})"
+        return f"ScheduleNodeShift(sequence: {self.seq}, loss incurred:{self.l_ex:.3f})"
 
     # def _update_ex(self, n, ch):
     #     self._ch_ex[n] = ch

@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from task_scheduling.algorithms.util import timing_wrapper
-from task_scheduling.tree_search import TreeNodeBound
+from task_scheduling.tree_search import ScheduleNodeBound
 from task_scheduling.util.info import plot_task_losses
 from task_scheduling.util.results import check_schedule, evaluate_schedule, plot_schedule
 
@@ -37,7 +37,7 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 
     t_run = perf_counter()
 
-    stack = [TreeNodeBound(tasks, ch_avail, rng=rng)]  # initialize stack
+    stack = [ScheduleNodeBound(tasks, ch_avail, rng=rng)]  # initialize stack
     node_best = stack[0].roll_out(inplace=False)  # roll-out initial solution
 
     # Iterate
@@ -102,7 +102,7 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 #
 #     """
 #
-#     # node = TreeNode(tasks, ch_avail, rng=rng)
+#     # node = ScheduleNode(tasks, ch_avail, rng=rng)
 #     # node = node.mcts(runtimes, c_explore, visit_threshold, inplace=False, verbose=verbose)
 #     # return node.t_ex, node.ch_ex
 #     raise NotImplementedError
@@ -135,7 +135,7 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 #
 #     """
 #
-#     # node = TreeNode(tasks, ch_avail, rng=rng)
+#     # node = ScheduleNode(tasks, ch_avail, rng=rng)
 #     # node = node.mcts_v1(runtimes, c_explore, inplace=False, verbose=verbose)
 #     # return node.t_ex, node.ch_ex
 #     raise NotImplementedError
@@ -174,7 +174,7 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 #     i_time = 0
 #     n_times = len(runtimes)
 #
-#     l_up = TreeNodeBound(tasks, ch_avail).l_up
+#     l_up = ScheduleNodeBound(tasks, ch_avail).l_up
 #     tree = SearchNodeV1(n_tasks=len(tasks), seq=[], l_up=l_up)
 #
 #     node_best = None
@@ -187,7 +187,7 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 #             print(f'Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_min}', end='\r')
 #
 #         seq = tree.simulate()  # roll-out a complete sequence
-#         node = TreeNode(tasks, ch_avail, seq)  # evaluate execution times and channels, total loss
+#         node = ScheduleNode(tasks, ch_avail, seq)  # evaluate execution times and channels, total loss
 #
 #         loss = node.l_ex
 #         tree.backup(seq, loss)  # update search tree from leaf sequence to root
@@ -229,7 +229,7 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 #     t_run = perf_counter()
 #     run = True
 #
-#     node = TreeNode(tasks, ch_avail, rng=rng)
+#     node = ScheduleNode(tasks, ch_avail, rng=rng)
 #     node_best = node.roll_out(do_copy=True)
 #
 #     n_tasks = len(tasks)

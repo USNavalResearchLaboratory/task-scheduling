@@ -3,7 +3,7 @@ from math import isclose
 import numpy as np
 
 from task_scheduling.algorithms import branch_bound
-from task_scheduling.tree_search import TreeNode, TreeNodeShift
+from task_scheduling.tree_search import ScheduleNode, ScheduleNodeShift
 from task_scheduling.util import evaluate_schedule
 from task_scheduling.generators import scheduling_problems as problem_gens
 
@@ -17,7 +17,7 @@ def test_argsort():
         print(f"{i}", end='\n')
 
         # seq = np.random.permutation(n_tasks)
-        # node = TreeNode(seq)
+        # node = ScheduleNode(seq)
         # t_ex = node.t_ex
 
         (tasks, ch_avail), = problem_gen(1)
@@ -25,7 +25,7 @@ def test_argsort():
         loss = evaluate_schedule(tasks, t_ex)
 
         seq_sort = np.argsort(t_ex)
-        node_sort = TreeNode(tasks, ch_avail, seq_sort)
+        node_sort = ScheduleNode(tasks, ch_avail, seq_sort)
         # t_ex_sort = node_sort.t_ex
 
         assert isclose(loss, node_sort.l_ex)
@@ -34,13 +34,13 @@ def test_argsort():
 
 
 def test_shift():
-    """Check accuracy of TreeNodeShift solution."""
+    """Check accuracy of ScheduleNodeShift solution."""
     for i in range(n_iter):
         print(f"{i}", end='\n')
 
         (tasks, ch_avail), = problem_gen(1)
         seq = np.random.permutation(problem_gen.n_tasks)
-        node, node_s = TreeNode(tasks, ch_avail, seq), TreeNodeShift(tasks, ch_avail, seq)
+        node, node_s = ScheduleNode(tasks, ch_avail, seq), ScheduleNodeShift(tasks, ch_avail, seq)
         # print(node.t_ex)
         # print(node_s.t_ex)
         assert np.allclose(node.t_ex, node_s.t_ex)

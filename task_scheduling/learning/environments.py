@@ -69,9 +69,9 @@ class BaseTasking(Env, ABC):
         self.loss_agg = None
 
         if time_shift:
-            self.node_cls = tree_search.TreeNodeShift
+            self.node_cls = tree_search.ScheduleNodeShift
         else:
-            self.node_cls = tree_search.TreeNode
+            self.node_cls = tree_search.ScheduleNode
         self.node = None
 
         self.steps_per_episode = None
@@ -89,7 +89,7 @@ class BaseTasking(Env, ABC):
     # @property
     # def features(self):
     #     if self._features is None:
-    #         time_shift = (self.node_cls == tree_search.TreeNodeShift)
+    #         time_shift = (self.node_cls == tree_search.ScheduleNodeShift)
     #         self._features = param_features(self.problem_gen, time_shift)
     #     return self._features
     #
@@ -110,7 +110,7 @@ class BaseTasking(Env, ABC):
         str_ = f"{cls_str}"
         str_ += f"\n- Features: {self.features['name'].tolist()}"
         str_ += f"\n- Sorting: {self._sort_func_str}"
-        str_ += f"\n- Task shifting: {self.node_cls == tree_search.TreeNodeShift}"
+        str_ += f"\n- Task shifting: {self.node_cls == tree_search.ScheduleNodeShift}"
         str_ += f"\n- Masking: {self.masking}"
         return str_
 

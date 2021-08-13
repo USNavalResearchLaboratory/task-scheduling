@@ -1,4 +1,4 @@
-from task_scheduling.tree_search import TreeNode, TreeNodeBound
+from task_scheduling.tree_search import ScheduleNode, ScheduleNodeBound
 
 
 def branch_bound(tasks, ch_avail, verbose=False, rng=None):
@@ -24,7 +24,7 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
 
     """
 
-    node = TreeNodeBound(tasks, ch_avail, rng=rng)
+    node = ScheduleNodeBound(tasks, ch_avail, rng=rng)
     node_best = node.branch_bound(inplace=False, verbose=verbose)
 
     return node_best.t_ex, node_best.ch_ex  # optimal
@@ -40,7 +40,7 @@ def branch_bound_priority(tasks, ch_avail, priority_func=None, heuristic=None, v
     ch_avail : Sequence of float
         Channel availability times.
     priority_func : callable, optional
-        Key function that maps `TreeNode` objects to priority values. Defaults to negative lower bound.
+        Key function that maps `ScheduleNode` objects to priority values. Defaults to negative lower bound.
     heuristic : callable, optional
         Uses a partial node to generate a complete sequence node.
     verbose : bool
@@ -55,7 +55,7 @@ def branch_bound_priority(tasks, ch_avail, priority_func=None, heuristic=None, v
 
     """
 
-    node = TreeNodeBound(tasks, ch_avail)
+    node = ScheduleNodeBound(tasks, ch_avail)
     node_best = node.branch_bound_priority(priority_func, heuristic, False, verbose)
 
     return node_best.t_ex, node_best.ch_ex  # optimal
@@ -90,7 +90,7 @@ def mcts(tasks, ch_avail, runtime, c_explore=0., visit_threshold=0, verbose=Fals
 
     """
 
-    node = TreeNode(tasks, ch_avail, rng=rng)
+    node = ScheduleNode(tasks, ch_avail, rng=rng)
     node = node.mcts(runtime, c_explore, visit_threshold, inplace=False, verbose=verbose)
 
     return node.t_ex, node.ch_ex
@@ -117,7 +117,7 @@ def random_sequencer(tasks, ch_avail, rng=None):
 
     """
 
-    node = TreeNode(tasks, ch_avail, rng=rng)
+    node = ScheduleNode(tasks, ch_avail, rng=rng)
     node.roll_out()
 
     return node.t_ex, node.ch_ex
@@ -142,7 +142,7 @@ def earliest_release(tasks, ch_avail):
 
     """
 
-    node = TreeNode(tasks, ch_avail)
+    node = ScheduleNode(tasks, ch_avail)
     node.earliest_release()
 
     return node.t_ex, node.ch_ex
@@ -167,7 +167,7 @@ def earliest_drop(tasks, ch_avail):
 
     """
 
-    node = TreeNode(tasks, ch_avail)
+    node = ScheduleNode(tasks, ch_avail)
     node.earliest_drop()
 
     return node.t_ex, node.ch_ex
@@ -194,7 +194,7 @@ def brute_force(tasks, ch_avail, verbose=False):
 
     """
 
-    node = TreeNode(tasks, ch_avail)
+    node = ScheduleNode(tasks, ch_avail)
     node_best = node.brute_force(inplace=False, verbose=verbose)
 
     return node_best.t_ex, node_best.ch_ex
