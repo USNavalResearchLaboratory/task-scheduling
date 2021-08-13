@@ -160,6 +160,7 @@ class Scheduler(Base):
     def reset(self):
         reset_weights(self.model)
 
+    # TODO: deprecate or update
     # def save(self, save_path=None):
     #     if save_path is None:
     #         save_path = f"models/temp/{NOW_STR}"
@@ -178,7 +179,7 @@ class Scheduler(Base):
     #
     #     return cls(env, model)
 
-    # @classmethod  # TODO: deprecate or update
+    # @classmethod
     # def train_from_gen(cls, problem_gen, env_cls=envs.StepTasking, env_params=None, layers=None, compile_params=None,
     #                    n_batch_train=1, n_batch_val=1, batch_size=1, weight_func=None, fit_params=None,
     #                    do_tensorboard=False, plot_history=False, save=False, save_path=None):

@@ -28,9 +28,9 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 
     Returns
     -------
-    t_ex : ndarray
+    t_ex : numpy.ndarray
         Task execution times.
-    ch_ex : ndarray
+    ch_ex : numpy.ndarray
         Task execution channels.
 
     """
@@ -95,9 +95,9 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 #
 #     Returns
 #     -------
-#     t_ex : ndarray
+#     t_ex : numpy.ndarray
 #         Task execution times.
-#     ch_ex : ndarray
+#     ch_ex : numpy.ndarray
 #         Task execution channels.
 #
 #     """
@@ -128,9 +128,9 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 #
 #     Returns
 #     -------
-#     t_ex : ndarray
+#     t_ex : numpy.ndarray
 #         Task execution times.
-#     ch_ex : ndarray
+#     ch_ex : numpy.ndarray
 #         Task execution channels.
 #
 #     """
@@ -157,9 +157,9 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 #
 #     Returns
 #     -------
-#     t_ex : ndarray
+#     t_ex : numpy.ndarray
 #         Task execution times.
-#     ch_ex : ndarray
+#     ch_ex : numpy.ndarray
 #         Task execution channels.
 #
 #     """
@@ -219,9 +219,9 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 #
 #     Returns
 #     -------
-#     t_ex : ndarray
+#     t_ex : numpy.ndarray
 #         Task execution times.
-#     ch_ex : ndarray
+#     ch_ex : numpy.ndarray
 #         Task execution channels.
 #
 #     """
@@ -273,9 +273,9 @@ def plot_loss_runtime(t_run, l_ex, do_std=False, ax=None, ax_kwargs=None):
 
     Parameters
     ----------
-    t_run : ndarray
+    t_run : numpy.ndarray
         Runtime of algorithm.
-    l_ex : ndarray
+    l_ex : numpy.ndarray
         Total loss of scheduled tasks.
     do_std : bool
         Activates error bars for sample standard deviation.

@@ -80,7 +80,7 @@ class Base(ABC):
 
         Parameters
         ----------
-        t_plot : ndarray, optional
+        t_plot : numpy.ndarray, optional
             Series of times for loss evaluation.
         ax : matplotlib.axes.Axes, optional
             Plotting axes object.

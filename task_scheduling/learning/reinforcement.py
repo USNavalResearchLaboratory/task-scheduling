@@ -13,7 +13,6 @@ from task_scheduling.learning.supervised.torch import reset_weights
 
 # from stable_baselines.common.vec_env import DummyVecEnv
 
-# FIXME: add normalization option for RL learners!? Or just use gym.Wrappers?
 
 # class DummyVecTaskingEnv(DummyVecEnv):
 #     def reset(self, *args, **kwargs):
@@ -63,10 +62,10 @@ class StableBaselinesScheduler(BaseLearningScheduler):
     def __init__(self, env, model, learn_params=None):  # TODO: remove `env` arg? Change inheritance?
         super().__init__(env, model, learn_params)
 
+        # TODO: add normalization option for RL learners!? Or just use gym.Wrappers on `env`?
+
         # self.model = model
         # self.env = env  # invokes setter
-
-        # self.steps_per_episode = env.steps_per_episode  # FIXME: weak hack...
 
     @classmethod
     def make_model(cls, env, model_cls, model_params, learn_params=None):
@@ -90,15 +89,13 @@ class StableBaselinesScheduler(BaseLearningScheduler):
     #     return self.model.action_probability(obs)  # TODO: need `env.env_method` to access my reset?
 
     def predict(self, obs):
-        action, _state = self.model.predict(obs)  # TODO: include state output, change base class?
+        action, _state = self.model.predict(obs)
         return action
 
     def learn(self, n_gen_learn, verbose=0):
         # TODO: consider using `eval_env` argument to pass original env for `model.learn` call
 
-        # steps_per_episode = 8
-        # steps_per_episode = self.steps_per_episode
-        steps_per_episode = self.env.steps_per_episode  # TODO: breaks due to env vectorization
+        steps_per_episode = self.env.steps_per_episode  # FIXME: breaks due to env vectorization
         self.model.learn(total_timesteps=n_gen_learn * steps_per_episode)
 
         if self.do_monitor:

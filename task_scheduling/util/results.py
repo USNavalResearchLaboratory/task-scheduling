@@ -16,9 +16,9 @@ def check_schedule(tasks, t_ex, ch_ex, tol=1e-12):
     Parameters
     ----------
     tasks : list of task_scheduling.tasks.Base
-    t_ex : ndarray
+    t_ex : numpy.ndarray
         Task execution times.
-    ch_ex : ndarray
+    ch_ex : numpy.ndarray
         Task execution channels.
     tol : float, optional
         Time tolerance for validity conditions.
@@ -79,9 +79,9 @@ def plot_schedule(tasks, t_ex, ch_ex, l_ex=None, name=None, ax=None, ax_kwargs=N
     Parameters
     ----------
     tasks : list of task_scheduling.tasks.Base
-    t_ex : ndarray
+    t_ex : numpy.ndarray
         Task execution times. NaN for unscheduled.
-    ch_ex : ndarray
+    ch_ex : numpy.ndarray
         Task execution channels. NaN for unscheduled.
     l_ex : float or None
         Total loss of scheduled tasks.
@@ -133,9 +133,9 @@ def scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
 
     Parameters
     ----------
-    t_run : ndarray
+    t_run : numpy.ndarray
         Runtime of algorithm.
-    l_ex : ndarray
+    l_ex : numpy.ndarray
         Total loss of scheduled tasks.
     ax : Axes or None
         Matplotlib axes target object.

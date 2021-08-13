@@ -101,9 +101,20 @@ class GenericIID(BaseIID):
 
 
 class ContinuousUniformIID(BaseIID):
-    """Generates I.I.D. tasks with independently uniform continuous parameters."""
-
     def __init__(self, cls_task, param_lims, rng=None):
+        """
+        Generates I.I.D. tasks with independently uniform continuous parameters.
+
+        Parameters
+        ----------
+        cls_task : class
+            Class for instantiating task objects.
+        param_lims : dict of iterable
+            Maps parameter name strings to 2-tuples of parameter limits.
+        rng : int or RandomState or Generator, optional
+            Random number generator seed or object.
+
+        """
         param_spaces = {name: spaces.Box(*param_lims[name], shape=(), dtype=float)
                         for name in cls_task.param_names}
         super().__init__(cls_task, param_spaces, rng)

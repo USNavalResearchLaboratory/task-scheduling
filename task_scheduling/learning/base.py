@@ -9,6 +9,19 @@ class Base(ABC):
     _learn_params_default = {}
 
     def __init__(self, env, model, learn_params=None):
+        """
+        Base class for learning schedulers.
+
+        Parameters
+        ----------
+        env : BaseTasking
+            OpenAi gym environment.
+        model
+            The learning object.
+        learn_params : dict, optional
+            Parameters used by the `learn` method.
+
+        """
         self.env = env
         if not isinstance(self.env.action_space, Discrete):
             raise TypeError("Action space must be Discrete.")

@@ -18,7 +18,7 @@ def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
     Parameters
     ----------
     tasks : list of task_scheduling.tasks.Base
-    t_plot : ndarray
+    t_plot : numpy.ndarray
         Loss evaluation times.
     ax : matplotlib.axes.Axes, optional
         Matplotlib axes target object.

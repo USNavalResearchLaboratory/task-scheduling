@@ -23,7 +23,7 @@ class BaseTasking(Env, ABC):
         ----------
         problem_gen : generators.scheduling_problems.Base
             Scheduling problem generation object.
-        features : ndarray, optional
+        features : numpy.ndarray, optional
             Structured numpy array of features with fields 'name', 'func', and 'lims'.
         sort_func : function or str, optional
             Method that returns a sorting value for re-indexing given a task index 'n'.
@@ -246,7 +246,7 @@ class BaseTasking(Env, ABC):
             Number of scheduling problems to make data from per yielded batch.
         weight_func : callable, optional
             Function mapping environment object to a training weight.
-        verbose : int, optional
+        verbose : {0, 1, 2}, optional
             0: silent, 1: add batch info, 2: add problem info
         rng : int or RandomState or Generator, optional
             NumPy random number generator or seed. Instance RNG if None.
@@ -400,7 +400,7 @@ class SeqTasking(BaseTasking):
         ----------
         problem_gen : generators.scheduling_problems.Base
             Scheduling problem generation object.
-        features : ndarray, optional
+        features : numpy.ndarray, optional
             Structured numpy array of features with fields 'name', 'func', and 'lims'.
         sort_func : function or str, optional
             Method that returns a sorting value for re-indexing given a task index 'n'.
@@ -483,7 +483,7 @@ class StepTasking(BaseTasking):
         ----------
         problem_gen : generators.scheduling_problems.Base
             Scheduling problem generation object.
-        features : ndarray, optional
+        features : numpy.ndarray, optional
             Structured numpy array of features with fields 'name', 'func', and 'lims'.
         sort_func : function or str, optional
             Method that returns a sorting value for re-indexing given a task index 'n'.
@@ -502,7 +502,7 @@ class StepTasking(BaseTasking):
         super().__init__(problem_gen, features, sort_func, time_shift, masking)
 
         # Action types
-        self.action_type = action_type
+        self.action_type = action_type  # FIXME: deprecate once RL algorithms are successfully integrated
         if self.action_type == 'valid':
             self.do_valid_actions = True
         elif self.action_type == 'any':

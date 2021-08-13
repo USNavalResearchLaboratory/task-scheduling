@@ -50,7 +50,24 @@ def _shift_space(space):
 
 
 def param_features(problem_gen, time_shift=False, masking=False):
-    """Create array of parameter features from parameter spaces."""
+    """
+    Create array of parameter features from parameter spaces.
+
+    Parameters
+    ----------
+    problem_gen : generators.scheduling_problems.Base
+        Scheduling problem generation object.
+    time_shift : bool, optional
+        Enables modification of feature `space` to reflect shifted parameters.
+    masking : bool, optional
+        Enables modification of feature `space` to account for masking.
+
+    Returns
+    -------
+    ndarray
+        Feature array with fields 'name', 'func', and 'space'.
+
+    """
 
     if time_shift and issubclass(problem_gen.task_gen.cls_task, Shift):
         shift_params = problem_gen.task_gen.cls_task.shift_params

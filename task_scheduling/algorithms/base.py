@@ -17,9 +17,9 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
 
     Returns
     -------
-    t_ex : ndarray
+    t_ex : numpy.ndarray
         Task execution times.
-    ch_ex : ndarray
+    ch_ex : numpy.ndarray
         Task execution channels.
 
     """
@@ -48,9 +48,9 @@ def branch_bound_priority(tasks, ch_avail, priority_func=None, heuristic=None, v
 
     Returns
     -------
-    t_ex : ndarray
+    t_ex : numpy.ndarray
         Task execution times.
-    ch_ex : ndarray
+    ch_ex : numpy.ndarray
         Task execution channels.
 
     """
@@ -83,9 +83,9 @@ def mcts(tasks, ch_avail, runtime, c_explore=0., visit_threshold=0, verbose=Fals
 
     Returns
     -------
-    t_ex : ndarray
+    t_ex : numpy.ndarray
         Task execution times.
-    ch_ex : ndarray
+    ch_ex : numpy.ndarray
         Task execution channels.
 
     """
@@ -110,9 +110,9 @@ def random_sequencer(tasks, ch_avail, rng=None):
 
     Returns
     -------
-    t_ex : ndarray
+    t_ex : numpy.ndarray
         Task execution times.
-    ch_ex : ndarray
+    ch_ex : numpy.ndarray
         Task execution channels.
 
     """
@@ -135,9 +135,9 @@ def earliest_release(tasks, ch_avail):
 
     Returns
     -------
-    t_ex : ndarray
+    t_ex : numpy.ndarray
         Task execution times.
-    ch_ex : ndarray
+    ch_ex : numpy.ndarray
         Task execution channels.
 
     """
@@ -160,9 +160,9 @@ def earliest_drop(tasks, ch_avail):
 
     Returns
     -------
-    t_ex : ndarray
+    t_ex : numpy.ndarray
         Task execution times.
-    ch_ex : ndarray
+    ch_ex : numpy.ndarray
         Task execution channels.
 
     """
@@ -187,9 +187,9 @@ def brute_force(tasks, ch_avail, verbose=False):
 
     Returns
     -------
-    t_ex : ndarray
+    t_ex : numpy.ndarray
         Task execution times.
-    ch_ex : ndarray
+    ch_ex : numpy.ndarray
         Task execution channels.
 
     """
