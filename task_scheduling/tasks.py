@@ -121,7 +121,7 @@ class Generic(Base):
 
     """
 
-    param_names = ('duration', 't_release', 'loss_func')
+    param_names = Base.param_names + ('loss_func',)
 
     def __init__(self, duration, t_release, loss_func=None):
         super().__init__(duration, t_release)
@@ -141,6 +141,8 @@ class Generic(Base):
 
 
 class Shift(Base):
+    shift_params = ()
+
     @abstractmethod
     def __call__(self, t):
         """Loss function versus time."""
@@ -170,7 +172,8 @@ class ReluDrop(Shift):
 
     """
 
-    param_names = ('duration', 't_release', 'slope', 't_drop', 'l_drop')
+    param_names = Base.param_names + ('slope', 't_drop', 'l_drop')
+    shift_params = ('t_release', 't_drop', 'l_drop')
 
     def __init__(self, duration, t_release, slope, t_drop, l_drop):
         super().__init__(duration, t_release)

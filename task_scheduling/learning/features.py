@@ -1,11 +1,8 @@
 import numpy as np
 from gym.spaces import Discrete, MultiDiscrete, Box
 
-from task_scheduling.tasks import ReluDrop
+from task_scheduling.tasks import Shift
 from task_scheduling.learning.spaces import DiscreteSet
-
-
-# TODO: built feature library, create registry for easy access?
 
 
 def _get_param(name):
@@ -55,12 +52,10 @@ def _shift_space(space):
 def param_features(problem_gen, time_shift=False, masking=False):
     """Create array of parameter features from parameter spaces."""
 
-    if not time_shift:
-        shift_params = ()
-    elif problem_gen.task_gen.cls_task == ReluDrop:
-        shift_params = ('t_release', 't_drop', 'l_drop')
+    if time_shift and issubclass(problem_gen.task_gen.cls_task, Shift):
+        shift_params = problem_gen.task_gen.cls_task.shift_params
     else:
-        raise TypeError("Shift parameters only supported for `ReluDrop` task type.")
+        shift_params = ()
 
     data = []
     for name, space in problem_gen.task_gen.param_spaces.items():

@@ -164,7 +164,6 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 #
 #     """
 #
-#     # TODO: add exploration/exploitation input control.
 #     # TODO: add early termination for completed search.
 #
 #     t_run = perf_counter()

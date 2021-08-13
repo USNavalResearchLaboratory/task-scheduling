@@ -3,7 +3,6 @@ from copy import deepcopy
 from math import factorial
 from typing import Sequence
 from operator import methodcaller
-# from operator import attrgetter
 from itertools import permutations
 from time import perf_counter
 
@@ -212,34 +211,12 @@ class TreeNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
         seq_ext = rng.permutation(list(self._seq_rem)).tolist()
 
         return self._extend_util(seq_ext, inplace)
-        # node = self._extend_util(seq_ext, inplace)
-        # if not inplace:
-        #     return node
-
-    # def check_swaps(self):
-    #     """Try adjacent task swapping, overwrite node if loss drops."""
-    #
-    #     if len(self._seq_rem) != 0:
-    #         raise ValueError("Node sequence must be complete.")
-    #
-    #     for i in range(len(self.seq) - 1):
-    #         seq_swap = self.seq.copy()
-    #         seq_swap[i:i + 2] = seq_swap[i:i + 2][::-1]
-    #         node_swap = self.__class__(self._tasks, self._ch_avail, seq_swap)
-    #         if node_swap.l_ex < self.l_ex:
-    #             self = node_swap
 
     def _earliest_sorter(self, name, inplace=True):
         _dict = {n: getattr(self.tasks[n], name) for n in self.seq_rem}
         seq_ext = sorted(self.seq_rem, key=_dict.__getitem__)
-        # def sort_func(n):
-        #     return getattr(self.tasks[n], name)
-        # seq_ext = sorted(self.seq_rem, key=sort_func)
 
         return self._extend_util(seq_ext, inplace)
-        # node = self._extend_util(seq_ext, inplace)
-        # if not inplace:
-        #     return node
 
     def earliest_release(self, inplace=True):
         return self._earliest_sorter('t_release', inplace)
@@ -281,7 +258,7 @@ class TreeNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
 
         rng = self._get_rng(rng)
         bounds = TreeNodeBound(self.tasks, self.ch_avail).bounds
-        root = SearchNode(self.n_tasks, bounds, self.seq, c_explore, visit_threshold, rng=rng)
+        root = MCTSNode(self.n_tasks, bounds, self.seq, c_explore, visit_threshold, rng=rng)
 
         node_best, loss_best = None, np.inf
         while perf_counter() - t_run < runtime:
@@ -550,7 +527,7 @@ class TreeNodeShift(TreeNode):
                 self._l_ex += loss_inc  # add loss incurred due to origin shift for any unscheduled tasks
 
 
-class SearchNode(RandomGeneratorMixin):
+class MCTSNode(RandomGeneratorMixin):
     def __init__(self, n_tasks, bounds, seq=(), c_explore=0., visit_threshold=0, parent=None, rng=None):
         """
         Node object for Monte Carlo Tree Search.
@@ -566,7 +543,7 @@ class SearchNode(RandomGeneratorMixin):
             Exploration weight. Higher values prioritize searching new branches.
         visit_threshold : int, optional
             Once node has been visited this many times, UCT is used for child selection, not random choice.
-        parent : SearchNode, optional
+        parent : MCTSNode, optional
         rng : int or RandomState or Generator, optional
             NumPy random number generator or seed. Instance RNG if None.
 
@@ -599,7 +576,7 @@ class SearchNode(RandomGeneratorMixin):
     l_avg = property(lambda self: self._l_avg)
 
     def __repr__(self):
-        return f"SearchNode(seq={self._seq}, children={list(self._children.keys())}, " \
+        return f"MCTSNode(seq={self._seq}, children={list(self._children.keys())}, " \
                f"visits={self._n_visits}, avg_loss={self._l_avg:.3f})"
 
     @property
