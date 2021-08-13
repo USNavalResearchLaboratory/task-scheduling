@@ -189,7 +189,6 @@ class TorchScheduler(Base):
         self.optimizer = optimizer
 
     def _fit(self, dl_train, dl_val, verbose=0):
-
         if verbose >= 1:
             print('Training model...')
 
