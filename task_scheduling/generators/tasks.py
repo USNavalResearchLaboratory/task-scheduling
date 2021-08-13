@@ -21,10 +21,6 @@ from task_scheduling import tasks as task_types
 from task_scheduling.learning.spaces import DiscreteSet
 
 
-# TODO: more generic Base class for heterogeneous task types?
-# TODO: use `space` RNG method instead of using the `rng` attribute?
-
-
 class Base(RandomGeneratorMixin, ABC):
     def __init__(self, cls_task, param_spaces=None, rng=None):
         """

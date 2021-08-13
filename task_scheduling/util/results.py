@@ -8,10 +8,6 @@ from task_scheduling.algorithms.util import timing_wrapper
 from task_scheduling.generators.scheduling_problems import Dataset
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 
-# logging.basicConfig(level=logging.INFO,       # TODO: logging?
-#                     format='%(asctime)s - %(levelname)s - %(message)s',
-#                     datefmt='%Y-%m-%dT%H:%M:%S')
-
 
 def check_schedule(tasks, t_ex, ch_ex, tol=1e-12):
     """
@@ -280,7 +276,7 @@ def _print_averages(l_ex, t_run, log_path=None, do_relative=False):
     df = pd.DataFrame(data, index=pd.CategoricalIndex(names), columns=columns)
     df_str = df.to_markdown(tablefmt='github', floatfmt='.3f')
 
-    print(df_str, end='\n\n')  # TODO: only print to `log_path`?
+    print(df_str, end='\n\n')
     if log_path is not None:
         with open(log_path, 'a') as fid:
             print(df_str, end='\n\n', file=fid)

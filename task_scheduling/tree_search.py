@@ -37,7 +37,8 @@ class TreeNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
 
         super().__init__(rng)
 
-        self._tasks = deepcopy(tasks)  # TODO: slow? add option for copy?
+        self._tasks = list(tasks)
+        # self._tasks = deepcopy(tasks)
         self._ch_avail = np.array(ch_avail, dtype=float)
 
         if min(self._ch_avail) < 0.:
@@ -52,8 +53,6 @@ class TreeNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
         self._l_ex = 0.  # incurred loss
 
         self.seq = seq
-        # if len(seq) > 0:
-        #     self.seq_extend(seq)
 
     def __repr__(self):
         return f"TreeNode(sequence: {self.seq}, loss incurred:{self.l_ex:.3f})"
@@ -98,12 +97,9 @@ class TreeNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
         seq_prev, seq_ext = seq[:len(self._seq)], seq[len(self._seq):]
         if seq_prev == self._seq:  # new sequence is an extension of current sequence
             self.seq_extend(seq_ext)
-            # if len(seq_ext) > 0:
-            #     self.seq_extend(seq_ext)
         else:
             # self.__init__(self.tasks, self.ch_avail, seq, rng=self.rng)  # initialize from scratch
-            # TODO: shift nodes cannot recover original task/ch_avail state!
-            raise ValueError(f"Sequence must be an extension of {self._seq}")
+            raise ValueError(f"Sequence must be an extension of {self._seq}")  # shift nodes cannot recover tasks
 
     def seq_extend(self, seq_ext, check_valid=True):
         """
@@ -311,123 +307,6 @@ class TreeNode(RandomGeneratorMixin):  # TODO: rename? TaskSeq?
         else:
             return node_best
 
-    def mcts_v1(self, runtime, c_explore=1., inplace=True, verbose=False, rng=None):
-
-        t_run = perf_counter()
-
-        rng = self._get_rng(rng)
-        tree = SearchNodeV1(self.n_tasks, self.seq, c_explore=c_explore, rng=rng)
-
-        node_best, loss_best = None, np.inf
-        while perf_counter() - t_run < runtime:
-            if verbose:
-                print(f'Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_best}', end='\r')
-
-            # FIXME
-            # print(np.array([[node.n_visits, node.l_avg, node.weight] for node in tree.children.values()]))
-
-            seq = tree.simulate()  # roll-out a complete sequence
-
-            seq_ext = seq[len(self.seq):]
-            node = self._extend_util(seq_ext, inplace=False)
-            if node.l_ex < loss_best:
-                node_best, loss_best = node, node.l_ex
-
-            tree.backup(seq, node.l_ex)  # update search tree from leaf sequence to root
-
-        if inplace:
-            # self.seq = node_best.seq
-            seq_ext = node_best.seq[len(self.seq):]
-            self._extend_util(seq_ext)
-        else:
-            return node_best
-
-    # def mcts(self, n_mc=1, c_explore=0., visit_threshold=0, inplace=True, verbose=False, rng=None):
-    #     """
-    #     Monte Carlo tree search.
-    #
-    #     Parameters
-    #     ----------
-    #     n_mc : int, optional
-    #         Number of complete sequences evaluated.
-    #     c_explore : float, optional
-    #         Exploration weight. Higher values prioritize less frequently visited notes.
-    #     visit_threshold : int, optional
-    #         Nodes with up to this number of visits will select children using the `expansion` method.
-    #     inplace : bool, optional
-    #         If True, self.seq is completed. Otherwise, a new node object is returned.
-    #     verbose : bool, optional
-    #         Enables printing of algorithm state information.
-    #     rng : int or RandomState or Generator, optional
-    #         NumPy random number generator or seed. Instance RNG if None.
-    #
-    #     Returns
-    #     -------
-    #     TreeNode, optional
-    #         Only if `inplace` is False.
-    #
-    #     """
-    #
-    #     rng = self._get_rng(rng)
-    #
-    #     bounds = TreeNodeBound(self.tasks, self.ch_avail).bounds
-    #     root = SearchNode(self.n_tasks, bounds, self.seq, c_explore, visit_threshold, rng=rng)
-    #
-    #     node_best, loss_best = None, np.inf
-    #     while root.n_visits < n_mc:
-    #         if verbose:
-    #             print(f'Solutions evaluated: {root.n_visits+1}/{n_mc}, Min. Loss: {loss_best}', end='\r')
-    #
-    #         leaf_new = root.selection()  # expansion step happens in selection call
-    #
-    #         seq_ext = leaf_new.seq[len(self.seq):]
-    #         node = self._extend_util(seq_ext, inplace=False)
-    #         node.roll_out()  # TODO: rollout with policy?
-    #         if node.l_ex < loss_best:
-    #             node_best, loss_best = node, node.l_ex
-    #
-    #         # loss = leaf_new.evaluation()
-    #         loss = node.l_ex  # TODO: combine rollout with optional value func?
-    #         leaf_new.backup(loss)
-    #
-    #     if inplace:
-    #         # self.seq = node_best.seq
-    #         seq_ext = node_best.seq[len(self.seq):]
-    #         self._extend_util(seq_ext)
-    #     else:
-    #         return node_best
-    #
-    # def mcts_v1(self, n_mc=1, c_explore=1., inplace=True, verbose=False, rng=None):
-    #
-    #     rng = self._get_rng(rng)
-    #
-    #     # l_up = TreeNodeBound(tasks, ch_avail).l_up  # TODO: normalization?
-    #     tree = SearchNodeV1(self.n_tasks, self.seq, c_explore=c_explore, rng=rng)
-    #
-    #     node_best, loss_best = None, np.inf
-    #     while tree.n_visits < n_mc:
-    #         if verbose:
-    #             print(f'Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_best}', end='\r')
-    #
-    #         # FIXME
-    #         # print(np.array([[node.n_visits, node.l_avg, node.weight] for node in tree.children.values()]))
-    #
-    #         seq = tree.simulate()  # roll-out a complete sequence
-    #
-    #         seq_ext = seq[len(self.seq):]
-    #         node = self._extend_util(seq_ext, inplace=False)
-    #         if node.l_ex < loss_best:
-    #             node_best, loss_best = node, node.l_ex
-    #
-    #         tree.backup(seq, node.l_ex)  # update search tree from leaf sequence to root
-    #
-    #     if inplace:
-    #         # self.seq = node_best.seq
-    #         seq_ext = node_best.seq[len(self.seq):]
-    #         self._extend_util(seq_ext)
-    #     else:
-    #         return node_best
-
     def brute_force(self, inplace=True, verbose=False):
         """
         Exhaustively search all complete sequences.
@@ -631,6 +510,7 @@ class TreeNodeShift(TreeNode):
 
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
         self.t_origin = 0.
+        tasks = deepcopy(tasks)  # tasks modified in-place during `shift_origin`
         super().__init__(tasks, ch_avail, seq, rng)
 
         self.shift_origin()  # performs initial shift when initialized with empty sequence
@@ -638,15 +518,20 @@ class TreeNodeShift(TreeNode):
     def __repr__(self):
         return f"TreeNodeShift(sequence: {self.seq}, loss incurred:{self.l_ex:.3f})"
 
+    # def _update_ex(self, n, ch):
+    #     self._ch_ex[n] = ch
+    #
+    #     t_ex_rel = max(self._tasks[n].t_release, self._ch_avail[ch])  # relative to time origin
+    #     self._t_ex[n] = self.t_origin + t_ex_rel  # absolute time
+    #     self._l_ex += self._tasks[n](t_ex_rel)  # add task execution loss
+    #
+    #     self._ch_avail[ch] = t_ex_rel + self._tasks[n].duration  # relative to time origin
+    #
+    #     self.shift_origin()
+
     def _update_ex(self, n, ch):
-        self._ch_ex[n] = ch
-
-        t_ex_rel = max(self._tasks[n].t_release, self._ch_avail[ch])  # relative to time origin
-        self._t_ex[n] = self.t_origin + t_ex_rel  # absolute time
-        self._l_ex += self._tasks[n](t_ex_rel)  # add task execution loss
-
-        self._ch_avail[ch] = t_ex_rel + self._tasks[n].duration  # relative to time origin
-
+        super()._update_ex(n, ch)
+        self._t_ex[n] += self.t_origin  # relative to absolute
         self.shift_origin()
 
     def shift_origin(self):
@@ -764,7 +649,7 @@ class SearchNode(RandomGeneratorMixin):
     def expansion(self):
         """Pseudo-random expansion, potentially creating a new child node."""
 
-        n = self.rng.choice(list(self._seq_rem))  # TODO: pseudo-random strategies? ERT?
+        n = self.rng.choice(list(self._seq_rem))  # TODO: pseudo-random w/ policy?
         if n not in self._children:
             self._add_child(n)
         return self._children[n]
@@ -784,149 +669,6 @@ class SearchNode(RandomGeneratorMixin):
     def update_stats(self, loss):
         """
         Update visit count and average loss evaluated sequences.
-
-        Parameters
-        ----------
-        loss : float
-            Loss of a complete solution descending from the node.
-
-        """
-
-        loss_total = self._l_avg * self._n_visits + loss
-        self._n_visits += 1
-        self._l_avg = loss_total / self._n_visits
-
-
-class SearchNodeV1(RandomGeneratorMixin):
-    def __init__(self, n_tasks, seq=(), parent=None, c_explore=1., l_up=np.inf, rng=None):
-        super().__init__(rng)
-
-        self._n_tasks = n_tasks
-        self._seq = list(seq)
-
-        self._parent = parent
-        self._children = {}
-        self._seq_unk = set(range(self.n_tasks)) - set(self._seq)  # set of unexplored task indices
-
-        self._c_explore = c_explore
-        self._l_up = l_up   # TODO: use normalized loss to drive explore/exploit
-
-        self._n_visits = 0
-        self._l_avg = 0.  # TODO: try using min? ordered statistic?
-
-    n_tasks = property(lambda self: self._n_tasks)
-    seq = property(lambda self: self._seq)
-
-    parent = property(lambda self: self._parent)
-    children = property(lambda self: self._children)
-
-    n_visits = property(lambda self: self._n_visits)
-    l_avg = property(lambda self: self._l_avg)
-
-    def __repr__(self):
-        return f"SearchNodeV1(seq={self._seq}, children={list(self._children.keys())}, " \
-               f"visits={self._n_visits}, avg_loss={self._l_avg:.3f})"
-
-    def __getitem__(self, item):
-        """
-        Access a descendant node.
-
-        Parameters
-        ----------
-        item : int or Sequence of int
-            Index of sequence of indices for recursive child node selection.
-
-        Returns
-        -------
-        SearchNodeV1
-
-        """
-
-        if isinstance(item, int):
-            return self._children[item]
-        elif isinstance(item, Sequence):
-            node = self
-            for n in item:
-                node = node._children[n]
-            return node
-        else:
-            raise TypeError
-
-    @property
-    def weight(self):
-        # return self._l_avg - self._c_explore / (self._n_visits + 1)
-        # return self._l_avg - self._c_explore * np.sqrt(self.parent.n_visits) / (self._n_visits + 1)
-        return self._l_avg - self._c_explore * np.sqrt(np.log(self.parent.n_visits) / self._n_visits)
-
-    def select_child(self):
-        """
-        Select a child node according to exploration/exploitation objective minimization.
-
-        Returns
-        -------
-        SearchNodeV1
-
-        """
-
-        # TODO: learn selection function with value network? Fast EST based selection?
-        # TODO: add epsilon-greedy selector?
-
-        w = {n: node.weight for (n, node) in self._children.items()}  # descendant node weights
-        w.update({n: -self._c_explore for n in self._seq_unk})  # base weight for unexplored nodes
-        # FIXME: init value? use upper bound??
-
-        w = dict(self.rng.permutation(list(w.items())))  # permute elements to break ties randomly
-
-        n = int(min(w, key=w.__getitem__))
-        if n not in self._children:
-            self._children[n] = self.__class__(self.n_tasks, self._seq + [n], parent=self, c_explore=self._c_explore,
-                                               l_up=self._l_up, rng=self.rng)
-            self._seq_unk.remove(n)
-
-        return self._children[n]
-
-    def simulate(self):
-        """
-        Produce an index sequence from iterative child node selection.
-
-        Returns
-        -------
-        list of int
-
-        """
-
-        node = self
-        while len(node._seq) < self.n_tasks:
-            node = node.select_child()
-        return node._seq
-
-    def backup(self, seq, loss):
-        """
-        Updates search attributes for all descendant nodes corresponding to an index sequence.
-
-        Parameters
-        ----------
-        seq : Sequence of int
-            Complete task index sequence.
-        loss : float
-            Loss of a complete solution descending from the node.
-
-        """
-
-        if len(seq) != self.n_tasks:
-            raise ValueError('Sequence must be complete.')
-
-        seq_rem = seq[len(self._seq):]  # TODO: check leading values for equivalence?
-
-        node = self
-        node.update_stats(loss)
-        for n in seq_rem:
-            node = node._children[n]
-            node.update_stats(loss)
-
-    def update_stats(self, loss):
-        """
-        Update visit count and average loss of roll-outs.
 
         Parameters
         ----------

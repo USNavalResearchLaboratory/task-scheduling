@@ -352,7 +352,6 @@ class Dataset(Base):
     def load(cls, file_path, shuffle=False, repeat=False, rng=None):
         """Load problems/solutions from memory."""
 
-        # TODO: loads entire data set into memory - need iterative read/yield for large data sets
         with Path(file_path).open(mode='rb') as fid:
             dict_gen = dill.load(fid)
 
