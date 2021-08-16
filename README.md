@@ -195,7 +195,7 @@ env_params = {
 env = envs.StepTasking(problem_gen, **env_params)
 
 
-class LitModel(pl.LightningModule):
+class LitModule(pl.LightningModule):
     def __init__(self):
         super().__init__()
 
@@ -248,7 +248,7 @@ algorithms = np.array([
     ('ERT', earliest_release, 10),
     *((f'MCTS: c={c}, t={t}', partial(mcts, runtime=.002, c_explore=c, visit_threshold=t, rng=seed), 10)
       for c, t in product([.035], [15])),
-    ('Lit Policy', LitScheduler(env, LitModel(), learn_params_pl), 10),
+    ('Lit Policy', LitScheduler(env, LitModule(), learn_params_pl), 10),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
 

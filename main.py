@@ -71,7 +71,6 @@ env_params = {
 }
 
 env = envs.StepTasking(problem_gen, **env_params)
-# check_env(env)
 
 
 def valid_mask(obs):  # vectorized variant of `env.infer_action_space`
@@ -177,6 +176,7 @@ learn_params_pl = {'batch_size_train': 20,
 # dqn_agent = StableBaselinesScheduler
 # dqn_agent = RL_Scheduler.load('temp/DQN_2020-10-28_15-44-00', env=None, model_cls='DQN')
 
+# check_env(env)
 model_cls, model_params = StableBaselinesScheduler.model_defaults['DQN_MLP']
 # model_sb = model_cls(env=env, **model_params)
 
@@ -185,8 +185,6 @@ learn_params_sb = {}
 
 # FIXME: integrate SB3 before making any sweeping environment/learn API changes!!!
 # TODO: `check_env`: cast 2-d env spaces to 3-d image-like?
-
-# TODO: generalize for multiple learners, ensure same data is used for each training op
 
 # FIXME: no faster on GPU!?!? CHECK batch size effects!
 # FIXME: INVESTIGATE huge PyTorch speed-up over Tensorflow!!
@@ -211,9 +209,9 @@ algorithms = np.array([
     #                                   rng=RNGMix.make_rng(seed)), 10) for c, t in product([0.05], [15])),
     # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, n_mc=50, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10]),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
-    # ('Torch Policy', TorchScheduler(env, model_torch, loss_func, optimizer, learn_params_pl), 10),
+    ('Torch Policy', TorchScheduler(env, model_torch, loss_func, optimizer, learn_params_pl), 10),
     # ('Torch Policy', TorchScheduler.load('models/temp/2021-06-16T12_14_41.pkl'), 10),
-    ('Lit Policy', LitScheduler(env, model_pl, learn_params_pl), 10),
+    # ('Lit Policy', LitScheduler(env, model_pl, learn_params_pl), 10),
     # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])

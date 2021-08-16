@@ -154,40 +154,11 @@ def scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
         if name == 'BB Optimal':
             kwargs.update(c='k')
 
-        ax.scatter(t_run[name], l_ex[name], label=name, **kwargs)
+        ax.scatter(1e3 * t_run[name], l_ex[name], label=name, **kwargs)
 
-    ax.set(xlabel='Runtime (s)', ylabel='Loss')
+    ax.set(xlabel='Runtime (ms)', ylabel='Loss')
     ax.legend()
     ax.set(**ax_kwargs)
-
-
-# def scatter_loss_runtime_stats(t_run, l_ex, ax=None, ax_kwargs=None):
-#     if ax is None:
-#         _, ax = plt.subplots()
-#
-#     if ax_kwargs is None:
-#         ax_kwargs = {}
-#
-#     for name in t_run.dtype.names:
-#         color = next(ax._get_lines.prop_cycler)['color']
-#
-#         # ax.scatter(t_run[name], l_ex[name], label=name)
-#
-#         x_mean = np.mean(t_run[name])
-#         y_mean = np.mean(l_ex[name])
-#         ax.scatter(x_mean, y_mean, label=name + '_mean', color=color, marker='*', s=400)
-#
-#         # x_median = np.median(t_run[name])
-#         # y_median = np.median(l_ex[name])
-#         # ax.scatter(x_median, y_median, label=name + '_median', color=color, marker='d', s=400)
-#
-#         # x_std = np.std(t_run[name])
-#         # y_std = np.std(l_ex[name])
-#         # ax.errorbar(x_mean, y_mean, xerr=x_std, yerr=y_std, color=color, capsize=2)
-#
-#     ax.set(xlabel='Runtime (s)', ylabel='Loss')
-#     ax.legend()
-#     ax.set(**ax_kwargs)
 
 
 #%% Utilities
@@ -260,8 +231,10 @@ def _scatter_results(t_run, l_ex, label='Results', do_relative=False):
 def _print_averages(l_ex, t_run, log_path=None, do_relative=False):
     names = list(l_ex.dtype.names)
 
-    data = [[l_ex[name].mean(), t_run[name].mean()] for name in names]
-    columns = ['Loss', 'Runtime']
+    # data = [[l_ex[name].mean(), t_run[name].mean()] for name in names]
+    # columns = ['Loss', 'Runtime (s)']
+    data = [[l_ex[name].mean(), 1e3 * t_run[name].mean()] for name in names]
+    columns = ['Loss', 'Runtime (ms)']
 
     if do_relative:
         l_ex_rel = _relative_loss(l_ex)
