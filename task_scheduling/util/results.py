@@ -397,18 +397,20 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, solve=False, verbo
 def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_mc=1, solve=False, verbose=0, plotting=0,
                               log_path=None):
 
+    if sum(isinstance(alg['func'], BaseLearningScheduler) for alg in algorithms) > 1:
+        raise NotImplementedError("Currently supports only a single learner. "
+                                  "See https://spork.nre.navy.mil/nrl-radar/CRM/task-scheduling/-/issues/8")
+
+    reuse_data = False
     if isinstance(problem_gen, Dataset):
-        # n_gen_train = (train_args['n_batch_train'] * train_args['batch_size_train']
-        #                + train_args['n_batch_val'] * train_args['batch_size_val'])
         n_gen_total = n_gen + n_gen_learn
         if problem_gen.repeat:
+            reuse_data = True
             if n_gen_total > problem_gen.n_problems:
                 raise ValueError("Dataset cannot generate enough unique problems.")
         else:
             if n_gen_total * n_mc > problem_gen.n_problems:
                 raise ValueError("Dataset cannot generate enough problems.")
-
-    reuse_data = isinstance(problem_gen, Dataset) and problem_gen.repeat
 
     if solve:
         algorithms = _add_bb(algorithms)
@@ -426,11 +428,11 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
         for learner in algorithms['func']:
             if isinstance(learner, BaseLearningScheduler):
                 learner.reset()
-                # learner.learn(verbose=verbose - 1, **train_args)
-                learner.learn(n_gen_learn, verbose=verbose - 1)  # note: calls `problem_gen` via environment reset
+                learner.learn(n_gen_learn, verbose=verbose - 1)  # calls `problem_gen` via environment `reset`
 
         # Evaluate performance
-        l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, solve, verbose - 1, plotting - 1)
+        l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, solve,
+                                                        verbose - 1, plotting - 1)
         l_ex_mc[i_mc], t_run_mc[i_mc] = _struct_mean(l_ex_mean), _struct_mean(t_run_mean)
 
     # Results

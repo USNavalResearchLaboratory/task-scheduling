@@ -13,6 +13,8 @@ from sortedcontainers import SortedKeyList
 from task_scheduling._core import RandomGeneratorMixin
 from task_scheduling.tasks import Shift as ShiftTask
 
+# TODO: make problem a shared class attribute? Make a class constructor?
+
 
 class ScheduleNode(RandomGeneratorMixin):
     def __init__(self, tasks, ch_avail, seq=(), rng=None):

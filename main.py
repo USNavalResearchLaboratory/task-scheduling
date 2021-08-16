@@ -20,7 +20,7 @@ from task_scheduling.util import evaluate_algorithms_train
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 # from task_scheduling.learning.supervised.tf import keras, Scheduler as tfScheduler
-from task_scheduling.learning.supervised.torch import LitScheduler
+from task_scheduling.learning.supervised.torch import TorchScheduler, LitScheduler
 from task_scheduling.learning.reinforcement import StableBaselinesScheduler
 
 
@@ -32,8 +32,6 @@ plt.style.use('seaborn')
 
 # seed = None
 seed = 12345
-
-# tf.random.set_seed(seed)
 
 
 #%% Define scheduling problem and algorithms
@@ -76,45 +74,13 @@ env = envs.StepTasking(problem_gen, **env_params)
 # check_env(env)
 
 
-# def _weight_init():
-#     return keras.initializers.GlorotUniform(seed)
-#
-#
-# layers = [
-#     keras.layers.Flatten(),
-#     keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
-#     keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
-#     # keras.layers.Dropout(0.2),
-# ]
-#
-# # layers = [
-# #     keras.layers.Conv1D(30, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-# #     keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-# #     keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
-# #     # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
-# #     # keras.layers.Flatten(),
-# # ]
-#
-# # layers = [
-# #     keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
-# #     keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu', kernel_initializer=_weight_init())
-# # ]
-#
-#
-# model_tf = keras.Sequential([keras.Input(shape=env.observation_space.shape),
-#                              *layers,
-#                              keras.layers.Dense(env.action_space.n, activation='softmax',
-#                                                 kernel_initializer=_weight_init())])
-# model_tf.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-
-
 def valid_mask(obs):  # vectorized variant of `env.infer_action_space`
     state_seq = obs[..., :env.len_seq_encode]
     mask = state_seq.sum(axis=-1)
     return mask
 
 
-class TorchModel(nn.Module):
+class TorchModule(nn.Module):
     def __init__(self):
         super().__init__()
         self.model = nn.Sequential(
@@ -128,16 +94,16 @@ class TorchModel(nn.Module):
         )
 
     def forward(self, x):
-        # return self.model(x)
+        return self.model(x)
 
-        p = self.model(x)
-        with torch.no_grad():
-            mask = valid_mask(x)
-            p *= mask
-        return p
+        # p = self.model(x)
+        # with torch.no_grad():
+        #     mask = valid_mask(x)
+        #     p *= mask
+        # return p
 
 
-model_torch = TorchModel()
+model_torch = TorchModule()
 
 # loss_func = functional.cross_entropy
 loss_func = functional.nll_loss
@@ -146,7 +112,7 @@ optimizer = optim.Adam(model_torch.parameters(), lr=1e-3)
 # optimizer = optim.SGD(model_torch.parameters(), lr=1e-2)
 
 
-class LitModel(pl.LightningModule):
+class LitModule(pl.LightningModule):
     def __init__(self):
         super().__init__()
 
@@ -191,7 +157,17 @@ class LitModel(pl.LightningModule):
         # return optim.SGD(self.parameters(), lr=1e-2)
 
 
-model_pl = LitModel()
+model_pl = LitModule()
+
+learn_params_pl = {'batch_size_train': 20,
+                   'n_gen_val': 1/3,
+                   'batch_size_val': 30,
+                   'weight_func': None,  # TODO: weighting based on loss value!?
+                   # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
+                   'max_epochs': 400,
+                   'shuffle': True,
+                   # 'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=20)]
+                   }
 
 
 # RL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
@@ -204,46 +180,7 @@ model_pl = LitModel()
 model_cls, model_params = StableBaselinesScheduler.model_defaults['DQN_MLP']
 # model_sb = model_cls(env=env, **model_params)
 
-
-n_gen_learn = 900
-
-train_params_tf = {'batch_size_train': 20,
-                   'n_gen_val': 1/3,
-                   'batch_size_val': 30,
-                   'weight_func': None,
-                   # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-                   'epochs': 400,
-                   'shuffle': True,
-                   # 'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=20, min_delta=0.)]
-                   'plot_history': True,
-                   }
-
-learn_params_pl = {'batch_size_train': 20,
-                   'n_gen_val': 1/3,
-                   'batch_size_val': 30,
-                   'weight_func': None,  # TODO: weighting based on loss value!?
-                   # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-                   'max_epochs': 400,
-                   'shuffle': True,
-                   # 'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=20)]
-                   }
-
 learn_params_sb = {}
-
-# train_args = {'n_batch_train': 30, 'batch_size_train': 20, 'n_batch_val': 10, 'batch_size_val': 30,
-#               'weight_func': None,
-#               # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-#               'fit_params': {'epochs': 400,
-#                              'shuffle': True,
-#                              # 'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=20, min_delta=0.)]
-#                              # 'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=20)]
-#                              },
-#               # 'plot_history': True,
-#               # 'do_tensorboard': True,
-#               }
-
-# n_gen_train = (train_args['n_batch_train'] * train_args['batch_size_train']
-#                + train_args['n_batch_val'] * train_args['batch_size_val'])
 
 
 # FIXME: integrate SB3 before making any sweeping environment/learn API changes!!!
@@ -255,7 +192,6 @@ learn_params_sb = {}
 # FIXME: INVESTIGATE huge PyTorch speed-up over Tensorflow!!
 
 # TODO: new MCTS parameter search for shorter runtime
-# TODO: make problem a shared node class attribute? Setting them seems hackish...
 
 
 algorithms = np.array([
@@ -284,12 +220,15 @@ algorithms = np.array([
 
 
 #%% Evaluate and record results
+
+n_gen_learn = 900  # the number of problems generated for learning, per iteration
+n_gen = 100  # the number of problems generated for testing, per iteration
+n_mc = 1  # the number of Monte Carlo iterations performed for scheduler assessment
+
 # TODO: generate new, larger datasets
 # TODO: try making new features
 
-# TODO: value networks
 # TODO: avoid state correlation? Do Env transforms already achieve this?
-# TODO: make custom output layers to avoid illegal actions?
 # TODO: make loss func for full seq targets, penalize in proportion to seq similarity?
 
 # TODO: document class attributes, even if identical to init parameters?
@@ -321,8 +260,7 @@ with open(log_path, 'a') as fid:
     print('## Results', file=fid)
 
 
-n_mc = 1
-l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=100, n_mc=n_mc, solve=True,
+l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=n_gen, n_mc=n_mc, solve=True,
                                               verbose=2, plotting=2, log_path=log_path)
 np.savez(data_path / f'results/temp/{now}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
 
@@ -335,6 +273,65 @@ with open(log_path, 'a') as fid:
 
 
 #%% Deprecated
+
+# tf.random.set_seed(seed)
+#
+# def _weight_init():
+#     return keras.initializers.GlorotUniform(seed)
+#
+#
+# layers = [
+#     keras.layers.Flatten(),
+#     keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
+#     keras.layers.Dense(30, activation='relu', kernel_initializer=_weight_init()),
+#     # keras.layers.Dropout(0.2),
+# ]
+#
+# # layers = [
+# #     keras.layers.Conv1D(30, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+# #     keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+# #     keras.layers.Conv1D(20, kernel_size=2, activation='relu', kernel_initializer=_weight_init()),
+# #     # keras.layers.Dense(20, activation='relu', kernel_initializer=_weight_init()),
+# #     # keras.layers.Flatten(),
+# # ]
+#
+# # layers = [
+# #     keras.layers.Reshape((problem_gen.n_tasks, -1, 1)),
+# #     keras.layers.Conv2D(16, kernel_size=(2, 2), activation='relu', kernel_initializer=_weight_init())
+# # ]
+#
+#
+# model_tf = keras.Sequential([keras.Input(shape=env.observation_space.shape),
+#                              *layers,
+#                              keras.layers.Dense(env.action_space.n, activation='softmax',
+#                                                 kernel_initializer=_weight_init())])
+# model_tf.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+#
+# train_params_tf = {'batch_size_train': 20,
+#                    'n_gen_val': 1/3,
+#                    'batch_size_val': 30,
+#                    'weight_func': None,
+#                    # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
+#                    'epochs': 400,
+#                    'shuffle': True,
+#                    # 'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=20, min_delta=0.)]
+#                    'plot_history': True,
+#                    }
+
+# train_args = {'n_batch_train': 30, 'batch_size_train': 20, 'n_batch_val': 10, 'batch_size_val': 30,
+#               'weight_func': None,
+#               # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
+#               'fit_params': {'epochs': 400,
+#                              'shuffle': True,
+#                              # 'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=20, min_delta=0.)]
+#                              # 'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=20)]
+#                              },
+#               # 'plot_history': True,
+#               # 'do_tensorboard': True,
+#               }
+
+# n_gen_train = (train_args['n_batch_train'] * train_args['batch_size_train']
+#                + train_args['n_batch_val'] * train_args['batch_size_val'])
 
 # sim_type = 'Gen'
 # if len(learners) > 0:
