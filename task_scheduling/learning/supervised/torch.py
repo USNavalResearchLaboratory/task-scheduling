@@ -25,8 +25,6 @@ device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cp
 NUM_WORKERS = 0
 # NUM_WORKERS = os.cpu_count()
 
-AVAIL_GPUS = min(1, torch.cuda.device_count())
-
 PIN_MEMORY = True
 # PIN_MEMORY = False
 
@@ -212,8 +210,6 @@ class Base(BaseLearningScheduler):
 
 
 class TorchScheduler(Base):
-    log_dir = Path.cwd() / 'logs/learn'
-
     def __init__(self, env, model, loss_func, optimizer, learn_params=None, valid_fwd=True):
         """
         Base class for pure PyTorch-based schedulers.
@@ -294,9 +290,7 @@ class TorchScheduler(Base):
 
 
 class LitScheduler(Base):
-    log_dir = Path.cwd() / 'logs/learn'
-
-    def __init__(self, env, model, learn_params, valid_fwd=True):
+    def __init__(self, env, model, trainer_kwargs=None, learn_params=None, valid_fwd=True):
         """
         Base class for PyTorch Lightning-based schedulers.
 
@@ -306,6 +300,8 @@ class LitScheduler(Base):
             OpenAi gym environment.
         model : torch.nn.Module
             The PyTorch-Lightning network.
+        trainer_kwargs : dict, optional
+            Arguments passed to instantiation of pl.Trainer object.
         learn_params : dict, optional
             Parameters used by the `learn` method.
         valid_fwd : bool, optional
@@ -315,22 +311,20 @@ class LitScheduler(Base):
         """
         super().__init__(env, model, learn_params, valid_fwd)
 
-        self.trainer_params = {
-            'gpus': AVAIL_GPUS,
-            # 'distributed_backend': 'ddp',
-            # 'profiler': 'simple',
-            'checkpoint_callback': False,
-            'logger': True,
-            'default_root_dir': str(self.log_dir),
-            # 'progress_bar_refresh_rate': 0,
+        if trainer_kwargs is None:
+            trainer_kwargs = {}
+        self.trainer_kwargs = trainer_kwargs
+
+        # Note: the kwargs below are specified in `learn_params` for consistency with `TorchScheduler`
+        self.trainer_kwargs.update({
             'max_epochs': self.learn_params['max_epochs'],
             'callbacks': self.learn_params['callbacks'],
-        }
-        self.trainer = pl.Trainer(**self.trainer_params)
+        })
+        self.trainer = pl.Trainer(**self.trainer_kwargs)
 
     def reset(self):
         super().reset()
-        self.trainer = pl.Trainer(**deepcopy(self.trainer_params))
+        self.trainer = pl.Trainer(**deepcopy(self.trainer_kwargs))
 
     def _fit(self, dl_train, dl_val, verbose=0):
         if verbose >= 1:

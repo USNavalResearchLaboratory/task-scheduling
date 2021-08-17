@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
+import torch
 from torch import nn, optim
 from torch.nn import functional
 import pytorch_lightning as pl
@@ -29,6 +30,7 @@ pd.options.display.float_format = '{:,.3f}'.format
 plt.style.use('seaborn')
 # plt.rc('axes', grid=True)
 
+AVAIL_GPUS = min(1, torch.cuda.device_count())
 
 # seed = None
 seed = 12345
@@ -65,9 +67,7 @@ env_params = {
     # 'time_shift': True,
     'masking': False,
     # 'masking': True,
-    'action_type': 'any',
-    # 'action_type': 'valid',
-    # 'seq_encoding': None,
+    'action_type': 'valid',
     'seq_encoding': 'one-hot',
 }
 
@@ -143,6 +143,16 @@ class LitModule(pl.LightningModule):
 
 model_pl = LitModule()
 
+pl_trainer_kwargs = {
+    'gpus': AVAIL_GPUS,
+    # 'distributed_backend': 'ddp',
+    # 'profiler': 'simple',
+    'logger': True,
+    'checkpoint_callback': False,
+    'default_root_dir': 'logs/learn',
+    # 'progress_bar_refresh_rate': 0,
+}
+
 learn_params_torch = {
     'batch_size_train': 20,
     'n_gen_val': 1/3,
@@ -198,9 +208,9 @@ algorithms = np.array([
     #                                   rng=RNGMix.make_rng(seed)), 10) for c, t in product([0.05], [15])),
     # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, n_mc=50, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10]),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
-    ('Torch Policy', TorchScheduler(env, model_torch, loss_func, optimizer, learn_params_torch, valid_fwd), 10),
+    # ('Torch Policy', TorchScheduler(env, model_torch, loss_func, optimizer, learn_params_torch, valid_fwd), 10),
     # ('Torch Policy', TorchScheduler.load('models/temp/2021-06-16T12_14_41.pkl'), 10),
-    # ('Lit Policy', LitScheduler(env, model_pl, learn_params_torch, valid_fwd), 10),
+    ('Lit Policy', LitScheduler(env, model_pl, pl_trainer_kwargs, learn_params_torch, valid_fwd), 10),
     # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])

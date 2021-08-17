@@ -50,9 +50,10 @@ class Scheduler(Base):
         p = self.predict_prob(obs)
         action = p.argmax()
 
-        if action not in self.env.action_space:  # mask out invalid actions
-            p = self.env.mask_probability(p)
-            action = p.argmax()
+        # TODO: deprecate?
+        # if action not in self.env.action_space:  # mask out invalid actions
+        #     p = self.env.mask_probability(p)
+        #     action = p.argmax()
 
         return action
 

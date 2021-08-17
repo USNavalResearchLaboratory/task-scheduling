@@ -54,9 +54,9 @@ class LitModule(pl.LightningModule):
             nn.Linear(30, 30),
             nn.ReLU(),
             nn.Linear(30, env.action_space.n),
-            nn.LogSoftmax(dim=1),
+            nn.Softmax(dim=1),
         )
-        self.loss_func = functional.nll_loss
+        self.loss_func = functional.cross_entropy
 
     def forward(self, x):
         return self.model(x)
@@ -83,7 +83,7 @@ learn_params_pl = {'batch_size_train': 20,
                    'n_gen_val': 1/3,
                    'batch_size_val': 30,
                    'weight_func': None,
-                   'max_epochs': 400,
+                   'max_epochs': 40,
                    'shuffle': True,
                    'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=100)]
                    }
@@ -96,7 +96,7 @@ algorithms = np.array([
     ('ERT', earliest_release, 10),
     *((f'MCTS: c={c}, t={t}', partial(mcts, runtime=.002, c_explore=c, visit_threshold=t, rng=seed), 10)
       for c, t in product([.035], [15])),
-    ('Lit Policy', LitScheduler(env, LitModule(), learn_params_pl), 10),
+    ('Lit Policy', LitScheduler(env, LitModule(), learn_params=learn_params_pl, valid_fwd=True), 10),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
 
