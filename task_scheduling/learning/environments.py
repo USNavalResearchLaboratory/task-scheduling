@@ -492,7 +492,7 @@ class StepTasking(BaseTasking):
         masking : bool, optional
             If True, features are zeroed out for scheduled tasks.
         action_type : {'valid', 'any'}, optional
-            If 'valid', action type is `DiscreteSet` of valid indices; if 'any', action space is `Discrete` and
+            If 'valid', action space is `DiscreteMasked`; if 'any', action space is `Discrete` and
             repeated actions are allowed (for experimental purposes only).
         seq_encoding : function or str, optional
             Method that returns a 1-D encoded sequence representation for a given task index 'n'. Assumes that the
@@ -572,14 +572,23 @@ class StepTasking(BaseTasking):
         state_seq = np.array([self.seq_encoding(n) for n in self.sorted_index])
         return np.concatenate((state_seq, self.state_tasks), axis=1)
 
+    def make_mask(self, obs):  # TODO: make method private?
+        state_seq = obs[..., :self.len_seq_encode]
+        return state_seq.sum(axis=-1)
+
     def infer_action_space(self, obs):
         """Determines the action Gym.Space from an observation."""
-        if self.do_valid_actions:
-            state_seq = obs[:, :self.len_seq_encode]
-            # seq_rem_sort = np.flatnonzero(1 - state_seq.sum(1))
-            # return spaces_tasking.DiscreteSet(seq_rem_sort)
+        obs = np.asarray(obs)
+        if obs.ndim > 2:
+            raise ValueError("Input must be a single observation.")
 
-            mask = state_seq.sum(axis=1).astype(bool)
+        if self.do_valid_actions:
+            # state_seq = obs[..., :self.len_seq_encode]
+            # # seq_rem_sort = np.flatnonzero(1 - state_seq.sum(1))
+            # # return spaces_tasking.DiscreteSet(seq_rem_sort)
+            #
+            # mask = state_seq.sum(axis=-1).astype(bool)
+            mask = self.make_mask(obs).astype(bool)
             return spaces_tasking.DiscreteMasked(self.n_tasks, mask)
         else:
             return Discrete(len(obs))
@@ -610,10 +619,10 @@ class StepTasking(BaseTasking):
 
         return x_set, y_set, w_set
 
-    def mask_probability(self, p):
-        """Returns masked action probabilities based on unscheduled task indices."""
-
-        if self.do_valid_actions:
-            return np.ma.masked_array(p, self.action_space.mask)
-        else:
-            return super().mask_probability(p)
+    # def mask_probability(self, p):  # TODO: deprecate?
+    #     """Returns masked action probabilities based on unscheduled task indices."""
+    #
+    #     if self.do_valid_actions:
+    #         return np.ma.masked_array(p, self.action_space.mask)
+    #     else:
+    #         return super().mask_probability(p)

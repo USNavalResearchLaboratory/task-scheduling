@@ -2,13 +2,13 @@ from functools import partial
 from itertools import product
 from pathlib import Path
 from datetime import datetime
+# from functools import wraps
 # from operator import methodcaller
 
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-import torch
 from torch import nn, optim
 from torch.nn import functional
 import pytorch_lightning as pl
@@ -48,6 +48,7 @@ schedule_path = data_path / 'schedules'
 
 # list(problem_gen(100, save_path=schedule_path/'temp'/time_str))
 
+# dataset = 'discrete_relu_c1t4'
 dataset = 'discrete_relu_c1t8'
 # dataset = 'continuous_relu_c1t8'
 # dataset = 'search_track_c1t8_release_0'
@@ -58,25 +59,19 @@ problem_gen = problem_gens.Dataset.load(schedule_path / dataset, shuffle=True, r
 # Algorithms
 env_params = {
     'features': None,  # defaults to task parameters
-    # 'sort_func': None,
-    'sort_func': 't_release',
-    # 'time_shift': False,
-    'time_shift': True,
-    # 'masking': False,
-    'masking': True,
-    # 'action_type': 'any',
-    'action_type': 'valid',
+    'sort_func': None,
+    # 'sort_func': 't_release',
+    'time_shift': False,
+    # 'time_shift': True,
+    'masking': False,
+    # 'masking': True,
+    'action_type': 'any',
+    # 'action_type': 'valid',
     # 'seq_encoding': None,
     'seq_encoding': 'one-hot',
 }
 
 env = envs.StepTasking(problem_gen, **env_params)
-
-
-def valid_mask(obs):  # vectorized variant of `env.infer_action_space`
-    state_seq = obs[..., :env.len_seq_encode]
-    mask = state_seq.sum(axis=-1)
-    return mask
 
 
 class TorchModule(nn.Module):
@@ -89,23 +84,18 @@ class TorchModule(nn.Module):
             nn.Linear(30, 30),
             nn.ReLU(),
             nn.Linear(30, env.action_space.n),
-            nn.LogSoftmax(dim=1),
+            nn.Softmax(dim=1),
+            # nn.LogSoftmax(dim=1),
         )
 
     def forward(self, x):
         return self.model(x)
 
-        # p = self.model(x)
-        # with torch.no_grad():
-        #     mask = valid_mask(x)
-        #     p *= mask
-        # return p
-
 
 model_torch = TorchModule()
 
-# loss_func = functional.cross_entropy
-loss_func = functional.nll_loss
+loss_func = functional.cross_entropy
+# loss_func = functional.nll_loss
 
 optimizer = optim.Adam(model_torch.parameters(), lr=1e-3)
 # optimizer = optim.SGD(model_torch.parameters(), lr=1e-2)
@@ -122,20 +112,15 @@ class LitModule(pl.LightningModule):
             nn.Linear(30, 30),
             nn.ReLU(),
             nn.Linear(30, env.action_space.n),
-            nn.LogSoftmax(dim=1),
+            nn.Softmax(dim=1),
+            # nn.LogSoftmax(dim=1),
         )
 
-        # self.loss_func = functional.cross_entropy
-        self.loss_func = functional.nll_loss
+        self.loss_func = functional.cross_entropy
+        # self.loss_func = functional.nll_loss
 
     def forward(self, x):
         return self.model(x)
-
-        # p = self.model(x)
-        # # with torch.no_grad():
-        # #     mask = valid_mask(x)
-        # #     p *= mask
-        # return p
 
     def training_step(self, batch, batch_idx):
         x, y = batch
@@ -158,15 +143,19 @@ class LitModule(pl.LightningModule):
 
 model_pl = LitModule()
 
-learn_params_pl = {'batch_size_train': 20,
-                   'n_gen_val': 1/3,
-                   'batch_size_val': 30,
-                   'weight_func': None,  # TODO: weighting based on loss value!?
-                   # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-                   'max_epochs': 400,
-                   'shuffle': True,
-                   # 'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=20)]
-                   }
+learn_params_torch = {
+    'batch_size_train': 20,
+    'n_gen_val': 1/3,
+    'batch_size_val': 30,
+    'weight_func': None,  # TODO: weighting based on loss value!?
+    # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
+    'max_epochs': 40,
+    'shuffle': True,
+    # 'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=20)]
+}
+
+valid_fwd = True
+# valid_fwd = False
 
 
 # RL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
@@ -209,9 +198,9 @@ algorithms = np.array([
     #                                   rng=RNGMix.make_rng(seed)), 10) for c, t in product([0.05], [15])),
     # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, n_mc=50, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10]),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
-    ('Torch Policy', TorchScheduler(env, model_torch, loss_func, optimizer, learn_params_pl), 10),
+    ('Torch Policy', TorchScheduler(env, model_torch, loss_func, optimizer, learn_params_torch, valid_fwd), 10),
     # ('Torch Policy', TorchScheduler.load('models/temp/2021-06-16T12_14_41.pkl'), 10),
-    # ('Lit Policy', LitScheduler(env, model_pl, learn_params_pl), 10),
+    # ('Lit Policy', LitScheduler(env, model_pl, learn_params_torch, valid_fwd), 10),
     # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
@@ -271,6 +260,24 @@ with open(log_path, 'a') as fid:
 
 
 #%% Deprecated
+
+# def make_valid_wrapper(env_):
+#     def valid_wrapper(func):
+#         @wraps(func)
+#         def valid_func(self, *args, **kwargs):
+#             p = func(self, *args, **kwargs)
+#
+#             mask = 1 - env_.make_mask(*args, **kwargs)
+#             p_mask = p * mask
+#
+#             idx_zero = p_mask.sum(dim=1) == 0.
+#             p_mask[idx_zero] = mask[idx_zero]  # if no valid actions are non-zero, make them uniform
+#
+#             p_norm = functional.normalize(p_mask, p=1, dim=1)
+#             return p_norm
+#
+#         return valid_func
+#     return valid_wrapper
 
 # tf.random.set_seed(seed)
 #

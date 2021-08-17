@@ -404,7 +404,7 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
 #     ('MCTS', partial(algs.limit.mcts, verbose=False), 5),
 #     ('Policy', runtime_wrapper(policy_model), 5),
 #     # ('DQN Agent', dqn_agent, 5),
-# ], dtype=[('name', '<U16'), ('func', object), ('n_iter', int)])
+# ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 #
 # runtimes = np.logspace(-2, -1, 20, endpoint=False)
 # evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=40, solve=True, verbose=2, plotting=1,

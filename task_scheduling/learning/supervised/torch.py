@@ -1,17 +1,22 @@
-from functools import partial
+from functools import partial, wraps
 from pathlib import Path
 from abc import abstractmethod
 import math
 from copy import deepcopy
+# from types import MethodType
 
 import numpy as np
 
 import torch
+from torch import nn
+from torch.nn import functional
+
 from torch.utils.data import TensorDataset, DataLoader
 
 import pytorch_lightning as pl
 
 from task_scheduling.learning.base import Base as BaseLearningScheduler
+from task_scheduling.learning.environments import StepTasking
 
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -41,6 +46,48 @@ class Base(BaseLearningScheduler):
         'shuffle': False,
         'callbacks': []
     }
+
+    def __init__(self, env, model, learn_params=None, valid_fwd=True):
+        """
+        Base class for PyTorch-based schedulers.
+
+        Parameters
+        ----------
+        env : BaseTasking
+            OpenAi gym environment.
+        model : torch.nn.Module
+            The learning network.
+        learn_params : dict, optional
+            Parameters used by the `learn` method.
+        valid_fwd : bool, optional
+            Enables wrapping of PyTorch module `forward` method with a parallel function that infers the valid action
+            space and modifies the softmax output accordingly. Only relevant if the `env` type is `StepTasking`.
+
+        """
+        if not isinstance(model, nn.Module):
+            raise TypeError("Argument `model` must be a `torch.nn.Module` instance.")
+
+        if valid_fwd and isinstance(env, StepTasking):
+            def valid_wrapper(func):
+                @wraps(func)
+                def valid_func(*args, **kwargs):
+                    p = func(*args, **kwargs)  # assumes softmax output for valid probabilities
+
+                    mask = 1 - env.make_mask(*args, **kwargs)
+                    p_mask = p * mask
+
+                    idx_zero = p_mask.sum(dim=1) == 0.
+                    p_mask[idx_zero] = mask[idx_zero]  # if no valid actions are non-zero, make them uniform
+
+                    p_norm = functional.normalize(p_mask, p=1, dim=1)
+                    return p_norm
+
+                return valid_func
+
+            model.forward = valid_wrapper(model.forward)  # FIXME: no longer a bound method!
+            # model.forward = MethodType(valid_wrapper(model.forward), model)
+
+        super().__init__(env, model, learn_params)
 
     def predict_prob(self, obs):
         """
@@ -95,9 +142,10 @@ class Base(BaseLearningScheduler):
         p = self.predict_prob(obs)
         action = p.argmax()
 
-        if action not in self.env.action_space:  # mask out invalid actions
-            p = self.env.mask_probability(p)
-            action = p.argmax()
+        # TODO: deprecate?
+        # if action not in self.env.action_space:  # mask out invalid actions
+        #     p = self.env.mask_probability(p)
+        #     action = p.argmax()
 
         return action
 
@@ -166,9 +214,9 @@ class Base(BaseLearningScheduler):
 class TorchScheduler(Base):
     log_dir = Path.cwd() / 'logs/learn'
 
-    def __init__(self, env, model, loss_func, optimizer, learn_params=None):
+    def __init__(self, env, model, loss_func, optimizer, learn_params=None, valid_fwd=True):
         """
-        Base class for PyTorch-based schedulers.
+        Base class for pure PyTorch-based schedulers.
 
         Parameters
         ----------
@@ -180,9 +228,12 @@ class TorchScheduler(Base):
         optimizer : torch.optim.Optimizer
         learn_params : dict, optional
             Parameters used by the `learn` method.
+        valid_fwd : bool, optional
+            Enables wrapping of PyTorch module `forward` method with a parallel function that infers the valid action
+            space and modifies the softmax output accordingly. Only relevant if the `env` type is `StepTasking`.
 
         """
-        super().__init__(env, model, learn_params)
+        super().__init__(env, model, learn_params, valid_fwd)
 
         # self.model = model.to(device)
         self.loss_func = loss_func
@@ -245,7 +296,7 @@ class TorchScheduler(Base):
 class LitScheduler(Base):
     log_dir = Path.cwd() / 'logs/learn'
 
-    def __init__(self, env, model, learn_params):
+    def __init__(self, env, model, learn_params, valid_fwd=True):
         """
         Base class for PyTorch Lightning-based schedulers.
 
@@ -254,12 +305,15 @@ class LitScheduler(Base):
         env : BaseTasking
             OpenAi gym environment.
         model : torch.nn.Module
-            The PyTorch network.
+            The PyTorch-Lightning network.
         learn_params : dict, optional
             Parameters used by the `learn` method.
+        valid_fwd : bool, optional
+            Enables wrapping of PyTorch module `forward` method with a parallel function that infers the valid action
+            space and modifies the softmax output accordingly. Only relevant if the `env` type is `StepTasking`.
 
         """
-        super().__init__(env, model, learn_params)
+        super().__init__(env, model, learn_params, valid_fwd)
 
         self.trainer_params = {
             'gpus': AVAIL_GPUS,
