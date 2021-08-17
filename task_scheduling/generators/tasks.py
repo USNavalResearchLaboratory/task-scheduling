@@ -18,7 +18,7 @@ from gym import spaces
 
 from task_scheduling._core import RandomGeneratorMixin
 from task_scheduling import tasks as task_types
-from task_scheduling.learning.spaces import DiscreteSet
+from task_scheduling.spaces import DiscreteSet
 
 
 class Base(RandomGeneratorMixin, ABC):
@@ -168,7 +168,7 @@ class DiscreteIID(BaseIID):
     """
 
     def __init__(self, cls_task, param_probs, rng=None):
-        param_spaces = {name: DiscreteSet(param_probs[name].keys()) for name in cls_task.param_names}
+        param_spaces = {name: DiscreteSet(list(param_probs[name].keys())) for name in cls_task.param_names}
         super().__init__(cls_task, param_spaces, rng)
 
         self.param_probs = param_probs

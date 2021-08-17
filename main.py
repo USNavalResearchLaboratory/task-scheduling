@@ -20,7 +20,7 @@ from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.util import evaluate_algorithms_train
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.base import Base as BaseLearningScheduler
-# from task_scheduling.learning.supervised.tf import keras, Scheduler as tfScheduler
+# from task_scheduling.learning.supervised._tf import keras, Scheduler as tfScheduler
 from task_scheduling.learning.supervised.torch import TorchScheduler, LitScheduler
 from task_scheduling.learning.reinforcement import StableBaselinesScheduler
 
@@ -38,7 +38,7 @@ seed = 12345
 
 #%% Define scheduling problem and algorithms
 
-# problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=seed)
+problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
@@ -55,7 +55,7 @@ dataset = 'discrete_relu_c1t8'
 # dataset = 'continuous_relu_c1t8'
 # dataset = 'search_track_c1t8_release_0'
 
-problem_gen = problem_gens.Dataset.load(schedule_path / dataset, shuffle=True, repeat=True, rng=seed)
+# problem_gen = problem_gens.Dataset.load(schedule_path / dataset, shuffle=True, repeat=True, rng=seed)
 
 
 # Algorithms
