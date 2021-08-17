@@ -32,13 +32,15 @@ plt.style.use('seaborn')
 
 AVAIL_GPUS = min(1, torch.cuda.device_count())
 
+now = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
+
 # seed = None
 seed = 12345
 
 
 #%% Define scheduling problem and algorithms
 
-problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=seed)
+# problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
@@ -48,25 +50,25 @@ problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=4, n_ch=1, rng=seed
 data_path = Path.cwd() / 'data'
 schedule_path = data_path / 'schedules'
 
-# list(problem_gen(100, save_path=schedule_path/'temp'/time_str))
+# list(problem_gen(1000, solve=True, save_path=schedule_path/'temp'/now, verbose=2))
 
 # dataset = 'discrete_relu_c1t4'
 dataset = 'discrete_relu_c1t8'
 # dataset = 'continuous_relu_c1t8'
 # dataset = 'search_track_c1t8_release_0'
 
-# problem_gen = problem_gens.Dataset.load(schedule_path / dataset, shuffle=True, repeat=True, rng=seed)
+problem_gen = problem_gens.Dataset.load(schedule_path / dataset, shuffle=True, repeat=True, rng=seed)
 
 
 # Algorithms
 env_params = {
     'features': None,  # defaults to task parameters
-    'sort_func': None,
-    # 'sort_func': 't_release',
-    'time_shift': False,
-    # 'time_shift': True,
-    'masking': False,
-    # 'masking': True,
+    # 'sort_func': None,
+    'sort_func': 't_release',
+    # 'time_shift': False,
+    'time_shift': True,
+    # 'masking': False,
+    'masking': True,
     'action_type': 'valid',
     'seq_encoding': 'one-hot',
 }
@@ -232,7 +234,6 @@ n_mc = 1  # the number of Monte Carlo iterations performed for scheduler assessm
 # TODO: document instantiation parameters under init or under the class def?
 # TODO: rework docstring parameter typing?
 
-now = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
 
 log_path = 'logs/temp/PGR_results.md'
 # log_path = 'logs/discrete_relu_c1t8.md'

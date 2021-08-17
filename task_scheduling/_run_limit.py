@@ -311,7 +311,7 @@ def plot_loss_runtime(t_run, l_ex, do_std=False, ax=None, ax_kwargs=None):
 def runtime_wrapper(scheduler):
     @wraps(scheduler)
     def new_scheduler(tasks, ch_avail, runtimes):
-        t_ex, ch_ex, t_run = timing_wrapper(scheduler)(tasks, ch_avail)
+        t_ex, ch_ex, _l_ex, t_run = timing_wrapper(scheduler)(tasks, ch_avail)
         for runtime in runtimes:
             if t_run < runtime:
                 yield t_ex, ch_ex
@@ -336,7 +336,7 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
     # Generate scheduling problems
     for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose, save_path)):
         if solve:
-            (tasks, ch_avail), (t_ex, ch_ex, t_run) = out_gen
+            (tasks, ch_avail), (t_ex, ch_ex, _l_ex, t_run) = out_gen
             check_schedule(tasks, t_ex, ch_ex)
             l_ex_opt[i_gen] = evaluate_schedule(tasks, t_ex)
             t_run_opt[i_gen] = t_run

@@ -276,9 +276,12 @@ def evaluate_algorithms_single(algorithms, tasks, ch_avail, solution_opt=None, v
 
             # Run algorithm
             if name == 'BB Optimal':
-                t_ex, ch_ex, t_run = solution_opt
+                solution = solution_opt
             else:
-                t_ex, ch_ex, t_run = timing_wrapper(func)(tasks, ch_avail)
+                solution = timing_wrapper(func)(tasks, ch_avail)
+
+            # t_ex, ch_ex, t_run = solution
+            t_ex, ch_ex, _l_ex, t_run = solution
 
             # Evaluate schedule
             check_schedule(tasks, t_ex, ch_ex)

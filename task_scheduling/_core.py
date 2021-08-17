@@ -1,4 +1,11 @@
+from collections import namedtuple
+
 import numpy as np
+
+
+SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
+# SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
+SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 'l_ex', 't_run'], defaults=(None, None))
 
 
 class RandomGeneratorMixin:

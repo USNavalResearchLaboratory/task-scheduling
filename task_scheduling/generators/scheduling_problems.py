@@ -4,19 +4,15 @@ from abc import ABC, abstractmethod
 from collections import deque
 from functools import partial
 from pathlib import Path
-from collections import namedtuple
 from datetime import datetime
 
 import dill
 import numpy as np
 
-from task_scheduling._core import RandomGeneratorMixin
+from task_scheduling._core import RandomGeneratorMixin, SchedulingProblem, SchedulingSolution
 from task_scheduling.algorithms import branch_bound_priority
 from task_scheduling.algorithms.util import timing_wrapper
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
-
-SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
-SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
 
 
 class Base(RandomGeneratorMixin, ABC):
@@ -115,8 +111,9 @@ class Base(RandomGeneratorMixin, ABC):
     def _gen_solution(problem, verbose=False):
         # scheduler_opt = partial(branch_bound, verbose=verbose)
         scheduler_opt = partial(branch_bound_priority, verbose=verbose)
-        t_ex, ch_ex, t_run = timing_wrapper(scheduler_opt)(*problem)
-        return SchedulingSolution(t_ex, ch_ex, t_run)
+        # t_ex, ch_ex, t_run = timing_wrapper(scheduler_opt)(*problem)
+        # return SchedulingSolution(t_ex, ch_ex, t_run)
+        return timing_wrapper(scheduler_opt)(*problem)
 
     def _save(self, problems, solutions=None, file_path=None):
         """
@@ -325,7 +322,9 @@ class PermutedTasks(FixedTasks):
             idx.append(i)
             tasks_init[i] = None  # ensures unique indices
 
-        return SchedulingSolution(self.solution.t_ex[idx], self.solution.ch_ex[idx], self.solution.t_run)
+        # return SchedulingSolution(self.solution.t_ex[idx], self.solution.ch_ex[idx], self.solution.t_run)
+        return SchedulingSolution(self.solution.t_ex[idx], self.solution.ch_ex[idx],
+                                  self.solution.l_ex, self.solution.t_run)
 
 
 class Dataset(Base):

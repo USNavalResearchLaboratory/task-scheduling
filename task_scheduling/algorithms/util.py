@@ -4,6 +4,8 @@ from time import perf_counter
 
 import numpy as np
 
+from task_scheduling._core import SchedulingSolution
+
 
 def sort_wrapper(scheduler, sort_func):
     if isinstance(sort_func, str):
@@ -26,8 +28,12 @@ def timing_wrapper(scheduler):
     @wraps(scheduler)
     def timed_scheduler(tasks, ch_avail):
         t_start = perf_counter()
-        t_ex, ch_ex = scheduler(tasks, ch_avail)
+        # t_ex, ch_ex = scheduler(tasks, ch_avail)
+        # t_run = perf_counter() - t_start
+        # # return t_ex, ch_ex, t_run
+
+        solution = scheduler(tasks, ch_avail)
         t_run = perf_counter() - t_start
-        return t_ex, ch_ex, t_run
+        return SchedulingSolution(*solution, t_run=t_run)
 
     return timed_scheduler
