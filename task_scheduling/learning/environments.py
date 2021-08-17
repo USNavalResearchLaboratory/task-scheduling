@@ -572,7 +572,7 @@ class StepTasking(BaseTasking):
         state_seq = np.array([self.seq_encoding(n) for n in self.sorted_index])
         return np.concatenate((state_seq, self.state_tasks), axis=1)
 
-    def make_mask(self, obs):  # TODO: make method private?
+    def make_mask(self, obs):
         state_seq = obs[..., :self.len_seq_encode]
         return state_seq.sum(axis=-1)
 
@@ -618,11 +618,3 @@ class StepTasking(BaseTasking):
             self.step(n)  # updates environment state
 
         return x_set, y_set, w_set
-
-    # def mask_probability(self, p):  # TODO: deprecate?
-    #     """Returns masked action probabilities based on unscheduled task indices."""
-    #
-    #     if self.do_valid_actions:
-    #         return np.ma.masked_array(p, self.action_space.mask)
-    #     else:
-    #         return super().mask_probability(p)

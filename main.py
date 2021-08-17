@@ -20,7 +20,7 @@ from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.util import evaluate_algorithms_train
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.base import Base as BaseLearningScheduler
-# from task_scheduling.learning.supervised.tf import keras, Scheduler as tfScheduler
+# from task_scheduling.learning.supervised._tf import keras, Scheduler as tfScheduler
 from task_scheduling.learning.supervised.torch import TorchScheduler, LitScheduler
 from task_scheduling.learning.reinforcement import StableBaselinesScheduler
 
