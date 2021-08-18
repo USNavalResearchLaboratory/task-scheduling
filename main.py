@@ -13,7 +13,7 @@ import torch
 from torch import nn, optim
 from torch.nn import functional
 import pytorch_lightning as pl
-# from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.env_checker import check_env
 
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
 from task_scheduling.generators import scheduling_problems as problem_gens
@@ -52,10 +52,17 @@ schedule_path = data_path / 'schedules'
 
 # list(problem_gen(1000, solve=True, save_path=schedule_path/'temp'/now, verbose=2))  # save solved problems
 
-# dataset = 'discrete_relu_c1t4'
+# gens = {
+#     'discrete': problem_gens.Random.discrete_relu_drop(n_tasks=12, n_ch=1, rng=seed),
+#     'continuous': problem_gens.Random.continuous_relu_drop(n_tasks=12, n_ch=1, rng=seed)
+# }
+# for name, gen in gens.items():
+#     path = f"data/schedules/{name}_relu_c1t12"
+#     list(gen(1000, solve=True, save_path=path, verbose=2))
+# raise Exception
+
 dataset = 'discrete_relu_c1t8'
 # dataset = 'continuous_relu_c1t8'
-# dataset = 'search_track_c1t8_release_0'
 
 problem_gen = problem_gens.Dataset.load(schedule_path / dataset, shuffle=True, repeat=True, rng=seed)
 
@@ -161,7 +168,7 @@ learn_params_torch = {
     'batch_size_val': 30,
     'weight_func': None,  # TODO: weighting based on loss value!?
     # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-    'max_epochs': 40,
+    'max_epochs': 400,
     'shuffle': True,
     # 'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=20)]
 }
@@ -177,7 +184,7 @@ valid_fwd = True
 # dqn_agent = StableBaselinesScheduler
 # dqn_agent = RL_Scheduler.load('temp/DQN_2020-10-28_15-44-00', env=None, model_cls='DQN')
 
-# check_env(env)
+check_env(env)
 model_cls, model_params = StableBaselinesScheduler.model_defaults['DQN_MLP']
 # model_sb = model_cls(env=env, **model_params)
 
@@ -212,8 +219,8 @@ algorithms = np.array([
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
     # ('Torch Policy', TorchScheduler(env, model_torch, loss_func, optimizer, learn_params_torch, valid_fwd), 10),
     # ('Torch Policy', TorchScheduler.load('models/temp/2021-06-16T12_14_41.pkl'), 10),
-    ('Lit Policy', LitScheduler(env, model_pl, pl_trainer_kwargs, learn_params_torch, valid_fwd), 10),
-    # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
+    # ('Lit Policy', LitScheduler(env, model_pl, pl_trainer_kwargs, learn_params_torch, valid_fwd), 10),
+    ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
