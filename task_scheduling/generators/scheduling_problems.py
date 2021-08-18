@@ -4,19 +4,16 @@ from abc import ABC, abstractmethod
 from collections import deque
 from functools import partial
 from pathlib import Path
-from collections import namedtuple
 from datetime import datetime
 
 import dill
 import numpy as np
 
-from task_scheduling._core import RandomGeneratorMixin
+from task_scheduling._core import RandomGeneratorMixin, SchedulingProblem, SchedulingSolution
 from task_scheduling.algorithms import branch_bound_priority
-from task_scheduling.algorithms.util import timing_wrapper
+# from task_scheduling.algorithms.util import timing_wrapper
+from task_scheduling.util.results import eval_wrapper
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
-
-SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
-SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 't_run'], defaults=(None,))
 
 
 class Base(RandomGeneratorMixin, ABC):
@@ -115,8 +112,12 @@ class Base(RandomGeneratorMixin, ABC):
     def _gen_solution(problem, verbose=False):
         # scheduler_opt = partial(branch_bound, verbose=verbose)
         scheduler_opt = partial(branch_bound_priority, verbose=verbose)
-        t_ex, ch_ex, t_run = timing_wrapper(scheduler_opt)(*problem)
-        return SchedulingSolution(t_ex, ch_ex, t_run)
+
+        # t_ex, ch_ex, t_run = timing_wrapper(scheduler_opt)(*problem)
+        # return SchedulingSolution(t_ex, ch_ex, t_run)
+
+        # return timing_wrapper(scheduler_opt)(*problem)
+        return eval_wrapper(scheduler_opt)(*problem)
 
     def _save(self, problems, solutions=None, file_path=None):
         """
@@ -133,9 +134,13 @@ class Base(RandomGeneratorMixin, ABC):
 
         """
 
-        save_dict = {'n_tasks': self.n_tasks, 'n_ch': self.n_ch,
-                     'task_gen': self.task_gen, 'ch_avail_gen': self.ch_avail_gen,
-                     'problems': problems}
+        save_dict = {
+            'n_tasks': self.n_tasks,
+            'n_ch': self.n_ch,
+            'task_gen': self.task_gen,
+            'ch_avail_gen': self.ch_avail_gen,
+            'problems': problems
+        }
         if solutions is not None:
             save_dict['solutions'] = solutions
 
@@ -146,10 +151,12 @@ class Base(RandomGeneratorMixin, ABC):
                 load_dict = dill.load(fid)
 
             # Check equivalence of generators
-            conditions = [load_dict['n_tasks'] == save_dict['n_tasks'],
-                          load_dict['n_ch'] == save_dict['n_ch'],
-                          load_dict['task_gen'] == save_dict['task_gen'],
-                          load_dict['ch_avail_gen'] == save_dict['ch_avail_gen']]
+            conditions = [
+                load_dict['n_tasks'] == save_dict['n_tasks'],
+                load_dict['n_ch'] == save_dict['n_ch'],
+                load_dict['task_gen'] == save_dict['task_gen'],
+                load_dict['ch_avail_gen'] == save_dict['ch_avail_gen']
+            ]
 
             if all(conditions):  # Append loaded problems and solutions
                 print('File already exists. Appending existing data.')
@@ -172,10 +179,12 @@ class Base(RandomGeneratorMixin, ABC):
 
     def __eq__(self, other):
         if isinstance(other, Base):
-            conditions = [self.n_tasks == other.n_tasks,
-                          self.n_ch == other.n_ch,
-                          self.task_gen == other.task_gen,
-                          self.ch_avail_gen == other.ch_avail_gen]
+            conditions = [
+                self.n_tasks == other.n_tasks,
+                self.n_ch == other.n_ch,
+                self.task_gen == other.task_gen,
+                self.ch_avail_gen == other.ch_avail_gen
+            ]
             return all(conditions)
         else:
             return NotImplemented
@@ -325,10 +334,13 @@ class PermutedTasks(FixedTasks):
             idx.append(i)
             tasks_init[i] = None  # ensures unique indices
 
-        return SchedulingSolution(self.solution.t_ex[idx], self.solution.ch_ex[idx], self.solution.t_run)
+        return SchedulingSolution(self.solution.t_ex[idx], self.solution.ch_ex[idx],
+                                  self.solution.l_ex, self.solution.t_run)
 
 
 class Dataset(Base):
+    stack: deque[tuple]
+
     def __init__(self, problems, solutions=None, shuffle=False, repeat=False, task_gen=None, ch_avail_gen=None,
                  rng=None):
 
@@ -337,8 +349,7 @@ class Dataset(Base):
 
         super().__init__(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
-        self.problems = deque()  # TODO: single deque?
-        self.solutions = deque()
+        self.stack = deque()
         self.add_problems(problems, solutions)
 
         if shuffle:
@@ -346,7 +357,7 @@ class Dataset(Base):
 
         self.repeat = repeat
 
-    n_problems = property(lambda self: len(self.problems))
+    n_problems = property(lambda self: len(self.stack))
 
     @classmethod
     def load(cls, file_path, shuffle=False, repeat=False, rng=None):
@@ -368,54 +379,144 @@ class Dataset(Base):
         if isinstance(n, float):  # interpret as fraction of total problems
             n *= self.n_problems
 
-        problems = [self.problems.pop() for __ in range(n)]
-        solutions = [self.solutions.pop() for __ in range(n)]
+        items = [self.stack.pop() for __ in range(n)]
+        problems, solutions = zip(*items)
         return Dataset(problems, solutions, shuffle, repeat, self.task_gen, self.ch_avail_gen, rng)
 
     def add_problems(self, problems, solutions=None):
         """Add problems and solutions to the data set."""
-
-        self.problems.extendleft(problems)
 
         if solutions is None:
             solutions = [None for __ in range(len(problems))]
         elif len(solutions) != len(problems):
             raise ValueError("Number of solutions must equal the number of problems.")
 
-        self.solutions.extendleft(solutions)
+        self.stack.extendleft(zip(problems, solutions))
 
     def shuffle(self, rng=None):
         """Shuffle problems and solutions in-place."""
 
         rng = self._get_rng(rng)
-
-        _temp = np.array(list(zip(self.problems, self.solutions)), dtype=object)
-        _p, _s = zip(*rng.permutation(_temp).tolist())
-        self.problems, self.solutions = deque(_p), deque(_s)
+        _temp = rng.permutation(np.array(self.stack, dtype=object))
+        self.stack = deque(map(tuple, _temp))
 
     def _gen_problem(self, rng):
         """Return a single scheduling problem (and optional solution)."""
-        if len(self.problems) == 0:
+        if self.n_problems == 0:
             raise ValueError("Problem generator data has been exhausted.")
 
-        problem = self.problems.pop()
-        self._solution_i = self.solutions.pop()
-
+        self._last_item = self.stack.pop()
         if self.repeat:
-            self.problems.appendleft(problem)
-            self.solutions.appendleft(self._solution_i)
+            self.stack.appendleft(self._last_item)
 
-        return problem
+        return self._last_item[0]
 
     def _gen_solution(self, problem, verbose=False):
-        if self._solution_i is not None:
-            return self._solution_i
+        _last_problem, _last_solution = self._last_item
+        if problem != _last_problem:
+            raise ValueError("Bug: problem used by `_gen_solution` should match dataset `_last_solution`.")
+
+        if _last_solution is not None:
+            return _last_solution
         else:  # use B&B solver
             solution = super()._gen_solution(problem, verbose)
             if self.repeat:  # store result
-                self.solutions[0] = solution  # at index 0 after `appendleft` in `_gen_problem`
+                self.stack[0] = (_last_problem, solution)  # at index 0 after `appendleft` in `_gen_problem`
             return solution
 
     def summary(self, file=None):
         super().summary(file)
         print(f"Number of problems: {self.n_problems}\n", file=file)
+
+
+# class Dataset(Base):
+#     def __init__(self, problems, solutions=None, shuffle=False, repeat=False, task_gen=None, ch_avail_gen=None,
+#                  rng=None):
+#
+#         n_tasks = len(problems[0].tasks)
+#         n_ch = len(problems[0].ch_avail)
+#
+#         super().__init__(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
+#
+#         self.problems = deque()  # TODO: single deque?
+#         self.solutions = deque()
+#         self.add_problems(problems, solutions)
+#
+#         if shuffle:
+#             self.shuffle()
+#
+#         self.repeat = repeat
+#
+#     n_problems = property(lambda self: len(self.problems))
+#
+#     @classmethod
+#     def load(cls, file_path, shuffle=False, repeat=False, rng=None):
+#         """Load problems/solutions from memory."""
+#
+#         with Path(file_path).open(mode='rb') as fid:
+#             dict_gen = dill.load(fid)
+#
+#         args = [dict_gen['problems']]
+#         if 'solutions' in dict_gen.keys():
+#             args.append(dict_gen['solutions'])
+#         kwargs = {'shuffle': shuffle, 'repeat': repeat, 'task_gen': dict_gen['task_gen'],
+#                   'ch_avail_gen': dict_gen['ch_avail_gen'], 'rng': rng}
+#         return cls(*args, **kwargs)
+#
+#     def pop_dataset(self, n, shuffle=False, repeat=False, rng=None):
+#         """Create a new Dataset from elements of own queue."""
+#
+#         if isinstance(n, float):  # interpret as fraction of total problems
+#             n *= self.n_problems
+#
+#         problems = [self.problems.pop() for __ in range(n)]
+#         solutions = [self.solutions.pop() for __ in range(n)]
+#         return Dataset(problems, solutions, shuffle, repeat, self.task_gen, self.ch_avail_gen, rng)
+#
+#     def add_problems(self, problems, solutions=None):
+#         """Add problems and solutions to the data set."""
+#
+#         self.problems.extendleft(problems)
+#
+#         if solutions is None:
+#             solutions = [None for __ in range(len(problems))]
+#         elif len(solutions) != len(problems):
+#             raise ValueError("Number of solutions must equal the number of problems.")
+#
+#         self.solutions.extendleft(solutions)
+#
+#     def shuffle(self, rng=None):
+#         """Shuffle problems and solutions in-place."""
+#
+#         rng = self._get_rng(rng)
+#
+#         _temp = np.array(list(zip(self.problems, self.solutions)), dtype=object)
+#         _p, _s = zip(*rng.permutation(_temp).tolist())
+#         self.problems, self.solutions = deque(_p), deque(_s)
+#
+#     def _gen_problem(self, rng):
+#         """Return a single scheduling problem (and optional solution)."""
+#         if self.n_problems == 0:
+#             raise ValueError("Problem generator data has been exhausted.")
+#
+#         problem = self.problems.pop()
+#         self._solution_i = self.solutions.pop()
+#
+#         if self.repeat:
+#             self.problems.appendleft(problem)
+#             self.solutions.appendleft(self._solution_i)
+#
+#         return problem
+#
+#     def _gen_solution(self, problem, verbose=False):
+#         if self._solution_i is not None:
+#             return self._solution_i
+#         else:  # use B&B solver
+#             solution = super()._gen_solution(problem, verbose)
+#             if self.repeat:  # store result
+#                 self.solutions[0] = solution  # at index 0 after `appendleft` in `_gen_problem`
+#             return solution
+#
+#     def summary(self, file=None):
+#         super().summary(file)
+#         print(f"Number of problems: {self.n_problems}\n", file=file)

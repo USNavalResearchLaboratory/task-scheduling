@@ -24,6 +24,10 @@ class Base(RandomGeneratorMixin, ABC):
     def __call__(self, n_ch, rng=None):
         raise NotImplementedError
 
+    def summary(self, file=None):
+        # print(f"Channel: Base{self.lims}\n", file=file)
+        pass
+
 
 class BaseIID(Base, ABC):
     def __call__(self, n_ch, rng=None):

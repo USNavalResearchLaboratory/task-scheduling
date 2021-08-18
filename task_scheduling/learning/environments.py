@@ -9,7 +9,7 @@ from gym import Env
 from gym.spaces import Discrete, MultiDiscrete
 
 from task_scheduling import tree_search
-from task_scheduling.learning import spaces as spaces_tasking
+import task_scheduling.spaces as spaces_tasking
 from task_scheduling.learning.features import param_features
 from task_scheduling.util.info import plot_task_losses
 
@@ -56,7 +56,7 @@ class BaseTasking(Env, ABC):
         self.time_shift = time_shift
         self.masking = masking
 
-        self.reward_range = (-float('inf'), 0)
+        self.reward_range = (-np.inf, 0)
         self.loss_agg = None
 
         self.node = None
@@ -220,11 +220,10 @@ class BaseTasking(Env, ABC):
 
         return self.state, reward, done, {}
 
-    def render(self, mode='human'):
+    def render(self, mode='human'):  # TODO: improve or delete
         if mode == 'human':
             _, ax_env = plt.subplots(num='Task Scheduling Env', clear=True)
-            tasks_plot = [self.tasks[n] for n in self.node.seq]
-            plot_task_losses(tasks_plot, ax=ax_env)
+            plot_task_losses(self.tasks, ax=ax_env)
 
     def close(self):
         plt.close('all')

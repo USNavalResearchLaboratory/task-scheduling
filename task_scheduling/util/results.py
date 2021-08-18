@@ -1,11 +1,11 @@
-from warnings import warn
+from time import perf_counter
+from functools import wraps
 
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from task_scheduling.algorithms.util import timing_wrapper
-from task_scheduling.generators.scheduling_problems import Dataset
+from task_scheduling._core import SchedulingSolution
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 
 
@@ -70,6 +70,23 @@ def evaluate_schedule(tasks, t_ex):
         l_ex += task(t_ex)
 
     return l_ex
+
+
+def eval_wrapper(scheduler):
+    """Wraps a scheduler, creates a function that outputs runtime in addition to schedule."""
+
+    @wraps(scheduler)
+    def timed_scheduler(tasks, ch_avail):
+        t_start = perf_counter()
+        t_ex, ch_ex, *__ = scheduler(tasks, ch_avail)
+        t_run = perf_counter() - t_start
+
+        check_schedule(tasks, t_ex, ch_ex)
+        l_ex = evaluate_schedule(tasks, t_ex)
+
+        return SchedulingSolution(t_ex, ch_ex, l_ex, t_run)
+
+    return timed_scheduler
 
 
 def plot_schedule(tasks, t_ex, ch_ex, l_ex=None, name=None, ax=None, ax_kwargs=None):
@@ -256,7 +273,7 @@ def _print_averages(l_ex, t_run, log_path=None, do_relative=False):
 
 
 #%% Algorithm evaluation
-def evaluate_algorithms_single(algorithms, tasks, ch_avail, solution_opt=None, verbose=0, plotting=0, log_path=None):
+def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0, plotting=0, log_path=None):
 
     solve = solution_opt is not None
     if solve:
@@ -276,19 +293,33 @@ def evaluate_algorithms_single(algorithms, tasks, ch_avail, solution_opt=None, v
 
             # Run algorithm
             if name == 'BB Optimal':
-                t_ex, ch_ex, t_run = solution_opt
+                solution = solution_opt
             else:
-                t_ex, ch_ex, t_run = timing_wrapper(func)(tasks, ch_avail)
+                solution = eval_wrapper(func)(problem.tasks, problem.ch_avail)
 
-            # Evaluate schedule
-            check_schedule(tasks, t_ex, ch_ex)
-            l_ex = evaluate_schedule(tasks, t_ex)
-
-            l_ex_iter[name][iter_] = l_ex
-            t_run_iter[name][iter_] = t_run
+            l_ex_iter[name][iter_] = solution.l_ex
+            t_run_iter[name][iter_] = solution.t_run
 
             if plotting >= 2:
-                plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, name=name, ax=None)
+                plot_schedule(problem.tasks, solution.t_ex, solution.ch_ex, l_ex=solution.l_ex, name=name, ax=None)
+
+            # if name == 'BB Optimal':
+            #     solution = solution_opt
+            # else:
+            #     solution = timing_wrapper(func)(tasks, ch_avail)
+            #
+            # # t_ex, ch_ex, t_run = solution
+            # t_ex, ch_ex, _l_ex, t_run = solution
+            #
+            # # Evaluate schedule
+            # check_schedule(tasks, t_ex, ch_ex)
+            # l_ex = evaluate_schedule(tasks, t_ex)
+            #
+            # l_ex_iter[name][iter_] = l_ex
+            # t_run_iter[name][iter_] = t_run
+            #
+            # if plotting >= 2:
+            #     plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, name=name, ax=None)
 
     # Results
     if plotting >= 1:
@@ -329,9 +360,9 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, solve=False, verbo
 
     """
 
-    if isinstance(problem_gen, Dataset) and n_gen > problem_gen.n_problems:  # avoid redundant computation
-        n_gen = problem_gen.n_problems
-        warn(f"Dataset cannot generate requested number of unique problems. Argument `n_gen` reduced to {n_gen}")
+    # if isinstance(problem_gen, Dataset) and n_gen > problem_gen.n_problems:  # avoid redundant computation
+    #     n_gen = problem_gen.n_problems
+    #     warn(f"Dataset cannot generate requested number of unique problems. Argument `n_gen` reduced to {n_gen}")
 
     if solve:
         algorithms = _add_bb(algorithms)
@@ -341,14 +372,12 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, solve=False, verbo
     if verbose >= 1:
         print("Evaluating algorithms...")
     for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose)):
-
         if solve:
-            (tasks, ch_avail), solution_opt = out_gen
+            problem, solution_opt = out_gen
         else:
-            tasks, ch_avail = out_gen
-            solution_opt = None
+            problem, solution_opt = out_gen, None
 
-        l_ex_iter, t_run_iter = evaluate_algorithms_single(algorithms, tasks, ch_avail, solution_opt, verbose - 1,
+        l_ex_iter, t_run_iter = evaluate_algorithms_single(algorithms, problem, solution_opt, verbose - 1,
                                                            plotting - 1)
         l_ex_mean[i_gen], t_run_mean[i_gen] = map(_iter_to_mean, (l_ex_iter, t_run_iter))
 
@@ -374,16 +403,16 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
         raise NotImplementedError("Currently supports only a single learner. "
                                   "See https://spork.nre.navy.mil/nrl-radar/CRM/task-scheduling/-/issues/8")
 
-    reuse_data = False
-    if isinstance(problem_gen, Dataset):
-        n_gen_total = n_gen + n_gen_learn
-        if problem_gen.repeat:
-            reuse_data = True
-            if n_gen_total > problem_gen.n_problems:
-                raise ValueError("Dataset cannot generate enough unique problems.")
-        else:
-            if n_gen_total * n_mc > problem_gen.n_problems:
-                raise ValueError("Dataset cannot generate enough problems.")
+    # reuse_data = False
+    # if isinstance(problem_gen, Dataset):
+    #     n_gen_total = n_gen + n_gen_learn
+    #     if problem_gen.repeat:
+    #         reuse_data = True
+    #         if n_gen_total > problem_gen.n_problems:
+    #             raise ValueError("Dataset cannot generate enough unique problems.")
+    #     else:
+    #         if n_gen_total * n_mc > problem_gen.n_problems:
+    #             raise ValueError("Dataset cannot generate enough problems.")
 
     if solve:
         algorithms = _add_bb(algorithms)
@@ -394,8 +423,10 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
         if verbose >= 1:
             print(f"Train/test iteration {i_mc + 1}/{n_mc}")
 
-        if reuse_data:
-            problem_gen.shuffle()  # random train/test split
+        # if reuse_data:
+        #     problem_gen.shuffle()  # random train/test split
+        if hasattr(problem_gen, 'repeat'):  # repeating `Dataset` problem generator
+            problem_gen.shuffle()
 
         # Reset/train supervised learners
         for learner in algorithms['func']:
