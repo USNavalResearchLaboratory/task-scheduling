@@ -56,7 +56,7 @@ class BaseTasking(Env, ABC):
         self.time_shift = time_shift
         self.masking = masking
 
-        self.reward_range = (-float('inf'), 0)
+        self.reward_range = (-np.inf, 0)
         self.loss_agg = None
 
         self.node = None

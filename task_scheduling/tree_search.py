@@ -301,7 +301,7 @@ class ScheduleNode(RandomGeneratorMixin):
 
         """
 
-        node_best, loss_best = None, float('inf')
+        node_best, loss_best = None, np.inf
 
         n_perms = factorial(len(self.seq_rem))
         for i, seq in enumerate(permutations(self.seq_rem)):
@@ -322,7 +322,7 @@ class ScheduleNode(RandomGeneratorMixin):
 
 class ScheduleNodeBound(ScheduleNode):
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
-        self._bounds = [0., float('inf')]
+        self._bounds = [0., np.inf]
         super().__init__(tasks, ch_avail, seq, rng)
 
     def __repr__(self):

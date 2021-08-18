@@ -134,9 +134,13 @@ class Base(RandomGeneratorMixin, ABC):
 
         """
 
-        save_dict = {'n_tasks': self.n_tasks, 'n_ch': self.n_ch,
-                     'task_gen': self.task_gen, 'ch_avail_gen': self.ch_avail_gen,
-                     'problems': problems}
+        save_dict = {
+            'n_tasks': self.n_tasks,
+            'n_ch': self.n_ch,
+            'task_gen': self.task_gen,
+            'ch_avail_gen': self.ch_avail_gen,
+            'problems': problems
+        }
         if solutions is not None:
             save_dict['solutions'] = solutions
 
@@ -147,10 +151,12 @@ class Base(RandomGeneratorMixin, ABC):
                 load_dict = dill.load(fid)
 
             # Check equivalence of generators
-            conditions = [load_dict['n_tasks'] == save_dict['n_tasks'],
-                          load_dict['n_ch'] == save_dict['n_ch'],
-                          load_dict['task_gen'] == save_dict['task_gen'],
-                          load_dict['ch_avail_gen'] == save_dict['ch_avail_gen']]
+            conditions = [
+                load_dict['n_tasks'] == save_dict['n_tasks'],
+                load_dict['n_ch'] == save_dict['n_ch'],
+                load_dict['task_gen'] == save_dict['task_gen'],
+                load_dict['ch_avail_gen'] == save_dict['ch_avail_gen']
+            ]
 
             if all(conditions):  # Append loaded problems and solutions
                 print('File already exists. Appending existing data.')
@@ -173,10 +179,12 @@ class Base(RandomGeneratorMixin, ABC):
 
     def __eq__(self, other):
         if isinstance(other, Base):
-            conditions = [self.n_tasks == other.n_tasks,
-                          self.n_ch == other.n_ch,
-                          self.task_gen == other.task_gen,
-                          self.ch_avail_gen == other.ch_avail_gen]
+            conditions = [
+                self.n_tasks == other.n_tasks,
+                self.n_ch == other.n_ch,
+                self.task_gen == other.task_gen,
+                self.ch_avail_gen == other.ch_avail_gen
+            ]
             return all(conditions)
         else:
             return NotImplemented
