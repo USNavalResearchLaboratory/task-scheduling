@@ -1,4 +1,3 @@
-# from warnings import warn
 from time import perf_counter
 from functools import wraps
 
@@ -7,8 +6,6 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from task_scheduling._core import SchedulingSolution
-# from task_scheduling.algorithms.util import timing_wrapper
-# from task_scheduling.generators.scheduling_problems import Dataset
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 
 
@@ -276,7 +273,7 @@ def _print_averages(l_ex, t_run, log_path=None, do_relative=False):
 
 
 #%% Algorithm evaluation
-def evaluate_algorithms_single(algorithms, tasks, ch_avail, solution_opt=None, verbose=0, plotting=0, log_path=None):
+def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0, plotting=0, log_path=None):
 
     solve = solution_opt is not None
     if solve:
@@ -298,9 +295,13 @@ def evaluate_algorithms_single(algorithms, tasks, ch_avail, solution_opt=None, v
             if name == 'BB Optimal':
                 solution = solution_opt
             else:
-                solution = eval_wrapper(func)(tasks, ch_avail)
+                solution = eval_wrapper(func)(problem.tasks, problem.ch_avail)
 
-            t_ex, ch_ex, l_ex, t_run = solution
+            l_ex_iter[name][iter_] = solution.l_ex
+            t_run_iter[name][iter_] = solution.t_run
+
+            if plotting >= 2:
+                plot_schedule(problem.tasks, solution.t_ex, solution.ch_ex, l_ex=solution.l_ex, name=name, ax=None)
 
             # if name == 'BB Optimal':
             #     solution = solution_opt
@@ -313,12 +314,12 @@ def evaluate_algorithms_single(algorithms, tasks, ch_avail, solution_opt=None, v
             # # Evaluate schedule
             # check_schedule(tasks, t_ex, ch_ex)
             # l_ex = evaluate_schedule(tasks, t_ex)
-
-            l_ex_iter[name][iter_] = l_ex
-            t_run_iter[name][iter_] = t_run
-
-            if plotting >= 2:
-                plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, name=name, ax=None)
+            #
+            # l_ex_iter[name][iter_] = l_ex
+            # t_run_iter[name][iter_] = t_run
+            #
+            # if plotting >= 2:
+            #     plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, name=name, ax=None)
 
     # Results
     if plotting >= 1:
@@ -371,14 +372,12 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, solve=False, verbo
     if verbose >= 1:
         print("Evaluating algorithms...")
     for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose)):
-
         if solve:
-            (tasks, ch_avail), solution_opt = out_gen
+            problem, solution_opt = out_gen
         else:
-            tasks, ch_avail = out_gen
-            solution_opt = None
+            problem, solution_opt = out_gen, None
 
-        l_ex_iter, t_run_iter = evaluate_algorithms_single(algorithms, tasks, ch_avail, solution_opt, verbose - 1,
+        l_ex_iter, t_run_iter = evaluate_algorithms_single(algorithms, problem, solution_opt, verbose - 1,
                                                            plotting - 1)
         l_ex_mean[i_gen], t_run_mean[i_gen] = map(_iter_to_mean, (l_ex_iter, t_run_iter))
 

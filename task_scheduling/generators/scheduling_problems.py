@@ -334,7 +334,6 @@ class PermutedTasks(FixedTasks):
             idx.append(i)
             tasks_init[i] = None  # ensures unique indices
 
-        # return SchedulingSolution(self.solution.t_ex[idx], self.solution.ch_ex[idx], self.solution.t_run)
         return SchedulingSolution(self.solution.t_ex[idx], self.solution.ch_ex[idx],
                                   self.solution.l_ex, self.solution.t_run)
 
