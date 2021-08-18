@@ -30,7 +30,7 @@ pd.options.display.float_format = '{:,.3f}'.format
 plt.style.use('seaborn')
 # plt.rc('axes', grid=True)
 
-AVAIL_GPUS = min(1, torch.cuda.device_count())
+gpus = min(1, torch.cuda.device_count())
 
 now = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
 
@@ -50,7 +50,7 @@ seed = 12345
 data_path = Path.cwd() / 'data'
 schedule_path = data_path / 'schedules'
 
-# list(problem_gen(1000, solve=True, save_path=schedule_path/'temp'/now, verbose=2))
+# list(problem_gen(1000, solve=True, save_path=schedule_path/'temp'/now, verbose=2))  # save solved problems
 
 # dataset = 'discrete_relu_c1t4'
 dataset = 'discrete_relu_c1t8'
@@ -146,7 +146,7 @@ class LitModule(pl.LightningModule):
 model_pl = LitModule()
 
 pl_trainer_kwargs = {
-    'gpus': AVAIL_GPUS,
+    'gpus': gpus,
     # 'distributed_backend': 'ddp',
     # 'profiler': 'simple',
     'logger': True,
@@ -257,6 +257,15 @@ with open(log_path, 'a') as fid:
 
     print('## Results', file=fid)
 
+
+n_gen_total = n_gen + n_gen_learn
+if isinstance(problem_gen, problem_gens.Dataset):
+    if problem_gen.repeat:
+        if n_gen_total > problem_gen.n_problems:
+            raise ValueError("Dataset cannot generate enough unique problems.")
+    else:
+        if n_gen_total * n_mc > problem_gen.n_problems:
+            raise ValueError("Dataset cannot generate enough problems.")
 
 l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=n_gen, n_mc=n_mc, solve=True,
                                               verbose=2, plotting=2, log_path=log_path)

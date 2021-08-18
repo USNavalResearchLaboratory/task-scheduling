@@ -11,7 +11,8 @@ import numpy as np
 
 from task_scheduling._core import RandomGeneratorMixin, SchedulingProblem, SchedulingSolution
 from task_scheduling.algorithms import branch_bound_priority
-from task_scheduling.algorithms.util import timing_wrapper
+# from task_scheduling.algorithms.util import timing_wrapper
+from task_scheduling.util.results import eval_wrapper
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
 
 
@@ -111,9 +112,12 @@ class Base(RandomGeneratorMixin, ABC):
     def _gen_solution(problem, verbose=False):
         # scheduler_opt = partial(branch_bound, verbose=verbose)
         scheduler_opt = partial(branch_bound_priority, verbose=verbose)
+
         # t_ex, ch_ex, t_run = timing_wrapper(scheduler_opt)(*problem)
         # return SchedulingSolution(t_ex, ch_ex, t_run)
-        return timing_wrapper(scheduler_opt)(*problem)
+
+        # return timing_wrapper(scheduler_opt)(*problem)
+        return eval_wrapper(scheduler_opt)(*problem)
 
     def _save(self, problems, solutions=None, file_path=None):
         """
