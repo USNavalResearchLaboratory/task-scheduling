@@ -19,7 +19,7 @@ from pytorch_lightning.callbacks import EarlyStopping
 from stable_baselines3.common.env_checker import check_env
 
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
-from task_scheduling.generators import scheduling_problems as problem_gens
+from task_scheduling.generators import problems as problem_gens
 from task_scheduling.results import evaluate_algorithms_train
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.base import Base as BaseLearningScheduler
@@ -50,7 +50,7 @@ if seed is not None:
 
 #%% Define scheduling problem and algorithms
 
-# problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=seed)
+problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
@@ -61,8 +61,8 @@ data_path = Path.cwd() / 'data'
 schedule_path = data_path / 'schedules'
 
 # dataset = 'discrete_relu_c1t8'
-dataset = 'continuous_relu_c1t8'
-problem_gen = problem_gens.Dataset.load(schedule_path / dataset, shuffle=True, repeat=True, rng=seed)
+# dataset = 'continuous_relu_c1t8'
+# problem_gen = problem_gens.Dataset.load(schedule_path / dataset, shuffle=True, repeat=True, rng=seed)
 
 
 # Algorithms

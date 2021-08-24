@@ -5,7 +5,7 @@ import numpy as np
 from task_scheduling.algorithms import branch_bound
 from task_scheduling.tree_search import ScheduleNode, ScheduleNodeShift
 from util import evaluate_schedule
-from task_scheduling.generators import scheduling_problems as problem_gens
+from task_scheduling.generators import problems as problem_gens
 
 problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1)
 n_iter = 10

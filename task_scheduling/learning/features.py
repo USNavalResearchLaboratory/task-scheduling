@@ -55,7 +55,7 @@ def param_features(problem_gen, time_shift=False, masking=False):
 
     Parameters
     ----------
-    problem_gen : generators.scheduling_problems.Base
+    problem_gen : generators.problems.Base
         Scheduling problem generation object.
     time_shift : bool, optional
         Enables modification of feature `space` to reflect shifted parameters.

@@ -21,7 +21,7 @@ class BaseTasking(Env, ABC):
 
         Parameters
         ----------
-        problem_gen : generators.scheduling_problems.Base
+        problem_gen : generators.problems.Base
             Scheduling problem generation object.
         features : numpy.ndarray, optional
             Structured numpy array of features with fields 'name', 'func', and 'lims'.
@@ -396,7 +396,7 @@ class SeqTasking(BaseTasking):
 
         Parameters
         ----------
-        problem_gen : generators.scheduling_problems.Base
+        problem_gen : generators.problems.Base
             Scheduling problem generation object.
         features : numpy.ndarray, optional
             Structured numpy array of features with fields 'name', 'func', and 'lims'.
@@ -479,7 +479,7 @@ class StepTasking(BaseTasking):
 
         Parameters
         ----------
-        problem_gen : generators.scheduling_problems.Base
+        problem_gen : generators.problems.Base
             Scheduling problem generation object.
         features : numpy.ndarray, optional
             Structured numpy array of features with fields 'name', 'func', and 'lims'.

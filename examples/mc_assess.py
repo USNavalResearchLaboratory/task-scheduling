@@ -11,7 +11,7 @@ from torch.nn import functional
 import pytorch_lightning as pl
 
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
-from task_scheduling.generators import scheduling_problems as problem_gens
+from task_scheduling.generators import problems as problem_gens
 from task_scheduling.util import evaluate_algorithms_train
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.supervised.torch import LitScheduler

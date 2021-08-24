@@ -9,10 +9,10 @@ from datetime import datetime
 import dill
 import numpy as np
 
-from task_scheduling._core import RandomGeneratorMixin, SchedulingProblem, SchedulingSolution
+from task_scheduling._base import RandomGeneratorMixin, SchedulingProblem, SchedulingSolution
 from task_scheduling.util import eval_wrapper
 from task_scheduling.algorithms import branch_bound_priority
-from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
+from task_scheduling.generators import tasks as task_gens, channels as chan_gens
 
 
 class Base(RandomGeneratorMixin, ABC):
@@ -30,7 +30,7 @@ class Base(RandomGeneratorMixin, ABC):
             Number of channels.
         task_gen : generators.tasks.Base
             Task generation object.
-        ch_avail_gen : generators.channel_availabilities.Base
+        ch_avail_gen : generators.channels.Base
             Returns random initial channel availabilities.
         rng : int or RandomState or Generator, optional
             Random number generator seed or object.
@@ -247,7 +247,7 @@ class FixedTasks(Base, ABC):
             Number of channels.
         task_gen : generators.tasks.Permutation
             Task generation object.
-        ch_avail_gen : generators.channel_availabilities.Deterministic
+        ch_avail_gen : generators.channels.Deterministic
             Returns random initial channel availabilities.
         rng : int or RandomState or Generator, optional
             Random number generator seed or object.

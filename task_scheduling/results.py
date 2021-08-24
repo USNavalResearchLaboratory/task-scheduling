@@ -4,10 +4,10 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from task_scheduling._core import RandomGeneratorMixin as RNGMix
+from task_scheduling._base import RandomGeneratorMixin as RNGMix
 from task_scheduling.util import eval_wrapper, plot_schedule
 from task_scheduling.learning.base import Base as BaseLearningScheduler
-from task_scheduling.generators.scheduling_problems import Dataset
+from task_scheduling.generators.problems import Dataset
 
 
 def _scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
@@ -215,7 +215,7 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, solve=False, verbo
     ----------
     algorithms: iterable of callable
         Scheduling algorithms
-    problem_gen : generators.scheduling_problems.Base
+    problem_gen : generators.problems.Base
         Scheduling problem generator
     n_gen : int
         Number of scheduling problems to generate.
@@ -237,9 +237,10 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, solve=False, verbo
 
     """
 
-    # if isinstance(problem_gen, Dataset) and n_gen > problem_gen.n_problems:  # avoid redundant computation
-    #     n_gen = problem_gen.n_problems
-    #     warn(f"Dataset cannot generate requested number of unique problems. Argument `n_gen` reduced to {n_gen}")
+    if isinstance(problem_gen, Dataset) and n_gen > problem_gen.n_problems:  # avoid redundant computation
+        # n_gen = problem_gen.n_problems
+        # warn(f"Dataset cannot generate requested number of unique problems. Argument `n_gen` reduced to {n_gen}")
+        raise ValueError(f"Dataset cannot generate requested number of unique problems.")
 
     _seed_to_rng(algorithms)
 
@@ -282,16 +283,16 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
         raise NotImplementedError("Currently supports only a single learner. "
                                   "See https://spork.nre.navy.mil/nrl-radar/CRM/task-scheduling/-/issues/8")
 
-    # reuse_data = False
-    # if isinstance(problem_gen, Dataset):
-    #     n_gen_total = n_gen + n_gen_learn
-    #     if problem_gen.repeat:
-    #         reuse_data = True
-    #         if n_gen_total > problem_gen.n_problems:
-    #             raise ValueError("Dataset cannot generate enough unique problems.")
-    #     else:
-    #         if n_gen_total * n_mc > problem_gen.n_problems:
-    #             raise ValueError("Dataset cannot generate enough problems.")
+    reuse_data = False
+    if isinstance(problem_gen, Dataset):
+        n_gen_total = n_gen + n_gen_learn
+        if problem_gen.repeat:
+            reuse_data = True
+            if n_gen_total > problem_gen.n_problems:
+                raise ValueError("Dataset cannot generate enough unique problems.")
+        else:
+            if n_gen_total * n_mc > problem_gen.n_problems:
+                raise ValueError("Dataset cannot generate enough problems.")
 
     _seed_to_rng(algorithms)
 
@@ -304,12 +305,12 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
         if verbose >= 1:
             print(f"Train/test iteration: {i_mc + 1}/{n_mc}")
 
-        # if reuse_data:
-        #     problem_gen.shuffle()  # random train/test split
+        if reuse_data:
+            problem_gen.shuffle()  # random train/test split
 
         # if hasattr(problem_gen, 'repeat') and problem_gen.repeat:  # repeating `Dataset` problem generator
-        if isinstance(problem_gen, Dataset) and problem_gen.repeat:  # repeating `Dataset` problem generator
-            problem_gen.shuffle()
+        # if isinstance(problem_gen, Dataset) and problem_gen.repeat:  # repeating `Dataset` problem generator
+        #     problem_gen.shuffle()
 
         # Reset/train supervised learners
         for learner in algorithms['func']:

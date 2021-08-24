@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from sortedcontainers import SortedKeyList
 
-from task_scheduling._core import RandomGeneratorMixin
+from task_scheduling._base import RandomGeneratorMixin
 from task_scheduling.tasks import Shift as ShiftTask
 
 # TODO: make problem a shared class attribute? Make a class constructor?
