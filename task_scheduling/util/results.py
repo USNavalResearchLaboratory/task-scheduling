@@ -1,93 +1,12 @@
-from time import perf_counter
-from functools import wraps, partial
+from functools import partial
 
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from task_scheduling._core import SchedulingSolution, RandomGeneratorMixin as RNGMix
+from task_scheduling._core import RandomGeneratorMixin as RNGMix, eval_wrapper
 from task_scheduling.learning.base import Base as BaseLearningScheduler
-# from task_scheduling.generators.scheduling_problems import Dataset
-
-
-def check_schedule(tasks, t_ex, ch_ex, tol=1e-12):
-    """
-    Check schedule validity.
-
-    Parameters
-    ----------
-    tasks : list of task_scheduling.tasks.Base
-    t_ex : numpy.ndarray
-        Task execution times.
-    ch_ex : numpy.ndarray
-        Task execution channels.
-    tol : float, optional
-        Time tolerance for validity conditions.
-
-    Raises
-    -------
-    ValueError
-        If tasks overlap in time.
-
-    """
-
-    # if np.isnan(t_ex).any():
-    #     raise ValueError("All tasks must be scheduled.")
-
-    for ch in np.unique(ch_ex):
-        tasks_ch = np.array(tasks)[ch_ex == ch].tolist()
-        t_ex_ch = t_ex[ch_ex == ch]
-        for n_1 in range(len(tasks_ch)):
-            if t_ex_ch[n_1] + tol < tasks_ch[n_1].t_release:
-                raise ValueError("Tasks cannot be executed before their release time.")
-
-            for n_2 in range(n_1 + 1, len(tasks_ch)):
-                conditions = [t_ex_ch[n_1] + tol < t_ex_ch[n_2] + tasks_ch[n_2].duration,
-                              t_ex_ch[n_2] + tol < t_ex_ch[n_1] + tasks_ch[n_1].duration]
-                if all(conditions):
-                    raise ValueError('Invalid Solution: Scheduling Conflict')
-
-
-def evaluate_schedule(tasks, t_ex):
-    """
-    Evaluate scheduling loss.
-
-    Parameters
-    ----------
-    tasks : Sequence of task_scheduling.tasks.Base
-        Tasks
-    t_ex : Sequence of float
-        Task execution times.
-
-    Returns
-    -------
-    float
-        Total loss of scheduled tasks.
-
-    """
-
-    l_ex = 0.
-    for task, t_ex in zip(tasks, t_ex):
-        l_ex += task(t_ex)
-
-    return l_ex
-
-
-def eval_wrapper(scheduler):
-    """Wraps a scheduler, creates a function that outputs runtime in addition to schedule."""
-
-    @wraps(scheduler)
-    def timed_scheduler(tasks, ch_avail):
-        t_start = perf_counter()
-        t_ex, ch_ex, *__ = scheduler(tasks, ch_avail)
-        t_run = perf_counter() - t_start
-
-        check_schedule(tasks, t_ex, ch_ex)
-        l_ex = evaluate_schedule(tasks, t_ex)
-
-        return SchedulingSolution(t_ex, ch_ex, l_ex, t_run)
-
-    return timed_scheduler
+from task_scheduling.generators.scheduling_problems import Dataset
 
 
 def plot_schedule(tasks, t_ex, ch_ex, l_ex=None, name=None, ax=None, ax_kwargs=None):
@@ -442,8 +361,8 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
         # if reuse_data:
         #     problem_gen.shuffle()  # random train/test split
 
-        if hasattr(problem_gen, 'repeat') and problem_gen.repeat:  # repeating `Dataset` problem generator
-        # if isinstance(problem_gen, Dataset) and problem_gen.repeat:  # repeating `Dataset` problem generator
+        # if hasattr(problem_gen, 'repeat') and problem_gen.repeat:  # repeating `Dataset` problem generator
+        if isinstance(problem_gen, Dataset) and problem_gen.repeat:  # repeating `Dataset` problem generator
             problem_gen.shuffle()
 
         # Reset/train supervised learners

@@ -7,7 +7,8 @@ from matplotlib import pyplot as plt
 from task_scheduling.algorithms.util import timing_wrapper
 from task_scheduling.tree_search import ScheduleNodeBound
 from task_scheduling.util.info import plot_task_losses
-from task_scheduling.util.results import check_schedule, evaluate_schedule, plot_schedule
+from task_scheduling.util.results import plot_schedule
+from _core import check_schedule, evaluate_schedule
 
 
 def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng=None):
