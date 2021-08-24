@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 
 from task_scheduling._core import SchedulingSolution, RandomGeneratorMixin as RNGMix
 from task_scheduling.learning.base import Base as BaseLearningScheduler
+# from task_scheduling.generators.scheduling_problems import Dataset
 
 
 def check_schedule(tasks, t_ex, ch_ex, tol=1e-12):
@@ -436,11 +437,13 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
 
     for i_mc in range(n_mc):
         if verbose >= 1:
-            print(f"Train/test iteration {i_mc + 1}/{n_mc}")
+            print(f"Train/test iteration: {i_mc + 1}/{n_mc}")
 
         # if reuse_data:
         #     problem_gen.shuffle()  # random train/test split
-        if hasattr(problem_gen, 'repeat'):  # repeating `Dataset` problem generator
+
+        if hasattr(problem_gen, 'repeat') and problem_gen.repeat:  # repeating `Dataset` problem generator
+        # if isinstance(problem_gen, Dataset) and problem_gen.repeat:  # repeating `Dataset` problem generator
             problem_gen.shuffle()
 
         # Reset/train supervised learners

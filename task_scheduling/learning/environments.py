@@ -321,8 +321,7 @@ class BaseTasking(Env, ABC):
 
         return numpy_dict  # used to instantiate ExpertDataset object via `traj_data` arg
 
-    def mask_probability(self, p):
-        """Returns masked action probabilities."""
+    def mask_probability(self, p):  # TODO: deprecate?
         return np.array(p)
 
 
@@ -618,10 +617,10 @@ class StepTasking(BaseTasking):
 
         return x_set, y_set, w_set
 
-    # def mask_probability(self, p):  # TODO: deprecate?
-    #     """Returns masked action probabilities based on unscheduled task indices."""
-    #
-    #     if self.do_valid_actions:
-    #         return np.ma.masked_array(p, self.action_space.mask)
-    #     else:
-    #         return super().mask_probability(p)
+    def mask_probability(self, p):  # TODO: deprecate?
+        """Returns masked action probabilities based on unscheduled task indices."""
+
+        if self.do_valid_actions:
+            return np.ma.masked_array(p, self.action_space.mask)
+        else:
+            return super().mask_probability(p)
