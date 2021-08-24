@@ -20,7 +20,7 @@ from stable_baselines3.common.env_checker import check_env
 
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
 from task_scheduling.generators import scheduling_problems as problem_gens
-from task_scheduling.util import evaluate_algorithms_train
+from task_scheduling.results import evaluate_algorithms_train
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 # from task_scheduling.learning.supervised._tf import keras, Scheduler as tfScheduler
@@ -218,10 +218,8 @@ algorithms = np.array([
 
 n_gen_learn = 900  # the number of problems generated for learning, per iteration
 n_gen = 100  # the number of problems generated for testing, per iteration
-n_mc = 5  # the number of Monte Carlo iterations performed for scheduler assessment
+n_mc = 1  # the number of Monte Carlo iterations performed for scheduler assessment
 
-# n_gen_learn = 0
-# n_gen = 1000
 
 # TODO: generate new, larger datasets
 # TODO: try making new features

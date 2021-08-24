@@ -9,7 +9,8 @@ from datetime import datetime
 import dill
 import numpy as np
 
-from task_scheduling._core import RandomGeneratorMixin, SchedulingProblem, SchedulingSolution, eval_wrapper
+from task_scheduling._core import RandomGeneratorMixin, SchedulingProblem, SchedulingSolution
+from task_scheduling.util import eval_wrapper
 from task_scheduling.algorithms import branch_bound_priority
 from task_scheduling.generators import tasks as task_gens, channel_availabilities as chan_gens
 

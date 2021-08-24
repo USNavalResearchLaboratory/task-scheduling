@@ -4,67 +4,13 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from task_scheduling._core import RandomGeneratorMixin as RNGMix, eval_wrapper
+from task_scheduling._core import RandomGeneratorMixin as RNGMix
+from task_scheduling.util import eval_wrapper, plot_schedule
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 from task_scheduling.generators.scheduling_problems import Dataset
 
 
-def plot_schedule(tasks, t_ex, ch_ex, l_ex=None, name=None, ax=None, ax_kwargs=None):
-    """
-    Plot task schedule.
-
-    Parameters
-    ----------
-    tasks : list of task_scheduling.tasks.Base
-    t_ex : numpy.ndarray
-        Task execution times. NaN for unscheduled.
-    ch_ex : numpy.ndarray
-        Task execution channels. NaN for unscheduled.
-    l_ex : float or None
-        Total loss of scheduled tasks.
-    name : str or None
-        Algorithm string representation
-    ax : Axes or None
-        Matplotlib axes target object.
-    ax_kwargs : dict
-        Additional Axes keyword parameters.
-
-    """
-    if ax is None:
-        _, ax = plt.subplots()
-
-    if ax_kwargs is None:
-        ax_kwargs = {}
-
-    n_ch = len(np.unique(ch_ex))
-    bar_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-
-    # ax.broken_barh([(t_ex[n], tasks[n].duration) for n in range(len(tasks))], (-0.5, 1), facecolors=bar_colors)
-    for n, task in enumerate(tasks):
-        label = str(task)
-        # label = f'Task #{n}'
-        ax.broken_barh([(t_ex[n], task.duration)], (ch_ex[n] - 0.5, 1),
-                       facecolors=bar_colors[n % len(bar_colors)], edgecolor='black', label=label)
-
-    x_lim = min(t_ex), max(t_ex[n] + task.duration for n, task in enumerate(tasks))
-    ax.set(xlim=x_lim, ylim=(-.5, n_ch - 1 + .5), xlabel='t',
-           yticks=list(range(n_ch)), ylabel='Channel')
-
-    ax.legend()
-
-    _temp = []
-    if isinstance(name, str):
-        _temp.append(name)
-    if l_ex is not None:
-        _temp.append(f'Loss = {l_ex:.3f}')
-    title = ', '.join(_temp)
-    if len(title) > 0:
-        ax.set_title(title)
-
-    ax.set(**ax_kwargs)
-
-
-def scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
+def _scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
     """
     Scatter plot of total execution loss versus runtime.
 
@@ -138,16 +84,16 @@ def _relative_loss(l_ex):
 def _scatter_results(t_run, l_ex, label='Results', do_relative=False):
 
     __, ax_results = plt.subplots(num=label, clear=True)
-    scatter_loss_runtime(t_run, l_ex,
-                         ax=ax_results,
-                         # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
-                         )
+    _scatter_loss_runtime(t_run, l_ex,
+                          ax=ax_results,
+                          # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
+                          )
 
     if do_relative:  # relative to B&B
         l_ex_rel = _relative_loss(l_ex)
 
         # __, ax_results_rel = plt.subplots(num=f'{label} (Relative)', clear=True)
-        # scatter_loss_runtime(t_run, l_ex_rel,
+        # _scatter_loss_runtime(t_run, l_ex_rel,
         #                      ax=ax_results_rel,
         #                      ax_kwargs={'ylabel': 'Excess Loss',
         #                                 # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
@@ -157,12 +103,12 @@ def _scatter_results(t_run, l_ex, label='Results', do_relative=False):
         names = list(l_ex.dtype.names)
         names.remove('BB Optimal')
         __, ax_results_rel = plt.subplots(num=f'{label} (Relative)', clear=True)
-        scatter_loss_runtime(t_run[names], l_ex_rel[names],
-                             ax=ax_results_rel,
-                             ax_kwargs={'ylabel': 'Excess Loss',
+        _scatter_loss_runtime(t_run[names], l_ex_rel[names],
+                              ax=ax_results_rel,
+                              ax_kwargs={'ylabel': 'Excess Loss',
                                         # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
                                         }
-                             )
+                              )
 
 
 def _print_averages(l_ex, t_run, log_path=None, do_relative=False):

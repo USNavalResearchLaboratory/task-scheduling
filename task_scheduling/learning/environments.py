@@ -11,7 +11,7 @@ from gym.spaces import Discrete, MultiDiscrete
 from task_scheduling import tree_search
 import task_scheduling.spaces as spaces_tasking
 from task_scheduling.learning.features import param_features
-from task_scheduling.util.info import plot_task_losses
+from task_scheduling.util import plot_task_losses
 
 
 # Gym Environments
