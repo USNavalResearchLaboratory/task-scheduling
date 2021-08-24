@@ -268,7 +268,7 @@ class ScheduleNode(RandomGeneratorMixin):
         node_best, loss_best = None, np.inf
         while True:
             if verbose:
-                print(f'Solutions evaluated: {root.n_visits}, Min. Loss: {loss_best}', end='\r')
+                print(f'# rollouts: {root.n_visits}, Min. Loss: {loss_best}', end='\r')
 
             leaf_new = root.selection()  # expansion step happens in selection call
 
@@ -281,6 +281,12 @@ class ScheduleNode(RandomGeneratorMixin):
             # loss = leaf_new.evaluation()
             loss = node.l_ex  # TODO: mix rollout loss with value func, like AlphaGo?
             leaf_new.backup(loss)
+
+            if perf_counter() - t_run >= max_runtime or root.n_visits >= max_rollouts:
+                break
+
+        # if verbose:
+        #     print(f"Total # rollouts: {root.n_visits}, loss={loss_best}")
 
         if inplace:
             # self.seq = node_best.seq

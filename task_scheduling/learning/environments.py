@@ -166,11 +166,11 @@ class BaseTasking(Env, ABC):
                 tasks, ch_avail = self.tasks, self.ch_avail
         else:
             if tasks is None or ch_avail is None:  # generate new scheduling problem
+                out = list(self.problem_gen(1, solve=solve, rng=rng))[0]
                 if solve:
-                    ((tasks, ch_avail), self.solution), = self.problem_gen(1, solve=solve, rng=rng)
+                    (tasks, ch_avail), self.solution = out
                 else:
-                    (tasks, ch_avail), = self.problem_gen(1, solve=solve, rng=rng)
-                    self.solution = None
+                    (tasks, ch_avail), self.solution = out, None
 
             elif len(tasks) != self.n_tasks:
                 raise ValueError(f"Input 'tasks' must be None or a list of {self.n_tasks} tasks")
@@ -326,7 +326,7 @@ class BaseTasking(Env, ABC):
         return np.array(p)
 
 
-def seq2num(seq, check_input=True):
+def seq_to_num(seq, check_input=True):
     """
     Map an index sequence permutation to a non-negative integer.
 
@@ -357,7 +357,7 @@ def seq2num(seq, check_input=True):
     return num
 
 
-def num2seq(num, length, check_input=True):
+def num_to_seq(num, length, check_input=True):
     """
     Map a non-negative integer to an index sequence permutation.
 
@@ -446,7 +446,7 @@ class SeqTasking(BaseTasking):
 
     def step(self, action):
         if self.action_type == 'int':
-            action = list(num2seq(action, self.n_tasks))  # decode integer to sequence
+            action = list(num_to_seq(action, self.n_tasks))  # decode integer to sequence
 
         return super().step(action)
 
@@ -459,7 +459,7 @@ class SeqTasking(BaseTasking):
         if self.action_type == 'seq':
             y = seq_sort
         elif self.action_type == 'int':
-            y = seq2num(seq_sort)
+            y = seq_to_num(seq_sort)
         else:
             raise ValueError
 

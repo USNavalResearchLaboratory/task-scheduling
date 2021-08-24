@@ -190,7 +190,7 @@ def _struct_mean(array):
     return np.array(data, dtype=array.dtype)
 
 
-def _add_bb(algorithms):
+def _add_opt(algorithms):
     if 'BB Optimal' not in algorithms['name']:
         _opt = np.array([('BB Optimal', None, 1)], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
         algorithms = np.concatenate((_opt, algorithms))
@@ -288,7 +288,7 @@ def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0
 
     solve = solution_opt is not None
     if solve:
-        algorithms = _add_bb(algorithms)
+        algorithms = _add_opt(algorithms)
 
     _array_iter = np.array(tuple([np.nan] * alg['n_iter'] for alg in algorithms),
                            dtype=[(alg['name'], float, (alg['n_iter'],)) for alg in algorithms])
@@ -378,7 +378,7 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, solve=False, verbo
     _seed_to_rng(algorithms)
 
     if solve:
-        algorithms = _add_bb(algorithms)
+        algorithms = _add_opt(algorithms)
 
     l_ex_mean, t_run_mean = _empty_result(algorithms, n_gen), _empty_result(algorithms, n_gen)
 
@@ -430,7 +430,7 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
     _seed_to_rng(algorithms)
 
     if solve:
-        algorithms = _add_bb(algorithms)
+        algorithms = _add_opt(algorithms)
 
     l_ex_mc, t_run_mc = _empty_result(algorithms, n_mc), _empty_result(algorithms, n_mc)
 
