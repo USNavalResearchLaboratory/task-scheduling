@@ -1,11 +1,11 @@
 from time import perf_counter
-from functools import wraps
+from functools import wraps, partial
 
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from task_scheduling._core import SchedulingSolution
+from task_scheduling._core import SchedulingSolution, RandomGeneratorMixin as RNGMix
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 
 
@@ -272,8 +272,19 @@ def _print_averages(l_ex, t_run, log_path=None, do_relative=False):
             print(df_str, end='\n\n', file=fid)
 
 
+def _seed_to_rng(algorithms):
+    """Convert algorithm `rng` arguments to NumPy `Generator` objects. Repeated calls to algorithms will use the RNG
+    in-place, avoiding exact reproduction and ensuring new output for Monte Carlo evaluation."""
+    for algorithm in algorithms:
+        func = algorithm['func']
+        if isinstance(func, partial) and 'rng' in func.keywords:
+            func.keywords['rng'] = RNGMix.make_rng(func.keywords['rng'])
+
+
 #%% Algorithm evaluation
 def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0, plotting=0, log_path=None):
+
+    _seed_to_rng(algorithms)
 
     solve = solution_opt is not None
     if solve:
@@ -364,6 +375,8 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, solve=False, verbo
     #     n_gen = problem_gen.n_problems
     #     warn(f"Dataset cannot generate requested number of unique problems. Argument `n_gen` reduced to {n_gen}")
 
+    _seed_to_rng(algorithms)
+
     if solve:
         algorithms = _add_bb(algorithms)
 
@@ -413,6 +426,8 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
     #     else:
     #         if n_gen_total * n_mc > problem_gen.n_problems:
     #             raise ValueError("Dataset cannot generate enough problems.")
+
+    _seed_to_rng(algorithms)
 
     if solve:
         algorithms = _add_bb(algorithms)
