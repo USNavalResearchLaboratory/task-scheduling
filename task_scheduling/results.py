@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from task_scheduling._base import RandomGeneratorMixin as RNGMix
+from task_scheduling.base import RandomGeneratorMixin as RNGMix
 from task_scheduling.util import eval_wrapper, plot_schedule
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 from task_scheduling.generators.problems import Dataset

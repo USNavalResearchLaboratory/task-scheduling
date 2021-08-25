@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from task_scheduling._base import SchedulingSolution
+from task_scheduling.base import SchedulingSolution
 
 
 def summarize_tasks(tasks, file=None, **tabulate_kwargs):
