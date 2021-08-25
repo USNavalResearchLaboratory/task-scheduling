@@ -107,15 +107,15 @@ from matplotlib import pyplot as plt
 
 from task_scheduling import algorithms
 from task_scheduling.generators import tasks as task_gens
-from util import summarize_tasks, plot_task_losses, plot_schedule
-from util import check_schedule, evaluate_schedule
+from task_scheduling.util import summarize_tasks, plot_task_losses, plot_schedule, check_schedule, evaluate_schedule
 
 plt.style.use('seaborn')
 
-seed = 12345
+SEED = 12345
 
-# %% Define scheduling problem
-task_gen = task_gens.ContinuousUniformIID.relu_drop(rng=seed)
+
+#%% Define scheduling problem
+task_gen = task_gens.ContinuousUniformIID.relu_drop(rng=SEED)
 
 tasks = list(task_gen(8))
 ch_avail = [0., 0.5]
@@ -123,19 +123,20 @@ ch_avail = [0., 0.5]
 summarize_tasks(tasks)
 plot_task_losses(tasks)
 
-# %% Define and assess algorithms
+
+#%% Define and assess algorithms
 algorithms = [
-  algorithms.branch_bound_priority,
-  algorithms.random_sequencer,
+    algorithms.branch_bound_priority,
+    algorithms.random_sequencer,
 ]
 
 __, axes = plt.subplots(len(algorithms))
 for algorithm, ax in zip(algorithms, axes):
-  t_ex, ch_ex = algorithm(tasks, ch_avail)
+    t_ex, ch_ex = algorithm(tasks, ch_avail)
 
-  check_schedule(tasks, t_ex, ch_ex)
-  loss = evaluate_schedule(tasks, t_ex)
-  plot_schedule(tasks, t_ex, ch_ex, l_ex=loss, ax=ax)
+    check_schedule(tasks, t_ex, ch_ex)
+    loss = evaluate_schedule(tasks, t_ex)
+    plot_schedule(tasks, t_ex, ch_ex, l_ex=loss, ax=ax)
 ```
 
 ### Policy learning and Monte Carlo assessment
@@ -162,90 +163,96 @@ import pytorch_lightning as pl
 
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
 from task_scheduling.generators import problems as problem_gens
-from task_scheduling.util import evaluate_algorithms_train
+from task_scheduling.results import evaluate_algorithms_train
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.supervised.torch import LitScheduler
+
 
 np.set_printoptions(precision=3)
 pd.options.display.float_format = '{:,.3f}'.format
 plt.style.use('seaborn')
 
-seed = 12345
+SEED = 12345
 
-# %% Define scheduling problem and algorithms
+
+#%% Define scheduling problem and algorithms
 
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=seed)
-problem_gen = problem_gens.Dataset.load('../data/schedules/discrete_relu_c1t8', shuffle=True, repeat=True, rng=seed)
+problem_gen = problem_gens.Dataset.load('../data/schedules/discrete_relu_c1t8', shuffle=True, repeat=True, rng=SEED)
 
-# %% Algorithms
+
+#%% Algorithms
 env_params = {
-  'features': None,  # defaults to task parameters
-  'sort_func': 't_release',
-  'time_shift': True,
-  'masking': True,
-  'action_type': 'valid',
-  'seq_encoding': 'one-hot',
+    'features': None,  # defaults to task parameters
+    'sort_func': 't_release',
+    'time_shift': True,
+    'masking': True,
+    'action_type': 'valid',
+    'seq_encoding': 'one-hot',
 }
 
 env = envs.StepTasking(problem_gen, **env_params)
 
 
 class LitModule(pl.LightningModule):
-  def __init__(self):
-    super().__init__()
+    def __init__(self):
+        super().__init__()
 
-    self.model = nn.Sequential(
-      nn.Flatten(),
-      nn.Linear(np.prod(env.observation_space.shape).item(), 30),
-      nn.ReLU(),
-      nn.Linear(30, 30),
-      nn.ReLU(),
-      nn.Linear(30, env.action_space.n),
-      nn.Softmax(dim=1),
-    )
-    self.loss_func = functional.cross_entropy
+        self.model = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(np.prod(env.observation_space.shape).item(), 30),
+            nn.ReLU(),
+            nn.Linear(30, 30),
+            nn.ReLU(),
+            nn.Linear(30, env.action_space.n),
+            nn.Softmax(dim=1),
+        )
+        self.loss_func = functional.cross_entropy
 
-  def forward(self, x):
-    return self.model(x)
+    def forward(self, x):
+        return self.model(x)
 
-  def training_step(self, batch, batch_idx):
-    x, y = batch
-    y_hat = self(x)
-    loss = self.loss_func(y_hat, y)
-    self.log('train_loss', loss)
-    return loss
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self(x)
+        loss = self.loss_func(y_hat, y)
+        self.log('train_loss', loss)
+        return loss
 
-  def validation_step(self, batch, batch_idx):
-    x, y = batch
-    y_hat = self(x)
-    loss = self.loss_func(y_hat, y)
-    self.log('val_loss', loss)
-    return loss
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self(x)
+        loss = self.loss_func(y_hat, y)
+        self.log('val_loss', loss)
+        return loss
 
-  def configure_optimizers(self):
-    return optim.Adam(self.parameters(), lr=1e-3)
+    def configure_optimizers(self):
+        return optim.Adam(self.parameters(), lr=1e-3)
 
 
-learn_params_pl = {'batch_size_train': 20,
-                   'n_gen_val': 1 / 3,
-                   'batch_size_val': 30,
-                   'weight_func': None,
-                   'max_epochs': 40,
-                   'shuffle': True,
-                   'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=100)]
-                   }
+learn_params_pl = {
+    'batch_size_train': 20,
+    'n_gen_val': 1/3,
+    'batch_size_val': 30,
+    'weight_func': None,
+    'max_epochs': 40,
+    'shuffle': True,
+    'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=100)]
+}
+
 
 algorithms = np.array([
-  # ('BB_p', partial(branch_bound_priority, heuristic=methodcaller('roll_out', inplace=False,
-  #                                                                rng=RNGMix.make_rng(seed))), 1),
-  ('Random', partial(random_sequencer, rng=seed), 10),
-  ('ERT', earliest_release, 10),
-  *((f'MCTS: c={c}, t={t}', partial(mcts, runtime=.002, c_explore=c, visit_threshold=t, rng=seed), 10)
-    for c, t in product([.035], [15])),
-  ('Lit Policy', LitScheduler(env, LitModule(), learn_params=learn_params_pl, valid_fwd=True), 10),
+    # ('BB_p', partial(branch_bound_priority, heuristic=methodcaller('roll_out', inplace=False,
+    #                                                                rng=RNGMix.make_rng(SEED))), 1),
+    ('Random', partial(random_sequencer, rng=SEED), 10),
+    ('ERT', earliest_release, 10),
+    *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=.002, c_explore=c, visit_threshold=t, rng=SEED), 10)
+      for c, t in product([.035], [15])),
+    ('Lit Policy', LitScheduler(env, LitModule(), learn_params=learn_params_pl, valid_fwd=True), 10),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
-# %% Evaluate results
+
+#%% Evaluate results
 n_gen_learn = 900  # the number of problems generated for learning, per iteration
 n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
