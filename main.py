@@ -215,10 +215,12 @@ algorithms = np.array([
 
 
 #%% Evaluate and record results
-
 n_gen_learn = 900  # the number of problems generated for learning, per iteration
 n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 1  # the number of Monte Carlo iterations performed for scheduler assessment
+
+
+# TODO: generate multiple channel results!!
 
 
 # TODO: generate new, larger datasets
