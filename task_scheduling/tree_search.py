@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from sortedcontainers import SortedKeyList
 
-from task_scheduling._core import RandomGeneratorMixin
+from task_scheduling.base import RandomGeneratorMixin
 from task_scheduling.tasks import Shift as ShiftTask
 
 # TODO: make problem a shared class attribute? Make a class constructor?
@@ -223,14 +223,17 @@ class ScheduleNode(RandomGeneratorMixin):
     def earliest_drop(self, inplace=True):
         return self._earliest_sorter('t_drop', inplace)
 
-    def mcts(self, runtime, c_explore=0., visit_threshold=0, inplace=True, verbose=False, rng=None):
+    def mcts(self, max_runtime=np.inf, max_rollouts=None, c_explore=0., visit_threshold=0, inplace=True, verbose=False,
+             rng=None):
         """
         Monte Carlo tree search.
 
         Parameters
         ----------
-        runtime : float
+        max_runtime : float, optional
             Allotted algorithm runtime.
+        max_rollouts : int, optional
+            Maximum number of rollouts allowed.
         c_explore : float, optional
             Exploration weight. Higher values prioritize less frequently visited notes.
         visit_threshold : int, optional
@@ -255,26 +258,35 @@ class ScheduleNode(RandomGeneratorMixin):
 
         t_run = perf_counter()
 
+        if max_rollouts is None:
+            max_rollouts = np.inf
+
         rng = self._get_rng(rng)
         bounds = ScheduleNodeBound(self.tasks, self.ch_avail).bounds
         root = MCTSNode(self.n_tasks, bounds, self.seq, c_explore, visit_threshold, rng=rng)
 
         node_best, loss_best = None, np.inf
-        while perf_counter() - t_run < runtime:
+        while True:
             if verbose:
-                print(f'Solutions evaluated: {root.n_visits}, Min. Loss: {loss_best}', end='\r')
+                print(f'# rollouts: {root.n_visits}, Min. Loss: {loss_best}', end='\r')
 
             leaf_new = root.selection()  # expansion step happens in selection call
 
             seq_ext = leaf_new.seq[len(self.seq):]
             node = self._extend_util(seq_ext, inplace=False)
-            node.roll_out()  # TODO: rollout with learned policy?
+            node.roll_out(rng=rng)  # TODO: rollout with learned policy?
             if node.l_ex < loss_best:
                 node_best, loss_best = node, node.l_ex
 
             # loss = leaf_new.evaluation()
             loss = node.l_ex  # TODO: mix rollout loss with value func, like AlphaGo?
             leaf_new.backup(loss)
+
+            if perf_counter() - t_run >= max_runtime or root.n_visits >= max_rollouts:
+                break
+
+        # if verbose:
+        #     print(f"Total # rollouts: {root.n_visits}, loss={loss_best}")
 
         if inplace:
             # self.seq = node_best.seq

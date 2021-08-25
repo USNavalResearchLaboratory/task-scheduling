@@ -14,7 +14,7 @@ def _get_param(name):
     return func
 
 
-def _mask_space(space):
+def _add_zero(space):
     """Modify space to include zero as a possible value."""
 
     if isinstance(space, Box):
@@ -31,7 +31,7 @@ def _mask_space(space):
         raise NotImplementedError
 
 
-def _shift_space(space):
+def _as_box(space):
     """Convert scalar space to Box with zero lower bound."""
 
     if isinstance(space, Box):
@@ -55,7 +55,7 @@ def param_features(problem_gen, time_shift=False, masking=False):
 
     Parameters
     ----------
-    problem_gen : generators.scheduling_problems.Base
+    problem_gen : generators.problems.Base
         Scheduling problem generation object.
     time_shift : bool, optional
         Enables modification of feature `space` to reflect shifted parameters.
@@ -77,9 +77,9 @@ def param_features(problem_gen, time_shift=False, masking=False):
     data = []
     for name, space in problem_gen.task_gen.param_spaces.items():
         if masking:
-            space = _mask_space(space)
+            space = _add_zero(space)
         if name in shift_params:
-            space = _shift_space(space)
+            space = _as_box(space)
         data.append((name, _get_param(name), space))
 
     return np.array(data, dtype=[('name', '<U32'), ('func', object), ('space', object)])

@@ -13,11 +13,14 @@ import torch
 from torch import nn, optim
 from torch.nn import functional
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.seed import seed_everything
+from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.callbacks import EarlyStopping
 from stable_baselines3.common.env_checker import check_env
 
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
-from task_scheduling.generators import scheduling_problems as problem_gens
-from task_scheduling.util import evaluate_algorithms_train
+from task_scheduling.generators import problems as problem_gens
+from task_scheduling.results import evaluate_algorithms_train
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 # from task_scheduling.learning.supervised._tf import keras, Scheduler as tfScheduler
@@ -30,41 +33,36 @@ pd.options.display.float_format = '{:,.3f}'.format
 plt.style.use('seaborn')
 # plt.rc('axes', grid=True)
 
-gpus = min(1, torch.cuda.device_count())
+NUM_GPUS = min(1, torch.cuda.device_count())
 
 now = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
 
-# seed = None
-seed = 12345
+# SEED = None
+SEED = 12345
+
+if SEED is not None:
+    seed_everything(SEED)
+
+# TODO: document class attributes, even if identical to init parameters?
+# TODO: document instantiation parameters under init or under the class def?
+# TODO: rework docstring parameter typing?
 
 
 #%% Define scheduling problem and algorithms
 
-# problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=seed)
-# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
-# problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
-# problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
-# problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
-# problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2), rng=seed)
+# problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=SEED)
+# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=SEED)
+# problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=SEED)
+# problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=SEED)
+# problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=SEED)
+# problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2), rng=SEED)
 
 data_path = Path.cwd() / 'data'
 schedule_path = data_path / 'schedules'
 
-# list(problem_gen(1000, solve=True, save_path=schedule_path/'temp'/now, verbose=2))  # save solved problems
-
-# gens = {
-#     'discrete': problem_gens.Random.discrete_relu_drop(n_tasks=12, n_ch=1, rng=seed),
-#     'continuous': problem_gens.Random.continuous_relu_drop(n_tasks=12, n_ch=1, rng=seed)
-# }
-# for name, gen in gens.items():
-#     path = f"data/schedules/{name}_relu_c1t12"
-#     list(gen(1000, solve=True, save_path=path, verbose=2))
-# raise Exception
-
 dataset = 'discrete_relu_c1t8'
 # dataset = 'continuous_relu_c1t8'
-
-problem_gen = problem_gens.Dataset.load(schedule_path / dataset, shuffle=True, repeat=True, rng=seed)
+problem_gen = problem_gens.Dataset.load(schedule_path / dataset, shuffle=True, repeat=True, rng=SEED)
 
 
 # Algorithms
@@ -107,7 +105,6 @@ loss_func = functional.cross_entropy
 # loss_func = functional.nll_loss
 
 optimizer = optim.Adam(model_torch.parameters(), lr=1e-3)
-# optimizer = optim.SGD(model_torch.parameters(), lr=1e-2)
 
 
 class LitModule(pl.LightningModule):
@@ -138,7 +135,7 @@ class LitModule(pl.LightningModule):
         self.log('train_loss', loss)
         return loss
 
-    def validation_step(self, batch, batch_idx):  # TODO: DRY? default?
+    def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_func(y_hat, y)
@@ -153,12 +150,13 @@ class LitModule(pl.LightningModule):
 model_pl = LitModule()
 
 pl_trainer_kwargs = {
-    'gpus': gpus,
+    'logger': TensorBoardLogger('logs/learn/', name=now),
+    'checkpoint_callback': False,
+    # 'callbacks': EarlyStopping('train_loss', min_delta=1e-6, patience=10000, check_on_train_epoch_end=True),
+    'default_root_dir': 'logs/learn',
+    'gpus': NUM_GPUS,
     # 'distributed_backend': 'ddp',
     # 'profiler': 'simple',
-    'logger': True,
-    'checkpoint_callback': False,
-    'default_root_dir': 'logs/learn',
     # 'progress_bar_refresh_rate': 0,
 }
 
@@ -168,7 +166,7 @@ learn_params_torch = {
     'batch_size_val': 30,
     'weight_func': None,  # TODO: weighting based on loss value!?
     # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-    'max_epochs': 400,
+    'max_epochs': 500,
     'shuffle': True,
     # 'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=20)]
 }
@@ -184,43 +182,34 @@ valid_fwd = True
 # dqn_agent = StableBaselinesScheduler
 # dqn_agent = RL_Scheduler.load('temp/DQN_2020-10-28_15-44-00', env=None, model_cls='DQN')
 
-check_env(env)
-model_cls, model_params = StableBaselinesScheduler.model_defaults['DQN_MLP']
-# model_sb = model_cls(env=env, **model_params)
-
-learn_params_sb = {}
+# check_env(env)
+# # model_cls, model_params = StableBaselinesScheduler.model_defaults['DQN_MLP']
+# model_cls, model_params = StableBaselinesScheduler.model_defaults['PPO']
+# # model_sb = model_cls(env=env, **model_params)
+#
+# learn_params_sb = {}
 
 
 # FIXME: integrate SB3 before making any sweeping environment/learn API changes!!!
-# TODO: `check_env`: cast 2-d env spaces to 3-d image-like?
 
 # FIXME: no faster on GPU!?!? CHECK batch size effects!
 # FIXME: INVESTIGATE huge PyTorch speed-up over Tensorflow!!
 
-# TODO: new MCTS parameter search for shorter runtime
+# TODO: show value of valid-action network vs `mask_probability` hack!?
 
 
 algorithms = np.array([
-    # ('BB', partial(free.branch_bound, rng=RNGMix.make_rng(seed)), 1),
-    # ('BB_p', partial(free.branch_bound_priority, heuristic=methodcaller('roll_out', inplace=False,
-    #                                                                     rng=RNGMix.make_rng(seed))), 1),
-    # ('BB_p_ERT', partial(free.branch_bound_priority, heuristic=methodcaller('earliest_release', inplace=False)), 1),
-    # ('B&B sort', sort_wrapper(partial(free.branch_bound, verbose=False), 't_release'), 1),
-    # ('Ensemble', ensemble_scheduler(free.random_sequencer, free.earliest_release), 5),
-    ('Random', partial(random_sequencer, rng=seed), 10),
+    # ('BB', partial(branch_bound, rng=SEED), 1),
+    # ('BB_p', partial(branch_bound_priority, heuristic=methodcaller('roll_out', inplace=False, rng=SEED)), 1),
+    # ('BB_p_ERT', partial(branch_bound_priority, heuristic=methodcaller('earliest_release', inplace=False)), 1),
+    ('Random', partial(random_sequencer, rng=SEED), 10),
     ('ERT', earliest_release, 10),
-    *((f'MCTS: c={c}, t={t}', partial(mcts, runtime=.0025, c_explore=c, visit_threshold=t, rng=seed), 10)
-      for c, t in product([.035], [15])),
-    # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, runtime=.02, c_explore=c,
-    #                               rng=RNGMix.make_rng(seed)), 10) for c in [15]),
-    # *((f'MCTS, c={c}, t={t}', partial(free.mcts, n_mc=50, c_explore=c, visit_threshold=t,
-    #                                   rng=RNGMix.make_rng(seed)), 10) for c, t in product([0.05], [15])),
-    # *((f'MCTS_v1, c={c}', partial(free.mcts_v1, n_mc=50, c_explore=c, rng=RNGMix.make_rng(seed)), 10) for c in [10]),
+    *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, visit_threshold=t,
+                                      rng=SEED), 10) for c, t in product([0], [5])),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
     # ('Torch Policy', TorchScheduler(env, model_torch, loss_func, optimizer, learn_params_torch, valid_fwd), 10),
-    # ('Torch Policy', TorchScheduler.load('models/temp/2021-06-16T12_14_41.pkl'), 10),
-    # ('Lit Policy', LitScheduler(env, model_pl, pl_trainer_kwargs, learn_params_torch, valid_fwd), 10),
-    ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
+    ('Lit Policy', LitScheduler(env, model_pl, pl_trainer_kwargs, learn_params_torch, valid_fwd), 10),
+    # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
@@ -231,15 +220,12 @@ n_gen_learn = 900  # the number of problems generated for learning, per iteratio
 n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 1  # the number of Monte Carlo iterations performed for scheduler assessment
 
+
 # TODO: generate new, larger datasets
 # TODO: try making new features
 
 # TODO: avoid state correlation? Do Env transforms already achieve this?
 # TODO: make loss func for full seq targets, penalize in proportion to seq similarity?
-
-# TODO: document class attributes, even if identical to init parameters?
-# TODO: document instantiation parameters under init or under the class def?
-# TODO: rework docstring parameter typing?
 
 
 log_path = 'logs/temp/PGR_results.md'
@@ -257,27 +243,22 @@ with open(log_path, 'a') as fid:
     if len(learners) > 0:
         print(f"Training problems = {n_gen_learn}\n", file=fid)
 
-    print(f"## Learners\n", file=fid)
-    for learner in learners:
-        print(f"### {learner['name']}", file=fid)
-        learner['func'].summary(fid)
+        print(f"## Learners\n", file=fid)
+        for learner in learners:
+            print(f"### {learner['name']}", file=fid)
+            learner['func'].summary(fid)
 
     print('## Results', file=fid)
 
 
-n_gen_total = n_gen + n_gen_learn
-if isinstance(problem_gen, problem_gens.Dataset):
-    if problem_gen.repeat:
-        if n_gen_total > problem_gen.n_problems:
-            raise ValueError("Dataset cannot generate enough unique problems.")
-    else:
-        if n_gen_total * n_mc > problem_gen.n_problems:
-            raise ValueError("Dataset cannot generate enough problems.")
+solve = True
+# solve = False
 
-l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=n_gen, n_mc=n_mc, solve=True,
+l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=n_gen, n_mc=n_mc, solve=solve,
                                               verbose=2, plotting=2, log_path=log_path)
-np.savez(data_path / f'results/temp/{now}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
 
+
+np.savez(data_path / f'results/temp/{now}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
 
 fig_name = 'Train' if n_mc > 1 else 'Gen'
 fig_name += ' (Relative)'
@@ -306,10 +287,11 @@ with open(log_path, 'a') as fid:
 #         return valid_func
 #     return valid_wrapper
 
-# tf.random.set_seed(seed)
+
+# tf.random.set_seed(SEED)
 #
 # def _weight_init():
-#     return keras.initializers.GlorotUniform(seed)
+#     return keras.initializers.GlorotUniform(SEED)
 #
 #
 # layers = [

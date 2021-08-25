@@ -1,1 +1,1 @@
-from . import algorithms, generators, util, learning
+from . import util, algorithms, generators, learning

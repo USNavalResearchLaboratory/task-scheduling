@@ -1,150 +1,19 @@
-from time import perf_counter
-from functools import wraps
+from functools import partial
 
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from task_scheduling._core import SchedulingSolution
+from task_scheduling.base import RandomGeneratorMixin as RNGMix
+from task_scheduling.util import eval_wrapper, plot_schedule
 from task_scheduling.learning.base import Base as BaseLearningScheduler
+from task_scheduling.generators.problems import Dataset
 
 
-def check_schedule(tasks, t_ex, ch_ex, tol=1e-12):
-    """
-    Check schedule validity.
-
-    Parameters
-    ----------
-    tasks : list of task_scheduling.tasks.Base
-    t_ex : numpy.ndarray
-        Task execution times.
-    ch_ex : numpy.ndarray
-        Task execution channels.
-    tol : float, optional
-        Time tolerance for validity conditions.
-
-    Raises
-    -------
-    ValueError
-        If tasks overlap in time.
-
-    """
-
-    # if np.isnan(t_ex).any():
-    #     raise ValueError("All tasks must be scheduled.")
-
-    for ch in np.unique(ch_ex):
-        tasks_ch = np.array(tasks)[ch_ex == ch].tolist()
-        t_ex_ch = t_ex[ch_ex == ch]
-        for n_1 in range(len(tasks_ch)):
-            if t_ex_ch[n_1] + tol < tasks_ch[n_1].t_release:
-                raise ValueError("Tasks cannot be executed before their release time.")
-
-            for n_2 in range(n_1 + 1, len(tasks_ch)):
-                conditions = [t_ex_ch[n_1] + tol < t_ex_ch[n_2] + tasks_ch[n_2].duration,
-                              t_ex_ch[n_2] + tol < t_ex_ch[n_1] + tasks_ch[n_1].duration]
-                if all(conditions):
-                    raise ValueError('Invalid Solution: Scheduling Conflict')
+OPT_NAME = 'BB Optimal'
 
 
-def evaluate_schedule(tasks, t_ex):
-    """
-    Evaluate scheduling loss.
-
-    Parameters
-    ----------
-    tasks : Sequence of task_scheduling.tasks.Base
-        Tasks
-    t_ex : Sequence of float
-        Task execution times.
-
-    Returns
-    -------
-    float
-        Total loss of scheduled tasks.
-
-    """
-
-    l_ex = 0.
-    for task, t_ex in zip(tasks, t_ex):
-        l_ex += task(t_ex)
-
-    return l_ex
-
-
-def eval_wrapper(scheduler):
-    """Wraps a scheduler, creates a function that outputs runtime in addition to schedule."""
-
-    @wraps(scheduler)
-    def timed_scheduler(tasks, ch_avail):
-        t_start = perf_counter()
-        t_ex, ch_ex, *__ = scheduler(tasks, ch_avail)
-        t_run = perf_counter() - t_start
-
-        check_schedule(tasks, t_ex, ch_ex)
-        l_ex = evaluate_schedule(tasks, t_ex)
-
-        return SchedulingSolution(t_ex, ch_ex, l_ex, t_run)
-
-    return timed_scheduler
-
-
-def plot_schedule(tasks, t_ex, ch_ex, l_ex=None, name=None, ax=None, ax_kwargs=None):
-    """
-    Plot task schedule.
-
-    Parameters
-    ----------
-    tasks : list of task_scheduling.tasks.Base
-    t_ex : numpy.ndarray
-        Task execution times. NaN for unscheduled.
-    ch_ex : numpy.ndarray
-        Task execution channels. NaN for unscheduled.
-    l_ex : float or None
-        Total loss of scheduled tasks.
-    name : str or None
-        Algorithm string representation
-    ax : Axes or None
-        Matplotlib axes target object.
-    ax_kwargs : dict
-        Additional Axes keyword parameters.
-
-    """
-    if ax is None:
-        _, ax = plt.subplots()
-
-    if ax_kwargs is None:
-        ax_kwargs = {}
-
-    n_ch = len(np.unique(ch_ex))
-    bar_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-
-    # ax.broken_barh([(t_ex[n], tasks[n].duration) for n in range(len(tasks))], (-0.5, 1), facecolors=bar_colors)
-    for n, task in enumerate(tasks):
-        label = str(task)
-        # label = f'Task #{n}'
-        ax.broken_barh([(t_ex[n], task.duration)], (ch_ex[n] - 0.5, 1),
-                       facecolors=bar_colors[n % len(bar_colors)], edgecolor='black', label=label)
-
-    x_lim = min(t_ex), max(t_ex[n] + task.duration for n, task in enumerate(tasks))
-    ax.set(xlim=x_lim, ylim=(-.5, n_ch - 1 + .5), xlabel='t',
-           yticks=list(range(n_ch)), ylabel='Channel')
-
-    ax.legend()
-
-    _temp = []
-    if isinstance(name, str):
-        _temp.append(name)
-    if l_ex is not None:
-        _temp.append(f'Loss = {l_ex:.3f}')
-    title = ', '.join(_temp)
-    if len(title) > 0:
-        ax.set_title(title)
-
-    ax.set(**ax_kwargs)
-
-
-def scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
+def _scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
     """
     Scatter plot of total execution loss versus runtime.
 
@@ -168,7 +37,7 @@ def scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
 
     for name in t_run.dtype.names:
         kwargs = {}
-        if name == 'BB Optimal':
+        if name == OPT_NAME:
             kwargs.update(c='k')
 
         ax.scatter(1e3 * t_run[name], l_ex[name], label=name, **kwargs)
@@ -190,9 +59,9 @@ def _struct_mean(array):
     return np.array(data, dtype=array.dtype)
 
 
-def _add_bb(algorithms):
-    if 'BB Optimal' not in algorithms['name']:
-        _opt = np.array([('BB Optimal', None, 1)], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
+def _add_opt(algorithms):
+    if OPT_NAME not in algorithms['name']:
+        _opt = np.array([(OPT_NAME, None, 1)], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
         algorithms = np.concatenate((_opt, algorithms))
 
     return algorithms
@@ -204,12 +73,12 @@ def _empty_result(algorithms, n):
 
 def _relative_loss(l_ex):
     names = l_ex.dtype.names
-    if 'BB Optimal' not in names:
+    if OPT_NAME not in names:
         raise ValueError("Optimal solutions must be included in the loss array.")
 
     l_ex_rel = l_ex.copy()
     for name in names:
-        l_ex_rel[name] -= l_ex['BB Optimal']
+        l_ex_rel[name] -= l_ex[OPT_NAME]
         # l_ex_rel[name] /= l_ex_mean_opt
 
     return l_ex_rel
@@ -218,16 +87,16 @@ def _relative_loss(l_ex):
 def _scatter_results(t_run, l_ex, label='Results', do_relative=False):
 
     __, ax_results = plt.subplots(num=label, clear=True)
-    scatter_loss_runtime(t_run, l_ex,
-                         ax=ax_results,
-                         # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
-                         )
+    _scatter_loss_runtime(t_run, l_ex,
+                          ax=ax_results,
+                          # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
+                          )
 
     if do_relative:  # relative to B&B
         l_ex_rel = _relative_loss(l_ex)
 
         # __, ax_results_rel = plt.subplots(num=f'{label} (Relative)', clear=True)
-        # scatter_loss_runtime(t_run, l_ex_rel,
+        # _scatter_loss_runtime(t_run, l_ex_rel,
         #                      ax=ax_results_rel,
         #                      ax_kwargs={'ylabel': 'Excess Loss',
         #                                 # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
@@ -235,14 +104,14 @@ def _scatter_results(t_run, l_ex, label='Results', do_relative=False):
         #                      )
 
         names = list(l_ex.dtype.names)
-        names.remove('BB Optimal')
+        names.remove(OPT_NAME)
         __, ax_results_rel = plt.subplots(num=f'{label} (Relative)', clear=True)
-        scatter_loss_runtime(t_run[names], l_ex_rel[names],
-                             ax=ax_results_rel,
-                             ax_kwargs={'ylabel': 'Excess Loss',
+        _scatter_loss_runtime(t_run[names], l_ex_rel[names],
+                              ax=ax_results_rel,
+                              ax_kwargs={'ylabel': 'Excess Loss',
                                         # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
                                         }
-                             )
+                              )
 
 
 def _print_averages(l_ex, t_run, log_path=None, do_relative=False):
@@ -258,7 +127,7 @@ def _print_averages(l_ex, t_run, log_path=None, do_relative=False):
         # for item, name in zip(data, names):
         #     item.insert(0, l_ex_rel[name].mean())
         # columns.insert(0, 'Excess Loss')
-        l_ex_opt = data[names.index('BB Optimal')][0]
+        l_ex_opt = data[names.index(OPT_NAME)][0]
         for item, name in zip(data, names):
             item.insert(0, l_ex_rel[name].mean() / l_ex_opt)
         columns.insert(0, 'Excess Loss (%)')
@@ -272,12 +141,23 @@ def _print_averages(l_ex, t_run, log_path=None, do_relative=False):
             print(df_str, end='\n\n', file=fid)
 
 
+def _seed_to_rng(algorithms):
+    """Convert algorithm `rng` arguments to NumPy `Generator` objects. Repeated calls to algorithms will use the RNG
+    in-place, avoiding exact reproduction and ensuring new output for Monte Carlo evaluation."""
+    for algorithm in algorithms:
+        func = algorithm['func']
+        if isinstance(func, partial) and 'rng' in func.keywords:
+            func.keywords['rng'] = RNGMix.make_rng(func.keywords['rng'])
+
+
 #%% Algorithm evaluation
 def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0, plotting=0, log_path=None):
 
+    _seed_to_rng(algorithms)
+
     solve = solution_opt is not None
     if solve:
-        algorithms = _add_bb(algorithms)
+        algorithms = _add_opt(algorithms)
 
     _array_iter = np.array(tuple([np.nan] * alg['n_iter'] for alg in algorithms),
                            dtype=[(alg['name'], float, (alg['n_iter'],)) for alg in algorithms])
@@ -292,7 +172,7 @@ def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0
                 print(f'Iteration: {iter_ + 1}/{n_iter})', end='\r')
 
             # Run algorithm
-            if name == 'BB Optimal':
+            if name == OPT_NAME:
                 solution = solution_opt
             else:
                 solution = eval_wrapper(func)(problem.tasks, problem.ch_avail)
@@ -303,7 +183,7 @@ def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0
             if plotting >= 2:
                 plot_schedule(problem.tasks, solution.t_ex, solution.ch_ex, l_ex=solution.l_ex, name=name, ax=None)
 
-            # if name == 'BB Optimal':
+            # if name == OPT_NAME:
             #     solution = solution_opt
             # else:
             #     solution = timing_wrapper(func)(tasks, ch_avail)
@@ -338,7 +218,7 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, solve=False, verbo
     ----------
     algorithms: iterable of callable
         Scheduling algorithms
-    problem_gen : generators.scheduling_problems.Base
+    problem_gen : generators.problems.Base
         Scheduling problem generator
     n_gen : int
         Number of scheduling problems to generate.
@@ -360,12 +240,15 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, solve=False, verbo
 
     """
 
-    # if isinstance(problem_gen, Dataset) and n_gen > problem_gen.n_problems:  # avoid redundant computation
-    #     n_gen = problem_gen.n_problems
-    #     warn(f"Dataset cannot generate requested number of unique problems. Argument `n_gen` reduced to {n_gen}")
+    if isinstance(problem_gen, Dataset) and n_gen > problem_gen.n_problems:  # avoid redundant computation
+        # n_gen = problem_gen.n_problems
+        # warn(f"Dataset cannot generate requested number of unique problems. Argument `n_gen` reduced to {n_gen}")
+        raise ValueError(f"Dataset cannot generate requested number of unique problems.")
+
+    _seed_to_rng(algorithms)
 
     if solve:
-        algorithms = _add_bb(algorithms)
+        algorithms = _add_opt(algorithms)
 
     l_ex_mean, t_run_mean = _empty_result(algorithms, n_gen), _empty_result(algorithms, n_gen)
 
@@ -403,30 +286,34 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
         raise NotImplementedError("Currently supports only a single learner. "
                                   "See https://spork.nre.navy.mil/nrl-radar/CRM/task-scheduling/-/issues/8")
 
-    # reuse_data = False
-    # if isinstance(problem_gen, Dataset):
-    #     n_gen_total = n_gen + n_gen_learn
-    #     if problem_gen.repeat:
-    #         reuse_data = True
-    #         if n_gen_total > problem_gen.n_problems:
-    #             raise ValueError("Dataset cannot generate enough unique problems.")
-    #     else:
-    #         if n_gen_total * n_mc > problem_gen.n_problems:
-    #             raise ValueError("Dataset cannot generate enough problems.")
+    reuse_data = False
+    if isinstance(problem_gen, Dataset):
+        n_gen_total = n_gen + n_gen_learn
+        if problem_gen.repeat:
+            reuse_data = True
+            if n_gen_total > problem_gen.n_problems:
+                raise ValueError("Dataset cannot generate enough unique problems.")
+        else:
+            if n_gen_total * n_mc > problem_gen.n_problems:
+                raise ValueError("Dataset cannot generate enough problems.")
+
+    _seed_to_rng(algorithms)
 
     if solve:
-        algorithms = _add_bb(algorithms)
+        algorithms = _add_opt(algorithms)
 
     l_ex_mc, t_run_mc = _empty_result(algorithms, n_mc), _empty_result(algorithms, n_mc)
 
     for i_mc in range(n_mc):
         if verbose >= 1:
-            print(f"Train/test iteration {i_mc + 1}/{n_mc}")
+            print(f"Train/test iteration: {i_mc + 1}/{n_mc}")
 
-        # if reuse_data:
-        #     problem_gen.shuffle()  # random train/test split
-        if hasattr(problem_gen, 'repeat'):  # repeating `Dataset` problem generator
-            problem_gen.shuffle()
+        if reuse_data:
+            problem_gen.shuffle()  # random train/test split
+
+        # if hasattr(problem_gen, 'repeat') and problem_gen.repeat:  # repeating `Dataset` problem generator
+        # if isinstance(problem_gen, Dataset) and problem_gen.repeat:  # repeating `Dataset` problem generator
+        #     problem_gen.shuffle()
 
         # Reset/train supervised learners
         for learner in algorithms['func']:

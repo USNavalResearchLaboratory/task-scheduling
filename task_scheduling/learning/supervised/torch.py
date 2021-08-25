@@ -87,7 +87,7 @@ class Base(BaseLearningScheduler):
 
         super().__init__(env, model, learn_params)
 
-    def predict_prob(self, obs):
+    def _process_obs(self, obs, normalize=False):
         """
         Estimate action probabilities given an observation.
 
@@ -95,6 +95,8 @@ class Base(BaseLearningScheduler):
         ----------
         obs : array_like
             Observation.
+        normalize : bool, optional
+            Enable normalization of model outputs.
 
         Returns
         -------
@@ -114,13 +116,19 @@ class Base(BaseLearningScheduler):
             # input_ = torch.from_numpy(obs[np.newaxis]).float()
             input_ = torch.from_numpy(obs)
             # input_ = input_.to(device)
-            prob = self.model(input_)
+            out = self.model(input_)
 
-        prob = prob.numpy()
+        if normalize:
+            out = functional.normalize(out, p=1, dim=-1)
+
+        out = out.numpy()
         if not _batch:
-            prob = prob.squeeze(axis=0)
+            out = out.squeeze(axis=0)
 
-        return prob
+        return out
+
+    def predict_prob(self, obs):
+        return self._process_obs(obs, normalize=True)
 
     def predict(self, obs):
         """
@@ -137,10 +145,15 @@ class Base(BaseLearningScheduler):
             Action.
 
         """
-        p = self.predict_prob(obs)
-        action = p.argmax()
+        return self._process_obs(obs).argmax()
 
-        return action
+        # # TODO: deprecate?
+        # p = self.predict_prob(obs)
+        # action = p.argmax()
+        # if action not in self.env.action_space:  # mask out invalid actions
+        #     p = self.env.mask_probability(p)
+        #     action = p.argmax()
+        # return action
 
     def reset(self):
         """Reset the learner."""

@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 from gym import spaces
 
-from task_scheduling._core import RandomGeneratorMixin
+from task_scheduling.base import RandomGeneratorMixin
 from task_scheduling import tasks as task_types
 from task_scheduling.spaces import DiscreteSet
 

@@ -5,15 +5,14 @@ import numpy as np
 from task_scheduling.algorithms import branch_bound
 from task_scheduling.tree_search import ScheduleNode, ScheduleNodeShift
 from task_scheduling.util import evaluate_schedule
-from task_scheduling.generators import scheduling_problems as problem_gens
-
-problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1)
-n_iter = 10
+from task_scheduling.generators import problems as problem_gens
 
 
 def test_argsort():
     """Check that seq=np.argsort(t_ex) maps to an optimal schedule."""
-    for i in range(n_iter):
+
+    problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1)
+    for i in range(10):
         print(f"{i}", end='\n')
 
         # seq = np.random.permutation(n_tasks)
@@ -35,7 +34,9 @@ def test_argsort():
 
 def test_shift():
     """Check accuracy of ScheduleNodeShift solution."""
-    for i in range(n_iter):
+
+    problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1)
+    for i in range(10):
         print(f"{i}", end='\n')
 
         (tasks, ch_avail), = problem_gen(1)

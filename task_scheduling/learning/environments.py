@@ -11,7 +11,7 @@ from gym.spaces import Discrete, MultiDiscrete
 from task_scheduling import tree_search
 import task_scheduling.spaces as spaces_tasking
 from task_scheduling.learning.features import param_features
-from task_scheduling.util.info import plot_task_losses
+from task_scheduling.util import plot_task_losses
 
 
 # Gym Environments
@@ -21,7 +21,7 @@ class BaseTasking(Env, ABC):
 
         Parameters
         ----------
-        problem_gen : generators.scheduling_problems.Base
+        problem_gen : generators.problems.Base
             Scheduling problem generation object.
         features : numpy.ndarray, optional
             Structured numpy array of features with fields 'name', 'func', and 'lims'.
@@ -166,11 +166,11 @@ class BaseTasking(Env, ABC):
                 tasks, ch_avail = self.tasks, self.ch_avail
         else:
             if tasks is None or ch_avail is None:  # generate new scheduling problem
+                out = list(self.problem_gen(1, solve=solve, rng=rng))[0]
                 if solve:
-                    ((tasks, ch_avail), self.solution), = self.problem_gen(1, solve=solve, rng=rng)
+                    (tasks, ch_avail), self.solution = out
                 else:
-                    (tasks, ch_avail), = self.problem_gen(1, solve=solve, rng=rng)
-                    self.solution = None
+                    (tasks, ch_avail), self.solution = out, None
 
             elif len(tasks) != self.n_tasks:
                 raise ValueError(f"Input 'tasks' must be None or a list of {self.n_tasks} tasks")
@@ -321,12 +321,12 @@ class BaseTasking(Env, ABC):
 
         return numpy_dict  # used to instantiate ExpertDataset object via `traj_data` arg
 
-    def mask_probability(self, p):
+    def mask_probability(self, p):  # TODO: deprecate?
         """Returns masked action probabilities."""
         return np.array(p)
 
 
-def seq2num(seq, check_input=True):
+def seq_to_num(seq, check_input=True):
     """
     Map an index sequence permutation to a non-negative integer.
 
@@ -357,7 +357,7 @@ def seq2num(seq, check_input=True):
     return num
 
 
-def num2seq(num, length, check_input=True):
+def num_to_seq(num, length, check_input=True):
     """
     Map a non-negative integer to an index sequence permutation.
 
@@ -397,7 +397,7 @@ class SeqTasking(BaseTasking):
 
         Parameters
         ----------
-        problem_gen : generators.scheduling_problems.Base
+        problem_gen : generators.problems.Base
             Scheduling problem generation object.
         features : numpy.ndarray, optional
             Structured numpy array of features with fields 'name', 'func', and 'lims'.
@@ -446,7 +446,7 @@ class SeqTasking(BaseTasking):
 
     def step(self, action):
         if self.action_type == 'int':
-            action = list(num2seq(action, self.n_tasks))  # decode integer to sequence
+            action = list(num_to_seq(action, self.n_tasks))  # decode integer to sequence
 
         return super().step(action)
 
@@ -459,7 +459,7 @@ class SeqTasking(BaseTasking):
         if self.action_type == 'seq':
             y = seq_sort
         elif self.action_type == 'int':
-            y = seq2num(seq_sort)
+            y = seq_to_num(seq_sort)
         else:
             raise ValueError
 
@@ -480,7 +480,7 @@ class StepTasking(BaseTasking):
 
         Parameters
         ----------
-        problem_gen : generators.scheduling_problems.Base
+        problem_gen : generators.problems.Base
             Scheduling problem generation object.
         features : numpy.ndarray, optional
             Structured numpy array of features with fields 'name', 'func', and 'lims'.
@@ -571,7 +571,7 @@ class StepTasking(BaseTasking):
         state_seq = np.array([self.seq_encoding(n) for n in self.sorted_index])
         return np.concatenate((state_seq, self.state_tasks), axis=1)
 
-    def make_mask(self, obs):
+    def make_mask(self, obs):  # TODO: make method private?
         state_seq = obs[..., :self.len_seq_encode]
         return state_seq.sum(axis=-1)
 
@@ -617,3 +617,11 @@ class StepTasking(BaseTasking):
             self.step(n)  # updates environment state
 
         return x_set, y_set, w_set
+
+    def mask_probability(self, p):  # TODO: deprecate?
+        """Returns masked action probabilities based on unscheduled task indices."""
+
+        if self.do_valid_actions:
+            return np.ma.masked_array(p, self.action_space.mask)
+        else:
+            return super().mask_probability(p)
