@@ -281,7 +281,7 @@ class BaseTasking(Env, ABC):
 
                 # Optimal schedule
                 t_ex, ch_ex = self.solution.t_ex, self.solution.ch_ex
-                seq = np.argsort(t_ex)  # maps to optimal schedule (empirically supported...)
+                seq = np.argsort(t_ex)  # maps to optimal schedule (empirical proof in `test_tree_nodes.test_argsort`)
 
                 # Generate samples for each scheduling step of the optimal sequence
                 idx = i_gen * self.steps_per_episode + np.arange(self.steps_per_episode)

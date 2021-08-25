@@ -4,15 +4,14 @@ from functools import partial
 from pathlib import Path
 import math
 
-# import dill
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from tensorboard import program
 from tensorflow import keras
 
-from task_scheduling.learning.base import Base
-# from task_scheduling.learning import environments as envs
+# from task_scheduling.learning.base import Base
+from task_scheduling.learning.supervised.base import Base
 
 for device in tf.config.experimental.list_physical_devices('GPU'):
     tf.config.experimental.set_memory_growth(device, True)  # compatibility issue workaround
