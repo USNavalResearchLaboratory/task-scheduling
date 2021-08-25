@@ -10,6 +10,9 @@ from task_scheduling.learning.base import Base as BaseLearningScheduler
 from task_scheduling.generators.problems import Dataset
 
 
+OPT_NAME = 'BB Optimal'
+
+
 def _scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
     """
     Scatter plot of total execution loss versus runtime.
@@ -34,7 +37,7 @@ def _scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
 
     for name in t_run.dtype.names:
         kwargs = {}
-        if name == 'BB Optimal':
+        if name == OPT_NAME:
             kwargs.update(c='k')
 
         ax.scatter(1e3 * t_run[name], l_ex[name], label=name, **kwargs)
@@ -57,8 +60,8 @@ def _struct_mean(array):
 
 
 def _add_opt(algorithms):
-    if 'BB Optimal' not in algorithms['name']:
-        _opt = np.array([('BB Optimal', None, 1)], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
+    if OPT_NAME not in algorithms['name']:
+        _opt = np.array([(OPT_NAME, None, 1)], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
         algorithms = np.concatenate((_opt, algorithms))
 
     return algorithms
@@ -70,12 +73,12 @@ def _empty_result(algorithms, n):
 
 def _relative_loss(l_ex):
     names = l_ex.dtype.names
-    if 'BB Optimal' not in names:
+    if OPT_NAME not in names:
         raise ValueError("Optimal solutions must be included in the loss array.")
 
     l_ex_rel = l_ex.copy()
     for name in names:
-        l_ex_rel[name] -= l_ex['BB Optimal']
+        l_ex_rel[name] -= l_ex[OPT_NAME]
         # l_ex_rel[name] /= l_ex_mean_opt
 
     return l_ex_rel
@@ -101,7 +104,7 @@ def _scatter_results(t_run, l_ex, label='Results', do_relative=False):
         #                      )
 
         names = list(l_ex.dtype.names)
-        names.remove('BB Optimal')
+        names.remove(OPT_NAME)
         __, ax_results_rel = plt.subplots(num=f'{label} (Relative)', clear=True)
         _scatter_loss_runtime(t_run[names], l_ex_rel[names],
                               ax=ax_results_rel,
@@ -124,7 +127,7 @@ def _print_averages(l_ex, t_run, log_path=None, do_relative=False):
         # for item, name in zip(data, names):
         #     item.insert(0, l_ex_rel[name].mean())
         # columns.insert(0, 'Excess Loss')
-        l_ex_opt = data[names.index('BB Optimal')][0]
+        l_ex_opt = data[names.index(OPT_NAME)][0]
         for item, name in zip(data, names):
             item.insert(0, l_ex_rel[name].mean() / l_ex_opt)
         columns.insert(0, 'Excess Loss (%)')
@@ -169,7 +172,7 @@ def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0
                 print(f'Iteration: {iter_ + 1}/{n_iter})', end='\r')
 
             # Run algorithm
-            if name == 'BB Optimal':
+            if name == OPT_NAME:
                 solution = solution_opt
             else:
                 solution = eval_wrapper(func)(problem.tasks, problem.ch_avail)
@@ -180,7 +183,7 @@ def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0
             if plotting >= 2:
                 plot_schedule(problem.tasks, solution.t_ex, solution.ch_ex, l_ex=solution.l_ex, name=name, ax=None)
 
-            # if name == 'BB Optimal':
+            # if name == OPT_NAME:
             #     solution = solution_opt
             # else:
             #     solution = timing_wrapper(func)(tasks, ch_avail)

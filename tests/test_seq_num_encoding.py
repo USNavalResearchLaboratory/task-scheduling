@@ -7,7 +7,7 @@ from task_scheduling.learning.environments import num_to_seq, seq_to_num
 
 def test_encode_decode():
     length = 5
-    for i in range(100):
+    for i in range(10):
         print(f"{i}", end='\n')
 
         seq = tuple(np.random.permutation(length))

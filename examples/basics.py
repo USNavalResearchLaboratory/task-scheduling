@@ -2,16 +2,15 @@ from matplotlib import pyplot as plt
 
 from task_scheduling import algorithms
 from task_scheduling.generators import tasks as task_gens
-from util import summarize_tasks, plot_task_losses, plot_schedule
-from util import check_schedule, evaluate_schedule
+from task_scheduling.util import summarize_tasks, plot_task_losses, plot_schedule, check_schedule, evaluate_schedule
 
 plt.style.use('seaborn')
 
-seed = 12345
+SEED = 12345
 
 
 #%% Define scheduling problem
-task_gen = task_gens.ContinuousUniformIID.relu_drop(rng=seed)
+task_gen = task_gens.ContinuousUniformIID.relu_drop(rng=SEED)
 
 tasks = list(task_gen(8))
 ch_avail = [0., 0.5]

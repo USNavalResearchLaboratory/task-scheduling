@@ -33,15 +33,15 @@ pd.options.display.float_format = '{:,.3f}'.format
 plt.style.use('seaborn')
 # plt.rc('axes', grid=True)
 
-gpus = min(1, torch.cuda.device_count())
+NUM_GPUS = min(1, torch.cuda.device_count())
 
 now = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
 
-# seed = None
-seed = 12345
+# SEED = None
+SEED = 12345
 
-if seed is not None:
-    seed_everything(seed)
+if SEED is not None:
+    seed_everything(SEED)
 
 # TODO: document class attributes, even if identical to init parameters?
 # TODO: document instantiation parameters under init or under the class def?
@@ -50,19 +50,19 @@ if seed is not None:
 
 #%% Define scheduling problem and algorithms
 
-problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=seed)
-# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
-# problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
-# problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
-# problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
-# problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2), rng=seed)
+# problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=SEED)
+# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=SEED)
+# problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=SEED)
+# problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=SEED)
+# problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=SEED)
+# problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2), rng=SEED)
 
 data_path = Path.cwd() / 'data'
 schedule_path = data_path / 'schedules'
 
-# dataset = 'discrete_relu_c1t8'
+dataset = 'discrete_relu_c1t8'
 # dataset = 'continuous_relu_c1t8'
-# problem_gen = problem_gens.Dataset.load(schedule_path / dataset, shuffle=True, repeat=True, rng=seed)
+problem_gen = problem_gens.Dataset.load(schedule_path / dataset, shuffle=True, repeat=True, rng=SEED)
 
 
 # Algorithms
@@ -154,7 +154,7 @@ pl_trainer_kwargs = {
     'checkpoint_callback': False,
     # 'callbacks': EarlyStopping('train_loss', min_delta=1e-6, patience=10000, check_on_train_epoch_end=True),
     'default_root_dir': 'logs/learn',
-    'gpus': gpus,
+    'gpus': NUM_GPUS,
     # 'distributed_backend': 'ddp',
     # 'profiler': 'simple',
     # 'progress_bar_refresh_rate': 0,
@@ -199,13 +199,13 @@ valid_fwd = True
 
 
 algorithms = np.array([
-    # ('BB', partial(branch_bound, rng=seed), 1),
-    # ('BB_p', partial(branch_bound_priority, heuristic=methodcaller('roll_out', inplace=False, rng=seed)), 1),
+    # ('BB', partial(branch_bound, rng=SEED), 1),
+    # ('BB_p', partial(branch_bound_priority, heuristic=methodcaller('roll_out', inplace=False, rng=SEED)), 1),
     # ('BB_p_ERT', partial(branch_bound_priority, heuristic=methodcaller('earliest_release', inplace=False)), 1),
-    ('Random', partial(random_sequencer, rng=seed), 10),
+    ('Random', partial(random_sequencer, rng=SEED), 10),
     ('ERT', earliest_release, 10),
     *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, visit_threshold=t,
-                                      rng=seed), 10) for c, t in product([0], [5])),
+                                      rng=SEED), 10) for c, t in product([0], [5])),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
     # ('Torch Policy', TorchScheduler(env, model_torch, loss_func, optimizer, learn_params_torch, valid_fwd), 10),
     ('Lit Policy', LitScheduler(env, model_pl, pl_trainer_kwargs, learn_params_torch, valid_fwd), 10),
@@ -251,16 +251,6 @@ with open(log_path, 'a') as fid:
     print('## Results', file=fid)
 
 
-n_gen_total = n_gen + n_gen_learn
-if isinstance(problem_gen, problem_gens.Dataset):
-    if problem_gen.repeat:
-        if n_gen_total > problem_gen.n_problems:
-            raise ValueError("Dataset cannot generate enough unique problems.")
-    else:
-        if n_gen_total * n_mc > problem_gen.n_problems:
-            raise ValueError("Dataset cannot generate enough problems.")
-
-
 solve = True
 # solve = False
 
@@ -298,10 +288,10 @@ with open(log_path, 'a') as fid:
 #     return valid_wrapper
 
 
-# tf.random.set_seed(seed)
+# tf.random.set_seed(SEED)
 #
 # def _weight_init():
-#     return keras.initializers.GlorotUniform(seed)
+#     return keras.initializers.GlorotUniform(SEED)
 #
 #
 # layers = [

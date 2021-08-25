@@ -12,7 +12,7 @@ import pytorch_lightning as pl
 
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
 from task_scheduling.generators import problems as problem_gens
-from task_scheduling.util import evaluate_algorithms_train
+from task_scheduling.results import evaluate_algorithms_train
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.supervised.torch import LitScheduler
 
@@ -21,13 +21,13 @@ np.set_printoptions(precision=3)
 pd.options.display.float_format = '{:,.3f}'.format
 plt.style.use('seaborn')
 
-seed = 12345
+SEED = 12345
 
 
 #%% Define scheduling problem and algorithms
 
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=seed)
-problem_gen = problem_gens.Dataset.load('../data/schedules/discrete_relu_c1t8', shuffle=True, repeat=True, rng=seed)
+problem_gen = problem_gens.Dataset.load('../data/schedules/discrete_relu_c1t8', shuffle=True, repeat=True, rng=SEED)
 
 
 #%% Algorithms
@@ -79,22 +79,23 @@ class LitModule(pl.LightningModule):
         return optim.Adam(self.parameters(), lr=1e-3)
 
 
-learn_params_pl = {'batch_size_train': 20,
-                   'n_gen_val': 1/3,
-                   'batch_size_val': 30,
-                   'weight_func': None,
-                   'max_epochs': 40,
-                   'shuffle': True,
-                   'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=100)]
-                   }
+learn_params_pl = {
+    'batch_size_train': 20,
+    'n_gen_val': 1/3,
+    'batch_size_val': 30,
+    'weight_func': None,
+    'max_epochs': 40,
+    'shuffle': True,
+    'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=100)]
+}
 
 
 algorithms = np.array([
     # ('BB_p', partial(branch_bound_priority, heuristic=methodcaller('roll_out', inplace=False,
-    #                                                                rng=RNGMix.make_rng(seed))), 1),
-    ('Random', partial(random_sequencer, rng=seed), 10),
+    #                                                                rng=RNGMix.make_rng(SEED))), 1),
+    ('Random', partial(random_sequencer, rng=SEED), 10),
     ('ERT', earliest_release, 10),
-    *((f'MCTS: c={c}, t={t}', partial(mcts, runtime=.002, c_explore=c, visit_threshold=t, rng=seed), 10)
+    *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=.002, c_explore=c, visit_threshold=t, rng=SEED), 10)
       for c, t in product([.035], [15])),
     ('Lit Policy', LitScheduler(env, LitModule(), learn_params=learn_params_pl, valid_fwd=True), 10),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
