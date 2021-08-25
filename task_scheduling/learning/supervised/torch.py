@@ -15,7 +15,8 @@ from torch.utils.data import TensorDataset, DataLoader
 
 import pytorch_lightning as pl
 
-from task_scheduling.learning.base import Base as BaseLearningScheduler
+# from task_scheduling.learning.base import Base as BaseLearningScheduler
+from task_scheduling.learning.supervised.base import Base as BaseSupervisedScheduler
 from task_scheduling.learning.environments import StepTasking
 
 
@@ -34,7 +35,7 @@ def reset_weights(model):
         model.reset_parameters()
 
 
-class Base(BaseLearningScheduler):
+class Base(BaseSupervisedScheduler):
     _learn_params_default = {
         'batch_size_train': 1,
         'n_gen_val': 0,

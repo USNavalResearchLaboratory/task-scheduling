@@ -104,6 +104,7 @@ model_torch = TorchModule()
 loss_func = functional.cross_entropy
 # loss_func = functional.nll_loss
 
+# TODO: pass class and kwargs instead?
 optimizer = optim.Adam(model_torch.parameters(), lr=1e-3)
 
 
@@ -166,7 +167,7 @@ learn_params_torch = {
     'batch_size_val': 30,
     'weight_func': None,  # TODO: weighting based on loss value!?
     # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-    'max_epochs': 500,
+    'max_epochs': 50,
     'shuffle': True,
     # 'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=20)]
 }
@@ -207,7 +208,7 @@ algorithms = np.array([
     *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, visit_threshold=t,
                                       rng=SEED), 10) for c, t in product([0], [5])),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
-    # ('Torch Policy', TorchScheduler(env, model_torch, loss_func, optimizer, learn_params_torch, valid_fwd), 10),
+    ('Torch Policy', TorchScheduler(env, model_torch, loss_func, optimizer, learn_params_torch, valid_fwd), 10),
     ('Lit Policy', LitScheduler(env, model_pl, pl_trainer_kwargs, learn_params_torch, valid_fwd), 10),
     # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
