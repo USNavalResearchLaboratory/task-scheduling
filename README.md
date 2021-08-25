@@ -150,7 +150,6 @@ supervised learning policy. Also, note the structure of the `algorithms` array; 
 
 ```python
 from functools import partial
-from itertools import product
 # from operator import methodcaller
 
 import numpy as np
@@ -246,8 +245,7 @@ algorithms = np.array([
     #                                                                rng=RNGMix.make_rng(SEED))), 1),
     ('Random', partial(random_sequencer, rng=SEED), 10),
     ('ERT', earliest_release, 10),
-    *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=.002, c_explore=c, visit_threshold=t, rng=SEED), 10)
-      for c, t in product([.035], [15])),
+    ('MCTS', partial(mcts, max_runtime=1e-3, c_explore=.05, visit_threshold=5, rng=SEED), 10),
     ('Lit Policy', LitScheduler(env, LitModule(), learn_params=learn_params_pl, valid_fwd=True), 10),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 

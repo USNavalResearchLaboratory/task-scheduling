@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 from task_scheduling.base import RandomGeneratorMixin as RNGMix
 from task_scheduling.util import eval_wrapper, plot_schedule
 from task_scheduling.learning.base import Base as BaseLearningScheduler
+from task_scheduling.learning.supervised.base import Base as BaseSupervisedScheduler
 from task_scheduling.generators.problems import Dataset
 
 
@@ -109,8 +110,8 @@ def _scatter_results(t_run, l_ex, label='Results', do_relative=False):
         _scatter_loss_runtime(t_run[names], l_ex_rel[names],
                               ax=ax_results_rel,
                               ax_kwargs={'ylabel': 'Excess Loss',
-                                        # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
-                                        }
+                                         # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
+                                         }
                               )
 
 
@@ -282,9 +283,9 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, solve=False, verbo
 def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_mc=1, solve=False, verbose=0, plotting=0,
                               log_path=None):
 
-    if sum(isinstance(alg['func'], BaseLearningScheduler) for alg in algorithms) > 1:
-        raise NotImplementedError("Currently supports only a single learner. "
-                                  "See https://spork.nre.navy.mil/nrl-radar/CRM/task-scheduling/-/issues/8")
+    # if sum(isinstance(alg['func'], BaseLearningScheduler) for alg in algorithms) > 1:  # TODO
+    #     raise NotImplementedError("Currently supports only a single learner. "
+    #                               "See https://spork.nre.navy.mil/nrl-radar/CRM/task-scheduling/-/issues/8")
 
     reuse_data = False
     if isinstance(problem_gen, Dataset):
@@ -302,8 +303,11 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
     if solve:
         algorithms = _add_opt(algorithms)
 
-    l_ex_mc, t_run_mc = _empty_result(algorithms, n_mc), _empty_result(algorithms, n_mc)
+    learners = algorithms[[isinstance(alg['func'], BaseLearningScheduler) for alg in algorithms]]
+    supervised_learners = learners[[isinstance(alg['func'], BaseSupervisedScheduler) for alg in learners]]
+    _do_sl = bool(len(supervised_learners))
 
+    l_ex_mc, t_run_mc = _empty_result(algorithms, n_mc), _empty_result(algorithms, n_mc)
     for i_mc in range(n_mc):
         if verbose >= 1:
             print(f"Train/test iteration: {i_mc + 1}/{n_mc}")
@@ -315,11 +319,28 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
         # if isinstance(problem_gen, Dataset) and problem_gen.repeat:  # repeating `Dataset` problem generator
         #     problem_gen.shuffle()
 
+        # Get training problems, make solutions if needed for SL
+        out_gen = list(problem_gen(n_gen_learn, solve=_do_sl))
+        if _do_sl:
+            problems, solutions = zip(*out_gen)
+        else:
+            problems, solutions = out_gen, None
+
         # Reset/train supervised learners
-        for learner in algorithms['func']:
-            if isinstance(learner, BaseLearningScheduler):
-                learner.reset()
-                learner.learn(n_gen_learn, verbose=verbose - 1)  # calls `problem_gen` via environment `reset`
+        for learner in learners:
+            if verbose >= 2:
+                print(f"Training learner: {learner['name']}")
+
+            func = learner['func']
+            func.reset()
+            func.env.problem_gen = Dataset(problems, solutions)
+            func.learn(n_gen_learn, verbose=verbose - 1)  # calls `problem_gen` via environment `reset`
+
+        # # Reset/train supervised learners
+        # for learner in algorithms['func']:
+        #     if isinstance(learner, BaseLearningScheduler):
+        #         learner.reset()
+        #         learner.learn(n_gen_learn, verbose=verbose - 1)  # calls `problem_gen` via environment `reset`
 
         # Evaluate performance
         l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, solve,
