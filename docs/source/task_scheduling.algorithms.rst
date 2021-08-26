@@ -20,14 +20,6 @@ task\_scheduling.algorithms.ensemble module
    :undoc-members:
    :show-inheritance:
 
-task\_scheduling.algorithms.util module
----------------------------------------
-
-.. automodule:: task_scheduling.algorithms.util
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Module contents
 ---------------
 

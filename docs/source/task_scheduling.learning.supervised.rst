@@ -4,10 +4,10 @@ task\_scheduling.learning.supervised package
 Submodules
 ----------
 
-task\_scheduling.learning.supervised.tf module
-----------------------------------------------
+task\_scheduling.learning.supervised.base module
+------------------------------------------------
 
-.. automodule:: task_scheduling.learning.supervised.tf
+.. automodule:: task_scheduling.learning.supervised.base
    :members:
    :undoc-members:
    :show-inheritance:

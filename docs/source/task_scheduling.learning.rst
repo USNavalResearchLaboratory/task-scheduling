@@ -44,14 +44,6 @@ task\_scheduling.learning.reinforcement module
    :undoc-members:
    :show-inheritance:
 
-task\_scheduling.learning.spaces module
----------------------------------------
-
-.. automodule:: task_scheduling.learning.spaces
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Module contents
 ---------------
 
