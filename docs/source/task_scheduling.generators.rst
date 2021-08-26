@@ -4,18 +4,18 @@ task\_scheduling.generators package
 Submodules
 ----------
 
-task\_scheduling.generators.channel\_availabilities module
-----------------------------------------------------------
+task\_scheduling.generators.channels module
+-------------------------------------------
 
-.. automodule:: task_scheduling.generators.channel_availabilities
+.. automodule:: task_scheduling.generators.channels
    :members:
    :undoc-members:
    :show-inheritance:
 
-task\_scheduling.generators.scheduling\_problems module
--------------------------------------------------------
+task\_scheduling.generators.problems module
+-------------------------------------------
 
-.. automodule:: task_scheduling.generators.scheduling_problems
+.. automodule:: task_scheduling.generators.problems
    :members:
    :undoc-members:
    :show-inheritance:

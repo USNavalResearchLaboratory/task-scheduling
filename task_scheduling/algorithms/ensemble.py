@@ -1,4 +1,4 @@
-from util import evaluate_schedule
+from task_scheduling.util import evaluate_schedule
 
 
 def ensemble_scheduler(*schedulers):
