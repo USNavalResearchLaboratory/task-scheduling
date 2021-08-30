@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 from contextlib import contextmanager
 import pickle
+from warnings import warn
 
 import numpy as np
 import pandas as pd
@@ -202,7 +203,11 @@ def _set_algorithm_rng(algorithms, rng):
             if 'rng' in arg_names:  # algorithm takes `rng` argument, can be seeded
                 algorithm['func'].keywords['rng'] = rng
         else:
-            func_code = algorithm['func'].__code__
+            try:
+                func_code = algorithm['func'].__code__
+            except AttributeError:
+                warn(f"RNG cannot be set for algorithm: {algorithm['name']}")
+                continue
             arg_names = func_code.co_varnames[:func_code.co_argcount]
             if 'rng' in arg_names:  # algorithm takes `rng` argument, can be seeded
                 algorithm['func'] = partial(algorithm['func'])
@@ -432,7 +437,7 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
 
     # # Logging
     # message = f'- Seed = {rng}\n' \
-    #           f'- Test samples: {n_test}\n' \
+    #           f'- Training problems: {n_gen_learn}\n' \
     #           f'- MC iterations: {n_mc}'
     # if do_loss and print_loss:
     #     message += f"\n\n{_print_risk(predictors, params_full, n_train, loss_full)}"
