@@ -20,13 +20,13 @@ np.set_printoptions(precision=3)
 pd.options.display.float_format = '{:,.3f}'.format
 plt.style.use('seaborn')
 
-SEED = 12345
+seed = 12345
 
 
 #%% Define scheduling problem and algorithms
 
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=seed)
-problem_gen = problem_gens.Dataset.load('../data/schedules/discrete_relu_c1t8', shuffle=True, repeat=True, rng=SEED)
+problem_gen = problem_gens.Dataset.load('../data/schedules/discrete_relu_c1t8', shuffle=True, repeat=True, rng=seed)
 
 
 #%% Algorithms
@@ -91,10 +91,10 @@ learn_params_pl = {
 
 algorithms = np.array([
     # ('BB_p', partial(branch_bound_priority, heuristic=methodcaller('roll_out', inplace=False,
-    #                                                                rng=RNGMix.make_rng(SEED))), 1),
-    ('Random', partial(random_sequencer, rng=SEED), 10),
+    #                                                                rng=RNGMix.make_rng(seed))), 1),
+    ('Random', partial(random_sequencer, rng=seed), 10),
     ('ERT', earliest_release, 10),
-    ('MCTS', partial(mcts, max_runtime=1e-3, c_explore=.05, visit_threshold=5, rng=SEED), 10),
+    ('MCTS', partial(mcts, max_runtime=1e-3, c_explore=.05, visit_threshold=5, rng=seed), 10),
     ('Lit Policy', LitScheduler(env, LitModule(), learn_params=learn_params_pl, valid_fwd=True), 10),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 

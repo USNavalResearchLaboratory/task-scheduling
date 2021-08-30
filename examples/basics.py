@@ -6,11 +6,11 @@ from task_scheduling.util import summarize_tasks, plot_task_losses, plot_schedul
 
 plt.style.use('seaborn')
 
-SEED = 12345
+seed = 12345
 
 
 #%% Define scheduling problem
-task_gen = task_gens.ContinuousUniformIID.relu_drop(rng=SEED)
+task_gen = task_gens.ContinuousUniformIID.relu_drop(rng=seed)
 
 tasks = list(task_gen(8))
 ch_avail = [0., 0.5]
