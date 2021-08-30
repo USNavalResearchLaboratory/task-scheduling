@@ -97,7 +97,7 @@ format table provides the average values.
 
 ## Examples
 
-### Basics
+### Basics (`examples/basics.py`)
 The following example shows a single scheduling problem and solution. Tasks are created using one of the provided
 generators and a number of algorithms provide scheduling solutions. Built-in utilities help visualize the both the 
 problem and the various solutions.
@@ -139,7 +139,7 @@ for algorithm, ax in zip(algorithms, axes):
     plot_schedule(tasks, t_ex, ch_ex, l_ex=loss, ax=ax)
 ```
 
-### Policy learning and Monte Carlo assessment
+### Policy learning and Monte Carlo assessment (`examples/mc_assess.py`)
 The following example demonstrates the definition of a scheduling problem generator, the creation of a learning
 scheduler using PyTorch Lightning, and the comparison of traditional vs. learning schedulers using Monte Carlo
 evaluation.

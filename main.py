@@ -33,15 +33,15 @@ pd.options.display.float_format = '{:,.3f}'.format
 plt.style.use('seaborn')
 # plt.rc('axes', grid=True)
 
-NUM_GPUS = min(1, torch.cuda.device_count())
+gpus = min(1, torch.cuda.device_count())
 
 now = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
 
-# SEED = None
-SEED = 12345
+# seed = None
+seed = 12345
 
-if SEED is not None:
-    seed_everything(SEED)
+if seed is not None:
+    seed_everything(seed)
 
 # TODO: document class attributes, even if identical to init parameters?
 # TODO: document instantiation parameters under init or under the class def?
@@ -50,19 +50,30 @@ if SEED is not None:
 
 #%% Define scheduling problem and algorithms
 
-# problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=SEED)
-# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=SEED)
-# problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=SEED)
-# problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=SEED)
-# problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=SEED)
-# problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2), rng=SEED)
+# gens = {'discrete': problem_gens.Random.discrete_relu_drop,
+#         'continuous': problem_gens.Random.continuous_relu_drop}
+# for n_tasks in [12, 16]:
+#     for name, func in gens.items():
+#         save_path = f"data/schedules/{name}_relu_c2t{n_tasks}"
+#         gen = func(n_tasks=n_tasks, n_ch=2, rng=seed)
+#         list(gen(n_gen=1000, solve=True, verbose=1, save_path=save_path))
+# raise Exception
+
+# problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=seed)
+# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
+# problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
+# problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
+# problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
+# problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2), rng=seed)
 
 data_path = Path.cwd() / 'data'
 schedule_path = data_path / 'schedules'
 
-dataset = 'discrete_relu_c1t8'
+# dataset = 'discrete_relu_c1t8'
+# dataset = 'discrete_relu_c2t8'
 # dataset = 'continuous_relu_c1t8'
-problem_gen = problem_gens.Dataset.load(schedule_path / dataset, shuffle=True, repeat=True, rng=SEED)
+dataset = 'continuous_relu_c2t8'
+problem_gen = problem_gens.Dataset.load(schedule_path / dataset, shuffle=True, repeat=True, rng=seed)
 
 
 # Algorithms
@@ -153,9 +164,8 @@ model_pl = LitModule()
 pl_trainer_kwargs = {
     'logger': TensorBoardLogger('logs/learn/', name=now),
     'checkpoint_callback': False,
-    # 'callbacks': EarlyStopping('train_loss', min_delta=1e-6, patience=10000, check_on_train_epoch_end=True),
     'default_root_dir': 'logs/learn',
-    'gpus': NUM_GPUS,
+    'gpus': gpus,
     # 'distributed_backend': 'ddp',
     # 'profiler': 'simple',
     # 'progress_bar_refresh_rate': 0,
@@ -167,9 +177,9 @@ learn_params_torch = {
     'batch_size_val': 30,
     'weight_func': None,  # TODO: weighting based on loss value!?
     # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-    'max_epochs': 50,
+    'max_epochs': 500,
     'shuffle': True,
-    # 'callbacks': [pl.callbacks.EarlyStopping('val_loss', min_delta=0., patience=20)]
+    'callbacks': EarlyStopping('val_loss', min_delta=0., patience=50),
 }
 
 valid_fwd = True
@@ -196,19 +206,17 @@ valid_fwd = True
 # FIXME: no faster on GPU!?!? CHECK batch size effects!
 # FIXME: INVESTIGATE huge PyTorch speed-up over Tensorflow!!
 
-# TODO: show value of valid-action network vs `mask_probability` hack!?
-
 
 algorithms = np.array([
-    # ('BB', partial(branch_bound, rng=SEED), 1),
-    # ('BB_p', partial(branch_bound_priority, heuristic=methodcaller('roll_out', inplace=False, rng=SEED)), 1),
+    # ('BB', partial(branch_bound, rng=seed), 1),
+    # ('BB_p', partial(branch_bound_priority, heuristic=methodcaller('roll_out', inplace=False, rng=seed)), 1),
     # ('BB_p_ERT', partial(branch_bound_priority, heuristic=methodcaller('earliest_release', inplace=False)), 1),
-    ('Random', partial(random_sequencer, rng=SEED), 10),
+    ('Random', partial(random_sequencer, rng=seed), 10),
     ('ERT', earliest_release, 10),
     *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, visit_threshold=t,
-                                      rng=SEED), 10) for c, t in product([0], [5])),
+                                      rng=seed), 10) for c, t in product([0], [5])),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
-    ('Torch Policy', TorchScheduler(env, model_torch, loss_func, optimizer, learn_params_torch, valid_fwd), 10),
+    # ('Torch Policy', TorchScheduler(env, model_torch, loss_func, optimizer, learn_params_torch, valid_fwd), 10),
     ('Lit Policy', LitScheduler(env, model_pl, pl_trainer_kwargs, learn_params_torch, valid_fwd), 10),
     # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
@@ -222,6 +230,7 @@ n_mc = 1  # the number of Monte Carlo iterations performed for scheduler assessm
 
 
 # TODO: generate multiple channel results!!
+# TODO: show value of valid-action network vs `mask_probability` hack!?
 
 
 # TODO: generate new, larger datasets
@@ -234,7 +243,7 @@ n_mc = 1  # the number of Monte Carlo iterations performed for scheduler assessm
 log_path = 'logs/temp/PGR_results.md'
 # log_path = 'logs/discrete_relu_c1t8.md'
 
-image_path = f'images/temp/{now}'
+img_path = f'images/temp/{now}'
 
 learners = algorithms[[isinstance(alg['func'], BaseLearningScheduler) for alg in algorithms]]
 with open(log_path, 'a') as fid:
@@ -265,9 +274,9 @@ np.savez(data_path / f'results/temp/{now}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
 
 fig_name = 'Train' if n_mc > 1 else 'Gen'
 fig_name += ' (Relative)'
-plt.figure(fig_name).savefig(image_path)
+plt.figure(fig_name).savefig(img_path)
 with open(log_path, 'a') as fid:
-    print(f"![](../../{image_path}.png)\n", file=fid)
+    print(f"![](../../{img_path}.png)\n", file=fid)
 
 
 #%% Deprecated
@@ -291,10 +300,10 @@ with open(log_path, 'a') as fid:
 #     return valid_wrapper
 
 
-# tf.random.set_seed(SEED)
+# tf.random.set_seed(seed)
 #
 # def _weight_init():
-#     return keras.initializers.GlorotUniform(SEED)
+#     return keras.initializers.GlorotUniform(seed)
 #
 #
 # layers = [
