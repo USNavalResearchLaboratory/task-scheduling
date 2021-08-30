@@ -1,4 +1,9 @@
 from functools import partial
+import logging
+import sys
+from pathlib import Path
+from contextlib import contextmanager
+import pickle
 
 import numpy as np
 import pandas as pd
@@ -12,8 +17,54 @@ from task_scheduling.generators.problems import Dataset
 
 
 OPT_NAME = 'BB Optimal'
+PICKLE_FIGS = True
 
 
+#%% Logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+out_handler = logging.StreamHandler(stream=sys.stdout)
+out_formatter = logging.Formatter('\n%(message)s\n')
+out_handler.setFormatter(out_formatter)
+logger.addHandler(out_handler)
+
+
+@contextmanager
+def _file_logger(file, file_format):
+    if file is not None:
+        file = Path(file)
+        file.parent.mkdir(exist_ok=True)
+
+        file_handler = logging.FileHandler(file)
+        file_formatter = logging.Formatter(file_format, datefmt='%Y-%m-%d %H:%M:%S')
+        file_handler.setFormatter(file_formatter)
+        logger.addHandler(file_handler)
+        yield logger
+        logger.removeHandler(file_handler)
+    else:
+        yield logger
+
+
+def _log_and_fig(message, log_path, ax, img_path):
+    file_format = '\n# %(asctime)s\n%(message)s\n'
+    if img_path is not None:
+        img_path = Path(img_path)
+        img_path.parent.mkdir(exist_ok=True)
+
+        file_format += f"\n![]({img_path.absolute().as_posix()})\n"
+
+        fig = ax.figure
+        fig.savefig(img_path)
+        if PICKLE_FIGS:
+            mpl_file = img_path.parent / f"{img_path.stem}.mpl"
+            with open(mpl_file, 'wb') as fid:
+                pickle.dump(fig, fid)
+
+    with _file_logger(log_path, file_format) as logger_:
+        logger_.info(message)
+
+
+#%%
 def _scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
     """
     Scatter plot of total execution loss versus runtime.
@@ -142,18 +193,36 @@ def _print_averages(l_ex, t_run, log_path=None, do_relative=False):
             print(df_str, end='\n\n', file=fid)
 
 
+def _set_algorithm_rng(algorithms, rng):
+    """Makes algorithms into `functools.partial` objects, overwrites any existing `rng` arguments."""
+    for algorithm in algorithms:
+        if isinstance(algorithm['func'], partial):
+            func_code = algorithm['func'].func.__code__
+            arg_names = func_code.co_varnames[:func_code.co_argcount]
+            if 'rng' in arg_names:  # algorithm takes `rng` argument, can be seeded
+                algorithm['func'].keywords['rng'] = rng
+        else:
+            func_code = algorithm['func'].__code__
+            arg_names = func_code.co_varnames[:func_code.co_argcount]
+            if 'rng' in arg_names:  # algorithm takes `rng` argument, can be seeded
+                algorithm['func'] = partial(algorithm['func'])
+                algorithm['func'].keywords['rng'] = rng
+
+
 def _seed_to_rng(algorithms):
     """Convert algorithm `rng` arguments to NumPy `Generator` objects. Repeated calls to algorithms will use the RNG
     in-place, avoiding exact reproduction and ensuring new output for Monte Carlo evaluation."""
-    for algorithm in algorithms:
-        func = algorithm['func']
+    for func in algorithms['func']:
         if isinstance(func, partial) and 'rng' in func.keywords:
             func.keywords['rng'] = RNGMix.make_rng(func.keywords['rng'])
 
 
 #%% Algorithm evaluation
-def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0, plotting=0, log_path=None):
+def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0, plotting=0, log_path=None, rng=None):
 
+    # RNG control
+    if rng is not None:
+        _set_algorithm_rng(algorithms, rng)
     _seed_to_rng(algorithms)
 
     solve = solution_opt is not None
@@ -211,7 +280,8 @@ def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0
     return l_ex_iter, t_run_iter
 
 
-def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0, log_path=None):
+def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0, log_path=None,
+                            rng=None):
     """
     Compare scheduling algorithms for numerous sets of tasks and channel availabilities.
 
@@ -231,6 +301,8 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, solve=False, verbo
         Plotting level. '0' plots nothing, '1' plots average results, '2 plots every problem, '3' plots every iteration.
     log_path : PathLike, optional
         File path for logging of algorithm performance.
+    rng : int or RandomState or Generator, optional
+            NumPy random number generator or seed. Instance RNG if None.
 
     Returns
     -------
@@ -246,6 +318,13 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, solve=False, verbo
         # warn(f"Dataset cannot generate requested number of unique problems. Argument `n_gen` reduced to {n_gen}")
         raise ValueError(f"Dataset cannot generate requested number of unique problems.")
 
+    # RNG control
+    if rng is not None:
+        problem_gen.rng = rng
+        if isinstance(problem_gen, Dataset):
+            problem_gen.shuffle()
+
+        _set_algorithm_rng(algorithms, rng)
     _seed_to_rng(algorithms)
 
     if solve:
@@ -261,8 +340,7 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, solve=False, verbo
         else:
             problem, solution_opt = out_gen, None
 
-        l_ex_iter, t_run_iter = evaluate_algorithms_single(algorithms, problem, solution_opt, verbose - 1,
-                                                           plotting - 1)
+        l_ex_iter, t_run_iter = evaluate_algorithms_single(algorithms, problem, solution_opt, verbose - 1, plotting - 1)
         l_ex_mean[i_gen], t_run_mean[i_gen] = map(_iter_to_mean, (l_ex_iter, t_run_iter))
 
     # Results
@@ -281,11 +359,7 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, solve=False, verbo
 
 
 def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_mc=1, solve=False, verbose=0, plotting=0,
-                              log_path=None):
-
-    # if sum(isinstance(alg['func'], BaseLearningScheduler) for alg in algorithms) > 1:  # TODO
-    #     raise NotImplementedError("Currently supports only a single learner. "
-    #                               "See https://spork.nre.navy.mil/nrl-radar/CRM/task-scheduling/-/issues/8")
+                              log_path=None, rng=None):
 
     reuse_data = False
     if isinstance(problem_gen, Dataset):
@@ -298,6 +372,13 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
             if n_gen_total * n_mc > problem_gen.n_problems:
                 raise ValueError("Dataset cannot generate enough problems.")
 
+    # RNG control
+    if rng is not None:
+        problem_gen.rng = rng
+        if isinstance(problem_gen, Dataset):
+            problem_gen.shuffle()
+
+        _set_algorithm_rng(algorithms, rng)
     _seed_to_rng(algorithms)
 
     if solve:
@@ -314,10 +395,6 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
 
         if reuse_data:
             problem_gen.shuffle()  # random train/test split
-
-        # if hasattr(problem_gen, 'repeat') and problem_gen.repeat:  # repeating `Dataset` problem generator
-        # if isinstance(problem_gen, Dataset) and problem_gen.repeat:  # repeating `Dataset` problem generator
-        #     problem_gen.shuffle()
 
         # Get training problems, make solutions if needed for SL
         out_gen = list(problem_gen(n_gen_learn, solve=_do_sl))
@@ -336,15 +413,9 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
             func.env.problem_gen = Dataset(problems, solutions)
             func.learn(n_gen_learn, verbose=verbose - 1)  # calls `problem_gen` via environment `reset`
 
-        # # Reset/train supervised learners
-        # for learner in algorithms['func']:
-        #     if isinstance(learner, BaseLearningScheduler):
-        #         learner.reset()
-        #         learner.learn(n_gen_learn, verbose=verbose - 1)  # calls `problem_gen` via environment `reset`
-
         # Evaluate performance
-        l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, solve,
-                                                        verbose - 1, plotting - 1)
+        l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, solve, verbose - 1,
+                                                        plotting - 1)
         l_ex_mc[i_mc], t_run_mc[i_mc] = _struct_mean(l_ex_mean), _struct_mean(t_run_mean)
 
     # Results
@@ -358,5 +429,14 @@ def evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=1, n_m
             print(f'- n_mc = {n_mc}\n- n_gen = {n_gen}', end='\n\n')
 
         _print_averages(l_ex_mc, t_run_mc, log_path, do_relative=solve)
+
+    # # Logging
+    # message = f'- Seed = {rng}\n' \
+    #           f'- Test samples: {n_test}\n' \
+    #           f'- MC iterations: {n_mc}'
+    # if do_loss and print_loss:
+    #     message += f"\n\n{_print_risk(predictors, params_full, n_train, loss_full)}"
+    #
+    # _log_and_fig(message, log_path, plt.gca(), img_path)
 
     return l_ex_mc, t_run_mc

@@ -71,8 +71,8 @@ schedule_path = data_path / 'schedules'
 
 # dataset = 'discrete_relu_c1t8'
 # dataset = 'discrete_relu_c2t8'
-# dataset = 'continuous_relu_c1t8'
-dataset = 'continuous_relu_c2t8'
+dataset = 'continuous_relu_c1t8'
+# dataset = 'continuous_relu_c2t8'
 problem_gen = problem_gens.Dataset.load(schedule_path / dataset, shuffle=True, repeat=True, rng=seed)
 
 
@@ -208,16 +208,16 @@ valid_fwd = True
 
 
 algorithms = np.array([
-    # ('BB', partial(branch_bound, rng=seed), 1),
+    # ('BB', branch_bound, 1),
     # ('BB_p', partial(branch_bound_priority, heuristic=methodcaller('roll_out', inplace=False, rng=seed)), 1),
     # ('BB_p_ERT', partial(branch_bound_priority, heuristic=methodcaller('earliest_release', inplace=False)), 1),
-    ('Random', partial(random_sequencer, rng=seed), 10),
+    ('Random', random_sequencer, 10),
     ('ERT', earliest_release, 10),
-    *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, visit_threshold=t,
-                                      rng=seed), 10) for c, t in product([0], [5])),
+    *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, visit_threshold=t), 10)
+      for c, t in product([0], [5])),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
     # ('Torch Policy', TorchScheduler(env, model_torch, loss_func, optimizer, learn_params_torch, valid_fwd), 10),
-    ('Lit Policy', LitScheduler(env, model_pl, pl_trainer_kwargs, learn_params_torch, valid_fwd), 10),
+    # ('Lit Policy', LitScheduler(env, model_pl, pl_trainer_kwargs, learn_params_torch, valid_fwd), 10),
     # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
@@ -267,7 +267,7 @@ solve = True
 # solve = False
 
 l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=n_gen, n_mc=n_mc, solve=solve,
-                                              verbose=2, plotting=2, log_path=log_path)
+                                              verbose=2, plotting=2, log_path=log_path, rng=seed)
 
 
 np.savez(data_path / f'results/temp/{now}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
