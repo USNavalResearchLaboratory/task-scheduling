@@ -132,3 +132,96 @@ class Queue(Base):      # TODO: deprecate in favor of generators.tasks.Dataset?
         df = pd.DataFrame({name: [getattr(task, name) for task in self.queue]
                            for name in self._cls_task.param_names})
         print(df)
+
+
+# class Dataset(Base):
+#     def __init__(self, problems, solutions=None, shuffle=False, repeat=False, task_gen=None, ch_avail_gen=None,
+#                  rng=None):
+#
+#         n_tasks = len(problems[0].tasks)
+#         n_ch = len(problems[0].ch_avail)
+#
+#         super().__init__(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
+#
+#         self.problems = deque()  # TODO: single deque?
+#         self.solutions = deque()
+#         self.add_problems(problems, solutions)
+#
+#         if shuffle:
+#             self.shuffle()
+#
+#         self.repeat = repeat
+#
+#     n_problems = property(lambda self: len(self.problems))
+#
+#     @classmethod
+#     def load(cls, file_path, shuffle=False, repeat=False, rng=None):
+#         """Load problems/solutions from memory."""
+#
+#         with Path(file_path).open(mode='rb') as fid:
+#             dict_gen = dill.load(fid)
+#
+#         args = [dict_gen['problems']]
+#         if 'solutions' in dict_gen.keys():
+#             args.append(dict_gen['solutions'])
+#         kwargs = {'shuffle': shuffle, 'repeat': repeat, 'task_gen': dict_gen['task_gen'],
+#                   'ch_avail_gen': dict_gen['ch_avail_gen'], 'rng': rng}
+#         return cls(*args, **kwargs)
+#
+#     def pop_dataset(self, n, shuffle=False, repeat=False, rng=None):
+#         """Create a new Dataset from elements of own queue."""
+#
+#         if isinstance(n, float):  # interpret as fraction of total problems
+#             n *= self.n_problems
+#
+#         problems = [self.problems.pop() for __ in range(n)]
+#         solutions = [self.solutions.pop() for __ in range(n)]
+#         return Dataset(problems, solutions, shuffle, repeat, self.task_gen, self.ch_avail_gen, rng)
+#
+#     def add_problems(self, problems, solutions=None):
+#         """Add problems and solutions to the data set."""
+#
+#         self.problems.extendleft(problems)
+#
+#         if solutions is None:
+#             solutions = [None for __ in range(len(problems))]
+#         elif len(solutions) != len(problems):
+#             raise ValueError("Number of solutions must equal the number of problems.")
+#
+#         self.solutions.extendleft(solutions)
+#
+#     def shuffle(self, rng=None):
+#         """Shuffle problems and solutions in-place."""
+#
+#         rng = self._get_rng(rng)
+#
+#         _temp = np.array(list(zip(self.problems, self.solutions)), dtype=object)
+#         _p, _s = zip(*rng.permutation(_temp).tolist())
+#         self.problems, self.solutions = deque(_p), deque(_s)
+#
+#     def _gen_problem(self, rng):
+#         """Return a single scheduling problem (and optional solution)."""
+#         if self.n_problems == 0:
+#             raise ValueError("Problem generator data has been exhausted.")
+#
+#         problem = self.problems.pop()
+#         self._solution_i = self.solutions.pop()
+#
+#         if self.repeat:
+#             self.problems.appendleft(problem)
+#             self.solutions.appendleft(self._solution_i)
+#
+#         return problem
+#
+#     def _gen_solution(self, problem, verbose=False):
+#         if self._solution_i is not None:
+#             return self._solution_i
+#         else:  # use B&B solver
+#             solution = super()._gen_solution(problem, verbose)
+#             if self.repeat:  # store result
+#                 self.solutions[0] = solution  # at index 0 after `appendleft` in `_gen_problem`
+#             return solution
+#
+#     def summary(self, file=None):
+#         super().summary(file)
+#         print(f"Number of problems: {self.n_problems}\n", file=file)
