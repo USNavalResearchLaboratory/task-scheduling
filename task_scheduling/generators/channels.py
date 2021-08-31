@@ -24,9 +24,8 @@ class Base(RandomGeneratorMixin, ABC):
     def __call__(self, n_ch, rng=None):
         raise NotImplementedError
 
-    def summary(self, file=None):
-        # print(f"Channel: Base{self.lims}\n", file=file)
-        pass
+    def summary(self):
+        return f"Channel: {str(self)}"
 
 
 class BaseIID(Base, ABC):
@@ -52,8 +51,8 @@ class UniformIID(BaseIID):
         else:
             return NotImplemented
 
-    def summary(self, file=None):
-        print(f"Channel: UniformIID{self.lims}\n", file=file)
+    def summary(self):
+        return f"Channel: UniformIID{self.lims}"
 
 
 class Deterministic(Base):
@@ -73,5 +72,5 @@ class Deterministic(Base):
         ch_avail_gen = UniformIID(lims, rng=rng)
         return cls(ch_avail=list(ch_avail_gen(n_ch)))
 
-    def summary(self, file=None):
-        print(f"Channel: Deterministic{self.ch_avail}\n", file=file)
+    def summary(self):
+        return f"Channel: Deterministic{self.ch_avail}"

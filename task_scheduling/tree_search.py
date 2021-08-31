@@ -61,16 +61,11 @@ class ScheduleNode(RandomGeneratorMixin):
         else:
             return NotImplemented
 
-    def summary(self, file=None):
+    def summary(self):
         """Print a string describing important node attributes."""
         keys = ('seq', 't_ex', 'ch_ex', 'l_ex')
         df = pd.Series({key: getattr(self, key) for key in keys})
-        print(df.to_markdown(tablefmt='github', floatfmt='.3f'), file=file)
-
-        # str_out = f'ScheduleNode\n- sequence: {self.seq}\n- execution times: {self.t_ex}' \
-        #           f'\n- execution channels: {self.ch_ex}\n- loss incurred: {self.l_ex:.3f}'
-        # print(str_out)
-        # return str_out
+        return df.to_markdown(tablefmt='github', floatfmt='.3f')
 
     tasks = property(lambda self: self._tasks)
     ch_avail = property(lambda self: self._ch_avail)

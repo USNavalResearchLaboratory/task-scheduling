@@ -20,7 +20,7 @@ from stable_baselines3.common.env_checker import check_env
 
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
 from task_scheduling.generators import problems as problem_gens
-from task_scheduling.results import evaluate_algorithms_train
+from task_scheduling.results import evaluate_algorithms_train, evaluate_algorithms_gen
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 # from task_scheduling.learning.supervised._tf import keras, Scheduler as tfScheduler
@@ -69,9 +69,9 @@ if seed is not None:
 data_path = Path.cwd() / 'data'
 schedule_path = data_path / 'schedules'
 
-# dataset = 'discrete_relu_c1t8'
+dataset = 'discrete_relu_c1t8'
 # dataset = 'discrete_relu_c2t8'
-dataset = 'continuous_relu_c1t8'
+# dataset = 'continuous_relu_c1t8'
 # dataset = 'continuous_relu_c2t8'
 problem_gen = problem_gens.Dataset.load(schedule_path / dataset, shuffle=True, repeat=True, rng=seed)
 
@@ -177,7 +177,7 @@ learn_params_torch = {
     'batch_size_val': 30,
     'weight_func': None,  # TODO: weighting based on loss value!?
     # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-    'max_epochs': 500,
+    'max_epochs': 50,
     'shuffle': True,
     'callbacks': EarlyStopping('val_loss', min_delta=0., patience=50),
 }
@@ -217,7 +217,7 @@ algorithms = np.array([
       for c, t in product([0], [5])),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
     # ('Torch Policy', TorchScheduler(env, model_torch, loss_func, optimizer, learn_params_torch, valid_fwd), 10),
-    # ('Lit Policy', LitScheduler(env, model_pl, pl_trainer_kwargs, learn_params_torch, valid_fwd), 10),
+    ('Lit Policy', LitScheduler(env, model_pl, pl_trainer_kwargs, learn_params_torch, valid_fwd), 10),
     # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
@@ -243,40 +243,22 @@ n_mc = 1  # the number of Monte Carlo iterations performed for scheduler assessm
 log_path = 'logs/temp/PGR_results.md'
 # log_path = 'logs/discrete_relu_c1t8.md'
 
-img_path = f'images/temp/{now}'
+img_path = f'images/temp/{now}.png'
 
-learners = algorithms[[isinstance(alg['func'], BaseLearningScheduler) for alg in algorithms]]
-with open(log_path, 'a') as fid:
-    print(f"\n# {now}\n", file=fid)
 
-    # print(f"Problem gen: ", end='', file=fid)
-    # problem_gen.summary(fid)
-
-    if len(learners) > 0:
-        print(f"Training problems = {n_gen_learn}\n", file=fid)
-
-        print(f"## Learners\n", file=fid)
-        for learner in learners:
-            print(f"### {learner['name']}", file=fid)
-            learner['func'].summary(fid)
-
-    print('## Results', file=fid)
-
+# TODO: summary cleanup
 
 solve = True
 # solve = False
 
-l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=n_gen, n_mc=n_mc, solve=solve,
-                                              verbose=2, plotting=2, log_path=log_path, rng=seed)
+l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve,
+                                                verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
+
+# l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve,
+#                                               verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
 
 
-np.savez(data_path / f'results/temp/{now}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
-
-fig_name = 'Train' if n_mc > 1 else 'Gen'
-fig_name += ' (Relative)'
-plt.figure(fig_name).savefig(img_path)
-with open(log_path, 'a') as fid:
-    print(f"![](../../{img_path}.png)\n", file=fid)
+# np.savez(data_path / f'results/temp/{now}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
 
 
 #%% Deprecated

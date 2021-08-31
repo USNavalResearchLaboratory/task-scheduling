@@ -56,7 +56,7 @@ class Base(RandomGeneratorMixin, ABC):
             Enables generation of Branch & Bound optimal solutions.
         verbose : int, optional
             Progress print-out level. '0' is silent, '1' prints iteration number, '2' prints solver progress.
-        save_path : PathLike, optional
+        save_path : os.PathLike or str, optional
             File path for saving data.
         rng : int or RandomState or Generator, optional
             NumPy random number generator or seed. Instance RNG if None.
@@ -128,7 +128,7 @@ class Base(RandomGeneratorMixin, ABC):
             Named tuple with fields 'tasks' and 'ch_avail'.
         solutions : Sequence of SchedulingSolution
             Named tuple with fields 't_ex', 'ch_ex', and 't_run'.
-        file_path : PathLike, optional
+        file_path : os.PathLike or str, optional
             File location relative to data/schedules/
 
         """
@@ -188,17 +188,18 @@ class Base(RandomGeneratorMixin, ABC):
         else:
             return NotImplemented
 
-    def summary(self, file=None):
+    def summary(self):
         cls_str = self.__class__.__name__
 
         plural_ = 's' if self.n_ch > 1 else ''
-        str_ = f"{cls_str}\n---\n{self.n_ch} channel{plural_}, {self.n_tasks} tasks\n"
-        print(str_, file=file)
+        str_ = f"{cls_str}\n---\n{self.n_ch} channel{plural_}, {self.n_tasks} tasks"
 
         if self.ch_avail_gen is not None:
-            self.ch_avail_gen.summary(file)
+            str_ += '\n\n' + self.ch_avail_gen.summary()
         if self.task_gen is not None:
-            self.task_gen.summary(file)
+            str_ += '\n\n' + self.task_gen.summary()
+
+        return str_
 
 
 class Random(Base):
@@ -423,6 +424,7 @@ class Dataset(Base):
                 self.stack[0] = (_last_problem, solution)  # at index 0 after `appendleft` in `_gen_problem`
             return solution
 
-    def summary(self, file=None):
-        super().summary(file)
-        print(f"Number of problems: {self.n_problems}\n", file=file)
+    def summary(self):
+        str_ = super().summary()
+        str_ += f"\n\n- Number of problems: {self.n_problems}"
+        return str_

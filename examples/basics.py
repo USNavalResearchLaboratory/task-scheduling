@@ -15,7 +15,7 @@ task_gen = task_gens.ContinuousUniformIID.relu_drop(rng=seed)
 tasks = list(task_gen(8))
 ch_avail = [0., 0.5]
 
-summarize_tasks(tasks)
+print(summarize_tasks(tasks))
 plot_task_losses(tasks)
 
 

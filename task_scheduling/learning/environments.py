@@ -80,20 +80,13 @@ class BaseTasking(Env, ABC):
             _status = f'{len(self.node.seq)}/{self.n_tasks} Tasks Scheduled'
         return f"{self.__class__.__name__}({_status})"
 
-    def _base_summary(self):
-        cls_str = self.__class__.__name__
-        # str_ = f"{cls_str}\n---\n"
-        str_ = f"{cls_str}"
+    def summary(self):
+        str_ = f"{self.__class__.__name__}"
         str_ += f"\n- Features: {self.features['name'].tolist()}"
         str_ += f"\n- Sorting: {self._sort_func_str}"
         str_ += f"\n- Task shifting: {self.time_shift}"
         str_ += f"\n- Masking: {self.masking}"
         return str_
-
-    def summary(self, file=None):
-        print(self._base_summary(), file=file, end='\n\n')
-        # if print_gen:
-        #     self.problem_gen.summary(file)
 
     @property
     def sorted_index(self):
@@ -429,11 +422,10 @@ class SeqTasking(BaseTasking):
                                                              shape=(self.n_tasks, len(self.features)))
         self.action_space = self._action_space_map(self.n_tasks)
 
-    def summary(self, file=None):
-        # super().summary(file)
-        str_ = self._base_summary()
+    def summary(self):
+        str_ = super().summary()
         str_ += f"\n- Action type: {self.action_type}"
-        print(str_, file=file, end='\n\n')
+        return str_
 
     @property
     def state(self):
@@ -558,12 +550,11 @@ class StepTasking(BaseTasking):
         else:
             self.action_space = Discrete(self.n_tasks)
 
-    def summary(self, file=None):
-        # super().summary(file)
-        str_ = self._base_summary()
+    def summary(self):
+        str_ = super().summary()
         str_ += f"\n- Action type: {self.action_type}"
         str_ += f"\n- Sequence encoding: {self._seq_encode_str}"
-        print(str_, file=file, end='\n\n')
+        return str_
 
     @property
     def state(self):

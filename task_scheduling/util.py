@@ -8,12 +8,19 @@ from matplotlib import pyplot as plt
 from task_scheduling.base import SchedulingSolution
 
 
-def summarize_tasks(tasks, file=None, **tabulate_kwargs):
+def summarize_tasks(tasks, **tabulate_kwargs):
     """Create and print a Pandas DataFrame detailing tasks."""
-    df = pd.DataFrame([task.to_series() for task in tasks])
-    tabulate_kwargs_ = {'tablefmt': 'github', 'floatfmt': '.3f'}
-    tabulate_kwargs_.update(tabulate_kwargs)
-    print(df.to_markdown(**tabulate_kwargs_), file=file)
+    cls_task = tasks[0].__class__
+    if all(isinstance(task, cls_task) for task in tasks[1:]):
+        df = pd.DataFrame([task.to_series() for task in tasks])
+        tabulate_kwargs_ = {'tablefmt': 'github', 'floatfmt': '.3f'}
+        tabulate_kwargs_.update(tabulate_kwargs)
+        str_ = f"{cls_task.__name__}\n{df.to_markdown(**tabulate_kwargs_)}"
+    else:
+        str_ = '\n'.join(task.summary() for task in tasks)
+
+    return str_
+    # print(, file=file)
 
 
 def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):

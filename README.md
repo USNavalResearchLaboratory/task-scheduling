@@ -120,7 +120,7 @@ task_gen = task_gens.ContinuousUniformIID.relu_drop(rng=seed)
 tasks = list(task_gen(8))
 ch_avail = [0., 0.5]
 
-summarize_tasks(tasks)
+print(summarize_tasks(tasks))
 plot_task_losses(tasks)
 
 
@@ -254,6 +254,6 @@ algorithms = np.array([
 n_gen_learn = 900  # the number of problems generated for learning, per iteration
 n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
-l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, n_gen_learn, problem_gen, n_gen=n_gen, n_mc=n_mc, solve=True,
-                                              verbose=2, plotting=2, log_path=None)
+l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc,
+                                              solve=True, verbose=1, plotting=1)
 ```

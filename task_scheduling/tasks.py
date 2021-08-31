@@ -50,17 +50,11 @@ class Base(ABC):
     def to_series(self, **kwargs):
         return pd.Series(self.params, **kwargs)
 
-    def summary(self, file=None):
+    def summary(self):
         """Print a string listing task parameters."""
-        print(self.to_series(name='value').to_markdown(tablefmt='github', floatfmt='.3f'), file=file)
-
-        # cls_str = self.__class__.__name__
-        #
-        # param_str = [f"- {name}: {val}" for name, val in self.params.items()]
-        # str_out = '\n'.join([cls_str] + param_str)
-        #
-        # print(str_out)
-        # return str_out
+        str_ = f"{self.__class__.__name__}"
+        str_ += '\n' + self.to_series(name='value').to_markdown(tablefmt='github', floatfmt='.3f')
+        return str_
 
     # def feature_gen(self, *funcs):
     #     """Generate features from input functions. Defaults to the parametric representation."""

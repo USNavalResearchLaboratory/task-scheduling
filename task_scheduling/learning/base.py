@@ -93,20 +93,30 @@ class Base(ABC):
     def reset(self, *args, **kwargs):
         raise NotImplementedError
 
-    def summary(self, file=None):
-        print('Env: ', end='', file=file)
-        # self.env.summary(file)
-        self._print_env(file)
-        # print('Model\n---\n```', file=file)
-        print('Model:\n```', file=file)
-        self._print_model(file)
-        print('```', end='\n\n', file=file)
+    def summary(self):
+        out = "Env:" \
+              f"\n{self._print_env()}" \
+              f"\n\nModel:" \
+              f"\n```" \
+              f"\n{self._print_model()}" \
+              f"\n```"
 
-    def _print_env(self, file=None):
+        return out
+
+    def _print_env(self):
         if isinstance(self.env, BaseTasking):
-            self.env.summary(file)
+            return self.env.summary()
         else:
-            print(self.env, file=file)
+            return str(self.env)
 
-    def _print_model(self, file=None):
-        print(self.model, file=file)
+    def _print_model(self):
+        return str(self.model)
+
+    # def _print_env(self, file=None):
+    #     if isinstance(self.env, BaseTasking):
+    #         self.env.summary(file)
+    #     else:
+    #         print(self.env, file=file)
+    #
+    # def _print_model(self, file=None):
+    #     print(self.model, file=file)

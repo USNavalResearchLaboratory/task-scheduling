@@ -51,9 +51,9 @@ class Base(RandomGeneratorMixin, ABC):
         """Yield tasks."""
         raise NotImplementedError
 
-    def summary(self, file=None):
+    def summary(self):
         cls_str = self.__class__.__name__
-        print(f"{cls_str}\n---", file=file)
+        return f"{cls_str}\n---"
 
 
 class BaseIID(Base, ABC):
@@ -131,15 +131,16 @@ class ContinuousUniformIID(BaseIID):
         else:
             return NotImplemented
 
-    def summary(self, file=None):
-        super().summary(file)
+    def summary(self):
+        str_ = super().summary()
+        str_ += f"\nTask class: {self.cls_task.__name__}"
 
         df = pd.DataFrame({name: self.param_lims[name] for name in self.cls_task.param_names},
                           index=pd.CategoricalIndex(['low', 'high']))
         df_str = df.to_markdown(tablefmt='github', floatfmt='.3f')
 
-        str_ = f"Task class: {self.cls_task.__name__}\n\n{df_str}\n"
-        print(str_, file=file)
+        str_ += f"\n\n{df_str}"
+        return str_
 
     @classmethod
     def relu_drop(cls, duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
@@ -184,28 +185,16 @@ class DiscreteIID(BaseIID):
         else:
             return NotImplemented
 
-    def summary(self, file=None):
-        super().summary(file)
-
-        str_ = f"Task class: {self.cls_task.__name__}\n\n"
+    def summary(self):
+        str_ = super().summary()
+        str_ += f"\nTask class: {self.cls_task.__name__}"
         for name in self.cls_task.param_names:
             # s = pd.Series(self.param_probs[name], name='Pr')
             # s = pd.DataFrame(self.param_probs[name], index=pd.CategoricalIndex(['Pr']))
             s = pd.DataFrame({name: self.param_probs[name].keys(), 'Pr': self.param_probs[name].values()})
-            str_ += s.to_markdown(tablefmt='github', floatfmt='.3f', index=False) + "\n\n"
+            str_ += f"\n\n{s.to_markdown(tablefmt='github', floatfmt='.3f', index=False)}"
 
-        print(str_, file=file, end='')
-
-        # print(f"Task class: {self.cls_task.__name__}")
-        # for name in self.cls_task.param_names:
-        #     print(f"\n{name}:")
-        #     # s = pd.Series(self.param_probs[name], name='Pr')
-        #     s = pd.DataFrame(self.param_probs[name], index=pd.CategoricalIndex(['Pr']))
-        #     print(s.to_markdown(tablefmt='github', floatfmt='.3f', index=False))
-
-        # df = pd.DataFrame({name: self.param_lims[name] for name in self.cls_task.param_names},
-        #                   index=pd.CategoricalIndex(['low', 'high']))
-        # print(df.to_markdown(tablefmt='github', floatfmt='.3f'))
+        return str_
 
     @classmethod
     def relu_drop_uniform(cls, duration_vals=(3, 6), t_release_vals=(0, 4), slope_vals=(0.5, 2), t_drop_vals=(6, 12),
@@ -270,12 +259,13 @@ class SearchTrackIID(BaseIID):
         else:
             return NotImplemented
 
-    def summary(self, file=None):
-        super().summary(file)
-        str_ = f'Release time limits: {self.t_release_lim}'
+    def summary(self):
+        str_ = super().summary()
+        str_ += f'\nRelease time limits: {self.t_release_lim}'
         df = pd.Series(dict(zip(self.targets.keys(), self.probs)), name='Pr')
         df_str = df.to_markdown(tablefmt='github', floatfmt='.3f')
-        print(f"{str_}\n\n{df_str}\n", file=file)
+        str_ += f"\n\n{df_str}"
+        return str_
 
 
 class Fixed(Base, ABC):
