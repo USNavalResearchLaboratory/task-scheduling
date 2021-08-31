@@ -390,6 +390,20 @@ class LitScheduler(Base):
         })
         self.trainer = pl.Trainer(**self.trainer_kwargs)
 
+    @classmethod
+    def from_env_mlp(cls, hidden_layer_sizes, problem_gen, env_cls=StepTasking, env_params=None, lit_mlp_kwargs=None,
+                     trainer_kwargs=None, learn_params=None, valid_fwd=True):
+        if env_params is None:
+            env_params = {}
+        env = env_cls(problem_gen, **env_params)
+
+        _layer_sizes = [np.prod(env.observation_space.shape).item(), *hidden_layer_sizes, env.action_space.n]
+        if lit_mlp_kwargs is None:
+            lit_mlp_kwargs = {}
+        model = LitMLP(_layer_sizes, **lit_mlp_kwargs)
+
+        return cls(env, model, trainer_kwargs, learn_params, valid_fwd)
+
     def reset(self):
         super().reset()
         self.trainer = pl.Trainer(**deepcopy(self.trainer_kwargs))
