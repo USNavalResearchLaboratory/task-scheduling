@@ -35,6 +35,58 @@ def reset_weights(model):
         model.reset_parameters()
 
 
+def _build_torch_mlp(layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_layer=nn.Softmax(dim=1)):
+    layers = []
+    if start_layer is not None:
+        layers.append(start_layer)
+    for in_out in zip(layer_sizes[:-1], layer_sizes[1:]):
+        layers.append(nn.Linear(*in_out))
+        layers.append(activation)
+    layers.pop()
+    if end_layer is not None:
+        layers.append(end_layer)
+    return nn.Sequential(*layers)
+
+
+class LitMLP(pl.LightningModule):
+    def __init__(self, layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_layer=nn.Softmax(dim=1),
+                 loss_func=functional.cross_entropy, optim_cls=torch.optim.Adam, optim_params=None):
+        super().__init__()
+
+        self.model = _build_torch_mlp(layer_sizes, activation, start_layer, end_layer)
+        self.loss_func = loss_func
+        self.optim_cls = optim_cls
+        if optim_params is None:
+            optim_params = {}
+        self.optim_params = optim_params
+
+    # @classmethod
+    # def build_mlp(cls, layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_layer=nn.Softmax(dim=1),
+    #               loss_func=functional.cross_entropy, optim_cls=torch.optim.Adam, optim_params=None):
+    #     model = _build_torch_mlp(layer_sizes, activation, start_layer, end_layer)
+    #     return cls(model, loss_func, optim_cls, optim_params)
+
+    def forward(self, x):
+        return self.model(x)
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self(x)
+        loss = self.loss_func(y_hat, y)
+        self.log('train_loss', loss)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self(x)
+        loss = self.loss_func(y_hat, y)
+        self.log('val_loss', loss)
+        return loss
+
+    def configure_optimizers(self):
+        return self.optim_cls(self.parameters(), **self.optim_params)
+
+
 class Base(BaseSupervisedScheduler):
     _learn_params_default = {
         'batch_size_train': 1,

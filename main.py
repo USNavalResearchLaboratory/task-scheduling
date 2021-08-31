@@ -24,7 +24,7 @@ from task_scheduling.results import evaluate_algorithms_train, evaluate_algorith
 from task_scheduling.learning import environments as envs
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 # from task_scheduling.learning.supervised._tf import keras, Scheduler as tfScheduler
-from task_scheduling.learning.supervised.torch import TorchScheduler, LitScheduler
+from task_scheduling.learning.supervised.torch import TorchScheduler, LitScheduler, LitMLP
 from task_scheduling.learning.reinforcement import StableBaselinesScheduler
 
 
@@ -73,7 +73,7 @@ dataset = 'discrete_relu_c1t8'
 # dataset = 'discrete_relu_c2t8'
 # dataset = 'continuous_relu_c1t8'
 # dataset = 'continuous_relu_c2t8'
-problem_gen = problem_gens.Dataset.load(schedule_path / dataset, shuffle=True, repeat=True, rng=seed)
+problem_gen = problem_gens.Dataset.load(schedule_path / dataset, repeat=True)
 
 
 # Algorithms
@@ -119,47 +119,10 @@ loss_func = functional.cross_entropy
 optimizer = optim.Adam(model_torch.parameters(), lr=1e-3)
 
 
-class LitModule(pl.LightningModule):
-    def __init__(self):
-        super().__init__()
+# loss_func, end_layer = functional.nll_loss, nn.LogSoftmax(dim=1)
+_layer_sizes = [np.prod(env.observation_space.shape).item(), 30, 30, env.action_space.n]
+model_pl = LitMLP(_layer_sizes, optim_params={'lr': 1e-3})
 
-        self.model = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(np.prod(env.observation_space.shape).item(), 30),
-            nn.ReLU(),
-            nn.Linear(30, 30),
-            nn.ReLU(),
-            nn.Linear(30, env.action_space.n),
-            nn.Softmax(dim=1),
-            # nn.LogSoftmax(dim=1),
-        )
-
-        self.loss_func = functional.cross_entropy
-        # self.loss_func = functional.nll_loss
-
-    def forward(self, x):
-        return self.model(x)
-
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
-        loss = self.loss_func(y_hat, y)
-        self.log('train_loss', loss)
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
-        loss = self.loss_func(y_hat, y)
-        self.log('val_loss', loss)
-        return loss
-
-    def configure_optimizers(self):
-        return optim.Adam(self.parameters(), lr=1e-3)
-        # return optim.SGD(self.parameters(), lr=1e-2)
-
-
-model_pl = LitModule()
 
 pl_trainer_kwargs = {
     'logger': TensorBoardLogger('logs/learn/', name=now),
@@ -177,7 +140,7 @@ learn_params_torch = {
     'batch_size_val': 30,
     'weight_func': None,  # TODO: weighting based on loss value!?
     # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-    'max_epochs': 50,
+    'max_epochs': 500,
     'shuffle': True,
     'callbacks': EarlyStopping('val_loss', min_delta=0., patience=50),
 }
@@ -251,11 +214,11 @@ img_path = f'images/temp/{now}.png'
 solve = True
 # solve = False
 
-l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve,
-                                                verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
+# l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve,
+#                                                 verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
 
-# l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve,
-#                                               verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
+l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve,
+                                              verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
 
 
 # np.savez(data_path / f'results/temp/{now}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
