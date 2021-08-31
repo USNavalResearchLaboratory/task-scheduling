@@ -8,7 +8,7 @@ from copy import deepcopy
 import numpy as np
 
 import torch
-from torch import nn
+from torch import nn, optim
 from torch.nn import functional
 
 from torch.utils.data import TensorDataset, DataLoader
@@ -271,7 +271,8 @@ class Base(BaseSupervisedScheduler):
 
 
 class TorchScheduler(Base):
-    def __init__(self, env, model, loss_func, optimizer, learn_params=None, valid_fwd=True):
+    def __init__(self, env, model, loss_func, optim_cls=optim.Adam, optim_params=None, learn_params=None,
+                 valid_fwd=True):
         """
         Base class for pure PyTorch-based schedulers.
 
@@ -282,7 +283,10 @@ class TorchScheduler(Base):
         model : torch.nn.Module
             The PyTorch network.
         loss_func : callable
-        optimizer : torch.optim.Optimizer
+        optim_cls : class, optional
+            Optimizer class from `torch.nn.optim`.
+        optim_params : dict, optional
+            Arguments for optimizer instantiation.
         learn_params : dict, optional
             Parameters used by the `learn` method.
         valid_fwd : bool, optional
@@ -294,7 +298,10 @@ class TorchScheduler(Base):
 
         # self.model = model.to(device)
         self.loss_func = loss_func
-        self.optimizer = optimizer
+        # self.optimizer = optimizer
+        if optim_params is None:
+            optim_params = {}
+        self.optimizer = optim_cls(self.model.parameters(), **optim_params)
 
     def _fit(self, dl_train, dl_val, verbose=0):
         if verbose >= 1:

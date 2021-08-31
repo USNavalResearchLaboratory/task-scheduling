@@ -327,21 +327,6 @@ def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0
     if verbose >= 1:
         _log_helper(problem, learners, l_ex_iter, t_run_iter, solve, log_path, ax, img_path, rng)
 
-        # message = f'- Seed = {rng}'
-        #
-        # # message += f"\n\n## Problem:\n{problem_gen.summary()}"
-        #
-        # if len(learners) > 0:
-        #     message += "\n\n## Learners"
-        #     for learner in learners:
-        #         message += f"\n\n### {learner['name']}"
-        #         message += f"\n{learner['func'].summary()}"
-        #
-        # message += '\n\n## Results'
-        # message += f"\n{_print_averages(l_ex_iter, l_ex_iter, do_relative=solve)}"
-        #
-        # _log_and_fig(message, log_path, ax, img_path)
-
     return l_ex_iter, t_run_iter
 
 
@@ -448,22 +433,6 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, n_gen_learn=0, sol
     if verbose >= 1:
         _log_helper(problem_gen, learners, l_ex_mean, t_run_mean, solve, log_path, ax, img_path, rng, n_gen_learn)
 
-        # message = f'- Seed = {rng}\n' \
-        #           f'- Training problems: {n_gen_learn}'
-        #
-        # # message += f"\n\n## Problem:\n{problem_gen.summary()}"
-        #
-        # if len(learners) > 0:
-        #     message += "\n\n## Learners"
-        #     for learner in learners:
-        #         message += f"\n\n### {learner['name']}"
-        #         message += f"\n{learner['func'].summary()}"
-        #
-        # message += '\n\n## Results'
-        # message += f"\n{_print_averages(l_ex_mean, t_run_mean, do_relative=solve)}"
-        #
-        # _log_and_fig(message, log_path, ax, img_path)
-
     return l_ex_mean, t_run_mean
 
 
@@ -538,7 +507,7 @@ def evaluate_algorithms_train(algorithms, problem_gen, n_gen=1, n_gen_learn=0, n
         print("\nPerforming Monte Carlo assessment...")
     for i_mc in range(n_mc):
         if verbose >= 1:
-            print(f"  train/test iteration: {i_mc + 1}/{n_mc}")
+            print(f"  Train/test iteration: {i_mc + 1}/{n_mc}")
 
         if reuse_data:
             problem_gen.shuffle()  # random train/test split
@@ -558,22 +527,5 @@ def evaluate_algorithms_train(algorithms, problem_gen, n_gen=1, n_gen_learn=0, n
     # Logging
     if verbose >= 1:
         _log_helper(problem_gen, learners, l_ex_mc, t_run_mc, solve, log_path, ax, img_path, rng, n_gen_learn, n_mc)
-
-        # message = f'- Seed = {rng}\n' \
-        #           f'- Training problems: {n_gen_learn}\n' \
-        #           f'- MC iterations: {n_mc}'
-        #
-        # # message += f"\n\n## Problem:\n{problem_gen.summary()}"
-        #
-        # if len(learners) > 0:
-        #     message += "\n\n## Learners"
-        #     for learner in learners:
-        #         message += f"\n\n### {learner['name']}"
-        #         message += f"\n{learner['func'].summary()}"
-        #
-        # message += '\n\n## Results'
-        # message += f"\n{_print_averages(l_ex_mc, t_run_mc, do_relative=solve)}"
-        #
-        # _log_and_fig(message, log_path, ax, img_path)
 
     return l_ex_mc, t_run_mc

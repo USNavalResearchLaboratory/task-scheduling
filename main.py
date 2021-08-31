@@ -115,8 +115,7 @@ model_torch = TorchModule()
 loss_func = functional.cross_entropy
 # loss_func = functional.nll_loss
 
-# TODO: pass class and kwargs instead?
-optimizer = optim.Adam(model_torch.parameters(), lr=1e-3)
+optim_cls, optim_params = optim.Adam, {'lr': 1e-3}
 
 
 # loss_func, end_layer = functional.nll_loss, nn.LogSoftmax(dim=1)
@@ -179,7 +178,8 @@ algorithms = np.array([
     *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, visit_threshold=t), 10)
       for c, t in product([0], [5])),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
-    # ('Torch Policy', TorchScheduler(env, model_torch, loss_func, optimizer, learn_params_torch, valid_fwd), 10),
+    ('Torch Policy', TorchScheduler(env, model_torch, loss_func, optim_cls, optim_params, learn_params_torch,
+                                    valid_fwd), 10),
     ('Lit Policy', LitScheduler(env, model_pl, pl_trainer_kwargs, learn_params_torch, valid_fwd), 10),
     # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
@@ -209,16 +209,14 @@ log_path = 'logs/temp/PGR_results.md'
 img_path = f'images/temp/{now}.png'
 
 
-# TODO: summary cleanup
-
 solve = True
 # solve = False
 
-# l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve,
-#                                                 verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
+l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve,
+                                                verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
 
-l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve,
-                                              verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
+# l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve,
+#                                               verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
 
 
 # np.savez(data_path / f'results/temp/{now}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
