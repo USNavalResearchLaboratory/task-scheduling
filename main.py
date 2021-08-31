@@ -1,7 +1,6 @@
 from functools import partial
 from itertools import product
 from pathlib import Path
-from datetime import datetime
 # from functools import wraps
 # from operator import methodcaller
 
@@ -12,20 +11,18 @@ from matplotlib import pyplot as plt
 import torch
 from torch import nn, optim
 from torch.nn import functional
-import pytorch_lightning as pl
 from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import EarlyStopping
-from stable_baselines3.common.env_checker import check_env
+# from stable_baselines3.common.env_checker import check_env
 
+from task_scheduling.base import get_now
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
 from task_scheduling.generators import problems as problem_gens
 from task_scheduling.results import evaluate_algorithms_train, evaluate_algorithms_gen
 from task_scheduling.learning import environments as envs
-from task_scheduling.learning.base import Base as BaseLearningScheduler
-# from task_scheduling.learning.supervised._tf import keras, Scheduler as tfScheduler
 from task_scheduling.learning.supervised.torch import TorchScheduler, LitScheduler, LitMLP
-from task_scheduling.learning.reinforcement import StableBaselinesScheduler
+# from task_scheduling.learning.reinforcement import StableBaselinesScheduler
 
 
 np.set_printoptions(precision=3)
@@ -35,7 +32,7 @@ plt.style.use('seaborn')
 
 gpus = min(1, torch.cuda.device_count())
 
-now = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
+now = get_now()
 
 # seed = None
 seed = 12345
@@ -176,11 +173,11 @@ algorithms = np.array([
     ('Random', random_sequencer, 10),
     ('ERT', earliest_release, 10),
     *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, visit_threshold=t), 10)
-      for c, t in product([0], [5])),
+      for c, t in product([0], [5, 10])),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
-    ('Torch Policy', TorchScheduler(env, model_torch, loss_func, optim_cls, optim_params, learn_params_torch,
-                                    valid_fwd), 10),
-    ('Lit Policy', LitScheduler(env, model_pl, pl_trainer_kwargs, learn_params_torch, valid_fwd), 10),
+    # ('Torch Policy', TorchScheduler(env, model_torch, loss_func, optim_cls, optim_params, learn_params_torch,
+    #                                 valid_fwd), 10),
+    # ('Lit Policy', LitScheduler(env, model_pl, pl_trainer_kwargs, learn_params_torch, valid_fwd), 10),
     # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
@@ -209,13 +206,13 @@ log_path = 'logs/temp/PGR_results.md'
 img_path = f'images/temp/{now}.png'
 
 
-solve = True
-# solve = False
+# FIXME: import new `LitScheduler` constructors from `mc_assess`
+# TODO: update README code
 
-l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve,
+l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve=True,
                                                 verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
 
-# l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve,
+# l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
 #                                               verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
 
 

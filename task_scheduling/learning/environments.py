@@ -40,7 +40,7 @@ class BaseTasking(Env, ABC):
         if features is not None:
             self.features = features
         else:
-            self.features = param_features(self.problem_gen, time_shift, masking)
+            self.features = param_features(self.problem_gen.task_gen, time_shift, masking)
 
         # Set sorting method
         if callable(sort_func):
@@ -562,7 +562,7 @@ class StepTasking(BaseTasking):
         state_seq = np.array([self.seq_encoding(n) for n in self.sorted_index])
         return np.concatenate((state_seq, self.state_tasks), axis=1)
 
-    def make_mask(self, obs):  # TODO: make method private?
+    def make_mask(self, obs):
         state_seq = obs[..., :self.len_seq_encode]
         return state_seq.sum(axis=-1)
 

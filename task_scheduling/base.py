@@ -1,10 +1,15 @@
 from collections import namedtuple
+from datetime import datetime
 
 import numpy as np
 
 
 SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
 SchedulingSolution = namedtuple('SchedulingSolution', ['t_ex', 'ch_ex', 'l_ex', 't_run'], defaults=(None, None))
+
+
+def get_now():
+    return datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
 
 
 class RandomGeneratorMixin:

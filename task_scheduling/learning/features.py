@@ -49,13 +49,13 @@ def _as_box(space):
     return Box(low, high, shape=space.shape, dtype=float)
 
 
-def param_features(problem_gen, time_shift=False, masking=False):
+def param_features(task_gen, time_shift=False, masking=False):
     """
-    Create array of parameter features from parameter spaces.
+    Create array of parameter features from task parameter spaces.
 
     Parameters
     ----------
-    problem_gen : generators.problems.Base
+    task_gen : generators.tasks.Base
         Scheduling problem generation object.
     time_shift : bool, optional
         Enables modification of feature `space` to reflect shifted parameters.
@@ -69,13 +69,13 @@ def param_features(problem_gen, time_shift=False, masking=False):
 
     """
 
-    if time_shift and issubclass(problem_gen.task_gen.cls_task, Shift):
-        shift_params = problem_gen.task_gen.cls_task.shift_params
+    if time_shift and issubclass(task_gen.cls_task, Shift):
+        shift_params = task_gen.cls_task.shift_params
     else:
         shift_params = ()
 
     data = []
-    for name, space in problem_gen.task_gen.param_spaces.items():
+    for name, space in task_gen.param_spaces.items():
         if masking:
             space = _add_zero(space)
         if name in shift_params:
