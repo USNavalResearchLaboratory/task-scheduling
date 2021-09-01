@@ -493,13 +493,17 @@ class StepTasking(BaseTasking):
         super().__init__(problem_gen, features, sort_func, time_shift, masking)
 
         # Action types
-        self.action_type = action_type  # FIXME: deprecate once RL algorithms are successfully integrated
-        if self.action_type == 'valid':
-            self.do_valid_actions = True
-        elif self.action_type == 'any':
-            self.do_valid_actions = False
-        else:
-            raise ValueError("Action type must be 'valid' or 'any'.")
+        # FIXME: deprecate once RL algorithms are successfully integrated
+        if action_type != 'valid':
+            raise NotImplementedError("Action type must be `valid`, all others deprecated.")
+        self.do_valid_actions = True
+        # self.action_type = action_type
+        # if self.action_type == 'valid':
+        #     self.do_valid_actions = True
+        # elif self.action_type == 'any':
+        #     self.do_valid_actions = False
+        # else:
+        #     raise ValueError("Action type must be 'valid' or 'any'.")
 
         # Set sequence encoder method
         if seq_encoding is None:
@@ -552,7 +556,7 @@ class StepTasking(BaseTasking):
 
     def summary(self):
         str_ = super().summary()
-        str_ += f"\n- Action type: {self.action_type}"
+        # str_ += f"\n- Action type: {self.action_type}"
         str_ += f"\n- Sequence encoding: {self._seq_encode_str}"
         return str_
 

@@ -82,7 +82,6 @@ env_params = {
     'time_shift': True,
     # 'masking': False,
     'masking': True,
-    'action_type': 'valid',
     'seq_encoding': 'one-hot',
 }
 

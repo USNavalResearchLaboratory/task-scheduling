@@ -35,7 +35,6 @@ env_params = {
     'sort_func': 't_release',
     'time_shift': True,
     'masking': True,
-    'action_type': 'valid',
     'seq_encoding': 'one-hot',
 }
 
