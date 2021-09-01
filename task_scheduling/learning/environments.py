@@ -467,7 +467,7 @@ class SeqTasking(BaseTasking):
 
 class StepTasking(BaseTasking):
     def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='valid',
-                 seq_encoding=None):
+                 seq_encoding='one-hot'):
         """Tasking environment with actions of single task indices.
 
         Parameters
