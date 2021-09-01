@@ -567,6 +567,9 @@ class StepTasking(BaseTasking):
         return np.concatenate((state_seq, self.state_tasks), axis=1)
 
     def make_mask(self, obs):
+        if self.len_seq_encode == 0:
+            raise ValueError("Cannot infer valid actions without encoding sequence into the state.")
+
         state_seq = obs[..., :self.len_seq_encode]
         return state_seq.sum(axis=-1)
 

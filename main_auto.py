@@ -62,6 +62,8 @@ learn_params = {
 
 lit_mlp_kwargs = {'optim_params': {'lr': 1e-3}}
 
+valid_fwd = True
+
 
 #
 layer_sizes_set = [
@@ -136,13 +138,14 @@ env_params_set = [
     },
 ]
 
+
 #%%
 n_gen_learn = 900  # the number of problems generated for learning, per iteration
 n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
 
 
-# TODO: show value of valid-action network vs `mask_probability` hack!?
+# TODO: show value of valid-action network vs `mask_probability` hack!? Write it up!
 # TODO: try CNN with/without sorting!
 
 # TODO: see if `seq_encoding` and `masking` helps with/without sorting!?
@@ -153,7 +156,7 @@ datasets = [
     'discrete_relu_c1t8',
     'continuous_relu_c1t8',
     'discrete_relu_c2t8',
-    'continuous_relu_c2t8'
+    'continuous_relu_c2t8',
 ]
 for dataset in datasets:
     log_path = f'logs/temp/{dataset}.md'
@@ -169,9 +172,11 @@ for dataset in datasets:
         lit_scheduler = LitScheduler.from_env_mlp(layer_sizes, problem_gen, env_params=env_params,
                                                   lit_mlp_kwargs=lit_mlp_kwargs,
                                                   trainer_kwargs=trainer_kwargs, learn_params=learn_params,
-                                                  valid_fwd=True)
+                                                  valid_fwd=valid_fwd)
 
-        algorithms_data.append((f"Lit Policy: Env {i_env}, MLP {'-'.join(map(str, layer_sizes))}", lit_scheduler, 10))
+        net_str = str(i_net)
+        # net_str = '-'.join(map(str, layer_sizes))
+        algorithms_data.append((f"Policy: Env {i_env}, MLP {net_str}", lit_scheduler, 10))
 
     algorithms_learn = np.array(algorithms_data, dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
     algorithms = np.concatenate((algorithms_base, algorithms_learn))
