@@ -115,7 +115,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
     #         save_path = f"temp/{cls_str}_{NOW_STR}"
     #
     #     save_path = Path.cwd() / 'agents' / save_path
-    #     save_path.parent.mkdir(exist_ok=True)
+    #     save_path.parent.mkdir(parents=True, exist_ok=True)
     #
     #     self.model.save(str(save_path))
     #

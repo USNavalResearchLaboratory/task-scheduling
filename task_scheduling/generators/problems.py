@@ -171,7 +171,7 @@ class Base(RandomGeneratorMixin, ABC):
                     save_dict['solutions'] = [None for __ in range(len(save_dict['problems']))] + load_dict['solutions']
 
         except FileNotFoundError:
-            file_path.parent.mkdir(exist_ok=True)
+            file_path.parent.mkdir(parents=True, exist_ok=True)
 
         with file_path.open(mode='wb') as fid:
             dill.dump(save_dict, fid)  # save schedules
