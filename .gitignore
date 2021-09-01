@@ -1,6 +1,6 @@
 ### Project files
-data/schedules/temp/
-data/results/temp/
+data/schedules/temp
+data/results/temp
 images/temp
 logs/temp
 logs/learn

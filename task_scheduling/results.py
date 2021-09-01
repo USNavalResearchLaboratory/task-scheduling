@@ -64,6 +64,31 @@ def _log_and_fig(message, log_path, ax, img_path):
         logger_.info(message)
 
 
+def _log_helper(problem_obj, learners, l_ex, t_run, solve, log_path, ax, img_path, rng, n_gen_learn=None, n_mc=None):
+    message = f'- Seed = {rng}'
+    if n_gen_learn is not None:
+        message += f'\n- Training problems: {n_gen_learn}'
+    if n_mc is not None:
+        message += f'\n- MC iterations: {n_mc}'
+
+    if isinstance(problem_obj, BaseProblemGenerator):
+        # message += f"\n\n## Problem:\n{problem_obj.summary()}"
+        pass
+    else:
+        message += f"\n\n## Problem:\n{problem_obj}"
+
+    if len(learners) > 0:
+        message += "\n\n## Learners"
+        for learner in learners:
+            message += f"\n\n### {learner['name']}"
+            message += f"\n{learner['func'].summary()}"
+
+    message += '\n\n## Results'
+    message += f"\n{_print_averages(l_ex, t_run, do_relative=solve)}"
+
+    _log_and_fig(message, log_path, ax, img_path)
+
+
 #%%
 def _scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
     """
@@ -221,31 +246,6 @@ def _seed_to_rng(algorithms):
     for func in algorithms['func']:
         if isinstance(func, partial) and 'rng' in func.keywords:
             func.keywords['rng'] = RNGMix.make_rng(func.keywords['rng'])
-
-
-def _log_helper(problem_obj, learners, l_ex, t_run, solve, log_path, ax, img_path, rng, n_gen_learn=None, n_mc=None):
-    message = f'- Seed = {rng}'
-    if n_gen_learn is not None:
-        message += f'\n- Training problems: {n_gen_learn}'
-    if n_mc is not None:
-        message += f'\n- MC iterations: {n_mc}'
-
-    if isinstance(problem_obj, BaseProblemGenerator):
-        # message += f"\n\n## Problem:\n{problem_obj.summary()}"
-        pass
-    else:
-        message += f"\n\n## Problem:\n{problem_obj}"
-
-    if len(learners) > 0:
-        message += "\n\n## Learners"
-        for learner in learners:
-            message += f"\n\n### {learner['name']}"
-            message += f"\n{learner['func'].summary()}"
-
-    message += '\n\n## Results'
-    message += f"\n{_print_averages(l_ex, t_run, do_relative=solve)}"
-
-    _log_and_fig(message, log_path, ax, img_path)
 
 
 #%% Algorithm evaluation

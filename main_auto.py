@@ -26,14 +26,23 @@ gpus = min(1, torch.cuda.device_count())
 
 now = get_now()
 
+
 # seed = None
 seed = 12345
 
 if seed is not None:
-    seed_everything(seed)
+    seed_everything(seed)  # TODO: doesn't guarantee reproducibility of PL learners if reordered
 
 
 #%% Algorithms
+algorithms_base = np.array([
+    ('Random', random_sequencer, 10),
+    ('ERT', earliest_release, 10),
+    *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c,
+                                      visit_threshold=t), 10)
+      for c, t in product([0], [5, 10])),
+], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
+
 
 trainer_kwargs = {
     'logger': TensorBoardLogger('logs/learn/', name=now),
@@ -53,67 +62,124 @@ learn_params = {
 
 lit_mlp_kwargs = {'optim_params': {'lr': 1e-3}}
 
+
 #
+layer_sizes_set = [
+    [30],
+    [30, 30],
+    [30, 30, 30],
+    [100],
+    [100, 100],
+    [100, 100, 100],
+]
+
 env_params_set = [
     {
-        'features': None,  # defaults to task parameters
         'sort_func': None,
-        # 'sort_func': 't_release',
         'time_shift': False,
-        # 'time_shift': True,
         'masking': False,
-        # 'masking': True,
-        'action_type': 'valid',
-        'seq_encoding': 'one-hot',
     },
     {
-        'features': None,  # defaults to task parameters
-        # 'sort_func': None,
         'sort_func': 't_release',
-        # 'time_shift': False,
+        'time_shift': False,
+        'masking': False,
+    },
+    {
+        'sort_func': 'duration',
+        'time_shift': False,
+        'masking': False,
+    },
+    {
+        'sort_func': None,
         'time_shift': True,
-        # 'masking': False,
+        'masking': False,
+    },
+    {
+        'sort_func': 't_release',
+        'time_shift': True,
+        'masking': False,
+    },
+    {
+        'sort_func': 'duration',
+        'time_shift': True,
+        'masking': False,
+    },
+    {
+        'sort_func': None,
+        'time_shift': False,
         'masking': True,
-        'action_type': 'valid',
-        'seq_encoding': 'one-hot',
+    },
+    {
+        'sort_func': 't_release',
+        'time_shift': False,
+        'masking': True,
+    },
+    {
+        'sort_func': 'duration',
+        'time_shift': False,
+        'masking': True,
+    },
+    {
+        'sort_func': None,
+        'time_shift': True,
+        'masking': True,
+    },
+    {
+        'sort_func': 't_release',
+        'time_shift': True,
+        'masking': True,
+    },
+    {
+        'sort_func': 'duration',
+        'time_shift': True,
+        'masking': True,
     },
 ]
 
-
+#%%
 n_gen_learn = 900  # the number of problems generated for learning, per iteration
 n_gen = 100  # the number of problems generated for testing, per iteration
-n_mc = 1  # the number of Monte Carlo iterations performed for scheduler assessment
+n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
+
+
+# TODO: show value of valid-action network vs `mask_probability` hack!?
+# TODO: try CNN with/without sorting!
+
+# TODO: see if `seq_encoding` and `masking` helps with/without sorting!?
 
 
 schedule_path = Path.cwd() / 'data' / 'schedules'
-
-datasets = ['discrete_relu_c1t8']
-# datasets = ['discrete_relu_c1t8', 'continuous_relu_c1t8', 'discrete_relu_c2t8', 'continuous_relu_c2t8']
+datasets = [
+    'discrete_relu_c1t8',
+    'continuous_relu_c1t8',
+    'discrete_relu_c2t8',
+    'continuous_relu_c2t8'
+]
 for dataset in datasets:
+    log_path = f'logs/temp/{dataset}.md'
+    img_path = f"images/temp/{dataset}/{now}.png"
+
     problem_gen = problem_gens.Dataset.load(schedule_path / dataset, repeat=True)
 
-    log_path = f'logs/{dataset}.md'
-    for env_params in env_params_set:
-        img_path = f'images/{dataset}/{now}.png'
+    algorithms_data = []
+    for (i_env, env_params), (i_net, layer_sizes) in product(enumerate(env_params_set), enumerate(layer_sizes_set)):
+        if seed is not None:
+            seed_everything(seed)
 
-        lit_scheduler = LitScheduler.from_env_mlp([30, 30], problem_gen, env_params=env_params,
+        lit_scheduler = LitScheduler.from_env_mlp(layer_sizes, problem_gen, env_params=env_params,
                                                   lit_mlp_kwargs=lit_mlp_kwargs,
                                                   trainer_kwargs=trainer_kwargs, learn_params=learn_params,
                                                   valid_fwd=True)
 
-        algorithms = np.array([
-            ('Random', random_sequencer, 10),
-            ('ERT', earliest_release, 10),
-            *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c,
-                                              visit_threshold=t), 10)
-              for c, t in product([0], [5, 10])),
-            ('Lit Policy', lit_scheduler, 10),
-        ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
+        algorithms_data.append((f"Lit Policy: Env {i_env}, MLP {'-'.join(map(str, layer_sizes))}", lit_scheduler, 10))
 
-        l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve=True,
-                                                        verbose=1, plotting=1, log_path=log_path, img_path=img_path,
-                                                        rng=seed)
-        #
-        # l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
-        #                                               verbose=1, plotting=1, log_path=log_path, img_path=img_path,
-        #                                               rng=seed)
+    algorithms_learn = np.array(algorithms_data, dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
+    algorithms = np.concatenate((algorithms_base, algorithms_learn))
+
+    l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve=True,
+                                                    verbose=1, plotting=1, log_path=log_path, img_path=img_path,
+                                                    rng=seed)
+
+    # l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
+    #                                               verbose=1, plotting=1, log_path=log_path, img_path=img_path,
+    #                                               rng=seed)

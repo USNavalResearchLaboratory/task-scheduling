@@ -196,18 +196,15 @@ n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 1  # the number of Monte Carlo iterations performed for scheduler assessment
 
 
-# TODO: generate multiple channel results!!
-# TODO: show value of valid-action network vs `mask_probability` hack!?
-
-
 # TODO: generate new, larger datasets
 # TODO: try making new features
+# TODO: sample weighting based on `len(seq_rem)`?
 
 # TODO: avoid state correlation? Do Env transforms already achieve this?
 # TODO: make loss func for full seq targets, penalize in proportion to seq similarity?
 
 
-log_path = 'logs/temp/PGR_results.md'
+log_path = 'logs/temp/temp.md'
 img_path = f'images/temp/{now}.png'
 
 
