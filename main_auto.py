@@ -66,13 +66,22 @@ valid_fwd = True
 
 
 #
+# layer_sizes_set = [
+#     [30],
+#     [30, 30],
+#     [30, 30, 30],
+#     [100],
+#     [100, 100],
+#     [100, 100, 100],
+# ]
+
 layer_sizes_set = [
-    [30],
-    [30, 30],
-    [30, 30, 30],
     [100],
-    [100, 100],
+    [200],
+    [400],
+    [800],
     [100, 100, 100],
+    [800, 800, 800],
 ]
 
 env_params_set = [
@@ -83,60 +92,74 @@ env_params_set = [
     },
     {
         'sort_func': 't_release',
-        'time_shift': False,
-        'masking': False,
-    },
-    {
-        'sort_func': 'duration',
-        'time_shift': False,
-        'masking': False,
-    },
-    {
-        'sort_func': None,
-        'time_shift': True,
-        'masking': False,
-    },
-    {
-        'sort_func': 't_release',
-        'time_shift': True,
-        'masking': False,
-    },
-    {
-        'sort_func': 'duration',
-        'time_shift': True,
-        'masking': False,
-    },
-    {
-        'sort_func': None,
-        'time_shift': False,
-        'masking': True,
-    },
-    {
-        'sort_func': 't_release',
-        'time_shift': False,
-        'masking': True,
-    },
-    {
-        'sort_func': 'duration',
-        'time_shift': False,
-        'masking': True,
-    },
-    {
-        'sort_func': None,
         'time_shift': True,
         'masking': True,
     },
-    {
-        'sort_func': 't_release',
-        'time_shift': True,
-        'masking': True,
-    },
-    {
-        'sort_func': 'duration',
-        'time_shift': True,
-        'masking': True,
-    },
+
 ]
+
+# env_params_set = [
+#     {
+#         'sort_func': None,
+#         'time_shift': False,
+#         'masking': False,
+#     },
+#     {
+#         'sort_func': 't_release',
+#         'time_shift': False,
+#         'masking': False,
+#     },
+#     {
+#         'sort_func': 'duration',
+#         'time_shift': False,
+#         'masking': False,
+#     },
+#     {
+#         'sort_func': None,
+#         'time_shift': True,
+#         'masking': False,
+#     },
+#     {
+#         'sort_func': 't_release',
+#         'time_shift': True,
+#         'masking': False,
+#     },
+#     {
+#         'sort_func': 'duration',
+#         'time_shift': True,
+#         'masking': False,
+#     },
+#     {
+#         'sort_func': None,
+#         'time_shift': False,
+#         'masking': True,
+#     },
+#     {
+#         'sort_func': 't_release',
+#         'time_shift': False,
+#         'masking': True,
+#     },
+#     {
+#         'sort_func': 'duration',
+#         'time_shift': False,
+#         'masking': True,
+#     },
+#     {
+#         'sort_func': None,
+#         'time_shift': True,
+#         'masking': True,
+#     },
+#     {
+#         'sort_func': 't_release',
+#         'time_shift': True,
+#         'masking': True,
+#     },
+#     {
+#         'sort_func': 'duration',
+#         'time_shift': True,
+#         'masking': True,
+#     },
+# ]
 
 
 #%%
@@ -150,13 +173,15 @@ n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assess
 
 # TODO: see if `seq_encoding` and `masking` helps with/without sorting!?
 
+# TODO: refactor non-user results and stuff into *temp/ folders, deprecate logs, etc.!?!
+
 
 schedule_path = Path.cwd() / 'data' / 'schedules'
 datasets = [
-    'discrete_relu_c1t8',
-    'continuous_relu_c1t8',
-    'discrete_relu_c2t8',
-    'continuous_relu_c2t8',
+    'discrete_relu_drop_c1t8',
+    'continuous_relu_drop_c1t8',
+    'discrete_relu_drop_c2t8',
+    'continuous_relu_drop_c2t8',
 ]
 for dataset in datasets:
     log_path = f'logs/temp/{dataset}.md'

@@ -47,15 +47,6 @@ if seed is not None:
 
 #%% Define scheduling problem and algorithms
 
-# gens = {'discrete': problem_gens.Random.discrete_relu_drop,
-#         'continuous': problem_gens.Random.continuous_relu_drop}
-# for n_tasks in [12, 16]:
-#     for name, func in gens.items():
-#         save_path = f"data/schedules/{name}_relu_c2t{n_tasks}"
-#         gen = func(n_tasks=n_tasks, n_ch=2, rng=seed)
-#         list(gen(n_gen=1000, solve=True, verbose=1, save_path=save_path))
-# raise Exception
-
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
@@ -66,10 +57,10 @@ if seed is not None:
 data_path = Path.cwd() / 'data'
 schedule_path = data_path / 'schedules'
 
-dataset = 'discrete_relu_c1t8'
-# dataset = 'discrete_relu_c2t8'
-# dataset = 'continuous_relu_c1t8'
-# dataset = 'continuous_relu_c2t8'
+dataset = 'discrete_relu_drop_c1t8'
+# dataset = 'discrete_relu_drop_c2t8'
+# dataset = 'continuous_relu_drop_c1t8'
+# dataset = 'continuous_relu_drop_c2t8'
 problem_gen = problem_gens.Dataset.load(schedule_path / dataset, repeat=True)
 
 
