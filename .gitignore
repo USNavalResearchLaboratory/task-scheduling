@@ -1,9 +1,5 @@
 ### Project files
-data/schedules/temp
-data/results/temp
-images/temp
-logs/temp
-logs/learn
+*temp/
 
 
 ### JetBrains

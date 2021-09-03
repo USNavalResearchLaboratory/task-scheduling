@@ -45,9 +45,9 @@ algorithms_base = np.array([
 
 
 trainer_kwargs = {
-    'logger': TensorBoardLogger('logs/learn/', name=now),
+    'logger': TensorBoardLogger('auto_temp/logs/', name=now),
     'checkpoint_callback': False,
-    'default_root_dir': 'logs/learn',
+    'default_root_dir': 'auto_temp/logs/',
     'gpus': gpus,
 }
 
@@ -66,36 +66,15 @@ valid_fwd = True
 
 
 #
-# layer_sizes_set = [
-#     [30],
-#     [30, 30],
-#     [30, 30, 30],
-#     [100],
-#     [100, 100],
-#     [100, 100, 100],
-# ]
-
 layer_sizes_set = [
+    [50],
     [100],
     [200],
     [400],
-    [800],
-    [100, 100, 100],
-    [800, 800, 800],
-]
-
-env_params_set = [
-    {
-        'sort_func': None,
-        'time_shift': False,
-        'masking': False,
-    },
-    {
-        'sort_func': 't_release',
-        'time_shift': True,
-        'masking': True,
-    },
-
+    [50, 50],
+    [100, 100],
+    [200, 200],
+    [400, 400],
 ]
 
 # env_params_set = [
@@ -106,60 +85,73 @@ env_params_set = [
 #     },
 #     {
 #         'sort_func': 't_release',
-#         'time_shift': False,
-#         'masking': False,
-#     },
-#     {
-#         'sort_func': 'duration',
-#         'time_shift': False,
-#         'masking': False,
-#     },
-#     {
-#         'sort_func': None,
-#         'time_shift': True,
-#         'masking': False,
-#     },
-#     {
-#         'sort_func': 't_release',
-#         'time_shift': True,
-#         'masking': False,
-#     },
-#     {
-#         'sort_func': 'duration',
-#         'time_shift': True,
-#         'masking': False,
-#     },
-#     {
-#         'sort_func': None,
-#         'time_shift': False,
-#         'masking': True,
-#     },
-#     {
-#         'sort_func': 't_release',
-#         'time_shift': False,
-#         'masking': True,
-#     },
-#     {
-#         'sort_func': 'duration',
-#         'time_shift': False,
-#         'masking': True,
-#     },
-#     {
-#         'sort_func': None,
-#         'time_shift': True,
-#         'masking': True,
-#     },
-#     {
-#         'sort_func': 't_release',
-#         'time_shift': True,
-#         'masking': True,
-#     },
-#     {
-#         'sort_func': 'duration',
 #         'time_shift': True,
 #         'masking': True,
 #     },
 # ]
+
+env_params_set = [
+    {
+        'sort_func': None,
+        'time_shift': False,
+        'masking': False,
+    },
+    {
+        'sort_func': 't_release',
+        'time_shift': False,
+        'masking': False,
+    },
+    {
+        'sort_func': 'duration',
+        'time_shift': False,
+        'masking': False,
+    },
+    {
+        'sort_func': None,
+        'time_shift': True,
+        'masking': False,
+    },
+    {
+        'sort_func': 't_release',
+        'time_shift': True,
+        'masking': False,
+    },
+    {
+        'sort_func': 'duration',
+        'time_shift': True,
+        'masking': False,
+    },
+    {
+        'sort_func': None,
+        'time_shift': False,
+        'masking': True,
+    },
+    {
+        'sort_func': 't_release',
+        'time_shift': False,
+        'masking': True,
+    },
+    {
+        'sort_func': 'duration',
+        'time_shift': False,
+        'masking': True,
+    },
+    {
+        'sort_func': None,
+        'time_shift': True,
+        'masking': True,
+    },
+    {
+        'sort_func': 't_release',
+        'time_shift': True,
+        'masking': True,
+    },
+    {
+        'sort_func': 'duration',
+        'time_shift': True,
+        'masking': True,
+    },
+]
 
 
 #%%
@@ -171,12 +163,13 @@ n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assess
 # TODO: show value of valid-action network vs `mask_probability` hack!? Write it up!
 # TODO: try CNN with/without sorting!
 
-# TODO: see if `seq_encoding` and `masking` helps with/without sorting!?
+# FIXME: check loss curves for premature stopping. Move Logger def into loop, different names
 
-# TODO: refactor non-user results and stuff into *temp/ folders, deprecate logs, etc.!?!
+# TODO: start using Monte Carlo!!
 
 
-schedule_path = Path.cwd() / 'data' / 'schedules'
+
+data_path = Path('../data/')
 datasets = [
     'discrete_relu_drop_c1t8',
     'continuous_relu_drop_c1t8',
@@ -184,13 +177,18 @@ datasets = [
     'continuous_relu_drop_c2t8',
 ]
 for dataset in datasets:
-    log_path = f'logs/temp/{dataset}.md'
-    img_path = f"images/temp/{dataset}/{now}.png"
+    # log_path = f'logs/temp/{dataset}.md'
+    # img_path = f"images/temp/{dataset}/{now}.png"
+    log_path = f'auto_temp/{dataset}/log.md'
+    img_path = f"auto_temp/{dataset}/images/{now}.png"
 
-    problem_gen = problem_gens.Dataset.load(schedule_path / dataset, repeat=True)
+    problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
     algorithms_data = []
     for (i_env, env_params), (i_net, layer_sizes) in product(enumerate(env_params_set), enumerate(layer_sizes_set)):
+    # for (i_env, env_params), (i_net, layer_sizes), valid_fwd in product(enumerate(env_params_set),
+    #                                                                     enumerate(layer_sizes_set),
+    #                                                                     [False, True]):
         if seed is not None:
             seed_everything(seed)
 
@@ -201,7 +199,9 @@ for dataset in datasets:
 
         net_str = str(i_net)
         # net_str = '-'.join(map(str, layer_sizes))
+
         algorithms_data.append((f"Policy: Env {i_env}, MLP {net_str}", lit_scheduler, 10))
+        # algorithms_data.append((f"Policy: Env {i_env}, MLP {net_str}, Valid {valid_fwd}", lit_scheduler, 10))
 
     algorithms_learn = np.array(algorithms_data, dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
     algorithms = np.concatenate((algorithms_base, algorithms_learn))

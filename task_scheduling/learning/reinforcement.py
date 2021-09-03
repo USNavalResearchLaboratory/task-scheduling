@@ -53,7 +53,6 @@ class RandomAgent:
 
 # Schedulers
 class StableBaselinesScheduler(BaseLearningScheduler):
-    log_dir = Path.cwd() / 'logs/learn' / 'sb'
 
     _default_tuple = namedtuple('ModelDefault', ['cls', 'params'], defaults={})
     model_defaults = {'Random': _default_tuple(RandomAgent, {}),
@@ -103,8 +102,8 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         steps_per_episode = self.env.steps_per_episode  # FIXME: breaks due to env vectorization
         self.model.learn(total_timesteps=n_gen_learn * steps_per_episode)
 
-        if self.do_monitor:
-            plot_results([str(self.log_dir)], num_timesteps=None, x_axis='timesteps', task_name='Training history')
+        # if self.do_monitor:
+        #     plot_results([str(self.log_dir)], num_timesteps=None, x_axis='timesteps', task_name='Training history')
 
     def reset(self):
         self.model.policy.apply(reset_weights)

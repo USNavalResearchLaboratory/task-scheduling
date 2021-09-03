@@ -54,14 +54,13 @@ if seed is not None:
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2), rng=seed)
 
-data_path = Path.cwd() / 'data'
-schedule_path = data_path / 'schedules'
+data_path = Path('../data/')
 
 dataset = 'discrete_relu_drop_c1t8'
 # dataset = 'discrete_relu_drop_c2t8'
 # dataset = 'continuous_relu_drop_c1t8'
 # dataset = 'continuous_relu_drop_c2t8'
-problem_gen = problem_gens.Dataset.load(schedule_path / dataset, repeat=True)
+problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
 
 # Algorithms
@@ -123,9 +122,9 @@ valid_fwd = True
 
 
 pl_trainer_kwargs = {
-    'logger': TensorBoardLogger('logs/learn/', name=now),
+    'logger': TensorBoardLogger('main_temp/logs/', name=now),
     'checkpoint_callback': False,
-    'default_root_dir': 'logs/learn',
+    'default_root_dir': 'main_temp/logs/',
     'gpus': gpus,
     # 'distributed_backend': 'ddp',
     # 'profiler': 'simple',
@@ -183,7 +182,7 @@ algorithms = np.array([
 #%% Evaluate and record results
 n_gen_learn = 900  # the number of problems generated for learning, per iteration
 n_gen = 100  # the number of problems generated for testing, per iteration
-n_mc = 1  # the number of Monte Carlo iterations performed for scheduler assessment
+n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
 
 
 # TODO: generate new, larger datasets
@@ -194,8 +193,8 @@ n_mc = 1  # the number of Monte Carlo iterations performed for scheduler assessm
 # TODO: make loss func for full seq targets, penalize in proportion to seq similarity?
 
 
-log_path = 'logs/temp/temp.md'
-img_path = f'images/temp/{now}.png'
+log_path = 'main_temp/log.md'
+img_path = f'main_temp/images/{now}.png'
 
 
 # FIXME: import new `LitScheduler` constructors from `mc_assess`
@@ -208,7 +207,7 @@ l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, 
 #                                               verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
 
 
-# np.savez(data_path / f'results/temp/{now}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
+# np.savez(f'main_temp/results/{now}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
 
 
 #%% Deprecated

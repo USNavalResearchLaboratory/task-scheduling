@@ -118,6 +118,7 @@ class Base(BaseSupervisedScheduler):
         if not isinstance(model, nn.Module):
             raise TypeError("Argument `model` must be a `torch.nn.Module` instance.")
 
+        self.valid_fwd = valid_fwd
         if valid_fwd and isinstance(env, StepTasking):
             def valid_wrapper(func):
                 @wraps(func)
@@ -198,15 +199,18 @@ class Base(BaseSupervisedScheduler):
             Action.
 
         """
-        return self._process_obs(obs).argmax()
+        # return self._process_obs(obs).argmax()
 
-        # # TODO: deprecate?
-        # p = self.predict_prob(obs)
-        # action = p.argmax()
-        # if action not in self.env.action_space:  # mask out invalid actions
-        #     p = self.env.mask_probability(p)
-        #     action = p.argmax()
-        # return action
+        if self.valid_fwd:
+            return self._process_obs(obs).argmax()
+        else:
+            # TODO: deprecate?
+            p = self.predict_prob(obs)
+            action = p.argmax()
+            if action not in self.env.action_space:  # mask out invalid actions
+                p = self.env.mask_probability(p)
+                action = p.argmax()
+            return action
 
     def reset(self):
         """Reset the learner."""
