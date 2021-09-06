@@ -1,7 +1,7 @@
 from collections import deque
 from copy import deepcopy
 from math import factorial
-from typing import Sequence
+from typing import Sequence, Iterable
 from operator import methodcaller
 from itertools import permutations
 from time import perf_counter
@@ -73,7 +73,6 @@ class ScheduleNode(RandomGeneratorMixin):
     n_ch = property(lambda self: len(self._ch_avail))
 
     seq_rem = property(lambda self: self._seq_rem)
-    ch_min = property(lambda self: np.argmin(self.ch_avail))
 
     t_ex = property(lambda self: self._t_ex)
     ch_ex = property(lambda self: self._ch_ex)
@@ -107,7 +106,7 @@ class ScheduleNode(RandomGeneratorMixin):
 
         """
 
-        if not isinstance(seq_ext, Sequence):
+        if not isinstance(seq_ext, Iterable):  # FIXME: catch ndarray, use Iterable instead of Sequence?
             seq_ext = [seq_ext]
         if check_valid:
             set_ext = set(seq_ext)
@@ -137,9 +136,10 @@ class ScheduleNode(RandomGeneratorMixin):
 
         self._seq.append(n)
         self._seq_rem.remove(n)
-        self._update_ex(n, self.ch_min)  # assign task to channel with earliest availability
+        self._update_ex(n)
 
-    def _update_ex(self, n, ch):
+    def _update_ex(self, n):
+        ch = np.argmin(self.ch_avail)  # assign task to channel with earliest availability
         self._ch_ex[n] = ch
 
         self._t_ex[n] = max(self._tasks[n].t_release, self._ch_avail[ch])
@@ -218,7 +218,7 @@ class ScheduleNode(RandomGeneratorMixin):
     def earliest_drop(self, inplace=True):
         return self._earliest_sorter('t_drop', inplace)
 
-    def mcts(self, max_runtime=np.inf, max_rollouts=None, c_explore=0., visit_threshold=0, inplace=True, verbose=False,
+    def mcts(self, max_runtime=np.inf, max_rollouts=None, c_explore=0., th_visit=0, inplace=True, verbose=False,
              rng=None):
         """
         Monte Carlo tree search.
@@ -231,7 +231,7 @@ class ScheduleNode(RandomGeneratorMixin):
             Maximum number of rollouts allowed.
         c_explore : float, optional
             Exploration weight. Higher values prioritize less frequently visited notes.
-        visit_threshold : int, optional
+        th_visit : int, optional
             Nodes with up to this number of visits will select children using the `expansion` method.
         inplace : bool, optional
             If True, self.seq is completed. Otherwise, a new node object is returned.
@@ -258,7 +258,7 @@ class ScheduleNode(RandomGeneratorMixin):
 
         rng = self._get_rng(rng)
         bounds = ScheduleNodeBound(self.tasks, self.ch_avail).bounds
-        root = MCTSNode(self.n_tasks, bounds, self.seq, c_explore, visit_threshold, rng=rng)
+        root = MCTSNode(self.n_tasks, bounds, self.seq, c_explore, th_visit, rng=rng)
 
         node_best, loss_best = None, np.inf
         while True:
@@ -397,7 +397,6 @@ class ScheduleNodeBound(ScheduleNode):
 
         node_best = self.roll_out(inplace=False, rng=rng)  # roll-out initial solution
         stack = deque([self])  # initialize stack
-        # stack = [self]
 
         # Iterate
         while len(stack) > 0:
@@ -413,8 +412,6 @@ class ScheduleNodeBound(ScheduleNode):
 
                     if node_new.l_up < node_best.l_ex:
                         node_best = node_new.roll_out(inplace=False, rng=rng)  # roll-out a new best node
-
-            # stack.sort(key=attrgetter('l_lo'), reverse=True)
 
             if verbose:
                 progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(self.n_tasks)
@@ -512,8 +509,8 @@ class ScheduleNodeShift(ScheduleNode):
     #
     #     self.shift_origin()
 
-    def _update_ex(self, n, ch):
-        super()._update_ex(n, ch)
+    def _update_ex(self, n):
+        super()._update_ex(n)
         self._t_ex[n] += self.t_origin  # relative to absolute
         self.shift_origin()
 
@@ -534,7 +531,7 @@ class ScheduleNodeShift(ScheduleNode):
 
 
 class MCTSNode(RandomGeneratorMixin):
-    def __init__(self, n_tasks, bounds, seq=(), c_explore=0., visit_threshold=0, parent=None, rng=None):
+    def __init__(self, n_tasks, bounds, seq=(), c_explore=0., th_visit=0, parent=None, rng=None):
         """
         Node object for Monte Carlo Tree Search.
 
@@ -547,7 +544,7 @@ class MCTSNode(RandomGeneratorMixin):
             Partial task index sequence.
         c_explore : float, optional
             Exploration weight. Higher values prioritize searching new branches.
-        visit_threshold : int, optional
+        th_visit : int, optional
             Once node has been visited this many times, UCT is used for child selection, not random choice.
         parent : MCTSNode, optional
         rng : int or RandomState or Generator, optional
@@ -562,7 +559,7 @@ class MCTSNode(RandomGeneratorMixin):
         self._seq = list(seq)
 
         self._c_explore = c_explore
-        self._visit_threshold = visit_threshold
+        self._th_visit = th_visit
 
         self._parent = parent
         self._children = {}
@@ -607,7 +604,7 @@ class MCTSNode(RandomGeneratorMixin):
     def select_child(self):
         """Select child node. Under the threshold, the expansion method is used. Above, the weight property is used."""
 
-        if self._n_visits <= self._visit_threshold:
+        if self._n_visits <= self._th_visit:
             return self.expansion()
         else:
             w = {n: child.weight for (n, child) in self._children.items()}  # descendant node weights
@@ -627,7 +624,7 @@ class MCTSNode(RandomGeneratorMixin):
 
     def _add_child(self, n):
         self._children[n] = self.__class__(self.n_tasks, self._bounds, self._seq + [n], self._c_explore,
-                                           self._visit_threshold, parent=self, rng=self.rng)
+                                           self._th_visit, parent=self, rng=self.rng)
 
     def expansion(self):
         """Pseudo-random expansion, potentially creating a new child node."""

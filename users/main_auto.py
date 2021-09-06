@@ -39,7 +39,7 @@ algorithms_base = np.array([
     ('Random', random_sequencer, 10),
     ('ERT', earliest_release, 10),
     *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c,
-                                      visit_threshold=t), 10)
+                                      th_visit=t), 10)
       for c, t in product([0], [5, 10])),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 

@@ -169,7 +169,7 @@ algorithms = np.array([
     # ('BB_p_ERT', partial(branch_bound_priority, heuristic=methodcaller('earliest_release', inplace=False)), 1),
     ('Random', random_sequencer, 10),
     ('ERT', earliest_release, 10),
-    *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, visit_threshold=t), 10)
+    *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, th_visit=t), 10)
       for c, t in product([0], [5, 10])),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
     # ('Torch Policy', torch_scheduler, 10),

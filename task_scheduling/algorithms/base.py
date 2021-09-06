@@ -61,7 +61,7 @@ def branch_bound_priority(tasks, ch_avail, priority_func=None, heuristic=None, v
     return node_best.t_ex, node_best.ch_ex  # optimal
 
 
-def mcts(tasks, ch_avail, max_runtime=float('inf'), max_rollouts=None, c_explore=0., visit_threshold=0, verbose=False,
+def mcts(tasks, ch_avail, max_runtime=float('inf'), max_rollouts=None, c_explore=0., th_visit=0, verbose=False,
          rng=None):
     """
     Monte Carlo tree search algorithm.
@@ -77,7 +77,7 @@ def mcts(tasks, ch_avail, max_runtime=float('inf'), max_rollouts=None, c_explore
         Maximum number of rollouts allowed.
     c_explore : float, optional
         Exploration weight. Higher values prioritize less frequently visited notes.
-    visit_threshold : int, optional
+    th_visit : int, optional
         Nodes with up to this number of visits will select children using the `expansion` method.
     verbose : bool
         Enables printing of algorithm state information.
@@ -94,7 +94,7 @@ def mcts(tasks, ch_avail, max_runtime=float('inf'), max_rollouts=None, c_explore
     """
 
     node = ScheduleNode(tasks, ch_avail, rng=rng)
-    node = node.mcts(max_runtime, max_rollouts, c_explore, visit_threshold, inplace=False, verbose=verbose)
+    node = node.mcts(max_runtime, max_rollouts, c_explore, th_visit, inplace=False, verbose=verbose)
 
     return node.t_ex, node.ch_ex
 
