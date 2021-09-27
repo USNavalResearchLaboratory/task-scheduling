@@ -261,7 +261,7 @@ class ScheduleNode(RandomGeneratorMixin):
         root = MCTSNode(self.n_tasks, bounds, self.seq, c_explore, th_visit, rng=rng)
 
         node_best, loss_best = None, np.inf
-        while True:
+        while perf_counter() - t_run < max_runtime and root.n_visits < max_rollouts:
             if verbose:
                 print(f'# rollouts: {root.n_visits}, Min. Loss: {loss_best}', end='\r')
 
@@ -276,9 +276,6 @@ class ScheduleNode(RandomGeneratorMixin):
             # loss = leaf_new.evaluation()
             loss = node.l_ex  # TODO: mix rollout loss with value func, like AlphaGo?
             leaf_new.backup(loss)
-
-            if perf_counter() - t_run >= max_runtime or root.n_visits >= max_rollouts:
-                break
 
         # if verbose:
         #     print(f"Total # rollouts: {root.n_visits}, loss={loss_best}")
@@ -360,7 +357,6 @@ class ScheduleNodeBound(ScheduleNode):
         self._update_bounds()
 
     def _update_bounds(self):
-
         self._bounds = [self._l_ex, self._l_ex]
         if len(self.seq_rem) == 0:
             return  # already converged

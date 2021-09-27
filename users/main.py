@@ -56,10 +56,10 @@ if seed is not None:
 
 data_path = Path('../data/')
 
-dataset = 'discrete_relu_drop_c1t8'
-# dataset = 'discrete_relu_drop_c2t8'
-# dataset = 'continuous_relu_drop_c1t8'
+dataset = 'continuous_relu_drop_c1t8'
 # dataset = 'continuous_relu_drop_c2t8'
+# dataset = 'discrete_relu_drop_c1t8'
+# dataset = 'discrete_relu_drop_c2t8'
 problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
 
@@ -84,7 +84,7 @@ learn_params_torch = {
     'batch_size_val': 30,
     'weight_func': None,  # TODO: weighting based on loss value!?
     # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-    'max_epochs': 500,
+    'max_epochs': 1000,
     'shuffle': True,
     'callbacks': EarlyStopping('val_loss', min_delta=0., patience=50),
 }
@@ -136,7 +136,7 @@ pl_trainer_kwargs = {
 # model_pl = LitMLP(_layer_sizes, optim_params={'lr': 1e-3})
 # LitScheduler(env, model_pl, pl_trainer_kwargs, learn_params_torch, valid_fwd)
 
-lit_scheduler = LitScheduler.from_env_mlp([30, 30], problem_gen, env_params=env_params,
+lit_scheduler = LitScheduler.from_env_mlp([200], problem_gen, env_params=env_params,
                                           lit_mlp_kwargs={'optim_params': {'lr': 1e-3}},
                                           trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch,
                                           valid_fwd=valid_fwd)
@@ -196,6 +196,8 @@ n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assess
 log_path = 'main_temp/log.md'
 img_path = f'main_temp/images/{now}.png'
 
+# TODO: export masking functionality from `envs` to custom policies!
+# TODO: normalize excess loss in figures?!
 
 # FIXME: import new `LitScheduler` constructors from `mc_assess`
 # TODO: update README code

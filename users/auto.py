@@ -62,92 +62,40 @@ learn_params = {
 
 lit_mlp_kwargs = {'optim_params': {'lr': 1e-3}}
 
-valid_fwd = True
+# valid_fwd = True
+valid_fwd = False
 
 
 #
 layer_sizes_set = [
-    [50],
-    [100],
-    [200],
+    # [50],
+    # [100],
+    # [200],
     [400],
-    [50, 50],
-    [100, 100],
-    [200, 200],
-    [400, 400],
+    # [50, 50],
+    # [100, 100],
+    # [200, 200],
+    # [400, 400],
 ]
-
-# env_params_set = [
-#     {
-#         'sort_func': None,
-#         'time_shift': False,
-#         'masking': False,
-#     },
-#     {
-#         'sort_func': 't_release',
-#         'time_shift': True,
-#         'masking': True,
-#     },
-# ]
 
 env_params_set = [
     {
         'sort_func': None,
         'time_shift': False,
-        'masking': False,
+        'masking': True,
     },
+    # {
+    #     'sort_func': None,
+    #     'time_shift': True,
+    #     'masking': True,
+    # },
+    # {
+    #     'sort_func': 't_release',
+    #     'time_shift': False,
+    #     'masking': True,
+    # },
     {
         'sort_func': 't_release',
-        'time_shift': False,
-        'masking': False,
-    },
-    {
-        'sort_func': 'duration',
-        'time_shift': False,
-        'masking': False,
-    },
-    {
-        'sort_func': None,
-        'time_shift': True,
-        'masking': False,
-    },
-    {
-        'sort_func': 't_release',
-        'time_shift': True,
-        'masking': False,
-    },
-    {
-        'sort_func': 'duration',
-        'time_shift': True,
-        'masking': False,
-    },
-    {
-        'sort_func': None,
-        'time_shift': False,
-        'masking': True,
-    },
-    {
-        'sort_func': 't_release',
-        'time_shift': False,
-        'masking': True,
-    },
-    {
-        'sort_func': 'duration',
-        'time_shift': False,
-        'masking': True,
-    },
-    {
-        'sort_func': None,
-        'time_shift': True,
-        'masking': True,
-    },
-    {
-        'sort_func': 't_release',
-        'time_shift': True,
-        'masking': True,
-    },
-    {
-        'sort_func': 'duration',
         'time_shift': True,
         'masking': True,
     },
@@ -160,35 +108,28 @@ n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
 
 
-# TODO: show value of valid-action network vs `mask_probability` hack!? Write it up!
 # TODO: try CNN with/without sorting!
-
-# FIXME: check loss curves for premature stopping. Move Logger def into loop, different names
-
-# TODO: start using Monte Carlo!!
-
+# TODO: log trainer params!?
 
 
 data_path = Path('../data/')
 datasets = [
-    'discrete_relu_drop_c1t8',
     'continuous_relu_drop_c1t8',
-    'discrete_relu_drop_c2t8',
-    'continuous_relu_drop_c2t8',
+    # 'continuous_relu_drop_c2t8',
+    # 'discrete_relu_drop_c1t8',
+    # 'discrete_relu_drop_c2t8',
 ]
 for dataset in datasets:
-    # log_path = f'logs/temp/{dataset}.md'
-    # img_path = f"images/temp/{dataset}/{now}.png"
     log_path = f'auto_temp/{dataset}/log.md'
     img_path = f"auto_temp/{dataset}/images/{now}.png"
 
     problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
     algorithms_data = []
-    for (i_env, env_params), (i_net, layer_sizes) in product(enumerate(env_params_set), enumerate(layer_sizes_set)):
-    # for (i_env, env_params), (i_net, layer_sizes), valid_fwd in product(enumerate(env_params_set),
-    #                                                                     enumerate(layer_sizes_set),
-    #                                                                     [False, True]):
+    # for (i_env, env_params), (i_net, layer_sizes) in product(enumerate(env_params_set), enumerate(layer_sizes_set)):
+    for (i_env, env_params), (i_net, layer_sizes), valid_fwd in product(enumerate(env_params_set),
+                                                                        enumerate(layer_sizes_set),
+                                                                        [False, True]):
         if seed is not None:
             seed_everything(seed)
 
@@ -200,16 +141,17 @@ for dataset in datasets:
         net_str = str(i_net)
         # net_str = '-'.join(map(str, layer_sizes))
 
-        algorithms_data.append((f"Policy: Env {i_env}, MLP {net_str}", lit_scheduler, 10))
-        # algorithms_data.append((f"Policy: Env {i_env}, MLP {net_str}, Valid {valid_fwd}", lit_scheduler, 10))
+        # algorithms_data.append((f"Policy: Env {i_env}, MLP {net_str}", lit_scheduler, 10))
+        algorithms_data.append((f"Policy: Env {i_env}, Valid={valid_fwd}", lit_scheduler, 10))
+        # algorithms_data.append((f"Policy: Env {i_env}, MLP {net_str}, Valid={valid_fwd}", lit_scheduler, 10))
 
     algorithms_learn = np.array(algorithms_data, dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
     algorithms = np.concatenate((algorithms_base, algorithms_learn))
 
-    l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve=True,
-                                                    verbose=1, plotting=1, log_path=log_path, img_path=img_path,
-                                                    rng=seed)
+    # l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve=True,
+    #                                                 verbose=1, plotting=1, log_path=log_path, img_path=img_path,
+    #                                                 rng=seed)
 
-    # l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
-    #                                               verbose=1, plotting=1, log_path=log_path, img_path=img_path,
-    #                                               rng=seed)
+    l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
+                                                  verbose=1, plotting=1, log_path=log_path, img_path=img_path,
+                                                  rng=seed)
