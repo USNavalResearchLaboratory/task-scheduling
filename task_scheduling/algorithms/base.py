@@ -17,17 +17,15 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
 
     Returns
     -------
-    t_ex : numpy.ndarray
-        Task execution times.
-    ch_ex : numpy.ndarray
-        Task execution channels.
+    numpy.ndarray
+        Task schedule.
 
     """
 
     node = ScheduleNodeBound(tasks, ch_avail, rng=rng)
     node_best = node.branch_bound(inplace=False, verbose=verbose)
 
-    return node_best.t_ex, node_best.ch_ex  # optimal
+    return node_best.sch  # optimal
 
 
 def branch_bound_priority(tasks, ch_avail, priority_func=None, heuristic=None, verbose=False):
@@ -48,17 +46,15 @@ def branch_bound_priority(tasks, ch_avail, priority_func=None, heuristic=None, v
 
     Returns
     -------
-    t_ex : numpy.ndarray
-        Task execution times.
-    ch_ex : numpy.ndarray
-        Task execution channels.
+    numpy.ndarray
+        Task schedule.
 
     """
 
     node = ScheduleNodeBound(tasks, ch_avail)
     node_best = node.branch_bound_priority(priority_func, heuristic, False, verbose)
 
-    return node_best.t_ex, node_best.ch_ex  # optimal
+    return node_best.sch  # optimal
 
 
 def mcts(tasks, ch_avail, max_runtime=float('inf'), max_rollouts=None, c_explore=0., th_visit=0, verbose=False,
@@ -86,17 +82,15 @@ def mcts(tasks, ch_avail, max_runtime=float('inf'), max_rollouts=None, c_explore
 
     Returns
     -------
-    t_ex : numpy.ndarray
-        Task execution times.
-    ch_ex : numpy.ndarray
-        Task execution channels.
+    numpy.ndarray
+        Task schedule.
 
     """
 
     node = ScheduleNode(tasks, ch_avail, rng=rng)
     node = node.mcts(max_runtime, max_rollouts, c_explore, th_visit, inplace=False, verbose=verbose)
 
-    return node.t_ex, node.ch_ex
+    return node.sch
 
 
 def random_sequencer(tasks, ch_avail, rng=None):
@@ -113,17 +107,15 @@ def random_sequencer(tasks, ch_avail, rng=None):
 
     Returns
     -------
-    t_ex : numpy.ndarray
-        Task execution times.
-    ch_ex : numpy.ndarray
-        Task execution channels.
+    numpy.ndarray
+        Task schedule.
 
     """
 
     node = ScheduleNode(tasks, ch_avail, rng=rng)
     node.roll_out()
 
-    return node.t_ex, node.ch_ex
+    return node.sch
 
 
 def earliest_release(tasks, ch_avail):
@@ -138,17 +130,15 @@ def earliest_release(tasks, ch_avail):
 
     Returns
     -------
-    t_ex : numpy.ndarray
-        Task execution times.
-    ch_ex : numpy.ndarray
-        Task execution channels.
+    numpy.ndarray
+        Task schedule.
 
     """
 
     node = ScheduleNode(tasks, ch_avail)
     node.earliest_release()
 
-    return node.t_ex, node.ch_ex
+    return node.sch
 
 
 def earliest_drop(tasks, ch_avail):
@@ -163,17 +153,15 @@ def earliest_drop(tasks, ch_avail):
 
     Returns
     -------
-    t_ex : numpy.ndarray
-        Task execution times.
-    ch_ex : numpy.ndarray
-        Task execution channels.
+    numpy.ndarray
+        Task schedule.
 
     """
 
     node = ScheduleNode(tasks, ch_avail)
     node.earliest_drop()
 
-    return node.t_ex, node.ch_ex
+    return node.sch
 
 
 def brute_force(tasks, ch_avail, verbose=False):
@@ -190,14 +178,12 @@ def brute_force(tasks, ch_avail, verbose=False):
 
     Returns
     -------
-    t_ex : numpy.ndarray
-        Task execution times.
-    ch_ex : numpy.ndarray
-        Task execution channels.
+    numpy.ndarray
+        Task schedule.
 
     """
 
     node = ScheduleNode(tasks, ch_avail)
     node_best = node.brute_force(inplace=False, verbose=verbose)
 
-    return node_best.t_ex, node_best.ch_ex
+    return node_best.sch

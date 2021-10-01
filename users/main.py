@@ -202,14 +202,14 @@ img_path = f'main_temp/images/{now}.png'
 # FIXME: import new `LitScheduler` constructors from `mc_assess`
 # TODO: update README code
 
-l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve=True,
+loss_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve=True,
                                                 verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
 
-# l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
+# loss_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
 #                                               verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
 
 
-# np.savez(f'main_temp/results/{now}', l_ex_mc=l_ex_mc, t_run_mc=t_run_mc)
+# np.savez(f'main_temp/results/{now}', loss_mc=loss_mc, t_run_mc=t_run_mc)
 
 
 #%% Deprecated
@@ -309,5 +309,5 @@ l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, 
 #         # with open(log_path, 'a') as fid:
 #         #     print(f"![](../{train_path}.png)\n", file=fid)
 #
-# l_ex_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen=100, solve=True, verbose=1, plotting=1,
+# loss_mean, t_run_mean = evaluate_algorithms(algorithms, problem_gen, n_gen=100, solve=True, verbose=1, plotting=1,
 #                                             log_path=log_path)

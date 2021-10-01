@@ -49,27 +49,27 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
         # Branch
         for node_new in node.branch(permute=True):
             # Bound
-            if node_new.l_lo < node_best.l_ex:  # new node is not dominated
-                if node_new.l_up < node_best.l_ex:
+            if node_new.l_lo < node_best.loss:  # new node is not dominated
+                if node_new.l_up < node_best.loss:
                     node_best = node_new.roll_out(inplace=False)  # roll-out a new best node
-                    stack = [s for s in stack if s.l_lo < node_best.l_ex]  # cut dominated nodes
+                    stack = [s for s in stack if s.l_lo < node_best.loss]  # cut dominated nodes
 
                 stack.append(node_new)  # add new node to stack, LIFO
 
             # Check run conditions
             if perf_counter() - t_run >= runtimes[i_time]:
-                yield node_best.t_ex, node_best.ch_ex
+                yield node_best.sch
                 i_time += 1
                 if i_time == n_times:
                     break
 
         if verbose:
             # progress = 1 - sum(math.factorial(len(node.seq_rem)) for node in stack) / math.factorial(len(tasks))
-            # print(f'Search progress: {100*progress:.1f}% - Loss < {node_best.l_ex:.3f}', end='\r')
-            print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.l_ex:.3f}', end='\r')
+            # print(f'Search progress: {100*progress:.1f}% - Loss < {node_best.loss:.3f}', end='\r')
+            print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}', end='\r')
 
     for _ in range(i_time, n_times):
-        yield node_best.t_ex, node_best.ch_ex
+        yield node_best.sch
 
 #%% MCTS WIP
 
@@ -189,7 +189,7 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 #         seq = tree.simulate()  # roll-out a complete sequence
 #         node = ScheduleNode(tasks, ch_avail, seq)  # evaluate execution times and channels, total loss
 #
-#         loss = node.l_ex
+#         loss = node.loss
 #         tree.backup(seq, loss)  # update search tree from leaf sequence to root
 #
 #         if loss < loss_min:
@@ -244,7 +244,7 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 #         for _ in range(n_roll):
 #             node_mc = node.roll_out(do_copy=True)
 #
-#             if node_mc.l_ex < node_best.l_ex:  # Update best node
+#             if node_mc.loss < node_best.loss:  # Update best node
 #                 node_best = node_mc
 #
 #             # Check run conditions
@@ -337,7 +337,7 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
     for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose, save_path)):
         if solve:
             (tasks, ch_avail), (t_ex, ch_ex, _l_ex, t_run) = out_gen
-            check_schedule(tasks, t_ex, ch_ex)
+            check_schedule(tasks, t_ex)
             l_ex_opt[i_gen] = evaluate_schedule(tasks, t_ex)
             t_run_opt[i_gen] = t_run
         else:
@@ -355,13 +355,13 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
 
                     t_ex, ch_ex = solution
 
-                    check_schedule(tasks, t_ex, ch_ex)
+                    check_schedule(tasks, t_ex)
                     l_ex = evaluate_schedule(tasks, t_ex)
 
                     l_ex_iter[name][i_time, i_gen, iter_] = l_ex
 
                     if plotting >= 3:
-                        plot_schedule(tasks, t_ex, ch_ex, l_ex=l_ex, name=name, ax=None)
+                        plot_schedule(tasks, t_ex, loss=l_ex, name=name, ax=None)
 
             l_ex_mean[name][:, i_gen] = l_ex_iter[name][:, i_gen].mean(-1)
 

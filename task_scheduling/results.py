@@ -64,7 +64,7 @@ def _log_and_fig(message, log_path, ax, img_path):
         logger_.info(message)
 
 
-def _log_helper(problem_obj, learners, l_ex, t_run, solve, log_path, ax, img_path, rng, n_gen_learn=None, n_mc=None):
+def _log_helper(problem_obj, learners, loss, t_run, solve, log_path, ax, img_path, rng, n_gen_learn=None, n_mc=None):
     message = f'- Seed = {rng}'
     if n_gen_learn is not None:
         message += f'\n- Training problems: {n_gen_learn}'
@@ -84,13 +84,13 @@ def _log_helper(problem_obj, learners, l_ex, t_run, solve, log_path, ax, img_pat
             message += f"\n{learner['func'].summary()}"
 
     message += '\n\n## Results'
-    message += f"\n{_print_averages(l_ex, t_run, do_relative=solve)}"
+    message += f"\n{_print_averages(loss, t_run, do_relative=solve)}"
 
     _log_and_fig(message, log_path, ax, img_path)
 
 
 #%%
-def _scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
+def _scatter_loss_runtime(t_run, loss, ax=None, ax_kwargs=None):
     """
     Scatter plot of total execution loss versus runtime.
 
@@ -98,7 +98,7 @@ def _scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
     ----------
     t_run : numpy.ndarray
         Runtime of algorithm.
-    l_ex : numpy.ndarray
+    loss : numpy.ndarray
         Total loss of scheduled tasks.
     ax : Axes or None
         Matplotlib axes target object.
@@ -117,7 +117,7 @@ def _scatter_loss_runtime(t_run, l_ex, ax=None, ax_kwargs=None):
         if name == OPT_NAME:
             kwargs.update(c='k')
 
-        ax.scatter(1e3 * t_run[name], l_ex[name], label=name, **kwargs)
+        ax.scatter(1e3 * t_run[name], loss[name], label=name, **kwargs)
 
     ax.set(xlabel='Runtime (ms)', ylabel='Loss')
     ax.legend()
@@ -148,42 +148,42 @@ def _empty_result(algorithms, n):
     return np.array([(np.nan,) * len(algorithms)] * n, dtype=[(alg['name'], float) for alg in algorithms])
 
 
-def _relative_loss(l_ex):
-    names = l_ex.dtype.names
+def _relative_loss(loss):
+    names = loss.dtype.names
     if OPT_NAME not in names:
         raise ValueError("Optimal solutions must be included in the loss array.")
 
-    l_ex_rel = l_ex.copy()
+    loss_rel = loss.copy()
     for name in names:
-        l_ex_rel[name] -= l_ex[OPT_NAME]
-        # l_ex_rel[name] /= l_ex_mean_opt
+        loss_rel[name] -= loss[OPT_NAME]
+        # loss_rel[name] /= loss_mean_opt
 
-    return l_ex_rel
+    return loss_rel
 
 
-def _scatter_results(t_run, l_ex, label='Results', do_relative=False):
+def _scatter_results(t_run, loss, label='Results', do_relative=False):
 
     __, ax_results = plt.subplots(num=label, clear=True)
-    _scatter_loss_runtime(t_run, l_ex,
+    _scatter_loss_runtime(t_run, loss,
                           ax=ax_results,
                           # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
                           )
 
     if do_relative:  # relative to B&B
-        l_ex_rel = _relative_loss(l_ex)
+        loss_rel = _relative_loss(loss)
 
         # __, ax_results_rel = plt.subplots(num=f'{label} (Relative)', clear=True)
-        # _scatter_loss_runtime(t_run, l_ex_rel,
+        # _scatter_loss_runtime(t_run, loss_rel,
         #                      ax=ax_results_rel,
         #                      ax_kwargs={'ylabel': 'Excess Loss',
         #                                 # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
         #                                 }
         #                      )
 
-        names = list(l_ex.dtype.names)
+        names = list(loss.dtype.names)
         names.remove(OPT_NAME)
         __, ax_results_rel = plt.subplots(num=f'{label} (Relative)', clear=True)
-        _scatter_loss_runtime(t_run[names], l_ex_rel[names],
+        _scatter_loss_runtime(t_run[names], loss_rel[names],
                               ax=ax_results_rel,
                               ax_kwargs={'ylabel': 'Excess Loss',
                                          # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
@@ -191,22 +191,20 @@ def _scatter_results(t_run, l_ex, label='Results', do_relative=False):
                               )
 
 
-def _print_averages(l_ex, t_run, do_relative=False):
-    names = list(l_ex.dtype.names)
+def _print_averages(loss, t_run, do_relative=False):
+    names = list(loss.dtype.names)
 
-    # data = [[l_ex[name].mean(), t_run[name].mean()] for name in names]
-    # columns = ['Loss', 'Runtime (s)']
-    data = [[l_ex[name].mean(), 1e3 * t_run[name].mean()] for name in names]
+    data = [[loss[name].mean(), 1e3 * t_run[name].mean()] for name in names]
     columns = ['Loss', 'Runtime (ms)']
 
     if do_relative:
-        l_ex_rel = _relative_loss(l_ex)
+        loss_rel = _relative_loss(loss)
         # for item, name in zip(data, names):
-        #     item.insert(0, l_ex_rel[name].mean())
+        #     item.insert(0, loss_rel[name].mean())
         # columns.insert(0, 'Excess Loss')
-        l_ex_opt = data[names.index(OPT_NAME)][0]
+        loss_opt = data[names.index(OPT_NAME)][0]
         for item, name in zip(data, names):
-            item.insert(0, l_ex_rel[name].mean() / l_ex_opt)
+            item.insert(0, loss_rel[name].mean() / loss_opt)
         columns.insert(0, 'Excess Loss (%)')
 
     df = pd.DataFrame(data, index=pd.CategoricalIndex(names), columns=columns)
@@ -294,7 +292,7 @@ def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0
 
     _array_iter = np.array(tuple([np.nan] * alg['n_iter'] for alg in algorithms),
                            dtype=[(alg['name'], float, (alg['n_iter'],)) for alg in algorithms])
-    l_ex_iter, t_run_iter = _array_iter.copy(), _array_iter.copy()
+    loss_iter, t_run_iter = _array_iter.copy(), _array_iter.copy()
 
     for i_alg, (name, func, n_iter) in enumerate(algorithms):
         if verbose >= 1:
@@ -310,24 +308,24 @@ def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0
             else:
                 solution = eval_wrapper(func)(problem.tasks, problem.ch_avail)
 
-            l_ex_iter[name][iter_] = solution.l_ex
+            loss_iter[name][iter_] = solution.loss
             t_run_iter[name][iter_] = solution.t_run
 
             if plotting >= 2:
-                plot_schedule(problem.tasks, solution.t_ex, solution.ch_ex, l_ex=solution.l_ex, name=name, ax=None)
+                plot_schedule(problem.tasks, solution.sch, loss=solution.loss, name=name, ax=None)
 
     # Results
     if plotting >= 1:
-        _scatter_results(t_run_iter, l_ex_iter, label='Problem', do_relative=solve)
+        _scatter_results(t_run_iter, loss_iter, label='Problem', do_relative=solve)
         ax = plt.gca()
     else:
         ax, img_path = None, None
 
     # Logging
     if verbose >= 1:
-        _log_helper(problem, learners, l_ex_iter, t_run_iter, solve, log_path, ax, img_path, rng)
+        _log_helper(problem, learners, loss_iter, t_run_iter, solve, log_path, ax, img_path, rng)
 
-    return l_ex_iter, t_run_iter
+    return loss_iter, t_run_iter
 
 
 def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, n_gen_learn=0, solve=False, verbose=0, plotting=0,
@@ -410,7 +408,7 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, n_gen_learn=0, sol
             func.env.problem_gen = Dataset(problems, solutions)
             func.learn(n_gen_learn, verbose=verbose)  # calls `problem_gen` via environment `reset`
 
-    l_ex_mean, t_run_mean = _empty_result(algorithms, n_gen), _empty_result(algorithms, n_gen)
+    loss_mean, t_run_mean = _empty_result(algorithms, n_gen), _empty_result(algorithms, n_gen)
     if verbose >= 1:
         print("\nEvaluating algorithms...")
     for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose)):
@@ -419,21 +417,21 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, n_gen_learn=0, sol
         else:
             problem, solution_opt = out_gen, None
 
-        l_ex_iter, t_run_iter = evaluate_algorithms_single(algorithms, problem, solution_opt, verbose - 1, plotting - 1)
-        l_ex_mean[i_gen], t_run_mean[i_gen] = map(_iter_to_mean, (l_ex_iter, t_run_iter))
+        loss_iter, t_run_iter = evaluate_algorithms_single(algorithms, problem, solution_opt, verbose - 1, plotting - 1)
+        loss_mean[i_gen], t_run_mean[i_gen] = map(_iter_to_mean, (loss_iter, t_run_iter))
 
     # Results
     if plotting >= 1:
-        _scatter_results(t_run_mean, l_ex_mean, label='Gen', do_relative=solve)
+        _scatter_results(t_run_mean, loss_mean, label='Gen', do_relative=solve)
         ax = plt.gca()
     else:
         ax, img_path = None, None
 
     # Logging
     if verbose >= 1:
-        _log_helper(problem_gen, learners, l_ex_mean, t_run_mean, solve, log_path, ax, img_path, rng, n_gen_learn)
+        _log_helper(problem_gen, learners, loss_mean, t_run_mean, solve, log_path, ax, img_path, rng, n_gen_learn)
 
-    return l_ex_mean, t_run_mean
+    return loss_mean, t_run_mean
 
 
 def evaluate_algorithms_train(algorithms, problem_gen, n_gen=1, n_gen_learn=0, n_mc=1, solve=False, verbose=0,
@@ -502,7 +500,7 @@ def evaluate_algorithms_train(algorithms, problem_gen, n_gen=1, n_gen_learn=0, n
     if solve:
         algorithms = _add_opt(algorithms)
 
-    l_ex_mc, t_run_mc = _empty_result(algorithms, n_mc), _empty_result(algorithms, n_mc)
+    loss_mc, t_run_mc = _empty_result(algorithms, n_mc), _empty_result(algorithms, n_mc)
     if verbose >= 1:
         print("\nPerforming Monte Carlo assessment...")
     for i_mc in range(n_mc):
@@ -513,19 +511,19 @@ def evaluate_algorithms_train(algorithms, problem_gen, n_gen=1, n_gen_learn=0, n
             problem_gen.shuffle()  # random train/test split
 
         # Evaluate performance
-        l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve,
+        loss_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve,
                                                         verbose=verbose - 1, plotting=plotting - 1)
-        l_ex_mc[i_mc], t_run_mc[i_mc] = _struct_mean(l_ex_mean), _struct_mean(t_run_mean)
+        loss_mc[i_mc], t_run_mc[i_mc] = _struct_mean(loss_mean), _struct_mean(t_run_mean)
 
     # Results
     if plotting >= 1:
-        _scatter_results(t_run_mc, l_ex_mc, label='Train', do_relative=solve)
+        _scatter_results(t_run_mc, loss_mc, label='Train', do_relative=solve)
         ax = plt.gca()
     else:
         ax, img_path = None, None
 
     # Logging
     if verbose >= 1:
-        _log_helper(problem_gen, learners, l_ex_mc, t_run_mc, solve, log_path, ax, img_path, rng, n_gen_learn, n_mc)
+        _log_helper(problem_gen, learners, loss_mc, t_run_mc, solve, log_path, ax, img_path, rng, n_gen_learn, n_mc)
 
-    return l_ex_mc, t_run_mc
+    return loss_mc, t_run_mc

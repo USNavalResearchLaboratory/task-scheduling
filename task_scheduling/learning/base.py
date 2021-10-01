@@ -57,7 +57,7 @@ class Base(ABC):
             action = self.predict(obs)
             obs, reward, done, info = self.env.step(action)
 
-        return self.env.node.t_ex, self.env.node.ch_ex
+        return self.env.node.sch
 
     @property
     def learn_params(self):

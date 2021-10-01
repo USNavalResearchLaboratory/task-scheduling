@@ -112,9 +112,6 @@ class Base(RandomGeneratorMixin, ABC):
         # scheduler_opt = partial(branch_bound, verbose=verbose)
         scheduler_opt = partial(branch_bound_priority, verbose=verbose)
 
-        # t_ex, ch_ex, t_run = timing_wrapper(scheduler_opt)(*problem)
-        # return SchedulingSolution(t_ex, ch_ex, t_run)
-
         # return timing_wrapper(scheduler_opt)(*problem)
         return eval_wrapper(scheduler_opt)(*problem)
 
@@ -127,7 +124,7 @@ class Base(RandomGeneratorMixin, ABC):
         problems : Sequence of SchedulingProblem
             Named tuple with fields 'tasks' and 'ch_avail'.
         solutions : Sequence of SchedulingSolution
-            Named tuple with fields 't_ex', 'ch_ex', and 't_run'.
+            Named tuple with fields 'sch', 'loss', and 't_run'.
         file_path : os.PathLike or str, optional
             File location relative to data/schedules/
 
@@ -334,8 +331,7 @@ class PermutedTasks(FixedTasks):
             idx.append(i)
             tasks_init[i] = None  # ensures unique indices
 
-        return SchedulingSolution(self.solution.t_ex[idx], self.solution.ch_ex[idx],
-                                  self.solution.l_ex, self.solution.t_run)
+        return SchedulingSolution(self.solution.sch[idx], self.solution.loss, self.solution.t_run)
 
 
 class Dataset(Base):

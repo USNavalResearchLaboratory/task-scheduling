@@ -45,15 +45,14 @@ class ScheduleNode(RandomGeneratorMixin):
         self._seq = []
         self._seq_rem = set(range(self.n_tasks))
 
-        self._t_ex = np.full(self.n_tasks, np.nan)
-        self._ch_ex = np.full(self.n_tasks, -1)
+        self._sch = np.array([(np.nan, -1) for __ in range(self.n_tasks)], dtype=[('t', float), ('c', int)])
 
-        self._l_ex = 0.  # incurred loss
+        self._loss = 0.  # incurred loss
 
         self.seq = seq
 
     def __repr__(self):
-        return f"ScheduleNode(sequence: {self.seq}, loss incurred:{self.l_ex:.3f})"
+        return f"ScheduleNode(sequence: {self.seq}, loss incurred:{self.loss:.3f})"
 
     def __eq__(self, other):
         if isinstance(other, ScheduleNode):
@@ -63,7 +62,7 @@ class ScheduleNode(RandomGeneratorMixin):
 
     def summary(self):
         """Print a string describing important node attributes."""
-        keys = ('seq', 't_ex', 'ch_ex', 'l_ex')
+        keys = ('seq', 'sch', 'loss')
         df = pd.Series({key: getattr(self, key) for key in keys})
         return df.to_markdown(tablefmt='github', floatfmt='.3f')
 
@@ -74,9 +73,8 @@ class ScheduleNode(RandomGeneratorMixin):
 
     seq_rem = property(lambda self: self._seq_rem)
 
-    t_ex = property(lambda self: self._t_ex)
-    ch_ex = property(lambda self: self._ch_ex)
-    l_ex = property(lambda self: self._l_ex)
+    sch = property(lambda self: self._sch)
+    loss = property(lambda self: self._loss)
 
     @property
     def seq(self):
@@ -136,16 +134,14 @@ class ScheduleNode(RandomGeneratorMixin):
 
         self._seq.append(n)
         self._seq_rem.remove(n)
-        self._update_ex(n)
+        self._update_sch(n)
 
-    def _update_ex(self, n):
-        ch = np.argmin(self.ch_avail)  # assign task to channel with earliest availability
-        self._ch_ex[n] = ch
+    def _update_sch(self, n):
+        c_min = np.argmin(self.ch_avail)  # assign task to channel with earliest availability
 
-        self._t_ex[n] = max(self._tasks[n].t_release, self._ch_avail[ch])
-        self._l_ex += self._tasks[n](self._t_ex[n])  # add task execution loss
-
-        self._ch_avail[ch] = self._t_ex[n] + self._tasks[n].duration  # new channel availability
+        self._sch[n] = (max(self._tasks[n].t_release, self._ch_avail[c_min]), c_min)
+        self._loss += self._tasks[n](self.sch['t'][n])  # add task execution loss
+        self._ch_avail[c_min] = self.sch['t'][n] + self._tasks[n].duration  # new channel availability
 
     def _extend_util(self, seq_ext, inplace=True):
         node = self
@@ -270,11 +266,11 @@ class ScheduleNode(RandomGeneratorMixin):
             seq_ext = leaf_new.seq[len(self.seq):]
             node = self._extend_util(seq_ext, inplace=False)
             node.roll_out(rng=rng)  # TODO: rollout with learned policy?
-            if node.l_ex < loss_best:
-                node_best, loss_best = node, node.l_ex
+            if node.loss < loss_best:
+                node_best, loss_best = node, node.loss
 
             # loss = leaf_new.evaluation()
-            loss = node.l_ex  # TODO: mix rollout loss with value func, like AlphaGo?
+            loss = node.loss  # TODO: mix rollout loss with value func, like AlphaGo?
             leaf_new.backup(loss)
 
         # if verbose:
@@ -313,8 +309,8 @@ class ScheduleNode(RandomGeneratorMixin):
                 print(f"Brute force: {i + 1}/{n_perms}", end='\r')
 
             node = self._extend_util(seq, inplace=False)
-            if node.l_ex < loss_best:
-                node_best, loss_best = node, node.l_ex
+            if node.loss < loss_best:
+                node_best, loss_best = node, node.loss
 
         if inplace:
             # self.seq = node_best.seq
@@ -357,18 +353,18 @@ class ScheduleNodeBound(ScheduleNode):
         self._update_bounds()
 
     def _update_bounds(self):
-        self._bounds = [self._l_ex, self._l_ex]
+        self._bounds = [self._loss, self._loss]
         if len(self.seq_rem) == 0:
             return  # already converged
 
         ch_avail_min = min(self._ch_avail)
         t_release_max = max(ch_avail_min, *(self._tasks[n].t_release for n in self._seq_rem))
-        t_ex_max = t_release_max + sum(self._tasks[n].duration for n in self._seq_rem)
-        # t_ex_max -= min(self._tasks[n].duration for n in self._seq_rem)
+        t_max = t_release_max + sum(self._tasks[n].duration for n in self._seq_rem)
+        # t_max -= min(self._tasks[n].duration for n in self._seq_rem)
 
         for n in self._seq_rem:  # update loss bounds
             self._bounds[0] += self._tasks[n](max(ch_avail_min, self._tasks[n].t_release))
-            self._bounds[1] += self._tasks[n](t_ex_max)
+            self._bounds[1] += self._tasks[n](t_max)
 
     def branch_bound(self, inplace=True, verbose=False, rng=None):
         """
@@ -398,22 +394,22 @@ class ScheduleNodeBound(ScheduleNode):
         # Iterate
         while len(stack) > 0:
             node = stack.pop()  # extract node
-            if node.l_lo >= node_best.l_ex:
+            if node.l_lo >= node_best.loss:
                 continue  # node is dominated
 
             # Branch
             for node_new in node.branch(permute=True, rng=rng):
                 # Bound
-                if node_new.l_lo < node_best.l_ex:
+                if node_new.l_lo < node_best.loss:
                     stack.append(node_new)  # new node is not dominated, add to stack (LIFO)
 
-                    if node_new.l_up < node_best.l_ex:
+                    if node_new.l_up < node_best.loss:
                         node_best = node_new.roll_out(inplace=False, rng=rng)  # roll-out a new best node
 
             if verbose:
                 progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(self.n_tasks)
-                print(f'Search progress: {progress:.3f}, Loss < {node_best.l_ex:.3f}', end='\r')
-                # print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.l_ex:.3f}', end='\r')
+                print(f'Search progress: {progress:.3f}, Loss < {node_best.loss:.3f}', end='\r')
+                # print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}', end='\r')
 
         if inplace:
             # self.seq = node_best.seq
@@ -457,22 +453,22 @@ class ScheduleNodeBound(ScheduleNode):
         # Iterate
         while len(stack) > 0:
             node = stack.pop()  # extract node
-            if node.l_lo >= node_best.l_ex:
+            if node.l_lo >= node_best.loss:
                 continue  # node is dominated
 
             # Branch
             for node_new in node.branch():
                 # Bound
-                if node_new.l_lo < node_best.l_ex:
+                if node_new.l_lo < node_best.loss:
                     stack.add(node_new)  # new node is not dominated, add to stack (prioritized)
 
-                    if node_new.l_up < node_best.l_ex:
+                    if node_new.l_up < node_best.loss:
                         node_best = heuristic(node_new)
 
             if verbose:
                 progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(self.n_tasks)
-                print(f'Search progress: {progress:.3f}, Loss < {node_best.l_ex:.3f}', end='\r')
-                # print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.l_ex:.3f}', end='\r')
+                print(f'Search progress: {progress:.3f}, Loss < {node_best.loss:.3f}', end='\r')
+                # print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}', end='\r')
 
         if inplace:
             # self.seq = node_best.seq
@@ -493,22 +489,11 @@ class ScheduleNodeShift(ScheduleNode):
         self.shift_origin()  # performs initial shift when initialized with empty sequence
 
     def __repr__(self):
-        return f"ScheduleNodeShift(sequence: {self.seq}, loss incurred:{self.l_ex:.3f})"
+        return f"ScheduleNodeShift(sequence: {self.seq}, loss incurred:{self.loss:.3f})"
 
-    # def _update_ex(self, n, ch):
-    #     self._ch_ex[n] = ch
-    #
-    #     t_ex_rel = max(self._tasks[n].t_release, self._ch_avail[ch])  # relative to time origin
-    #     self._t_ex[n] = self.t_origin + t_ex_rel  # absolute time
-    #     self._l_ex += self._tasks[n](t_ex_rel)  # add task execution loss
-    #
-    #     self._ch_avail[ch] = t_ex_rel + self._tasks[n].duration  # relative to time origin
-    #
-    #     self.shift_origin()
-
-    def _update_ex(self, n):
-        super()._update_ex(n)
-        self._t_ex[n] += self.t_origin  # relative to absolute
+    def _update_sch(self, n):
+        super()._update_sch(n)
+        self._sch['t'][n] += self.t_origin  # relative to absolute
         self.shift_origin()
 
     def shift_origin(self):
@@ -524,7 +509,7 @@ class ScheduleNodeShift(ScheduleNode):
         for n, task in enumerate(self._tasks):
             loss_inc = task.shift_origin(ch_avail_min)  # re-parameterize task, return any incurred loss
             if n in self._seq_rem:
-                self._l_ex += loss_inc  # add loss incurred due to origin shift for any unscheduled tasks
+                self._loss += loss_inc  # add loss incurred due to origin shift for any unscheduled tasks
 
 
 class MCTSNode(RandomGeneratorMixin):

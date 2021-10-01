@@ -13,8 +13,8 @@ def sort_wrapper(scheduler, sort_func):
         idx = list(np.argsort([sort_func(task) for task in tasks]))
         idx_inv = [idx.index(n) for n in range(len(tasks))]
 
-        t_ex, ch_ex = scheduler([tasks[i] for i in idx], ch_avail)
-        return t_ex[idx_inv], ch_ex[idx_inv]
+        sch = scheduler([tasks[i] for i in idx], ch_avail)
+        return sch[idx_inv]
 
     return sorted_scheduler
 

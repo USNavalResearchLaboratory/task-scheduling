@@ -134,9 +134,9 @@ __, axes = plt.subplots(len(algorithms))
 for algorithm, ax in zip(algorithms, axes):
     t_ex, ch_ex = algorithm(tasks, ch_avail)
 
-    check_schedule(tasks, t_ex, ch_ex)
-    loss = evaluate_schedule(tasks, t_ex)
-    plot_schedule(tasks, t_ex, ch_ex, l_ex=loss, ax=ax)
+    check_schedule(tasks, t_ex)
+    loss = evaluate_schedule(tasks,t_ex)
+    plot_schedule(tasks,t_ex,loss=loss,ax=ax)
 ```
 
 ### Policy learning and Monte Carlo assessment (`examples/mc_assess.py`)

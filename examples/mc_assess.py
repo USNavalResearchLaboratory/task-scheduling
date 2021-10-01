@@ -65,7 +65,7 @@ n_gen_learn = 900  # the number of problems generated for learning, per iteratio
 n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
 
-l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
-                                              verbose=1, plotting=1, rng=seed)
-# l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve=True,
-#                                                 verbose=1, plotting=1, rng=seed)
+# loss_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
+#                                               verbose=1, plotting=1, rng=seed)
+loss_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve=True,
+                                                verbose=1, plotting=1, rng=seed)

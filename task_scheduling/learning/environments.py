@@ -174,7 +174,7 @@ class BaseTasking(Env, ABC):
             self.node = tree_search.ScheduleNodeShift(tasks, ch_avail)
         else:
             self.node = tree_search.ScheduleNode(tasks, ch_avail)
-        self.loss_agg = self.node.l_ex  # Loss can be non-zero due to time origin shift during node initialization
+        self.loss_agg = self.node.loss  # Loss can be non-zero due to time origin shift during node initialization
 
         self._update_spaces()
 
@@ -206,7 +206,7 @@ class BaseTasking(Env, ABC):
 
         self.node.seq_extend(action)  # updates sequence, loss, task parameters, etc.
 
-        reward, self.loss_agg = self.loss_agg - self.node.l_ex, self.node.l_ex
+        reward, self.loss_agg = self.loss_agg - self.node.loss, self.node.loss
         done = len(self.node.seq_rem) == 0  # sequence is complete
 
         self._update_spaces()
@@ -277,8 +277,8 @@ class BaseTasking(Env, ABC):
                 self.reset(solve=True, rng=rng)  # generates new scheduling problem
 
                 # Optimal schedule
-                t_ex, ch_ex = self.solution.t_ex, self.solution.ch_ex
-                seq = np.argsort(t_ex)  # maps to optimal schedule (empirical proof in `test_tree_nodes.test_argsort`)
+                seq = np.argsort(self.solution.sch['t'])
+                # maps to optimal schedule (empirical proof in `test_tree_nodes.test_argsort`)
 
                 # Generate samples for each scheduling step of the optimal sequence
                 idx = i_gen * self.steps_per_episode + np.arange(self.steps_per_episode)

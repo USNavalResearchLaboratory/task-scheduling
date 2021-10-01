@@ -27,8 +27,8 @@ algorithms = [
 
 __, axes = plt.subplots(len(algorithms))
 for algorithm, ax in zip(algorithms, axes):
-    t_ex, ch_ex = algorithm(tasks, ch_avail)
+    ex = algorithm(tasks, ch_avail)
 
-    check_schedule(tasks, t_ex, ch_ex)
-    loss = evaluate_schedule(tasks, t_ex)
-    plot_schedule(tasks, t_ex, ch_ex, l_ex=loss, ax=ax)
+    check_schedule(tasks, ex)
+    loss = evaluate_schedule(tasks, ex)
+    plot_schedule(tasks, ex, loss=loss, ax=ax)

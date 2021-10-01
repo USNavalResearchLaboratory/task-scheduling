@@ -9,27 +9,20 @@ from task_scheduling.generators import problems as problem_gens
 
 
 def test_argsort():
-    """Check that seq=np.argsort(t_ex) maps to an optimal schedule."""
+    """Check that seq=np.argsort(sch['t']) maps to an optimal schedule."""
 
     problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1)
     for i in range(10):
         print(f"{i}", end='\n')
 
-        # seq = np.random.permutation(n_tasks)
-        # node = ScheduleNode(seq)
-        # t_ex = node.t_ex
-
         (tasks, ch_avail), = problem_gen(1)
-        t_ex, ch_ex = branch_bound(tasks, ch_avail, verbose=True, rng=None)
-        loss = evaluate_schedule(tasks, t_ex)
+        sch = branch_bound(tasks, ch_avail, verbose=True, rng=None)
+        loss = evaluate_schedule(tasks, sch)
 
-        seq_sort = np.argsort(t_ex)
+        seq_sort = np.argsort(sch['t'])
         node_sort = ScheduleNode(tasks, ch_avail, seq_sort)
-        # t_ex_sort = node_sort.t_ex
 
-        assert isclose(loss, node_sort.l_ex)
-        # assert t_ex.tolist() == t_ex_sort.tolist()
-        # assert seq.tolist() == seq_sort.tolist()
+        assert isclose(loss, node_sort.loss)
 
 
 def test_shift():
@@ -42,10 +35,8 @@ def test_shift():
         (tasks, ch_avail), = problem_gen(1)
         seq = np.random.permutation(problem_gen.n_tasks)
         node, node_s = ScheduleNode(tasks, ch_avail, seq), ScheduleNodeShift(tasks, ch_avail, seq)
-        # print(node.t_ex)
-        # print(node_s.t_ex)
-        assert np.allclose(node.t_ex, node_s.t_ex)
-        assert abs(node.l_ex - node_s.l_ex) < 1e-9
+        assert np.allclose(node.sch['t'], node_s.sch['t'])
+        assert abs(node.loss - node_s.loss) < 1e-9
 
 
 def main():

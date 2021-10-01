@@ -148,10 +148,10 @@ for dataset in datasets:
     algorithms_learn = np.array(algorithms_data, dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
     algorithms = np.concatenate((algorithms_base, algorithms_learn))
 
-    # l_ex_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve=True,
+    # loss_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve=True,
     #                                                 verbose=1, plotting=1, log_path=log_path, img_path=img_path,
     #                                                 rng=seed)
 
-    l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
+    loss_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
                                                   verbose=1, plotting=1, log_path=log_path, img_path=img_path,
                                                   rng=seed)
