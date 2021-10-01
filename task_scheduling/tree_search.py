@@ -361,12 +361,13 @@ class ScheduleNodeBound(ScheduleNode):
         if len(self.seq_rem) == 0:
             return  # already converged
 
-        t_release_max = max(min(self._ch_avail), *(self._tasks[n].t_release for n in self._seq_rem))
+        ch_avail_min = min(self._ch_avail)
+        t_release_max = max(ch_avail_min, *(self._tasks[n].t_release for n in self._seq_rem))
         t_ex_max = t_release_max + sum(self._tasks[n].duration for n in self._seq_rem)
         # t_ex_max -= min(self._tasks[n].duration for n in self._seq_rem)
 
         for n in self._seq_rem:  # update loss bounds
-            self._bounds[0] += self._tasks[n](max(min(self._ch_avail), self._tasks[n].t_release))
+            self._bounds[0] += self._tasks[n](max(ch_avail_min, self._tasks[n].t_release))
             self._bounds[1] += self._tasks[n](t_ex_max)
 
     def branch_bound(self, inplace=True, verbose=False, rng=None):

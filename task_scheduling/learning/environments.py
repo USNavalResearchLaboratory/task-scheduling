@@ -219,7 +219,11 @@ class BaseTasking(Env, ABC):
             plot_task_losses(self.tasks, ax=ax_env)
 
     def close(self):
-        plt.close('all')
+        pass  # TODO: clear current problem?
+        # plt.close('all')
+
+    def seed(self, seed=None):
+        self.problem_gen.rng = seed
 
     @abstractmethod
     def _gen_single(self, seq, weight_func):
