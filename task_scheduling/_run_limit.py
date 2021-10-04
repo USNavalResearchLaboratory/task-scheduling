@@ -4,10 +4,8 @@ from time import perf_counter
 import numpy as np
 from matplotlib import pyplot as plt
 
-from task_scheduling.algorithms._wrappers import timing_wrapper
 from task_scheduling.tree_search import ScheduleNodeBound
-from task_scheduling.util import plot_task_losses, plot_schedule
-from task_scheduling.util import check_schedule, evaluate_schedule
+from task_scheduling.util import plot_task_losses, plot_schedule, check_schedule, evaluate_schedule, eval_wrapper
 
 
 def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng=None):
@@ -28,10 +26,8 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 
     Returns
     -------
-    t_ex : numpy.ndarray
-        Task execution times.
-    ch_ex : numpy.ndarray
-        Task execution channels.
+    numpy.ndarray
+        Task execution times/channels.
 
     """
 
@@ -74,95 +70,22 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 #%% MCTS WIP
 
 # def mcts(tasks, ch_avail, runtimes, c_explore=0., visit_threshold=0, verbose=False, rng=None):
-#     """
-#     Monte Carlo tree search algorithm.
-#
-#     Parameters
-#     ----------
-#     tasks : Sequence of task_scheduling.tasks.Base
-#     ch_avail : Sequence of float
-#         Channel availability times.
-#     runtimes : float or Sequence of float
-#             Allotted algorithm runtimes.
-#     c_explore : float, optional
-#         Exploration weight. Higher values prioritize less frequently visited notes.
-#     visit_threshold : int, optional
-#         Nodes with up to this number of visits will select children using the `expansion` method.
-#     verbose : bool
-#         Enables printing of algorithm state information.
-#     rng : int or RandomState or Generator, optional
-#         NumPy random number generator or seed. Instance RNG if None.
-#
-#     Returns
-#     -------
-#     t_ex : numpy.ndarray
-#         Task execution times.
-#     ch_ex : numpy.ndarray
-#         Task execution channels.
-#
-#     """
 #
 #     # node = ScheduleNode(tasks, ch_avail, rng=rng)
 #     # node = node.mcts(runtimes, c_explore, visit_threshold, inplace=False, verbose=verbose)
-#     # return node.t_ex, node.ch_ex
+#     # return node.sch
 #     raise NotImplementedError
 
 
 # def mcts_v1(tasks, ch_avail, runtimes, c_explore=1., verbose=False, rng=None):
-#     """
-#     Monte Carlo tree search algorithm.
-#
-#     Parameters
-#     ----------
-#     tasks : Sequence of task_scheduling.tasks.Base
-#     ch_avail : Sequence of float
-#         Channel availability times.
-#     runtimes : float or Sequence of float
-#             Allotted algorithm runtimes.
-#     c_explore : float, optional
-#         Exploration weight. Higher values prioritize unexplored tree nodes.
-#     verbose : bool
-#         Enables printing of algorithm state information.
-#     rng : int or RandomState or Generator, optional
-#         NumPy random number generator or seed. Instance RNG if None.
-#
-#     Returns
-#     -------
-#     t_ex : numpy.ndarray
-#         Task execution times.
-#     ch_ex : numpy.ndarray
-#         Task execution channels.
-#
-#     """
 #
 #     # node = ScheduleNode(tasks, ch_avail, rng=rng)
 #     # node = node.mcts_v1(runtimes, c_explore, inplace=False, verbose=verbose)
-#     # return node.t_ex, node.ch_ex
+#     # return node.sch
 #     raise NotImplementedError
 
 
 # def mcts(tasks: list, ch_avail: list, runtimes: list, verbose=False):
-#     """
-#     Monte Carlo tree search algorithm.
-#
-#     Parameters
-#     ----------
-#     tasks : list of tasks.Base
-#     ch_avail : list of float
-#         Channel availability times.
-#     runtimes : list of float
-#         Allotted algorithm runtime.
-#     verbose : bool
-#         Enables printing of algorithm state information.
-#
-#     Returns
-#     -------
-#     t_ex : numpy.ndarray
-#         Task execution times.
-#     ch_ex : numpy.ndarray
-#         Task execution channels.
-#
-#     """
 #
 #     # TODO: add early termination for completed search.
 #
@@ -196,35 +119,10 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 #             node_best, loss_min = node, loss
 #
 #         if perf_counter() - t_run >= runtimes[i_time]:
-#             yield node_best.t_ex, node_best.ch_ex
+#             yield node_best.sch
 #             i_time += 1
 
 # def mcts_orig(tasks: list, ch_avail: list, max_runtime=float('inf'), n_mc=None, verbose=False, rng=None):
-#     """
-#     Monte Carlo tree search algorithm.
-#
-#     Parameters
-#     ----------
-#     tasks : list of task_scheduling.tasks.Base
-#     ch_avail : list of float
-#         Channel availability times.
-#     n_mc : int or list of int
-#         Number of Monte Carlo roll-outs per task.
-#     max_runtime : float
-#         Allotted algorithm runtime.
-#     verbose : bool
-#         Enables printing of algorithm state information.
-#     rng
-#         NumPy random number generator or seed. Default Generator if None.
-#
-#     Returns
-#     -------
-#     t_ex : numpy.ndarray
-#         Task execution times.
-#     ch_ex : numpy.ndarray
-#         Task execution channels.
-#
-#     """
 #
 #     t_run = perf_counter()
 #     run = True
@@ -264,10 +162,10 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 #         # Assign next task from earliest available channel
 #         node.seq_extend(node_best.seq[n], check_valid=False)
 #
-#     return node_best.t_ex, node_best.ch_ex
+#     return node_best.sch
 
 
-def plot_loss_runtime(t_run, l_ex, do_std=False, ax=None, ax_kwargs=None):
+def plot_loss_runtime(t_run, loss, do_std=False, ax=None, ax_kwargs=None):
     """
     Line plot of total execution loss versus maximum runtime.
 
@@ -275,7 +173,7 @@ def plot_loss_runtime(t_run, l_ex, do_std=False, ax=None, ax_kwargs=None):
     ----------
     t_run : numpy.ndarray
         Runtime of algorithm.
-    l_ex : numpy.ndarray
+    loss : numpy.ndarray
         Total loss of scheduled tasks.
     do_std : bool
         Activates error bars for sample standard deviation.
@@ -292,12 +190,12 @@ def plot_loss_runtime(t_run, l_ex, do_std=False, ax=None, ax_kwargs=None):
     if ax_kwargs is None:
         ax_kwargs = {}
 
-    names = l_ex.dtype.names
+    names = loss.dtype.names
     for i_name, name in enumerate(names):
-        l_mean = l_ex[name].mean(-1)
+        l_mean = loss[name].mean(-1)
         ax.plot(t_run, l_mean, label=name)
         if do_std:
-            l_std = l_ex[name].std(-1)
+            l_std = loss[name].std(-1)
             # ax.errorbar(t_run, l_mean, yerr=l_std, label=name, errorevery=(i_name, len(names)))
             ax.fill_between(t_run, l_mean - l_std, l_mean + l_std, alpha=0.25)
         # else:
@@ -308,13 +206,36 @@ def plot_loss_runtime(t_run, l_ex, do_std=False, ax=None, ax_kwargs=None):
     ax.set(**ax_kwargs)
 
 
+# def timing_wrapper(scheduler):  # TODO: delete?
+#     """Wraps a scheduler, creates a function that outputs runtime in addition to schedule."""
+#
+#     @wraps(scheduler)
+#     def timed_scheduler(tasks, ch_avail):
+#         t_start = perf_counter()
+#         # t_ex, ch_ex = scheduler(tasks, ch_avail)
+#         # t_run = perf_counter() - t_start
+#         # # return t_ex, ch_ex, t_run
+#
+#         sch = scheduler(tasks, ch_avail)
+#         t_run = perf_counter() - t_start
+#
+#         # return SchedulingSolution(*sch, t_run=t_run)
+#         return sch, t_run
+#
+#     return timed_scheduler
+
+
 def runtime_wrapper(scheduler):
     @wraps(scheduler)
     def new_scheduler(tasks, ch_avail, runtimes):
-        t_ex, ch_ex, _l_ex, t_run = timing_wrapper(scheduler)(tasks, ch_avail)
+        t_start = perf_counter()
+        sch = scheduler(tasks, ch_avail)
+        t_run = perf_counter() - t_start
+
+        # sch, loss, t_run = eval_wrapper(scheduler)(tasks, ch_avail)
         for runtime in runtimes:
             if t_run < runtime:
-                yield t_ex, ch_ex
+                yield sch
             else:
                 yield None
                 # raise RuntimeError(f"Algorithm timeout: {t_run} > {runtime}.")
@@ -325,20 +246,19 @@ def runtime_wrapper(scheduler):
 def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0,
                                 save_path=None):
 
-    l_ex_iter = np.array([[tuple([np.nan] * alg['n_iter'] for alg in algorithms)] * n_gen] * len(runtimes),
+    loss_iter = np.array([[tuple([np.nan] * alg['n_iter'] for alg in algorithms)] * n_gen] * len(runtimes),
                          dtype=[(alg['name'], float, (alg['n_iter'],)) for alg in algorithms])
-    l_ex_mean = np.array([[(np.nan,) * len(algorithms)] * n_gen] * len(runtimes),
+    loss_mean = np.array([[(np.nan,) * len(algorithms)] * n_gen] * len(runtimes),
                          dtype=[(alg['name'], float) for alg in algorithms])
 
-    l_ex_opt = np.full(n_gen, np.nan)
+    loss_opt = np.full(n_gen, np.nan)
     t_run_opt = np.full(n_gen, np.nan)  # TODO: use in plots?
 
     # Generate scheduling problems
     for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose, save_path)):
         if solve:
-            (tasks, ch_avail), (t_ex, ch_ex, _l_ex, t_run) = out_gen
-            check_schedule(tasks, t_ex)
-            l_ex_opt[i_gen] = evaluate_schedule(tasks, t_ex)
+            (tasks, ch_avail), (sch, loss, t_run) = out_gen
+            loss_opt[i_gen] = loss
             t_run_opt[i_gen] = t_run
         else:
             tasks, ch_avail = out_gen
@@ -349,51 +269,49 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
                     print(f'  {name}: Iteration: {iter_ + 1}/{n_iter}', end='\r')
 
                 # Evaluate schedule
-                for i_time, solution in enumerate(func(tasks, ch_avail, runtimes)):
-                    if solution is None:
+                for i_time, sch in enumerate(func(tasks, ch_avail, runtimes)):
+                    if sch is None:
                         continue  # TODO
 
-                    t_ex, ch_ex = solution
+                    check_schedule(tasks, sch)
+                    loss = evaluate_schedule(tasks, sch)
 
-                    check_schedule(tasks, t_ex)
-                    l_ex = evaluate_schedule(tasks, t_ex)
-
-                    l_ex_iter[name][i_time, i_gen, iter_] = l_ex
+                    loss_iter[name][i_time, i_gen, iter_] = loss
 
                     if plotting >= 3:
-                        plot_schedule(tasks, t_ex, loss=l_ex, name=name, ax=None)
+                        plot_schedule(tasks, sch, loss=loss, name=name, ax=None)
 
-            l_ex_mean[name][:, i_gen] = l_ex_iter[name][:, i_gen].mean(-1)
+            loss_mean[name][:, i_gen] = loss_iter[name][:, i_gen].mean(-1)
 
         if plotting >= 2:
             _, ax_gen = plt.subplots(2, 1, num=f'Scheduling Problem: {i_gen + 1}', clear=True)
             plot_task_losses(tasks, ax=ax_gen[0])
-            plot_loss_runtime(runtimes, l_ex_iter[:, i_gen], do_std=False, ax=ax_gen[1])
+            plot_loss_runtime(runtimes, loss_iter[:, i_gen], do_std=False, ax=ax_gen[1])
 
     # Results
     if plotting >= 1:
         _, ax_results = plt.subplots(num='Results', clear=True)
-        plot_loss_runtime(runtimes, l_ex_mean, do_std=True,
+        plot_loss_runtime(runtimes, loss_mean, do_std=True,
                           ax=ax_results,
                           # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
                           )
 
     if solve:  # relative to B&B
-        l_ex_mean_rel = l_ex_mean.copy()
+        loss_mean_rel = loss_mean.copy()
         for name in algorithms['name']:
-            l_ex_mean_rel[name] -= l_ex_opt
-            # l_ex_mean_rel[name] /= l_ex_opt
+            loss_mean_rel[name] -= loss_opt
+            # loss_mean_rel[name] /= loss_opt
 
         if plotting >= 1:
             _, ax_results_rel = plt.subplots(num='Results (Relative)', clear=True)
-            plot_loss_runtime(runtimes, l_ex_mean_rel, do_std=True,
+            plot_loss_runtime(runtimes, loss_mean_rel, do_std=True,
                               ax=ax_results_rel,
                               ax_kwargs={'ylabel': 'Excess Loss',
                                          # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
                                          }
                               )
 
-    return l_ex_iter, l_ex_opt
+    return loss_iter, loss_opt
 
 
 # #%% Evaluation example

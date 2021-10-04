@@ -112,7 +112,6 @@ class Base(RandomGeneratorMixin, ABC):
         # scheduler_opt = partial(branch_bound, verbose=verbose)
         scheduler_opt = partial(branch_bound_priority, verbose=verbose)
 
-        # return timing_wrapper(scheduler_opt)(*problem)
         return eval_wrapper(scheduler_opt)(*problem)
 
     def _save(self, problems, solutions=None, file_path=None):

@@ -132,11 +132,11 @@ algorithms = [
 
 __, axes = plt.subplots(len(algorithms))
 for algorithm, ax in zip(algorithms, axes):
-    t_ex, ch_ex = algorithm(tasks, ch_avail)
+    sch = algorithm(tasks, ch_avail)
 
-    check_schedule(tasks, t_ex)
-    loss = evaluate_schedule(tasks,t_ex)
-    plot_schedule(tasks,t_ex,loss=loss,ax=ax)
+    check_schedule(tasks, sch)
+    loss = evaluate_schedule(tasks, sch)
+    plot_schedule(tasks, sch, loss=loss, ax=ax)
 ```
 
 ### Policy learning and Monte Carlo assessment (`examples/mc_assess.py`)
@@ -177,7 +177,7 @@ if seed is not None:
 #%% Define scheduling problem and algorithms
 
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=seed)
-problem_gen = problem_gens.Dataset.load('../data/schedules/continuous_relu_drop_c1t8', repeat=True)
+problem_gen = problem_gens.Dataset.load('../data/continuous_relu_drop_c1t8', repeat=True)
 
 
 #%% Algorithms
@@ -206,7 +206,7 @@ lit_scheduler = LitScheduler.from_env_mlp([30, 30], problem_gen, env_params=env_
 algorithms = np.array([
     ('Random', random_sequencer, 10),
     ('ERT', earliest_release, 10),
-    ('MCTS', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=.05, visit_threshold=5), 10),
+    ('MCTS', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=.05, th_visit=5), 10),
     ('Lit Policy', lit_scheduler, 10),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
@@ -216,6 +216,6 @@ n_gen_learn = 900  # the number of problems generated for learning, per iteratio
 n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
 
-l_ex_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
+loss_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
                                               verbose=1, plotting=1, rng=seed)
 ```
