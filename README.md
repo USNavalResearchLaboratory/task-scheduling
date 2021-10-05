@@ -29,15 +29,16 @@ The task scheduling problem is defined using two variables:
 - `tasks` - an array of task objects
 - `ch_avail` - an array of channel availability times
 
-and the scheduling solution is defined using two arrays of length `len(tasks)`:
-- `t_ex` - task execution times
-- `ch_ex` - task execution channels
+and the scheduling solution is defined using a 
+[NumPy structured array](https://numpy.org/doc/stable/user/basics.rec.html) of length `len(tasks)` with two fields:
+- `t` - execution times (`float`)
+- `c` - execution channels (`int`, in `range(len(ch_avail))`)
 
-To be valid (as assessed using `util.results.check_schedule`), the execution times, execution channels, and task
-durations must be such that no two tasks attempt execution at the same time, on the same channel.
+To be valid (as assessed using `util.check_schedule`), the execution times, execution channels, and task
+durations must be such that no two tasks on the same channel are executing at the same time.
 
 Each algorithm is a Python `callable` implementing the same API; it takes two leading positional arguments `tasks` and
-`ch_avail` and returns the schedule arrays `t_ex` and `ch_ex`. An example schedule is shown below.
+`ch_avail` and returns the schedule array `sch`. An example schedule is shown below.
 
 ![Task schedule](images/ex_schedule.png)
 
@@ -69,8 +70,8 @@ each task.
 
 ## Evaluation
 The primary metrics used to evaluate a scheduling algorithm are its achieved loss and its runtime. The 
-`util.results.evaluate_schedule` function calculates the total loss; the `util.generic.timing_wrapper` function allows 
-any scheduler to be timed. 
+`util.evaluate_schedule` function calculates the total loss; the `util.eval_wrapper` function allows 
+any scheduler to be timed and assessed. 
 
 While these functions can be invoked directly, the package provides a number of convenient functions in the 
 `util.results` subpackage that automate this functionality, allow printing result tables to file, provide visuals, etc.
