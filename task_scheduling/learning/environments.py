@@ -1,15 +1,15 @@
 from abc import ABC, abstractmethod
 from math import factorial
-from types import MethodType
 from operator import attrgetter
+from types import MethodType
 
 import matplotlib.pyplot as plt
 import numpy as np
 from gym import Env
 from gym.spaces import Discrete, MultiDiscrete
 
-from task_scheduling import tree_search
 import task_scheduling.spaces as spaces_tasking
+from task_scheduling import tree_search
 from task_scheduling.learning.features import param_features
 from task_scheduling.util import plot_task_losses
 
@@ -272,7 +272,7 @@ class BaseTasking(Env, ABC):
                 # if verbose >= 2:
                 #     print(f'  Problem: {i_gen + 1}/{batch_size}', end='\r')
                 if verbose >= 1:
-                    print(f'Problem: {batch_size*i_batch + i_gen + 1}/{n_batch * batch_size}', end='\r')
+                    print(f'Problem: {batch_size * i_batch + i_gen + 1}/{n_batch * batch_size}', end='\r')
 
                 self.reset(solve=True, rng=rng)  # generates new scheduling problem
 

@@ -2,17 +2,17 @@
 
 from abc import ABC, abstractmethod
 from collections import deque
+from datetime import datetime
 from functools import partial
 from pathlib import Path
-from datetime import datetime
 
 import dill
 import numpy as np
 
-from task_scheduling.base import RandomGeneratorMixin, SchedulingProblem, SchedulingSolution
-from task_scheduling.util import eval_wrapper
 from task_scheduling.algorithms import branch_bound_priority
+from task_scheduling.base import RandomGeneratorMixin, SchedulingProblem, SchedulingSolution
 from task_scheduling.generators import tasks as task_gens, channels as chan_gens
+from task_scheduling.util import eval_wrapper
 
 
 class Base(RandomGeneratorMixin, ABC):

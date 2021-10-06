@@ -1,22 +1,15 @@
 from collections import namedtuple
-from pathlib import Path
-# import dill
-
-from torch import nn
-from stable_baselines3 import PPO
-from stable_baselines3.common.policies import ActorCriticPolicy
 
 from stable_baselines3 import DQN, A2C, PPO
-
 # from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.results_plotter import plot_results
+from stable_baselines3.common.policies import ActorCriticPolicy
+# from stable_baselines.common.vec_env import DummyVecEnv
+from torch import nn
 
 # from task_scheduling.learning import environments as envs
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 from task_scheduling.learning.supervised.torch import reset_weights
 
-
-# from stable_baselines.common.vec_env import DummyVecEnv
 
 # class DummyVecTaskingEnv(DummyVecEnv):
 #     def reset(self, *args, **kwargs):
@@ -53,7 +46,6 @@ class RandomAgent:
 
 # Schedulers
 class StableBaselinesScheduler(BaseLearningScheduler):
-
     _default_tuple = namedtuple('ModelDefault', ['cls', 'params'], defaults={})
     model_defaults = {'Random': _default_tuple(RandomAgent, {}),
                       'DQN_MLP': _default_tuple(DQN, {'policy': 'MlpPolicy', 'verbose': 1}),
@@ -222,10 +214,10 @@ class CustomNetwork(nn.Module):
     """
 
     def __init__(
-        self,
-        feature_dim: int,
-        last_layer_dim_pi: int = 64,
-        last_layer_dim_vf: int = 64,
+            self,
+            feature_dim: int,
+            last_layer_dim_pi: int = 64,
+            last_layer_dim_vf: int = 64,
     ):
         super(CustomNetwork, self).__init__()
 
@@ -253,16 +245,15 @@ class CustomNetwork(nn.Module):
 
 class CustomActorCriticPolicy(ActorCriticPolicy):
     def __init__(
-        self,
-        observation_space,
-        action_space,
-        lr_schedule,
-        net_arch,
-        activation_fn=nn.Tanh,
-        *args,
-        **kwargs,
+            self,
+            observation_space,
+            action_space,
+            lr_schedule,
+            net_arch,
+            activation_fn=nn.Tanh,
+            *args,
+            **kwargs,
     ):
-
         super(CustomActorCriticPolicy, self).__init__(
             observation_space,
             action_space,

@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from task_scheduling.tree_search import ScheduleNodeBound
-from task_scheduling.util import plot_task_losses, plot_schedule, check_schedule, evaluate_schedule, eval_wrapper
+from task_scheduling.util import plot_task_losses, plot_schedule, check_schedule, evaluate_schedule
 
 
 def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng=None):
@@ -67,7 +67,8 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
     for _ in range(i_time, n_times):
         yield node_best.sch
 
-#%% MCTS WIP
+
+# MCTS WIP
 
 # def mcts(tasks, ch_avail, runtimes, c_explore=0., visit_threshold=0, verbose=False, rng=None):
 #
@@ -245,7 +246,6 @@ def runtime_wrapper(scheduler):
 
 def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0,
                                 save_path=None):
-
     loss_iter = np.array([[tuple([np.nan] * alg['n_iter'] for alg in algorithms)] * n_gen] * len(runtimes),
                          dtype=[(alg['name'], float, (alg['n_iter'],)) for alg in algorithms])
     loss_mean = np.array([[(np.nan,) * len(algorithms)] * n_gen] * len(runtimes),
@@ -312,7 +312,6 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
                               )
 
     return loss_iter, loss_opt
-
 
 # #%% Evaluation example
 # algorithms = np.array([

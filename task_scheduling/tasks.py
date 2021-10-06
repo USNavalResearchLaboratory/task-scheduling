@@ -263,7 +263,7 @@ class ReluDrop(Shift):
         return self.t_release, self.t_release + self.t_drop + 1
 
 
-#%% Radar tasks
+# Radar tasks
 
 class ReluDropRadar(ReluDrop):
     # param_names = ('duration', 't_release', 'slope', 't_drop', 'l_drop', 't_dwell', 't_revisit')

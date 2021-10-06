@@ -3,7 +3,6 @@ from datetime import datetime
 
 import numpy as np
 
-
 SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
 SchedulingSolution = namedtuple('SchedulingSolution', ['sch', 'loss', 't_run'], defaults=(None, None))
 

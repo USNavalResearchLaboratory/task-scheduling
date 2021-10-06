@@ -1,10 +1,10 @@
 from collections import deque
 from copy import deepcopy
-from math import factorial
-from typing import Sequence, Iterable
-from operator import methodcaller
 from itertools import permutations
+from math import factorial
+from operator import methodcaller
 from time import perf_counter
+from typing import Sequence, Iterable
 
 import numpy as np
 import pandas as pd
@@ -12,6 +12,7 @@ from sortedcontainers import SortedKeyList
 
 from task_scheduling.base import RandomGeneratorMixin
 from task_scheduling.tasks import Shift as ShiftTask
+
 
 # TODO: make problem a shared class attribute? Make a class constructor?
 

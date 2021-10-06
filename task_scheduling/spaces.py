@@ -134,7 +134,7 @@ class DiscreteSet(Space):
 
     def add_elements(self, elements):
         elements = np.array(elements).flatten()
-        self.elements = np.unique(np.concatenate((self.elements, elements))) # sorted, flattened
+        self.elements = np.unique(np.concatenate((self.elements, elements)))  # sorted, flattened
 
     def sample(self):
         return self.np_random.choice(self.elements)

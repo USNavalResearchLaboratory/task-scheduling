@@ -30,7 +30,8 @@ The task scheduling problem is defined using two variables:
 - `ch_avail` - an array of channel availability times
 
 and the scheduling solution is defined using a 
-[NumPy structured array](https://numpy.org/doc/stable/user/basics.rec.html) of length `len(tasks)` with two fields:
+[NumPy structured array](https://numpy.org/doc/stable/user/basics.rec.html) `sch` of length `len(tasks)` with two 
+fields:
 - `t` - execution times (`float`)
 - `c` - execution channels (`int`, in `range(len(ch_avail))`)
 

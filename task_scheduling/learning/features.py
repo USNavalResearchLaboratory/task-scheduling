@@ -1,8 +1,8 @@
 import numpy as np
 from gym.spaces import Discrete, MultiDiscrete, Box
 
-from task_scheduling.tasks import Shift
 from task_scheduling.spaces import DiscreteSet
+from task_scheduling.tasks import Shift
 
 
 def _get_param(name):

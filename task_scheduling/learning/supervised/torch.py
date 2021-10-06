@@ -1,23 +1,20 @@
-from functools import partial, wraps
+import math
 # from pathlib import Path
 from abc import abstractmethod
-import math
 from copy import deepcopy
+from functools import partial, wraps
 # from types import MethodType
 
 import numpy as np
-
+import pytorch_lightning as pl
 import torch
 from torch import nn, optim
 from torch.nn import functional
-
 from torch.utils.data import TensorDataset, DataLoader
 
-import pytorch_lightning as pl
-
+from task_scheduling.learning.environments import StepTasking
 # from task_scheduling.learning.base import Base as BaseLearningScheduler
 from task_scheduling.learning.supervised.base import Base as BaseSupervisedScheduler
-from task_scheduling.learning.environments import StepTasking
 
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")

@@ -1,9 +1,9 @@
-from functools import partial
 import logging
-import sys
-from pathlib import Path
-from contextlib import contextmanager
 import pickle
+import sys
+from contextlib import contextmanager
+from functools import partial
+from pathlib import Path
 from warnings import warn
 
 import numpy as np
@@ -11,16 +11,15 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from task_scheduling.base import RandomGeneratorMixin as RNGMix
-from task_scheduling.util import eval_wrapper, plot_schedule
+from task_scheduling.generators.problems import Dataset, Base as BaseProblemGenerator
 from task_scheduling.learning.base import Base as BaseLearningScheduler
 from task_scheduling.learning.supervised.base import Base as BaseSupervisedScheduler
-from task_scheduling.generators.problems import Dataset, Base as BaseProblemGenerator
+from task_scheduling.util import eval_wrapper, plot_schedule
 
 OPT_NAME = 'BB Optimal'
 PICKLE_FIGS = True
 
-
-#%% Logging
+# Logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 out_handler = logging.StreamHandler(stream=sys.stdout)
@@ -89,7 +88,7 @@ def _log_helper(problem_obj, learners, loss, t_run, solve, log_path, ax, img_pat
     _log_and_fig(message, log_path, ax, img_path)
 
 
-#%%
+#
 def _scatter_loss_runtime(t_run, loss, ax=None, ax_kwargs=None):
     """
     Scatter plot of total execution loss versus runtime.
@@ -124,7 +123,7 @@ def _scatter_loss_runtime(t_run, loss, ax=None, ax_kwargs=None):
     ax.set(**ax_kwargs)
 
 
-#%% Utilities
+# Utilities
 def _iter_to_mean(array):
     return np.array([tuple(map(np.mean, item)) for item in array.flatten()],
                     dtype=[(name, float) for name in array.dtype.names]).reshape(array.shape)
@@ -162,7 +161,6 @@ def _relative_loss(loss):
 
 
 def _scatter_results(t_run, loss, label='Results', do_relative=False):
-
     __, ax_results = plt.subplots(num=label, clear=True)
     _scatter_loss_runtime(t_run, loss,
                           ax=ax_results,
@@ -246,7 +244,7 @@ def _seed_to_rng(algorithms):
             func.keywords['rng'] = RNGMix.make_rng(func.keywords['rng'])
 
 
-#%% Algorithm evaluation
+# Algorithm evaluation
 def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0, plotting=0, log_path=None,
                                img_path=None, rng=None):
     """

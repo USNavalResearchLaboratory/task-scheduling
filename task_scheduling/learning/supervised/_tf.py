@@ -1,8 +1,8 @@
+import math
 import shutil
 import webbrowser
 from functools import partial
 from pathlib import Path
-import math
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,7 +17,7 @@ for device in tf.config.experimental.list_physical_devices('GPU'):
     tf.config.experimental.set_memory_growth(device, True)  # compatibility issue workaround
 
 
-def reset_weights(model):      # from https://github.com/keras-team/keras/issues/341#issuecomment-539198392
+def reset_weights(model):  # from https://github.com/keras-team/keras/issues/341#issuecomment-539198392
     for layer in model.layers:
         if isinstance(layer, keras.Model):
             reset_weights(layer)
