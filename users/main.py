@@ -30,8 +30,6 @@ pd.options.display.float_format = '{:,.3f}'.format
 plt.style.use('seaborn')
 # plt.rc('axes', grid=True)
 
-gpus = min(1, torch.cuda.device_count())
-
 now = get_now()
 
 # seed = None
@@ -125,7 +123,7 @@ pl_trainer_kwargs = {
     'logger': TensorBoardLogger('main_temp/logs/', name=now),
     'checkpoint_callback': False,
     'default_root_dir': 'main_temp/logs/',
-    'gpus': gpus,
+    'gpus': min(1, torch.cuda.device_count()),
     # 'distributed_backend': 'ddp',
     # 'profiler': 'simple',
     # 'progress_bar_refresh_rate': 0,

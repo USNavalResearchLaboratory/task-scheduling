@@ -22,10 +22,7 @@ np.set_printoptions(precision=3)
 pd.options.display.float_format = '{:,.3f}'.format
 plt.style.use('seaborn')
 
-gpus = min(1, torch.cuda.device_count())
-
 now = get_now()
-
 
 # seed = None
 seed = 12345
@@ -48,7 +45,7 @@ trainer_kwargs = {
     'logger': TensorBoardLogger('auto_temp/logs/', name=now),
     'checkpoint_callback': False,
     'default_root_dir': 'auto_temp/logs/',
-    'gpus': gpus,
+    'gpus': min(1, torch.cuda.device_count()),
 }
 
 learn_params = {
