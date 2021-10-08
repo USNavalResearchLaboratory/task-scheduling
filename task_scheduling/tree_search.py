@@ -487,7 +487,8 @@ class ScheduleNodeShift(ScheduleNode):
         tasks = deepcopy(tasks)  # tasks modified in-place during `shift_origin`
         super().__init__(tasks, ch_avail, seq, rng)
 
-        self.shift_origin()  # performs initial shift when initialized with empty sequence
+        if len(seq) == 0:
+            self.shift_origin()  # performs initial shift when initialized with empty sequence
 
     def __repr__(self):
         return f"ScheduleNodeShift(sequence: {self.seq}, loss incurred:{self.loss:.3f})"

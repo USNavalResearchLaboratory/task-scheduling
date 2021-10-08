@@ -313,7 +313,7 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
 
     return loss_iter, loss_opt
 
-# #%% Evaluation example
+# # Evaluation example
 # algorithms = np.array([
 #     # ('B&B sort', sort_wrapper(partial(branch_bound, verbose=False), 't_release'), 1),
 #     ('Random', runtime_wrapper(algs.free.random_sequencer), 20),
