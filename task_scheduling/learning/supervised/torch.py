@@ -32,7 +32,7 @@ def reset_weights(model):
         model.reset_parameters()
 
 
-def _build_torch_mlp(layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_layer=nn.Softmax(dim=1)):
+def _build_torch_mlp(layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_layer=None):
     layers = []
     if start_layer is not None:
         layers.append(start_layer)
@@ -46,7 +46,7 @@ def _build_torch_mlp(layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten()
 
 
 class LitMLP(pl.LightningModule):
-    def __init__(self, layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_layer=nn.Softmax(dim=1),
+    def __init__(self, layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_layer=None,
                  loss_func=functional.cross_entropy, optim_cls=torch.optim.Adam, optim_params=None):
         super().__init__()
 
@@ -170,7 +170,8 @@ class Base(BaseSupervisedScheduler):
             out = self.model(input_)
 
         if normalize:
-            out = functional.normalize(out, p=1, dim=-1)
+            # out = functional.normalize(out, p=1, dim=-1)
+            out = functional.softmax(out, dim=-1)
 
         out = out.numpy()
         if not _batch:
