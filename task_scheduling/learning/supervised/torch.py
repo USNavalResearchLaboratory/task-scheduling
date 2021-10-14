@@ -401,6 +401,8 @@ class LitScheduler(Base):
         _layer_sizes = [np.prod(env.observation_space.shape).item(), *hidden_layer_sizes, env.action_space.n]
         if lit_mlp_kwargs is None:
             lit_mlp_kwargs = {}
+        if valid_fwd:
+            lit_mlp_kwargs['end_layer'] = nn.Softmax(dim=1)  # required for probability masking
         model = LitMLP(_layer_sizes, **lit_mlp_kwargs)
 
         return cls(env, model, trainer_kwargs, learn_params, valid_fwd)
