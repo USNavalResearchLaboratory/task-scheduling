@@ -130,10 +130,9 @@ for dataset in datasets:
         if seed is not None:
             seed_everything(seed)
 
-        lit_scheduler = LitScheduler.from_env_mlp(layer_sizes, problem_gen, env_params=env_params,
-                                                  lit_mlp_kwargs=lit_mlp_kwargs,
-                                                  trainer_kwargs=trainer_kwargs, learn_params=learn_params,
-                                                  valid_fwd=valid_fwd)
+        lit_scheduler = LitScheduler.from_env_mlp(problem_gen, env_params=env_params, hidden_layer_sizes=layer_sizes,
+                                                  lit_mlp_kwargs=lit_mlp_kwargs, trainer_kwargs=trainer_kwargs,
+                                                  learn_params=learn_params, valid_fwd=valid_fwd)
 
         net_str = str(i_net)
         # net_str = '-'.join(map(str, layer_sizes))

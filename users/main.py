@@ -82,7 +82,7 @@ learn_params_torch = {
     'batch_size_val': 30,
     'weight_func': None,  # TODO: weighting based on loss value!?
     # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-    'max_epochs': 1000,
+    'max_epochs': 500,
     'shuffle': True,
     'callbacks': EarlyStopping('val_loss', min_delta=0., patience=50),
 }
@@ -107,17 +107,18 @@ valid_fwd = True
 #
 #     def forward(self, x):
 #         return self.model(x)
-#
-#
+
+
 # model_torch = TorchModule()
-#
+
 # loss_func = functional.cross_entropy
 # # loss_func = functional.nll_loss
-#
 # optim_cls, optim_params = optim.Adam, {'lr': 1e-3}
-#
 # torch_scheduler = TorchScheduler(env, model_torch, loss_func, optim_cls, optim_params, learn_params_torch, valid_fwd)
-
+torch_scheduler = TorchScheduler.from_env_mlp(problem_gen, env_params=env_params, hidden_layer_sizes=[30, 30],
+                                              optim_params={'lr': 1e-3},
+                                              learn_params=learn_params_torch,
+                                              valid_fwd=valid_fwd)
 
 pl_trainer_kwargs = {
     'logger': TensorBoardLogger('main_temp/logs/', name=now),
@@ -129,12 +130,7 @@ pl_trainer_kwargs = {
     # 'progress_bar_refresh_rate': 0,
 }
 
-# # loss_func, end_layer = functional.nll_loss, nn.LogSoftmax(dim=1)
-# _layer_sizes = [np.prod(env.observation_space.shape).item(), 30, 30, env.action_space.n]
-# model_pl = LitMLP(_layer_sizes, optim_params={'lr': 1e-3})
-# LitScheduler(env, model_pl, pl_trainer_kwargs, learn_params_torch, valid_fwd)
-
-lit_scheduler = LitScheduler.from_env_mlp([200], problem_gen, env_params=env_params,
+lit_scheduler = LitScheduler.from_env_mlp(problem_gen, env_params=env_params, hidden_layer_sizes=[30, 30],
                                           lit_mlp_kwargs={'optim_params': {'lr': 1e-3}},
                                           trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch,
                                           valid_fwd=valid_fwd)
@@ -170,7 +166,7 @@ algorithms = np.array([
     *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, th_visit=t), 10)
       for c, t in product([0], [5, 10])),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
-    # ('Torch Policy', torch_scheduler, 10),
+    ('Torch Policy', torch_scheduler, 10),
     ('Lit Policy', lit_scheduler, 10),
     # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
@@ -190,21 +186,17 @@ n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assess
 # TODO: avoid state correlation? Do Env transforms already achieve this?
 # TODO: make loss func for full seq targets, penalize in proportion to seq similarity?
 
+# TODO: export masking functionality from `envs` to custom policies!
+# TODO: normalize excess loss in figures?!
 
 log_path = 'main_temp/log.md'
 img_path = f'main_temp/images/{now}.png'
 
-# TODO: export masking functionality from `envs` to custom policies!
-# TODO: normalize excess loss in figures?!
-
-# FIXME: import new `LitScheduler` constructors from `mc_assess`
-# TODO: update README code
+# loss_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
+#                                               verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
 
 loss_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve=True,
                                                 verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
-
-# loss_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
-#                                               verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
 
 
 # np.savez(f'main_temp/results/{now}', loss_mc=loss_mc, t_run_mc=t_run_mc)
