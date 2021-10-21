@@ -73,8 +73,6 @@ env_params = {
     'seq_encoding': 'one-hot',
 }
 
-# env = envs.StepTasking(problem_gen, **env_params)
-
 
 learn_params_torch = {
     'batch_size_train': 20,
@@ -90,31 +88,6 @@ learn_params_torch = {
 valid_fwd = True
 # valid_fwd = False
 
-
-# class TorchModule(nn.Module):
-#     def __init__(self):
-#         super().__init__()
-#         self.model = nn.Sequential(
-#             nn.Flatten(),
-#             nn.Linear(np.prod(env.observation_space.shape).item(), 30),
-#             nn.ReLU(),
-#             nn.Linear(30, 30),
-#             nn.ReLU(),
-#             nn.Linear(30, env.action_space.n),
-#             nn.Softmax(dim=1),
-#             # nn.LogSoftmax(dim=1),
-#         )
-#
-#     def forward(self, x):
-#         return self.model(x)
-
-
-# model_torch = TorchModule()
-
-# loss_func = functional.cross_entropy
-# # loss_func = functional.nll_loss
-# optim_cls, optim_params = optim.Adam, {'lr': 1e-3}
-# torch_scheduler = TorchScheduler(env, model_torch, loss_func, optim_cls, optim_params, learn_params_torch, valid_fwd)
 torch_scheduler = TorchScheduler.from_env_mlp(problem_gen, env_params=env_params, hidden_layer_sizes=[30, 30],
                                               optim_params={'lr': 1e-3},
                                               learn_params=learn_params_torch,
@@ -143,6 +116,7 @@ lit_scheduler = LitScheduler.from_env_mlp(problem_gen, env_params=env_params, hi
 # dqn_agent = StableBaselinesScheduler
 # dqn_agent = RL_Scheduler.load('temp/DQN_2020-10-28_15-44-00', env=None, model_cls='DQN')
 
+# env = envs.StepTasking(problem_gen, **env_params)
 # check_env(env)
 # # model_cls, model_params = StableBaselinesScheduler.model_defaults['DQN_MLP']
 # model_cls, model_params = StableBaselinesScheduler.model_defaults['PPO']

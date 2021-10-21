@@ -220,7 +220,7 @@ class Base(BaseSupervisedScheduler):
         self._fit(dl_train, dl_val, verbose)
 
 
-def _build_torch_mlp(layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_layer=None):
+def build_torch_mlp(layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_layer=None):
     layers = []
     if start_layer is not None:
         layers.append(start_layer)
@@ -279,7 +279,7 @@ class TorchScheduler(Base):
             mlp_kwargs = {}
         if valid_fwd:
             mlp_kwargs['end_layer'] = nn.Softmax(dim=1)  # required for probability masking
-        model = _build_torch_mlp(layer_sizes, **mlp_kwargs)
+        model = build_torch_mlp(layer_sizes, **mlp_kwargs)
 
         return cls(env, model, loss_func, optim_cls, optim_params, learn_params, valid_fwd)
 
@@ -342,7 +342,7 @@ class LitMLP(pl.LightningModule):
                  loss_func=functional.cross_entropy, optim_cls=torch.optim.Adam, optim_params=None):
         super().__init__()
 
-        self.model = _build_torch_mlp(layer_sizes, activation, start_layer, end_layer)
+        self.model = build_torch_mlp(layer_sizes, activation, start_layer, end_layer)
         self.loss_func = loss_func
         self.optim_cls = optim_cls
         if optim_params is None:
