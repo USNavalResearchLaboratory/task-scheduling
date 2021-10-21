@@ -82,7 +82,6 @@ learn_params_torch = {
     # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
     'max_epochs': 500,
     'shuffle': True,
-    'callbacks': EarlyStopping('val_loss', min_delta=0., patience=50),
 }
 
 valid_fwd = True
@@ -96,6 +95,7 @@ torch_scheduler = TorchScheduler.from_env_mlp(problem_gen, env_params=env_params
 pl_trainer_kwargs = {
     'logger': TensorBoardLogger('main_temp/logs/', name=now),
     'checkpoint_callback': False,
+    'callbacks': EarlyStopping('val_loss', min_delta=0., patience=50),
     'default_root_dir': 'main_temp/logs/',
     'gpus': min(1, torch.cuda.device_count()),
     # 'distributed_backend': 'ddp',
@@ -140,7 +140,7 @@ algorithms = np.array([
     *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, th_visit=t), 10)
       for c, t in product([0], [5, 10])),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
-    ('Torch Policy', torch_scheduler, 10),
+    # ('Torch Policy', torch_scheduler, 10),
     ('Lit Policy', lit_scheduler, 10),
     # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),

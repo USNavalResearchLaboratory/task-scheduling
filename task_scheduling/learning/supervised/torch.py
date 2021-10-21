@@ -40,7 +40,6 @@ class Base(BaseSupervisedScheduler):
         'weight_func': None,
         'max_epochs': 1,
         'shuffle': False,
-        'callbacks': []
     }
 
     def __init__(self, env, model, learn_params=None, valid_fwd=True):
@@ -405,7 +404,6 @@ class LitScheduler(Base):
         # Note: the kwargs below are specified in `learn_params` for consistency with `TorchScheduler`
         self.trainer_kwargs.update({
             'max_epochs': self.learn_params['max_epochs'],
-            'callbacks': self.learn_params['callbacks'],
         })
         self.trainer = pl.Trainer(**self.trainer_kwargs)
 
