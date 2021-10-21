@@ -31,7 +31,7 @@ if seed is not None:
     seed_everything(seed)  # TODO: doesn't guarantee reproducibility of PL learners if reordered
 
 
-#%% Algorithms
+# %% Algorithms
 algorithms_base = np.array([
     ('Random', random_sequencer, 10),
     ('ERT', earliest_release, 10),
@@ -99,7 +99,7 @@ env_params_set = [
 ]
 
 
-#%%
+# %%
 n_gen_learn = 900  # the number of problems generated for learning, per iteration
 n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment

@@ -43,7 +43,7 @@ if seed is not None:
 # TODO: rework docstring parameter typing?
 
 
-#%% Define scheduling problem and algorithms
+# %% Define scheduling problem and algorithms
 
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
@@ -177,7 +177,7 @@ algorithms = np.array([
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
 
-#%% Evaluate and record results
+# %% Evaluate and record results
 n_gen_learn = 900  # the number of problems generated for learning, per iteration
 n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
@@ -210,7 +210,7 @@ loss_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, 
 # np.savez(f'main_temp/results/{now}', loss_mc=loss_mc, t_run_mc=t_run_mc)
 
 
-#%% Deprecated
+# %% Deprecated
 
 # def make_valid_wrapper(env_):
 #     def valid_wrapper(func):
