@@ -16,9 +16,9 @@ n_gen = 1000
 
 for gen in gen_set:
     for c, t in ct_set:
-        file_str = f"{gen.__func__.__name__}_c{c}t{t}"
+        file_str = f"{gen.__name__}_c{c}t{t}"
         print(file_str)
 
         save_path = Path(f'../data/' + file_str)
-        problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=seed)
+        problem_gen = gen(n_tasks=t, n_ch=c, rng=seed)
         list(problem_gen(n_gen, solve=True, verbose=1, save_path=save_path))
