@@ -4,6 +4,7 @@ from abc import abstractmethod
 from copy import deepcopy
 from functools import partial, wraps
 # from types import MethodType
+from warnings import warn
 
 import numpy as np
 import pytorch_lightning as pl
@@ -62,8 +63,13 @@ class Base(BaseSupervisedScheduler):
         if not isinstance(model, nn.Module):
             raise TypeError("Argument `model` must be a `torch.nn.Module` instance.")
 
-        self.valid_fwd = valid_fwd
-        if valid_fwd and isinstance(env, StepTasking):
+        if valid_fwd and (not isinstance(env, StepTasking) or env.seq_encoding is None):
+            warn("Valid network can only be enforced using `StepTasking` environment with sequence encoding.")
+            self.valid_fwd = False
+        else:
+            self.valid_fwd = valid_fwd
+
+        if self.valid_fwd:
             def valid_wrapper(func):
                 @wraps(func)
                 def valid_func(*args, **kwargs):
