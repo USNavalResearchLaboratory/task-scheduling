@@ -190,6 +190,7 @@ env_params = {
 trainer_kwargs = {
     'logger': False,
     'checkpoint_callback': False,
+    'callbacks': EarlyStopping('val_loss', min_delta=0., patience=50),
     'gpus': min(1, torch.cuda.device_count()),
 }
 
@@ -199,11 +200,10 @@ learn_params = {
     'batch_size_val': 30,
     'max_epochs': 500,
     'shuffle': True,
-    'callbacks': EarlyStopping('val_loss', min_delta=0., patience=50),
 }
 
-lit_scheduler = LitScheduler.from_env_mlp(problem_gen, env_params=env_params, hidden_layer_sizes=[30, 30],
-                                          lit_mlp_kwargs={'optim_params': {'lr': 1e-3}}, trainer_kwargs=trainer_kwargs,
+lit_scheduler = LitScheduler.from_gen_mlp(problem_gen, env_params=env_params, hidden_layer_sizes=[400],
+                                          mlp_kwargs={'optim_params': {'lr': 1e-3}}, trainer_kwargs=trainer_kwargs,
                                           learn_params=learn_params, valid_fwd=True)
 
 algorithms = np.array([
@@ -221,5 +221,4 @@ n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assess
 
 loss_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
                                               verbose=1, plotting=1, rng=seed)
-
 ```
