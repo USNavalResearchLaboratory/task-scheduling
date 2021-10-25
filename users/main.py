@@ -20,8 +20,8 @@ from task_scheduling.base import get_now
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
 from task_scheduling.generators import problems as problem_gens
 from task_scheduling.results import evaluate_algorithms_train, evaluate_algorithms_gen
-from task_scheduling.learning import environments as envs
-from task_scheduling.learning.supervised.torch import TorchScheduler, LitScheduler, LitMLP
+from task_scheduling.learning.environments import StepTasking
+from task_scheduling.learning.supervised.torch import TorchScheduler, LitScheduler
 # from task_scheduling.learning.reinforcement import StableBaselinesScheduler
 
 
@@ -70,8 +70,11 @@ env_params = {
     'time_shift': True,
     # 'masking': False,
     'masking': True,
+    # 'seq_encoding': None,
     'seq_encoding': 'one-hot',
 }
+
+env = StepTasking(problem_gen, **env_params)
 
 
 learn_params_torch = {
@@ -80,22 +83,46 @@ learn_params_torch = {
     'batch_size_val': 30,
     'weight_func': None,  # TODO: weighting based on loss value!?
     # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-    'max_epochs': 500,
+    'max_epochs': 200,
     'shuffle': True,
 }
 
-valid_fwd = True
 # valid_fwd = False
+valid_fwd = True
 
-torch_scheduler = TorchScheduler.from_env_mlp(problem_gen, env_params=env_params, hidden_layer_sizes=[30, 30],
-                                              optim_params={'lr': 1e-3},
-                                              learn_params=learn_params_torch,
-                                              valid_fwd=valid_fwd)
+torch_scheduler = TorchScheduler.mlp(env, hidden_layer_sizes=[400], optim_params={'lr': 1e-3},
+                                     learn_params=learn_params_torch, valid_fwd=valid_fwd)
+
+
+# class TorchCNN(nn.Module):
+#     def __init__(self):
+#         super().__init__()
+#         n_filter = 400
+#         l_kernel = 8
+#         self.conv1 = nn.Conv2d(1, n_filter, kernel_size=(l_kernel, 8+5))  # TODO: dependent width...
+#         self.fc1 = nn.Linear(n_filter * (8-l_kernel+1), 8)
+#
+#     def forward(self, x):
+#         x = x.view(len(x), 1, *x.shape[1:])
+#         x = functional.relu(self.conv1(x))
+#         # x = functional.avg_pool2d(x, (x.shape[2], 1))
+#         # x = functional.adaptive_avg_pool2d(x, (1, x.shape[-1]))
+#         x = torch.flatten(x, 1)
+#         x = self.fc1(x)
+#         x = functional.softmax(x, dim=1)
+#         return x
+#
+#
+# torch_model = TorchCNN()
+#
+# torch_scheduler = TorchScheduler(env, torch_model, optim_params={'lr': 1e-3}, learn_params=learn_params_torch,
+#                                  valid_fwd=valid_fwd)
+
 
 pl_trainer_kwargs = {
     'logger': TensorBoardLogger('main_temp/logs/', name=now),
     'checkpoint_callback': False,
-    'callbacks': EarlyStopping('val_loss', min_delta=0., patience=50),
+    # 'callbacks': EarlyStopping('val_loss', min_delta=0., patience=50),
     'default_root_dir': 'main_temp/logs/',
     'gpus': min(1, torch.cuda.device_count()),
     # 'distributed_backend': 'ddp',
@@ -103,10 +130,12 @@ pl_trainer_kwargs = {
     # 'progress_bar_refresh_rate': 0,
 }
 
-lit_scheduler = LitScheduler.from_env_mlp(problem_gen, env_params=env_params, hidden_layer_sizes=[30, 30],
-                                          lit_mlp_kwargs={'optim_params': {'lr': 1e-3}},
-                                          trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch,
-                                          valid_fwd=valid_fwd)
+lit_scheduler = LitScheduler.mlp(env, hidden_layer_sizes=[400], lit_kwargs={'optim_params': {'lr': 1e-3}},
+                                 trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch, valid_fwd=valid_fwd)
+
+# lit_scheduler = LitScheduler.from_module(env, torch_model, trainer_kwargs=pl_trainer_kwargs,
+#                                          learn_params=learn_params_torch, valid_fwd=valid_fwd)
+
 
 
 # RL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
@@ -116,7 +145,7 @@ lit_scheduler = LitScheduler.from_env_mlp(problem_gen, env_params=env_params, hi
 # dqn_agent = StableBaselinesScheduler
 # dqn_agent = RL_Scheduler.load('temp/DQN_2020-10-28_15-44-00', env=None, model_cls='DQN')
 
-# env = envs.StepTasking(problem_gen, **env_params)
+# env = StepTasking(problem_gen, **env_params)
 # check_env(env)
 # # model_cls, model_params = StableBaselinesScheduler.model_defaults['DQN_MLP']
 # model_cls, model_params = StableBaselinesScheduler.model_defaults['PPO']
@@ -140,7 +169,7 @@ algorithms = np.array([
     *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, th_visit=t), 10)
       for c, t in product([0], [5, 10])),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
-    # ('Torch Policy', torch_scheduler, 10),
+    ('Torch Policy', torch_scheduler, 10),
     ('Lit Policy', lit_scheduler, 10),
     # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
@@ -162,6 +191,9 @@ n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assess
 
 # TODO: export masking functionality from `envs` to custom policies!
 # TODO: normalize excess loss in figures?!
+
+# TODO: log trainer params!?
+
 
 log_path = 'main_temp/log.md'
 img_path = f'main_temp/images/{now}.png'

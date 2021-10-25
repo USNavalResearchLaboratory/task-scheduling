@@ -91,6 +91,13 @@ class Base(BaseSupervisedScheduler):
 
         super().__init__(env, model, learn_params)
 
+    @classmethod
+    def from_gen(cls, problem_gen, env_cls=StepTasking, env_params=None, *args, **kwargs):
+        if env_params is None:
+            env_params = {}
+        env = env_cls(problem_gen, **env_params)
+        return cls(env, *args, **kwargs)
+
     def _process_obs(self, obs, normalize=False):
         """
         Estimate action probabilities given an observation.
@@ -377,10 +384,18 @@ class LitModel(pl.LightningModule):
         self.optim_params = optim_params
 
     @classmethod
-    def mlp(cls, layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_layer=None,
-            loss_func=functional.cross_entropy, optim_cls=torch.optim.Adam, optim_params=None):
-        module = build_torch_mlp(layer_sizes, activation, start_layer, end_layer)
+    def mlp(cls, layer_sizes, mlp_kwargs=None, loss_func=functional.cross_entropy, optim_cls=torch.optim.Adam,
+            optim_params=None):
+        if mlp_kwargs is None:
+            mlp_kwargs = {}
+        module = build_torch_mlp(layer_sizes, **mlp_kwargs)
         return cls(module, loss_func, optim_cls, optim_params)
+
+    # @classmethod
+    # def mlp(cls, layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_layer=None,
+    #         loss_func=functional.cross_entropy, optim_cls=torch.optim.Adam, optim_params=None):
+    #     module = build_torch_mlp(layer_sizes, activation, start_layer, end_layer)
+    #     return cls(module, loss_func, optim_cls, optim_params)
 
     def forward(self, x):
         return self.module(x)
@@ -443,13 +458,24 @@ class LitScheduler(Base):
         return cls(env, model, trainer_kwargs, learn_params, valid_fwd)
 
     @classmethod
-    def mlp(cls, env, hidden_layer_sizes, mlp_kwargs=None, trainer_kwargs=None, learn_params=None, valid_fwd=True):
+    def from_gen_module(cls, problem_gen, module, env_cls=StepTasking, env_params=None,
+                        model_kwargs=None, trainer_kwargs=None, learn_params=None, valid_fwd=True):
+        if env_params is None:
+            env_params = {}
+        env = env_cls(problem_gen, **env_params)
+
+        cls.from_module(env, module, model_kwargs, trainer_kwargs, learn_params, valid_fwd)
+
+    @classmethod
+    def mlp(cls, env, hidden_layer_sizes, mlp_kwargs=None, lit_kwargs=None, trainer_kwargs=None, learn_params=None, valid_fwd=True):
         layer_sizes = [np.prod(env.observation_space.shape).item(), *hidden_layer_sizes, env.action_space.n]
         if mlp_kwargs is None:
             mlp_kwargs = {}
         if valid_fwd:
             mlp_kwargs['end_layer'] = nn.Softmax(dim=1)  # required for probability masking
-        model = LitModel.mlp(layer_sizes, **mlp_kwargs)
+        if lit_kwargs is None:
+            lit_kwargs = {}
+        model = LitModel.mlp(layer_sizes, mlp_kwargs, **lit_kwargs)
 
         return cls(env, model, trainer_kwargs, learn_params, valid_fwd)
 
