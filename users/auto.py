@@ -57,13 +57,12 @@ learn_params = {
     'callbacks': EarlyStopping('val_loss', min_delta=0., patience=50),
 }
 
-lit_mlp_kwargs = {'optim_params': {'lr': 1e-3}}
+lit_kwargs = {'optim_params': {'lr': 1e-3}}
 
-# valid_fwd = True
-valid_fwd = False
+valid_fwd_set = [False, True]
+# valid_fwd_set = [False]
 
-
-#
+# TODO: generalize for arbitrary models
 layer_sizes_set = [
     # [50],
     # [100],
@@ -105,10 +104,6 @@ n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
 
 
-# TODO: try CNN with/without sorting!
-# TODO: log trainer params!?
-
-
 data_path = Path('../data/')
 datasets = [
     'continuous_relu_drop_c1t8',
@@ -126,17 +121,18 @@ for dataset in datasets:
     # for (i_env, env_params), (i_net, layer_sizes) in product(enumerate(env_params_set), enumerate(layer_sizes_set)):
     for (i_env, env_params), (i_net, layer_sizes), valid_fwd in product(enumerate(env_params_set),
                                                                         enumerate(layer_sizes_set),
-                                                                        [False, True]):
+                                                                        valid_fwd_set):
         if seed is not None:
             seed_everything(seed)
 
-        lit_scheduler = LitScheduler.from_env_mlp(problem_gen, env_params=env_params, hidden_layer_sizes=layer_sizes,
-                                                  lit_mlp_kwargs=lit_mlp_kwargs, trainer_kwargs=trainer_kwargs,
+        lit_scheduler = LitScheduler.from_gen_mlp(problem_gen, env_params=env_params, hidden_layer_sizes=layer_sizes,
+                                                  lit_kwargs=lit_kwargs, trainer_kwargs=trainer_kwargs,
                                                   learn_params=learn_params, valid_fwd=valid_fwd)
 
         net_str = str(i_net)
         # net_str = '-'.join(map(str, layer_sizes))
 
+        # algorithms_data.append((f"Policy: Env {i_env}", lit_scheduler, 10))
         # algorithms_data.append((f"Policy: Env {i_env}, MLP {net_str}", lit_scheduler, 10))
         algorithms_data.append((f"Policy: Env {i_env}, Valid={valid_fwd}", lit_scheduler, 10))
         # algorithms_data.append((f"Policy: Env {i_env}, MLP {net_str}, Valid={valid_fwd}", lit_scheduler, 10))
@@ -144,10 +140,10 @@ for dataset in datasets:
     algorithms_learn = np.array(algorithms_data, dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
     algorithms = np.concatenate((algorithms_base, algorithms_learn))
 
-    # loss_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve=True,
-    #                                                 verbose=1, plotting=1, log_path=log_path, img_path=img_path,
-    #                                                 rng=seed)
-
     loss_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
                                                   verbose=1, plotting=1, log_path=log_path, img_path=img_path,
                                                   rng=seed)
+
+    # loss_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve=True,
+    #                                                 verbose=1, plotting=1, log_path=log_path, img_path=img_path,
+    #                                                 rng=seed)

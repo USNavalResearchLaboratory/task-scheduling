@@ -467,7 +467,8 @@ class LitScheduler(Base):
         cls.from_module(env, module, model_kwargs, trainer_kwargs, learn_params, valid_fwd)
 
     @classmethod
-    def mlp(cls, env, hidden_layer_sizes, mlp_kwargs=None, lit_kwargs=None, trainer_kwargs=None, learn_params=None, valid_fwd=True):
+    def mlp(cls, env, hidden_layer_sizes, mlp_kwargs=None, lit_kwargs=None, trainer_kwargs=None, learn_params=None,
+            valid_fwd=True):
         layer_sizes = [np.prod(env.observation_space.shape).item(), *hidden_layer_sizes, env.action_space.n]
         if mlp_kwargs is None:
             mlp_kwargs = {}
@@ -481,12 +482,12 @@ class LitScheduler(Base):
 
     @classmethod
     def from_gen_mlp(cls, problem_gen, env_cls=StepTasking, env_params=None, hidden_layer_sizes=(), mlp_kwargs=None,
-                     trainer_kwargs=None, learn_params=None, valid_fwd=True):
+                     lit_kwargs=None, trainer_kwargs=None, learn_params=None, valid_fwd=True):
         if env_params is None:
             env_params = {}
         env = env_cls(problem_gen, **env_params)
 
-        return cls.mlp(env, hidden_layer_sizes, mlp_kwargs, trainer_kwargs, learn_params, valid_fwd)
+        return cls.mlp(env, hidden_layer_sizes, mlp_kwargs, lit_kwargs, trainer_kwargs, learn_params, valid_fwd)
 
     def reset(self):
         super().reset()
