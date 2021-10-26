@@ -147,7 +147,7 @@ def _empty_result(algorithms, n):
     return np.array([(np.nan,) * len(algorithms)] * n, dtype=[(alg['name'], float) for alg in algorithms])
 
 
-def _relative_loss(loss):
+def _relative_loss(loss, normalize=False):
     names = loss.dtype.names
     if OPT_NAME not in names:
         raise ValueError("Optimal solutions must be included in the loss array.")
@@ -155,7 +155,8 @@ def _relative_loss(loss):
     loss_rel = loss.copy()
     for name in names:
         loss_rel[name] -= loss[OPT_NAME]
-        # loss_rel[name] /= loss_mean_opt
+        if normalize:
+            loss_rel[name] /= loss[OPT_NAME]
 
     return loss_rel
 
@@ -168,22 +169,17 @@ def _scatter_results(t_run, loss, label='Results', do_relative=False):
                           )
 
     if do_relative:  # relative to B&B
-        loss_rel = _relative_loss(loss)
+        normalize = True
+        # normalize = False
 
-        # __, ax_results_rel = plt.subplots(num=f'{label} (Relative)', clear=True)
-        # _scatter_loss_runtime(t_run, loss_rel,
-        #                      ax=ax_results_rel,
-        #                      ax_kwargs={'ylabel': 'Excess Loss',
-        #                                 # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
-        #                                 }
-        #                      )
+        loss_rel = _relative_loss(loss, normalize)
 
         names = list(loss.dtype.names)
         names.remove(OPT_NAME)
         __, ax_results_rel = plt.subplots(num=f'{label} (Relative)', clear=True)
         _scatter_loss_runtime(t_run[names], loss_rel[names],
                               ax=ax_results_rel,
-                              ax_kwargs={'ylabel': 'Excess Loss',
+                              ax_kwargs={'ylabel': 'Excess Loss' + ' (%)' if normalize else '',
                                          # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
                                          }
                               )
@@ -197,9 +193,7 @@ def _print_averages(loss, t_run, do_relative=False):
 
     if do_relative:
         loss_rel = _relative_loss(loss)
-        # for item, name in zip(data, names):
-        #     item.insert(0, loss_rel[name].mean())
-        # columns.insert(0, 'Excess Loss')
+
         loss_opt = data[names.index(OPT_NAME)][0]
         for item, name in zip(data, names):
             item.insert(0, loss_rel[name].mean() / loss_opt)

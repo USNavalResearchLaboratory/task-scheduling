@@ -29,7 +29,7 @@ class Base(ABC):
         self.model = model
 
         self._learn_params = self._learn_params_default.copy()
-        self.learn_params = learn_params
+        self.learn_params = learn_params  # invoke property setter
         # self._set_learn_params(learn_params)
 
     def __call__(self, tasks, ch_avail):
