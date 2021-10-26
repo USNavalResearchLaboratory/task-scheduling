@@ -71,6 +71,7 @@ env_params = {
     # 'masking': False,
     'masking': True,
     # 'seq_encoding': None,
+    # 'seq_encoding': 'binary',
     'seq_encoding': 'one-hot',
 }
 
@@ -81,48 +82,47 @@ learn_params_torch = {
     'batch_size_train': 20,
     'n_gen_val': 1/3,
     'batch_size_val': 30,
-    'weight_func': None,  # TODO: weighting based on loss value!?
+    'weight_func': None,
     # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-    'max_epochs': 200,
+    'max_epochs': 50,
     'shuffle': True,
 }
 
 # valid_fwd = False
 valid_fwd = True
 
-torch_scheduler = TorchScheduler.mlp(env, hidden_layer_sizes=[400], optim_params={'lr': 1e-3},
-                                     learn_params=learn_params_torch, valid_fwd=valid_fwd)
+
+class TorchCNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        n_filter = 400
+        l_kernel = 8
+        self.conv1 = nn.Conv2d(1, n_filter, kernel_size=(l_kernel, 8+5))  # TODO: dependent width...
+        self.fc1 = nn.Linear(n_filter * (8-l_kernel+1), 8)
+
+    def forward(self, x):
+        x = x.view(len(x), 1, *x.shape[1:])
+        x = functional.relu(self.conv1(x))
+        # x = functional.avg_pool2d(x, (x.shape[2], 1))
+        # x = functional.adaptive_avg_pool2d(x, (1, x.shape[-1]))
+        x = torch.flatten(x, 1)
+        x = self.fc1(x)
+        x = functional.softmax(x, dim=1)
+        return x
 
 
-# class TorchCNN(nn.Module):
-#     def __init__(self):
-#         super().__init__()
-#         n_filter = 400
-#         l_kernel = 8
-#         self.conv1 = nn.Conv2d(1, n_filter, kernel_size=(l_kernel, 8+5))  # TODO: dependent width...
-#         self.fc1 = nn.Linear(n_filter * (8-l_kernel+1), 8)
-#
-#     def forward(self, x):
-#         x = x.view(len(x), 1, *x.shape[1:])
-#         x = functional.relu(self.conv1(x))
-#         # x = functional.avg_pool2d(x, (x.shape[2], 1))
-#         # x = functional.adaptive_avg_pool2d(x, (1, x.shape[-1]))
-#         x = torch.flatten(x, 1)
-#         x = self.fc1(x)
-#         x = functional.softmax(x, dim=1)
-#         return x
-#
-#
-# torch_model = TorchCNN()
-#
+torch_model = TorchCNN()
+
 # torch_scheduler = TorchScheduler(env, torch_model, optim_params={'lr': 1e-3}, learn_params=learn_params_torch,
 #                                  valid_fwd=valid_fwd)
+torch_scheduler = TorchScheduler.mlp(env, hidden_layer_sizes=[400], optim_params={'lr': 1e-3},
+                                     learn_params=learn_params_torch, valid_fwd=valid_fwd)
 
 
 pl_trainer_kwargs = {
     'logger': TensorBoardLogger('main_temp/logs/', name=now),
     'checkpoint_callback': False,
-    # 'callbacks': EarlyStopping('val_loss', min_delta=0., patience=50),
+    'callbacks': EarlyStopping('val_loss', min_delta=1e-3, patience=50),
     'default_root_dir': 'main_temp/logs/',
     'gpus': min(1, torch.cuda.device_count()),
     # 'distributed_backend': 'ddp',
@@ -130,12 +130,11 @@ pl_trainer_kwargs = {
     # 'progress_bar_refresh_rate': 0,
 }
 
-lit_scheduler = LitScheduler.mlp(env, hidden_layer_sizes=[400], lit_kwargs={'optim_params': {'lr': 1e-3}},
-                                 trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch, valid_fwd=valid_fwd)
-
 # lit_scheduler = LitScheduler.from_module(env, torch_model, trainer_kwargs=pl_trainer_kwargs,
 #                                          learn_params=learn_params_torch, valid_fwd=valid_fwd)
-
+lit_scheduler = LitScheduler.mlp(env, hidden_layer_sizes=[400], lit_kwargs={'optim_params': {'lr': 1e-3}},
+                                 trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch,
+                                 valid_fwd=valid_fwd)
 
 
 # RL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
@@ -154,12 +153,6 @@ lit_scheduler = LitScheduler.mlp(env, hidden_layer_sizes=[400], lit_kwargs={'opt
 # learn_params_sb = {}
 
 
-# FIXME: integrate SB3 before making any sweeping environment/learn API changes!!!
-
-# FIXME: no faster on GPU!?!? CHECK batch size effects!
-# FIXME: INVESTIGATE huge PyTorch speed-up over Tensorflow!!
-
-
 algorithms = np.array([
     # ('BB', branch_bound, 1),
     # ('BB_p', partial(branch_bound_priority, heuristic=methodcaller('roll_out', inplace=False, rng=seed)), 1),
@@ -169,7 +162,7 @@ algorithms = np.array([
     *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, th_visit=t), 10)
       for c, t in product([0], [5, 10])),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
-    ('Torch Policy', torch_scheduler, 10),
+    # ('Torch Policy', torch_scheduler, 10),
     ('Lit Policy', lit_scheduler, 10),
     # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
@@ -184,15 +177,13 @@ n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assess
 
 # TODO: generate new, larger datasets
 # TODO: try making new features
-# TODO: sample weighting based on `len(seq_rem)`?
+# TODO: sample weighting based on `len(seq_rem)` or execution loss?
 
 # TODO: avoid state correlation? Do Env transforms already achieve this?
-# TODO: make loss func for full seq targets, penalize in proportion to seq similarity?
-
 # TODO: export masking functionality from `envs` to custom policies!
-# TODO: normalize excess loss in figures?!
 
-# TODO: log trainer params!?
+# TODO: no faster on GPU!?!? CHECK batch size effects!
+# TODO: investigate loss curves with/without valid action enforcement
 
 
 log_path = 'main_temp/log.md'

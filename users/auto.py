@@ -30,6 +30,8 @@ seed = 12345
 if seed is not None:
     seed_everything(seed)  # TODO: doesn't guarantee reproducibility of PL learners if reordered
 
+data_path = Path('../data/')
+
 
 # %% Algorithms
 algorithms_base = np.array([
@@ -74,26 +76,26 @@ layer_sizes_set = [
     # [400, 400],
 ]
 
+env_params_base = {
+    'masking': True,
+}
+
 env_params_set = [
     {
         'sort_func': None,
         'time_shift': False,
-        'masking': True,
     },
     # {
     #     'sort_func': None,
     #     'time_shift': True,
-    #     'masking': True,
     # },
     # {
     #     'sort_func': 't_release',
     #     'time_shift': False,
-    #     'masking': True,
     # },
     {
         'sort_func': 't_release',
         'time_shift': True,
-        'masking': True,
     },
 ]
 
@@ -104,13 +106,16 @@ n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
 
 
-data_path = Path('../data/')
 datasets = [
     'continuous_relu_drop_c1t8',
     # 'continuous_relu_drop_c2t8',
     # 'discrete_relu_drop_c1t8',
     # 'discrete_relu_drop_c2t8',
 ]
+
+# %%
+env_params_set = [env_params_base | env_params for env_params in env_params_set]
+
 for dataset in datasets:
     log_path = f'auto_temp/{dataset}/log.md'
     img_path = f"auto_temp/{dataset}/images/{now}.png"
