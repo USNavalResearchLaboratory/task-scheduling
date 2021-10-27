@@ -20,7 +20,7 @@ from task_scheduling.base import get_now
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
 from task_scheduling.generators import problems as problem_gens
 from task_scheduling.results import evaluate_algorithms_train, evaluate_algorithms_gen
-from task_scheduling.learning.environments import StepTasking
+from task_scheduling.learning.environments import Index
 from task_scheduling.learning.supervised.torch import TorchScheduler, LitScheduler
 # from task_scheduling.learning.reinforcement import StableBaselinesScheduler
 
@@ -75,7 +75,7 @@ env_params = {
     'seq_encoding': 'one-hot',
 }
 
-env = StepTasking(problem_gen, **env_params)
+env = Index(problem_gen, **env_params)
 
 
 learn_params_torch = {
@@ -144,7 +144,7 @@ lit_scheduler = LitScheduler.mlp(env, hidden_layer_sizes=[400], lit_kwargs={'opt
 # dqn_agent = StableBaselinesScheduler
 # dqn_agent = RL_Scheduler.load('temp/DQN_2020-10-28_15-44-00', env=None, model_cls='DQN')
 
-# env = StepTasking(problem_gen, **env_params)
+# env = Index(problem_gen, **env_params)
 # check_env(env)
 # # model_cls, model_params = StableBaselinesScheduler.model_defaults['DQN_MLP']
 # model_cls, model_params = StableBaselinesScheduler.model_defaults['PPO']

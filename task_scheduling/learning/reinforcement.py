@@ -74,12 +74,12 @@ class StableBaselinesScheduler(BaseLearningScheduler):
     #
     # @env.setter
     # def env(self, env):
-    #     if isinstance(env, envs.BaseTasking):
+    #     if isinstance(env, envs.BaseEnv):
     #         if self.do_monitor:
     #             env = Monitor(env, str(self.log_dir))
     #         self.model.set_env(env)
     #     elif env is not None:
-    #         raise TypeError("Environment must be an instance of BaseTasking.")
+    #         raise TypeError("Environment must be an instance of BaseEnv.")
 
     # def predict_prob(self, obs):
     #     return self.model.action_probability(obs)  # TODO: need `env.env_method` to access my reset?
@@ -134,17 +134,17 @@ class StableBaselinesScheduler(BaseLearningScheduler):
     #     return cls(model, env)
 
     # @classmethod
-    # def load_from_gen(cls, load_path, problem_gen, env_cls=StepTasking, env_params=None, model_cls=None):
+    # def load_from_gen(cls, load_path, problem_gen, env_cls=Index, env_params=None, model_cls=None):
     #     env = env_cls.from_problem_gen(problem_gen, env_params)
     #     return cls.load(load_path, env, model_cls)
 
     # @classmethod
-    # def from_gen(cls, model, problem_gen, env_cls=StepTasking, env_params=None):
+    # def from_gen(cls, model, problem_gen, env_cls=Index, env_params=None):
     #     env = env_cls.from_problem_gen(problem_gen, env_params)
     #     return cls(model, env)
 
     # @classmethod
-    # def train_from_gen(cls, problem_gen, env_cls=envs.SeqTasking, env_params=None, model_cls=None, model_params=None,
+    # def train_from_gen(cls, problem_gen, env_cls=envs.Seq, env_params=None, model_cls=None, model_params=None,
     #                    n_episodes=0, save=False, save_path=None):
     #     """
     #     Create and train a reinforcement learning scheduler.

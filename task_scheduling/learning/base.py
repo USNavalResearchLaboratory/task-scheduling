@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 from gym.spaces import Discrete
 
-from task_scheduling.learning.environments import BaseTasking
+from task_scheduling.learning.environments import Base as BaseEnv
 
 
 class Base(ABC):
@@ -14,7 +14,7 @@ class Base(ABC):
 
         Parameters
         ----------
-        env : BaseTasking
+        env : BaseEnv
             OpenAi gym environment.
         model
             The learning object.
@@ -104,7 +104,7 @@ class Base(ABC):
         return out
 
     def _print_env(self):
-        if isinstance(self.env, BaseTasking):
+        if isinstance(self.env, BaseEnv):
             return self.env.summary()
         else:
             return str(self.env)
@@ -113,7 +113,7 @@ class Base(ABC):
         return str(self.model)
 
     # def _print_env(self, file=None):
-    #     if isinstance(self.env, BaseTasking):
+    #     if isinstance(self.env, BaseEnv):
     #         self.env.summary(file)
     #     else:
     #         print(self.env, file=file)

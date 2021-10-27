@@ -13,7 +13,7 @@ from torch import nn, optim
 from torch.nn import functional
 from torch.utils.data import TensorDataset, DataLoader
 
-from task_scheduling.learning.environments import StepTasking
+from task_scheduling.learning.environments import Base as BaseEnv, Index
 # from task_scheduling.learning.base import Base as BaseLearningScheduler
 from task_scheduling.learning.supervised.base import Base as BaseSupervisedScheduler
 
@@ -49,7 +49,7 @@ class Base(BaseSupervisedScheduler):
 
         Parameters
         ----------
-        env : BaseTasking
+        env : BaseEnv
             OpenAi gym environment.
         model : torch.nn.Module
             The learning network.
@@ -57,14 +57,14 @@ class Base(BaseSupervisedScheduler):
             Parameters used by the `learn` method.
         valid_fwd : bool, optional
             Enables wrapping of PyTorch module `forward` method with a parallel function that infers the valid action
-            space and modifies the softmax output accordingly. Only relevant if the `env` type is `StepTasking`.
+            space and modifies the softmax output accordingly. Only relevant if the `env` type is `Index`.
 
         """
         if not isinstance(model, nn.Module):
             raise TypeError("Argument `model` must be a `torch.nn.Module` instance.")
 
-        if valid_fwd and (not isinstance(env, StepTasking) or env.seq_encoding is None):
-            warn("Valid network can only be enforced using `StepTasking` environment with sequence encoding.")
+        if valid_fwd and (not isinstance(env, Index) or env.seq_encoding is None):
+            warn("Valid network can only be enforced using `Index` environment with sequence encoding.")
             self.valid_fwd = False
         else:
             self.valid_fwd = valid_fwd
@@ -92,7 +92,7 @@ class Base(BaseSupervisedScheduler):
         super().__init__(env, model, learn_params)
 
     @classmethod
-    def from_gen(cls, problem_gen, env_cls=StepTasking, env_params=None, *args, **kwargs):
+    def from_gen(cls, problem_gen, env_cls=Index, env_params=None, *args, **kwargs):
         if env_params is None:
             env_params = {}
         env = env_cls(problem_gen, **env_params)
@@ -253,7 +253,7 @@ class TorchScheduler(Base):
 
         Parameters
         ----------
-        env : BaseTasking
+        env : BaseEnv
             OpenAi gym environment.
         model : torch.nn.Module
             The PyTorch network.
@@ -266,7 +266,7 @@ class TorchScheduler(Base):
             Parameters used by the `learn` method.
         valid_fwd : bool, optional
             Enables wrapping of PyTorch module `forward` method with a parallel function that infers the valid action
-            space and modifies the softmax output accordingly. Only relevant if the `env` type is `StepTasking`.
+            space and modifies the softmax output accordingly. Only relevant if the `env` type is `Index`.
 
         """
         super().__init__(env, model, learn_params, valid_fwd)
@@ -291,7 +291,7 @@ class TorchScheduler(Base):
         return cls(env, model, loss_func, optim_cls, optim_params, learn_params, valid_fwd)
 
     @classmethod
-    def from_gen_mlp(cls, problem_gen, env_cls=StepTasking, env_params=None, hidden_layer_sizes=(), mlp_kwargs=None,
+    def from_gen_mlp(cls, problem_gen, env_cls=Index, env_params=None, hidden_layer_sizes=(), mlp_kwargs=None,
                      loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None, learn_params=None,
                      valid_fwd=True):
         if env_params is None:
@@ -302,7 +302,7 @@ class TorchScheduler(Base):
                        valid_fwd)
 
     # @classmethod  # TODO: delete?
-    # def from_env_mlp(cls, problem_gen, env_cls=StepTasking, env_params=None, hidden_layer_sizes=(), mlp_kwargs=None,
+    # def from_env_mlp(cls, problem_gen, env_cls=Index, env_params=None, hidden_layer_sizes=(), mlp_kwargs=None,
     #                  loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None, learn_params=None,
     #                  valid_fwd=True):
     #     if env_params is None:
@@ -425,7 +425,7 @@ class LitScheduler(Base):
 
         Parameters
         ----------
-        env : BaseTasking
+        env : BaseEnv
             OpenAi gym environment.
         model : torch.nn.Module
             The PyTorch-Lightning network.
@@ -435,7 +435,7 @@ class LitScheduler(Base):
             Parameters used by the `learn` method.
         valid_fwd : bool, optional
             Enables wrapping of PyTorch module `forward` method with a parallel function that infers the valid action
-            space and modifies the softmax output accordingly. Only relevant if the `env` type is `StepTasking`.
+            space and modifies the softmax output accordingly. Only relevant if the `env` type is `Index`.
 
         """
         super().__init__(env, model, learn_params, valid_fwd)
@@ -458,7 +458,7 @@ class LitScheduler(Base):
         return cls(env, model, trainer_kwargs, learn_params, valid_fwd)
 
     @classmethod
-    def from_gen_module(cls, problem_gen, module, env_cls=StepTasking, env_params=None,
+    def from_gen_module(cls, problem_gen, module, env_cls=Index, env_params=None,
                         model_kwargs=None, trainer_kwargs=None, learn_params=None, valid_fwd=True):
         if env_params is None:
             env_params = {}
@@ -481,7 +481,7 @@ class LitScheduler(Base):
         return cls(env, model, trainer_kwargs, learn_params, valid_fwd)
 
     @classmethod
-    def from_gen_mlp(cls, problem_gen, env_cls=StepTasking, env_params=None, hidden_layer_sizes=(), mlp_kwargs=None,
+    def from_gen_mlp(cls, problem_gen, env_cls=Index, env_params=None, hidden_layer_sizes=(), mlp_kwargs=None,
                      lit_kwargs=None, trainer_kwargs=None, learn_params=None, valid_fwd=True):
         if env_params is None:
             env_params = {}
