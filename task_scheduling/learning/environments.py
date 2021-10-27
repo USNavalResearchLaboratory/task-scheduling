@@ -36,7 +36,7 @@ class BaseTasking(Env, ABC):
         self.problem_gen = problem_gen
         self.solution = None
 
-        # Set features and state bounds
+        # Set features and observation bounds
         if features is not None:
             self.features = features
         else:
@@ -59,7 +59,7 @@ class BaseTasking(Env, ABC):
         self.reward_range = (-np.inf, 0)
         self.loss_agg = None
 
-        self.node = None
+        self.node = None  # MDP state
 
         self.steps_per_episode = None
 
@@ -90,7 +90,7 @@ class BaseTasking(Env, ABC):
 
     @property
     def sorted_index(self):
-        """Indices for task re-ordering for environment state."""
+        """Indices for re-ordering of observation rows."""
         if callable(self.sort_func):
             values = np.array([self.sort_func(task) for task in self.tasks])
             values[self.node.seq] = np.inf  # scheduled tasks to the end
@@ -104,19 +104,19 @@ class BaseTasking(Env, ABC):
         return np.array([_idx_list.index(n) for n in range(self.n_tasks)])
 
     @property
-    def state_tasks(self):
-        """State sub-array for task features."""
+    def obs_tasks(self):
+        """Observation tensor for task features."""
 
-        state_tasks = np.array([func(self.tasks, self.ch_avail) for func in self.features['func']]).transpose()
+        obs_tasks = np.array([func(self.tasks, self.ch_avail) for func in self.features['func']]).transpose()
         if self.masking:
-            state_tasks[self.node.seq] = 0.  # zero out state rows for scheduled tasks
+            obs_tasks[self.node.seq] = 0.  # zero out observation rows for scheduled tasks
 
-        return state_tasks[self.sorted_index]  # sort individual task states
+        return obs_tasks[self.sorted_index]  # sort individual task observations
 
     @property
     @abstractmethod
-    def state(self):
-        """Complete state."""
+    def obs(self):
+        """Complete observation."""
         raise NotImplementedError
 
     @abstractmethod
@@ -178,11 +178,11 @@ class BaseTasking(Env, ABC):
 
         self._update_spaces()
 
-        return self.state
+        return self.obs
 
     def step(self, action):
         """
-        Updates environment state based on task index input.
+        Updates environment state (node) based on task index input.
 
         Parameters
         ----------
@@ -211,7 +211,7 @@ class BaseTasking(Env, ABC):
 
         self._update_spaces()
 
-        return self.state, reward, done, {}
+        return self.obs, reward, done, {}
 
     def render(self, mode='human'):  # TODO: improve or delete
         if mode == 'human':
@@ -232,12 +232,12 @@ class BaseTasking(Env, ABC):
 
     def data_gen(self, n_batch, batch_size=1, weight_func=None, verbose=0, rng=None):
         """
-        Generate state-action data for learner training and evaluation.
+        Generate observation-action data for learner training and evaluation.
 
         Parameters
         ----------
         n_batch : int
-            Number of batches of state-action pair data to generate.
+            Number of batches of observation-action pair data to generate.
         batch_size : int
             Number of scheduling problems to make data from per yielded batch.
         weight_func : callable, optional
@@ -290,7 +290,7 @@ class BaseTasking(Env, ABC):
                 yield x_set, y_set
 
     def data_gen_full(self, n_gen, weight_func=None, verbose=0):
-        """Generate state-action data, return in single feature/class arrays."""
+        """Generate observation-action data, return in single feature/class arrays."""
         data, = self.data_gen(n_batch=1, batch_size=n_gen, weight_func=weight_func, verbose=verbose)
         return data
 
@@ -323,6 +323,167 @@ class BaseTasking(Env, ABC):
         return np.array(p)
 
 
+class StepTasking(BaseTasking):
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='valid',
+                 seq_encoding='one-hot'):
+        """Tasking environment with actions of single task indices.
+
+        Parameters
+        ----------
+        problem_gen : generators.problems.Base
+            Scheduling problem generation object.
+        features : numpy.ndarray, optional
+            Structured numpy array of features with fields 'name', 'func', and 'lims'.
+        sort_func : function or str, optional
+            Method that returns a sorting value for re-indexing given a task index 'n'.
+        time_shift : bool, optional
+            Enables task re-parameterization after sequence updates.
+        masking : bool, optional
+            If True, features are zeroed out for scheduled tasks.
+        action_type : {'valid', 'any'}, optional
+            If 'valid', action space is `DiscreteMasked`; if 'any', action space is `Discrete` and
+            repeated actions are allowed (for experimental purposes only).
+        seq_encoding : function or str, optional
+            Method that returns a 1-D encoded sequence representation for a given task index 'n'. Assumes that the
+            encoded array sums to one for scheduled tasks and to zero for unscheduled tasks.
+
+        """
+        super().__init__(problem_gen, features, sort_func, time_shift, masking)
+
+        # Action types
+        # FIXME: deprecate once RL algorithms are successfully integrated
+        if action_type != 'valid':
+            raise NotImplementedError("Action type must be `valid`, all others deprecated.")
+        self.do_valid_actions = True
+        # self.action_type = action_type
+        # if self.action_type == 'valid':
+        #     self.do_valid_actions = True
+        # elif self.action_type == 'any':
+        #     self.do_valid_actions = False
+        # else:
+        #     raise ValueError("Action type must be 'valid' or 'any'.")
+
+        # Set sequence encoder method
+        if seq_encoding is None:
+            self.seq_encoding = MethodType(lambda env, n: [], self)
+            self.len_seq_encode = 0
+        elif isinstance(seq_encoding, str):  # simple string specification for supported encoders
+            if seq_encoding == 'binary':
+                def _seq_encoding(env, n):
+                    return [1] if n in env.node.seq else [0]
+
+                self.len_seq_encode = 1
+            elif seq_encoding == 'one-hot':
+                def _seq_encoding(env, n):
+                    out = np.zeros(env.n_tasks, dtype=int)
+                    if n in env.node.seq:
+                        out[env.node.seq.index(n)] = 1
+                    return out
+
+                self.len_seq_encode = self.n_tasks
+            else:
+                raise ValueError("Unsupported sequence encoder string.")
+
+            self.seq_encoding = MethodType(_seq_encoding, self)
+
+        elif callable(seq_encoding):
+            raise NotImplementedError('Generic callables not yet supported.')
+            # self.seq_encoding = MethodType(seq_encoding, self)
+            #
+            # env_copy = deepcopy(self)
+            # env_copy.reset()
+            # self.len_seq_encode = len(env_copy.seq_encoding(0))
+        else:
+            raise TypeError("Permutation encoding input must be callable or str.")
+
+        self._seq_encode_str = seq_encoding
+
+        self.steps_per_episode = self.n_tasks
+
+        # gym.Env observation and action spaces
+        obs_space_seq = MultiDiscrete(2 * np.ones(self.len_seq_encode))
+        obs_space_concat = spaces_tasking.concatenate((obs_space_seq, self._obs_space_features))
+        self.observation_space = spaces_tasking.broadcast_to(obs_space_concat,
+                                                             shape=(self.n_tasks, *obs_space_concat.shape))
+
+        if self.do_valid_actions:
+            # self.action_space = spaces_tasking.DiscreteSet(range(self.n_tasks))
+            self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)
+        else:
+            self.action_space = Discrete(self.n_tasks)
+
+    def summary(self):
+        str_ = super().summary()
+        # str_ += f"\n- Action type: {self.action_type}"
+        str_ += f"\n- Sequence encoding: {self._seq_encode_str}"
+        return str_
+
+    @property
+    def obs(self):
+        """Complete observation."""
+        obs_seq = np.array([self.seq_encoding(n) for n in self.sorted_index])
+        return np.concatenate((obs_seq, self.obs_tasks), axis=1)
+
+    def make_mask(self, obs):
+        if self.len_seq_encode == 0:
+            raise ValueError("Cannot infer valid actions without encoding sequence into the observation.")
+
+        obs_seq = obs[..., :self.len_seq_encode]
+        return obs_seq.sum(axis=-1)
+
+    def infer_action_space(self, obs):
+        """Determines the action Gym.Space from an observation."""
+        obs = np.asarray(obs)
+        if obs.ndim > 2:
+            raise ValueError("Input must be a single observation.")
+
+        if self.do_valid_actions:
+            # obs_seq = obs[..., :self.len_seq_encode]
+            # # seq_rem_sort = np.flatnonzero(1 - obs_seq.sum(1))
+            # # return spaces_tasking.DiscreteSet(seq_rem_sort)
+            #
+            # mask = obs_seq.sum(axis=-1).astype(bool)
+            mask = self.make_mask(obs).astype(bool)
+            return spaces_tasking.DiscreteMasked(self.n_tasks, mask)
+        else:
+            return Discrete(len(obs))
+
+    def _update_spaces(self):
+        """Update observation and action spaces."""
+        if self.do_valid_actions:
+            seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
+            # self.action_space = spaces_tasking.DiscreteSet(seq_rem_sort)
+            self.action_space.mask = np.isin(np.arange(self.n_tasks), seq_rem_sort, invert=True)
+
+    def _gen_single(self, seq, weight_func):
+        """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
+
+        x_set = np.empty((self.steps_per_episode, *self.observation_space.shape), dtype=self.observation_space.dtype)
+        y_set = np.empty((self.steps_per_episode, *self.action_space.shape), dtype=self.action_space.dtype)
+        w_set = np.ones(self.steps_per_episode, dtype=float)
+
+        for idx, n in enumerate(seq):
+            n = self.sorted_index_inv[n]
+
+            x_set[idx] = self.obs.copy()
+            y_set[idx] = n
+            if callable(weight_func):
+                w_set[idx] = weight_func(self)
+
+            self.step(n)  # updates environment state
+
+        return x_set, y_set, w_set
+
+    def mask_probability(self, p):  # TODO: deprecate?
+        """Returns masked action probabilities based on unscheduled task indices."""
+
+        if self.do_valid_actions:
+            return np.ma.masked_array(p, self.action_space.mask)
+        else:
+            return super().mask_probability(p)
+
+
+# %%
 def seq_to_num(seq, check_input=True):
     """
     Map an index sequence permutation to a non-negative integer.
@@ -432,9 +593,9 @@ class SeqTasking(BaseTasking):
         return str_
 
     @property
-    def state(self):
-        """Complete state."""
-        return self.state_tasks
+    def obs(self):
+        """Complete observation."""
+        return self.obs_tasks
 
     def infer_action_space(self, obs):
         """Determines the action Gym.Space from an observation."""
@@ -450,7 +611,7 @@ class SeqTasking(BaseTasking):
         """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
         seq_sort = self.sorted_index_inv[seq]
 
-        x = self.state.copy()
+        x = self.obs.copy()
 
         if self.action_type == 'seq':
             y = seq_sort
@@ -467,163 +628,3 @@ class SeqTasking(BaseTasking):
         super().step(seq)  # invoke super method to avoid unnecessary encode-decode process
 
         return np.array([x]), np.array([y]), np.array([w])
-
-
-class StepTasking(BaseTasking):
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='valid',
-                 seq_encoding='one-hot'):
-        """Tasking environment with actions of single task indices.
-
-        Parameters
-        ----------
-        problem_gen : generators.problems.Base
-            Scheduling problem generation object.
-        features : numpy.ndarray, optional
-            Structured numpy array of features with fields 'name', 'func', and 'lims'.
-        sort_func : function or str, optional
-            Method that returns a sorting value for re-indexing given a task index 'n'.
-        time_shift : bool, optional
-            Enables task re-parameterization after sequence updates.
-        masking : bool, optional
-            If True, features are zeroed out for scheduled tasks.
-        action_type : {'valid', 'any'}, optional
-            If 'valid', action space is `DiscreteMasked`; if 'any', action space is `Discrete` and
-            repeated actions are allowed (for experimental purposes only).
-        seq_encoding : function or str, optional
-            Method that returns a 1-D encoded sequence representation for a given task index 'n'. Assumes that the
-            encoded array sums to one for scheduled tasks and to zero for unscheduled tasks.
-
-        """
-        super().__init__(problem_gen, features, sort_func, time_shift, masking)
-
-        # Action types
-        # FIXME: deprecate once RL algorithms are successfully integrated
-        if action_type != 'valid':
-            raise NotImplementedError("Action type must be `valid`, all others deprecated.")
-        self.do_valid_actions = True
-        # self.action_type = action_type
-        # if self.action_type == 'valid':
-        #     self.do_valid_actions = True
-        # elif self.action_type == 'any':
-        #     self.do_valid_actions = False
-        # else:
-        #     raise ValueError("Action type must be 'valid' or 'any'.")
-
-        # Set sequence encoder method
-        if seq_encoding is None:
-            self.seq_encoding = MethodType(lambda env, n: [], self)
-            self.len_seq_encode = 0
-        elif isinstance(seq_encoding, str):  # simple string specification for supported encoders
-            if seq_encoding == 'binary':
-                def _seq_encoding(env, n):
-                    return [1] if n in env.node.seq else [0]
-
-                self.len_seq_encode = 1
-            elif seq_encoding == 'one-hot':
-                def _seq_encoding(env, n):
-                    out = np.zeros(env.n_tasks, dtype=int)
-                    if n in env.node.seq:
-                        out[env.node.seq.index(n)] = 1
-                    return out
-
-                self.len_seq_encode = self.n_tasks
-            else:
-                raise ValueError("Unsupported sequence encoder string.")
-
-            self.seq_encoding = MethodType(_seq_encoding, self)
-
-        elif callable(seq_encoding):
-            raise NotImplementedError('Generic callables not yet supported.')
-            # self.seq_encoding = MethodType(seq_encoding, self)
-            #
-            # env_copy = deepcopy(self)
-            # env_copy.reset()
-            # self.len_seq_encode = len(env_copy.seq_encoding(0))
-        else:
-            raise TypeError("Permutation encoding input must be callable or str.")
-
-        self._seq_encode_str = seq_encoding
-
-        self.steps_per_episode = self.n_tasks
-
-        # gym.Env observation and action spaces
-        obs_space_seq = MultiDiscrete(2 * np.ones(self.len_seq_encode))
-        obs_space_concat = spaces_tasking.concatenate((obs_space_seq, self._obs_space_features))
-        self.observation_space = spaces_tasking.broadcast_to(obs_space_concat,
-                                                             shape=(self.n_tasks, *obs_space_concat.shape))
-
-        if self.do_valid_actions:
-            # self.action_space = spaces_tasking.DiscreteSet(range(self.n_tasks))
-            self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)
-        else:
-            self.action_space = Discrete(self.n_tasks)
-
-    def summary(self):
-        str_ = super().summary()
-        # str_ += f"\n- Action type: {self.action_type}"
-        str_ += f"\n- Sequence encoding: {self._seq_encode_str}"
-        return str_
-
-    @property
-    def state(self):
-        """Complete state."""
-        state_seq = np.array([self.seq_encoding(n) for n in self.sorted_index])
-        return np.concatenate((state_seq, self.state_tasks), axis=1)
-
-    def make_mask(self, obs):
-        if self.len_seq_encode == 0:
-            raise ValueError("Cannot infer valid actions without encoding sequence into the state.")
-
-        state_seq = obs[..., :self.len_seq_encode]
-        return state_seq.sum(axis=-1)
-
-    def infer_action_space(self, obs):
-        """Determines the action Gym.Space from an observation."""
-        obs = np.asarray(obs)
-        if obs.ndim > 2:
-            raise ValueError("Input must be a single observation.")
-
-        if self.do_valid_actions:
-            # state_seq = obs[..., :self.len_seq_encode]
-            # # seq_rem_sort = np.flatnonzero(1 - state_seq.sum(1))
-            # # return spaces_tasking.DiscreteSet(seq_rem_sort)
-            #
-            # mask = state_seq.sum(axis=-1).astype(bool)
-            mask = self.make_mask(obs).astype(bool)
-            return spaces_tasking.DiscreteMasked(self.n_tasks, mask)
-        else:
-            return Discrete(len(obs))
-
-    def _update_spaces(self):
-        """Update observation and action spaces."""
-        if self.do_valid_actions:
-            seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
-            # self.action_space = spaces_tasking.DiscreteSet(seq_rem_sort)
-            self.action_space.mask = np.isin(np.arange(self.n_tasks), seq_rem_sort, invert=True)
-
-    def _gen_single(self, seq, weight_func):
-        """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
-
-        x_set = np.empty((self.steps_per_episode, *self.observation_space.shape), dtype=self.observation_space.dtype)
-        y_set = np.empty((self.steps_per_episode, *self.action_space.shape), dtype=self.action_space.dtype)
-        w_set = np.ones(self.steps_per_episode, dtype=float)
-
-        for idx, n in enumerate(seq):
-            n = self.sorted_index_inv[n]
-
-            x_set[idx] = self.state.copy()
-            y_set[idx] = n
-            if callable(weight_func):
-                w_set[idx] = weight_func(self)
-
-            self.step(n)  # updates environment state
-
-        return x_set, y_set, w_set
-
-    def mask_probability(self, p):  # TODO: deprecate?
-        """Returns masked action probabilities based on unscheduled task indices."""
-
-        if self.do_valid_actions:
-            return np.ma.masked_array(p, self.action_space.mask)
-        else:
-            return super().mask_probability(p)
