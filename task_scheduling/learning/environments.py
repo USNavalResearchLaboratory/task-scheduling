@@ -103,8 +103,7 @@ class Base(Env, ABC):
         _idx_list = self.sorted_index.tolist()
         return np.array([_idx_list.index(n) for n in range(self.n_tasks)])
 
-    @property
-    def obs_tasks(self):
+    def _obs_tasks(self):
         """Observation tensor for task features."""
 
         obs_tasks = np.array([func(self.tasks, self.ch_avail) for func in self.features['func']]).transpose()
@@ -113,7 +112,6 @@ class Base(Env, ABC):
 
         return obs_tasks[self.sorted_index]  # sort individual task observations
 
-    @property
     @abstractmethod
     def obs(self):
         """Complete observation."""
@@ -178,7 +176,7 @@ class Base(Env, ABC):
 
         self._update_spaces()
 
-        return self.obs
+        return self.obs()
 
     def step(self, action):
         """
@@ -211,7 +209,7 @@ class Base(Env, ABC):
 
         self._update_spaces()
 
-        return self.obs, reward, done, {}
+        return self.obs(), reward, done, {}
 
     def render(self, mode='human'):  # TODO: improve or delete
         if mode == 'human':
@@ -274,15 +272,16 @@ class Base(Env, ABC):
                 if verbose >= 1:
                     print(f'Problem: {batch_size * i_batch + i_gen + 1}/{n_batch * batch_size}', end='\r')
 
+                s = slice(i_gen * self.steps_per_episode, (i_gen + 1) * self.steps_per_episode)
+
                 self.reset(solve=True, rng=rng)  # generates new scheduling problem
 
-                # Optimal schedule
+                # Optimal sequence
                 seq = np.argsort(self.solution.sch['t'])
                 # maps to optimal schedule (empirical proof in `test_tree_nodes.test_argsort`)
 
                 # Generate samples for each scheduling step of the optimal sequence
-                idx = i_gen * self.steps_per_episode + np.arange(self.steps_per_episode)
-                x_set[idx], y_set[idx], w_set[idx] = self._gen_single(seq, weight_func)
+                x_set[s], y_set[s], w_set[s] = self._gen_single(seq, weight_func)
 
             if callable(weight_func):
                 yield x_set, y_set, w_set
@@ -418,11 +417,10 @@ class Index(Base):
         str_ += f"\n- Sequence encoding: {self._seq_encode_str}"
         return str_
 
-    @property
     def obs(self):
         """Complete observation."""
         obs_seq = np.array([self.seq_encoding(n) for n in self.sorted_index])
-        return np.concatenate((obs_seq, self.obs_tasks), axis=1)
+        return np.concatenate((obs_seq, self._obs_tasks()), axis=1)
 
     def make_mask(self, obs):
         if self.len_seq_encode == 0:
@@ -463,9 +461,9 @@ class Index(Base):
         w_set = np.ones(self.steps_per_episode, dtype=float)
 
         for idx, n in enumerate(seq):
-            n = self.sorted_index_inv[n]
+            n = self.sorted_index_inv[n]  # encode task index to sorted action
 
-            x_set[idx] = self.obs.copy()
+            x_set[idx] = self.obs()
             y_set[idx] = n
             if callable(weight_func):
                 w_set[idx] = weight_func(self)
@@ -595,7 +593,7 @@ class Seq(Base):
     @property
     def obs(self):
         """Complete observation."""
-        return self.obs_tasks
+        return self._obs_tasks()
 
     def infer_action_space(self, obs):
         """Determines the action Gym.Space from an observation."""
