@@ -1,9 +1,9 @@
 from abc import abstractmethod
 
-from task_scheduling.mdp.base import Base as BaseLearningScheduler
+from task_scheduling.mdp.base import BaseLearning
 
 
-class Base(BaseLearningScheduler):
+class Base(BaseLearning):  # TODO: deprecate? Only used for type checking??
     @abstractmethod
     def predict(self, obs):
         raise NotImplementedError

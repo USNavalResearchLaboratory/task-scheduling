@@ -22,6 +22,7 @@ from task_scheduling.generators import problems as problem_gens
 from task_scheduling.results import evaluate_algorithms_train, evaluate_algorithms_gen
 from task_scheduling.mdp.environments import Index
 from task_scheduling.mdp.supervised.torch import TorchScheduler, LitScheduler
+from task_scheduling.mdp.base import RandomAgent
 # from task_scheduling.mdp.reinforcement import StableBaselinesScheduler
 
 
@@ -159,11 +160,12 @@ algorithms = np.array([
     # ('BB_p_ERT', partial(branch_bound_priority, heuristic=methodcaller('earliest_release', inplace=False)), 1),
     ('Random', random_sequencer, 10),
     ('ERT', earliest_release, 10),
-    *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, th_visit=t), 10)
-      for c, t in product([0], [5, 10])),
-    # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
+    # *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, th_visit=t), 10)
+    #   for c, t in product([0], [5, 10])),
+    ('Random Agent', RandomAgent(env), 10),
     # ('Torch Policy', torch_scheduler, 10),
     ('Lit Policy', lit_scheduler, 10),
+    # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
     # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])

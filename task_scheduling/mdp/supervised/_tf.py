@@ -10,7 +10,6 @@ import tensorflow as tf
 from tensorboard import program
 from tensorflow import keras
 
-# from task_scheduling.mdp.base import Base
 from task_scheduling.mdp.supervised.base import Base
 
 for device in tf.config.experimental.list_physical_devices('GPU'):

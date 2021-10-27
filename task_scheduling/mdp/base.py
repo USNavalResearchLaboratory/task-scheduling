@@ -6,9 +6,7 @@ from task_scheduling.mdp.environments import Base as BaseEnv
 
 
 class Base(ABC):
-    _learn_params_default = {}
-
-    def __init__(self, env, model, learn_params=None):
+    def __init__(self, env):
         """
         Base class for learning schedulers.
 
@@ -16,21 +14,11 @@ class Base(ABC):
         ----------
         env : BaseEnv
             OpenAi gym environment.
-        model
-            The learning object.
-        learn_params : dict, optional
-            Parameters used by the `learn` method.
 
         """
         self.env = env
         if not isinstance(self.env.action_space, Discrete):
             raise TypeError("Action space must be Discrete.")
-
-        self.model = model
-
-        self._learn_params = self._learn_params_default.copy()
-        self.learn_params = learn_params  # invoke property setter
-        # self._set_learn_params(learn_params)
 
     def __call__(self, tasks, ch_avail):
         """
@@ -59,6 +47,55 @@ class Base(ABC):
 
         return self.env.node.sch
 
+    @abstractmethod
+    def predict(self, obs):
+        raise NotImplementedError
+
+    def summary(self):
+        out = "Env:" \
+              f"\n{self._print_env()}"
+        return out
+
+    def _print_env(self):
+        if isinstance(self.env, BaseEnv):
+            return self.env.summary()
+        else:
+            return str(self.env)
+
+
+class RandomAgent(Base):
+    """Uniformly random action selector."""
+    def predict(self, obs):
+        action_space = self.env.action_space
+        # action_space = self.env.infer_action_space(obs)
+        return action_space.sample(), None  # randomly selected action
+
+
+class BaseLearning(Base):
+    _learn_params_default = {}
+
+    def __init__(self, env, model, learn_params=None):
+        """
+        Base class for learning schedulers.
+
+        Parameters
+        ----------
+        env : BaseEnv
+            OpenAi gym environment.
+        model
+            The learning object.
+        learn_params : dict, optional
+            Parameters used by the `learn` method.
+
+        """
+        super().__init__(env)
+
+        self.model = model
+
+        self._learn_params = self._learn_params_default.copy()
+        self.learn_params = learn_params  # invoke property setter
+        # self._set_learn_params(learn_params)
+
     @property
     def learn_params(self):
         return self._learn_params
@@ -81,9 +118,9 @@ class Base(ABC):
     # def predict_prob(self, obs):
     #     raise NotImplementedError
 
-    @abstractmethod
-    def predict(self, obs):
-        raise NotImplementedError
+    # @abstractmethod
+    # def predict(self, obs):
+    #     raise NotImplementedError
 
     @abstractmethod
     def learn(self, n_gen_learn, verbose=0):
@@ -94,20 +131,11 @@ class Base(ABC):
         raise NotImplementedError
 
     def summary(self):
-        out = "Env:" \
-              f"\n{self._print_env()}" \
-              f"\n\nModel:" \
+        str_model = f"\n\nModel:" \
               f"\n```" \
               f"\n{self._print_model()}" \
               f"\n```"
-
-        return out
-
-    def _print_env(self):
-        if isinstance(self.env, BaseEnv):
-            return self.env.summary()
-        else:
-            return str(self.env)
+        return super().summary() + '\n\n' + str_model
 
     def _print_model(self):
         return str(self.model)

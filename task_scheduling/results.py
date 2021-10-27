@@ -12,7 +12,7 @@ from matplotlib import pyplot as plt
 
 from task_scheduling.base import RandomGeneratorMixin as RNGMix
 from task_scheduling.generators.problems import Dataset, Base as BaseProblemGenerator
-from task_scheduling.mdp.base import Base as BaseLearningScheduler
+from task_scheduling.mdp.base import BaseLearning as BaseLearningScheduler
 from task_scheduling.mdp.supervised.base import Base as BaseSupervisedScheduler
 from task_scheduling.util import eval_wrapper, plot_schedule
 
@@ -379,7 +379,7 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, n_gen_learn=0, sol
     if solve:
         algorithms = _add_opt(algorithms)
 
-    if _do_learn:
+    if _do_learn:  # TODO: generalize for RL
         # Get training problems, make solutions if needed for SL
         supervised_learners = learners[[isinstance(alg['func'], BaseSupervisedScheduler) for alg in learners]]
         _do_sl = bool(len(supervised_learners))

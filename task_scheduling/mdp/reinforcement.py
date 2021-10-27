@@ -7,7 +7,7 @@ from stable_baselines3.common.policies import ActorCriticPolicy
 from torch import nn
 
 # from task_scheduling.mdp import environments as envs
-from task_scheduling.mdp.base import Base as BaseLearningScheduler
+from task_scheduling.mdp.base import BaseLearning as BaseLearningScheduler
 from task_scheduling.mdp.supervised.torch import reset_weights
 
 
@@ -22,38 +22,16 @@ from task_scheduling.mdp.supervised.torch import reset_weights
 # TODO: use agents that can exploit expert knowledge
 
 
-# Agents
-class RandomAgent:
-    """Uniformly random action selector."""
-
-    def __init__(self, env):
-        self.env = env
-
-    def predict(self, _obs):
-        action_space = self.env.action_space
-        # action_space = self.env.infer_action_space(obs)
-        return action_space.sample(), None  # randomly selected action
-
-    def learn(self, *args, **kwargs):
-        pass
-
-    def set_env(self, env):
-        self.env = env
-
-    def get_env(self):
-        return self.env
-
-
-# Schedulers
 class StableBaselinesScheduler(BaseLearningScheduler):
     _default_tuple = namedtuple('ModelDefault', ['cls', 'params'], defaults={})
-    model_defaults = {'Random': _default_tuple(RandomAgent, {}),
-                      'DQN_MLP': _default_tuple(DQN, {'policy': 'MlpPolicy', 'verbose': 1}),
-                      'DQN_LN': _default_tuple(DQN, {'policy': 'LnMlpPolicy', 'verbose': 1}),
-                      'DQN_CNN': _default_tuple(DQN, {'policy': 'CnnPolicy', 'verbose': 1}),
-                      'A2C': _default_tuple(A2C, {'policy': 'MlpPolicy', 'verbose': 1}),
-                      'PPO': _default_tuple(PPO, {'policy': 'MlpPolicy', 'verbose': 1})
-                      }
+    model_defaults = {
+        # 'Random': _default_tuple(RandomAgent, {}),
+        'DQN_MLP': _default_tuple(DQN, {'policy': 'MlpPolicy', 'verbose': 1}),
+        'DQN_LN': _default_tuple(DQN, {'policy': 'LnMlpPolicy', 'verbose': 1}),
+        'DQN_CNN': _default_tuple(DQN, {'policy': 'CnnPolicy', 'verbose': 1}),
+        'A2C': _default_tuple(A2C, {'policy': 'MlpPolicy', 'verbose': 1}),
+        'PPO': _default_tuple(PPO, {'policy': 'MlpPolicy', 'verbose': 1})
+    }
 
     do_monitor = False
 

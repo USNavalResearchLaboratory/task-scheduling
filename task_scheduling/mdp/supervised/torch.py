@@ -14,7 +14,7 @@ from torch.nn import functional
 from torch.utils.data import TensorDataset, DataLoader
 
 from task_scheduling.mdp.environments import Base as BaseEnv, Index
-# from task_scheduling.mdp.base import Base as BaseLearningScheduler
+# from task_scheduling.mdp.base import BaseLearning
 from task_scheduling.mdp.supervised.base import Base as BaseSupervisedScheduler
 
 

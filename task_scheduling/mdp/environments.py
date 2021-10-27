@@ -272,7 +272,7 @@ class Base(Env, ABC):
 
         """
 
-        # TODO: refactor SL data gen to `mdp.supervised.Base`?
+        # TODO: refactor SL data gen to `mdp.supervised.BaseLearning`?
 
         for i_batch in range(n_batch):
             # if verbose >= 1:
