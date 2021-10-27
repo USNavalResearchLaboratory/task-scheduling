@@ -119,7 +119,7 @@ class Base(Env, ABC):
 
     @abstractmethod
     def infer_action_space(self, obs):
-        """Determines the action Gym.Space from an observation."""
+        """Determines the action `gym.Space` from an observation."""
         raise NotImplementedError
 
     def _update_spaces(self):
@@ -293,29 +293,29 @@ class Base(Env, ABC):
         data, = self.data_gen(n_batch=1, batch_size=n_gen, weight_func=weight_func, verbose=verbose)
         return data
 
-    def data_gen_baselines(self, n_gen):
-        steps_total = n_gen * self.steps_per_episode
-
-        observations, actions = self.data_gen_full(n_gen)
-        if observations.ndim == 1:
-            observations.shape = (steps_total, 1)
-        if actions.ndim == 1:
-            actions.shape = (steps_total, 1)
-
-        rewards = np.zeros(steps_total, dtype=float)
-        episode_returns = np.zeros(n_gen, dtype=float)
-        episode_starts = np.full(steps_total, False, dtype=bool)
-        episode_starts[np.arange(0, steps_total, self.steps_per_episode)] = True
-
-        numpy_dict = {
-            'actions': actions,
-            'obs': observations,
-            'rewards': rewards,
-            'episode_returns': episode_returns,
-            'episode_starts': episode_starts
-        }
-
-        return numpy_dict  # used to instantiate ExpertDataset object via `traj_data` arg
+    # def data_gen_baselines(self, n_gen):
+    #     steps_total = n_gen * self.steps_per_episode
+    #
+    #     observations, actions = self.data_gen_full(n_gen)
+    #     if observations.ndim == 1:
+    #         observations.shape = (steps_total, 1)
+    #     if actions.ndim == 1:
+    #         actions.shape = (steps_total, 1)
+    #
+    #     rewards = np.zeros(steps_total, dtype=float)
+    #     episode_returns = np.zeros(n_gen, dtype=float)
+    #     episode_starts = np.full(steps_total, False, dtype=bool)
+    #     episode_starts[np.arange(0, steps_total, self.steps_per_episode)] = True
+    #
+    #     numpy_dict = {
+    #         'actions': actions,
+    #         'obs': observations,
+    #         'rewards': rewards,
+    #         'episode_returns': episode_returns,
+    #         'episode_starts': episode_starts
+    #     }
+    #
+    #     return numpy_dict  # used to instantiate ExpertDataset object via `traj_data` arg
 
     def mask_probability(self, p):  # TODO: deprecate?
         """Returns masked action probabilities."""
@@ -482,7 +482,7 @@ class Index(Base):
 
 
 # %%
-def seq_to_num(seq, check_input=True):
+def seq_to_int(seq, check_input=True):
     """
     Map an index sequence permutation to a non-negative integer.
 
@@ -513,7 +513,7 @@ def seq_to_num(seq, check_input=True):
     return num
 
 
-def num_to_seq(num, length, check_input=True):
+def int_to_seq(num, length, check_input=True):
     """
     Map a non-negative integer to an index sequence permutation.
 
@@ -601,28 +601,52 @@ class Seq(Base):
 
     def step(self, action):
         if self.action_type == 'int':
-            action = list(num_to_seq(action, self.n_tasks))  # decode integer to sequence
+            action = list(int_to_seq(action, self.n_tasks))  # decode integer to sequence
 
         return super().step(action)
 
     def _gen_single(self, seq, weight_func):
         """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
+
+        x_set = np.empty((self.steps_per_episode, *self.observation_space.shape), dtype=self.observation_space.dtype)
+        y_set = np.empty((self.steps_per_episode, *self.action_space.shape), dtype=self.action_space.dtype)
+        w_set = np.ones(self.steps_per_episode, dtype=float)
+
         seq_sort = self.sorted_index_inv[seq]
 
-        x = self.obs.copy()
+        x_set[0] = self.obs()
 
         if self.action_type == 'seq':
-            y = seq_sort
+            y_set[0] = seq_sort
         elif self.action_type == 'int':
-            y = seq_to_num(seq_sort)
+            y_set[0] = seq_to_int(seq_sort)
         else:
             raise ValueError
 
         if callable(weight_func):
-            w = weight_func(self)
+            w_set[0] = weight_func(self)
         else:
-            w = 1.
+            w_set[0] = 1.
 
         super().step(seq)  # invoke super method to avoid unnecessary encode-decode process
 
-        return np.array([x]), np.array([y]), np.array([w])
+        return x_set, y_set, w_set
+
+    def _gen_single(self, seq, weight_func):
+        """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
+
+        x_set = np.empty((self.steps_per_episode, *self.observation_space.shape), dtype=self.observation_space.dtype)
+        y_set = np.empty((self.steps_per_episode, *self.action_space.shape), dtype=self.action_space.dtype)
+        w_set = np.ones(self.steps_per_episode, dtype=float)
+
+        for idx, n in enumerate(seq):
+            n = self.sorted_index_inv[n]  # encode task index to sorted action
+
+            x_set[idx] = self.obs()
+            y_set[idx] = n
+            if callable(weight_func):
+                w_set[idx] = weight_func(self)
+
+            self.step(n)  # updates environment state
+
+        return x_set, y_set, w_set

@@ -2,7 +2,7 @@ from math import factorial
 
 import numpy as np
 
-from task_scheduling.learning.environments import num_to_seq, seq_to_num
+from task_scheduling.learning.environments import int_to_seq, seq_to_int
 
 
 def test_encode_decode():
@@ -11,10 +11,10 @@ def test_encode_decode():
         print(f"{i}", end='\n')
 
         seq = tuple(np.random.permutation(length))
-        assert seq == num_to_seq(seq_to_num(seq), length)
+        assert seq == int_to_seq(seq_to_int(seq), length)
 
         num = np.random.default_rng().integers(factorial(length))
-        assert num == seq_to_num(num_to_seq(num, length))
+        assert num == seq_to_int(int_to_seq(num, length))
 
 
 if __name__ == '__main__':
