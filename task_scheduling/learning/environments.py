@@ -272,6 +272,8 @@ class Base(Env, ABC):
 
         """
 
+        # TODO: refactor SL data gen to `learning.supervised.Base`?
+
         for i_batch in range(n_batch):
             # if verbose >= 1:
             #     print(f'Batch: {i_batch + 1}/{n_batch}', end='\n')

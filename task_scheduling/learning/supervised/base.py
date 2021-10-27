@@ -15,7 +15,3 @@ class Base(BaseLearningScheduler):
     @abstractmethod
     def reset(self, *args, **kwargs):
         raise NotImplementedError
-
-    # TODO: refactor core functionality (e.g. `env.data_gen` uses) here?
-    def make_labeled_data(self, n_train, n_val=0, weight_func=None, verbose=0):
-        pass
