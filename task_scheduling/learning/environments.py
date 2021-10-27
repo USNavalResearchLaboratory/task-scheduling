@@ -89,6 +89,19 @@ class Base(Env, ABC):
         return str_
 
     @property
+    def solution(self):
+        return self._solution
+
+    @solution.setter
+    def solution(self, val):
+        self._solution = val
+        if val is None:
+            self._seq_opt = None
+        else:
+            self._seq_opt = np.argsort(val.sch['t'])
+            # maps to optimal schedule (empirical proof in `test_tree_nodes.test_argsort`)
+
+    @property
     def sorted_index(self):
         """Indices for re-ordering of observation rows."""
         if callable(self.sort_func):
@@ -224,8 +237,11 @@ class Base(Env, ABC):
         self.problem_gen.rng = seed
 
     @abstractmethod
-    def _gen_single(self, seq, weight_func):
-        """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
+    def opt_action(self):  # TODO: `staticmethod` using obs?
+        """Optimal action based on current state."""
+
+        # if self.solution is None:
+        #     raise ValueError("Optimal action cannot be determined unless `solution` attribute is populated.")
         raise NotImplementedError
 
     def data_gen(self, n_batch, batch_size=1, weight_func=None, verbose=0, rng=None):
@@ -272,16 +288,22 @@ class Base(Env, ABC):
                 if verbose >= 1:
                     print(f'Problem: {batch_size * i_batch + i_gen + 1}/{n_batch * batch_size}', end='\r')
 
-                s = slice(i_gen * self.steps_per_episode, (i_gen + 1) * self.steps_per_episode)
+                obs = self.reset(solve=True, rng=rng)  # generates new scheduling problem
 
-                self.reset(solve=True, rng=rng)  # generates new scheduling problem
+                done = False
+                i_step = 0
+                while not done:
+                    i = i_gen * self.steps_per_episode + i_step
 
-                # Optimal sequence
-                seq = np.argsort(self.solution.sch['t'])
-                # maps to optimal schedule (empirical proof in `test_tree_nodes.test_argsort`)
+                    action = self.opt_action()
 
-                # Generate samples for each scheduling step of the optimal sequence
-                x_set[s], y_set[s], w_set[s] = self._gen_single(seq, weight_func)
+                    x_set[i] = obs
+                    y_set[i] = action
+                    if callable(weight_func):
+                        w_set[i] = weight_func(self)
+
+                    obs, reward, done, info = self.step(action)  # updates environment state
+                    i_step += 1
 
             if callable(weight_func):
                 yield x_set, y_set, w_set
@@ -453,24 +475,10 @@ class Index(Base):
             # self.action_space = spaces_tasking.DiscreteSet(seq_rem_sort)
             self.action_space.mask = np.isin(np.arange(self.n_tasks), seq_rem_sort, invert=True)
 
-    def _gen_single(self, seq, weight_func):
-        """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
-
-        x_set = np.empty((self.steps_per_episode, *self.observation_space.shape), dtype=self.observation_space.dtype)
-        y_set = np.empty((self.steps_per_episode, *self.action_space.shape), dtype=self.action_space.dtype)
-        w_set = np.ones(self.steps_per_episode, dtype=float)
-
-        for idx, n in enumerate(seq):
-            n = self.sorted_index_inv[n]  # encode task index to sorted action
-
-            x_set[idx] = self.obs()
-            y_set[idx] = n
-            if callable(weight_func):
-                w_set[idx] = weight_func(self)
-
-            self.step(n)  # updates environment state
-
-        return x_set, y_set, w_set
+    def opt_action(self):
+        """Optimal action based on current state."""
+        n = self._seq_opt[len(self.node.seq)]
+        return self.sorted_index_inv[n]  # encode task index to sorted action
 
     def mask_probability(self, p):  # TODO: deprecate?
         """Returns masked action probabilities based on unscheduled task indices."""
@@ -605,48 +613,35 @@ class Seq(Base):
 
         return super().step(action)
 
-    def _gen_single(self, seq, weight_func):
-        """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
-
-        x_set = np.empty((self.steps_per_episode, *self.observation_space.shape), dtype=self.observation_space.dtype)
-        y_set = np.empty((self.steps_per_episode, *self.action_space.shape), dtype=self.action_space.dtype)
-        w_set = np.ones(self.steps_per_episode, dtype=float)
-
-        seq_sort = self.sorted_index_inv[seq]
-
-        x_set[0] = self.obs()
-
+    def opt_action(self):
+        """Optimal action based on current state."""
+        seq_action = self.sorted_index_inv[self._seq_opt]  # encode sequence to sorted actions
         if self.action_type == 'seq':
-            y_set[0] = seq_sort
+            return seq_action
         elif self.action_type == 'int':
-            y_set[0] = seq_to_int(seq_sort)
-        else:
-            raise ValueError
+            return seq_to_int(seq_action)
 
-        if callable(weight_func):
-            w_set[0] = weight_func(self)
-        else:
-            w_set[0] = 1.
-
-        super().step(seq)  # invoke super method to avoid unnecessary encode-decode process
-
-        return x_set, y_set, w_set
-
-    def _gen_single(self, seq, weight_func):
-        """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
-
-        x_set = np.empty((self.steps_per_episode, *self.observation_space.shape), dtype=self.observation_space.dtype)
-        y_set = np.empty((self.steps_per_episode, *self.action_space.shape), dtype=self.action_space.dtype)
-        w_set = np.ones(self.steps_per_episode, dtype=float)
-
-        for idx, n in enumerate(seq):
-            n = self.sorted_index_inv[n]  # encode task index to sorted action
-
-            x_set[idx] = self.obs()
-            y_set[idx] = n
-            if callable(weight_func):
-                w_set[idx] = weight_func(self)
-
-            self.step(n)  # updates environment state
-
-        return x_set, y_set, w_set
+    # def _gen_single(self, seq, weight_func):
+    #     """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
+    #
+    #     x_set = np.empty((self.steps_per_episode, *self.observation_space.shape), dtype=self.observation_space.dtype)
+    #     y_set = np.empty((self.steps_per_episode, *self.action_space.shape), dtype=self.action_space.dtype)
+    #     w_set = np.ones(self.steps_per_episode, dtype=float)
+    #
+    #     seq_action = self.sorted_index_inv[seq]  # encode sequence to sorted actions
+    #
+    #     x_set[0] = self.obs()
+    #
+    #     if self.action_type == 'seq':
+    #         y_set[0] = seq_action
+    #     elif self.action_type == 'int':
+    #         y_set[0] = seq_to_int(seq_action)
+    #
+    #     if callable(weight_func):
+    #         w_set[0] = weight_func(self)
+    #     else:
+    #         w_set[0] = 1.
+    #
+    #     super().step(seq)  # invoke super method to avoid unnecessary encode-decode process
+    #
+    #     return x_set, y_set, w_set
