@@ -237,7 +237,7 @@ class Base(Env, ABC):
         self.problem_gen.rng = seed
 
     @abstractmethod
-    def opt_action(self):  # TODO: `staticmethod` using obs?
+    def opt_action(self):  # TODO: `staticmethod` policy taking obs?
         """Optimal action based on current state."""
 
         # if self.solution is None:
@@ -277,7 +277,6 @@ class Base(Env, ABC):
             #     print(f'Batch: {i_batch + 1}/{n_batch}', end='\n')
 
             steps_total = batch_size * self.steps_per_episode
-
             x_set = np.empty((steps_total, *self.observation_space.shape), dtype=self.observation_space.dtype)
             y_set = np.empty((steps_total, *self.action_space.shape), dtype=self.action_space.dtype)
             w_set = np.empty(steps_total, dtype=float)
@@ -477,7 +476,7 @@ class Index(Base):
 
     def opt_action(self):
         """Optimal action based on current state."""
-        n = self._seq_opt[len(self.node.seq)]
+        n = self._seq_opt[len(self.node.seq)]  # next optimal task index
         return self.sorted_index_inv[n]  # encode task index to sorted action
 
     def mask_probability(self, p):  # TODO: deprecate?

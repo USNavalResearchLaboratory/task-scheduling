@@ -84,7 +84,7 @@ learn_params_torch = {
     'batch_size_val': 30,
     'weight_func': None,
     # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-    'max_epochs': 50,
+    'max_epochs': 500,
     'shuffle': True,
 }
 
@@ -185,6 +185,7 @@ n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assess
 # TODO: no faster on GPU!?!? CHECK batch size effects!
 # TODO: investigate loss curves with/without valid action enforcement
 
+# FIXME: add random policies, refactor `learning` to be more general!
 
 log_path = 'main_temp/log.md'
 img_path = f'main_temp/images/{now}.png'
