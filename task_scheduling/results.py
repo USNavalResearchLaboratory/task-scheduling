@@ -12,8 +12,8 @@ from matplotlib import pyplot as plt
 
 from task_scheduling.base import RandomGeneratorMixin as RNGMix
 from task_scheduling.generators.problems import Dataset, Base as BaseProblemGenerator
-from task_scheduling.learning.base import Base as BaseLearningScheduler
-from task_scheduling.learning.supervised.base import Base as BaseSupervisedScheduler
+from task_scheduling.mdp.base import Base as BaseLearningScheduler
+from task_scheduling.mdp.supervised.base import Base as BaseSupervisedScheduler
 from task_scheduling.util import eval_wrapper, plot_schedule
 
 OPT_NAME = 'BB Optimal'

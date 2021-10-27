@@ -1,6 +1,6 @@
 from abc import abstractmethod
 
-from task_scheduling.learning.base import Base as BaseLearningScheduler
+from task_scheduling.mdp.base import Base as BaseLearningScheduler
 
 
 class Base(BaseLearningScheduler):

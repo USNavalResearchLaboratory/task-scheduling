@@ -13,9 +13,9 @@ from torch import nn, optim
 from torch.nn import functional
 from torch.utils.data import TensorDataset, DataLoader
 
-from task_scheduling.learning.environments import Base as BaseEnv, Index
-# from task_scheduling.learning.base import Base as BaseLearningScheduler
-from task_scheduling.learning.supervised.base import Base as BaseSupervisedScheduler
+from task_scheduling.mdp.environments import Base as BaseEnv, Index
+# from task_scheduling.mdp.base import Base as BaseLearningScheduler
+from task_scheduling.mdp.supervised.base import Base as BaseSupervisedScheduler
 
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")

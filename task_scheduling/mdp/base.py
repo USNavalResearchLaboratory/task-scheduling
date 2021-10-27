@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 from gym.spaces import Discrete
 
-from task_scheduling.learning.environments import Base as BaseEnv
+from task_scheduling.mdp.environments import Base as BaseEnv
 
 
 class Base(ABC):

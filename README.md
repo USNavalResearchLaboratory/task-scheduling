@@ -162,7 +162,7 @@ from pytorch_lightning.utilities.seed import seed_everything
 
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
 from task_scheduling.generators import problems as problem_gens
-from task_scheduling.learning.supervised.torch import LitScheduler
+from task_scheduling.mdp.supervised.torch import LitScheduler
 from task_scheduling.results import evaluate_algorithms_train
 
 np.set_printoptions(precision=3)
@@ -172,34 +172,33 @@ plt.style.use('seaborn')
 seed = 12345
 
 if seed is not None:
-    seed_everything(seed)
-
+  seed_everything(seed)
 
 # Define scheduling problem and algorithms
 problem_gen = problem_gens.Dataset.load('../data/continuous_relu_drop_c1t8', repeat=True)
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 
 env_params = {
-    'features': None,  # defaults to task parameters
-    'sort_func': 't_release',
-    'time_shift': True,
-    'masking': True,
-    'seq_encoding': 'one-hot',
+  'features': None,  # defaults to task parameters
+  'sort_func': 't_release',
+  'time_shift': True,
+  'masking': True,
+  'seq_encoding': 'one-hot',
 }
 
 trainer_kwargs = {
-    'logger': False,
-    'checkpoint_callback': False,
-    'callbacks': EarlyStopping('val_loss', min_delta=0., patience=50),
-    'gpus': min(1, torch.cuda.device_count()),
+  'logger': False,
+  'checkpoint_callback': False,
+  'callbacks': EarlyStopping('val_loss', min_delta=0., patience=50),
+  'gpus': min(1, torch.cuda.device_count()),
 }
 
 learn_params = {
-    'batch_size_train': 20,
-    'n_gen_val': 1 / 3,
-    'batch_size_val': 30,
-    'max_epochs': 500,
-    'shuffle': True,
+  'batch_size_train': 20,
+  'n_gen_val': 1 / 3,
+  'batch_size_val': 30,
+  'max_epochs': 500,
+  'shuffle': True,
 }
 
 lit_scheduler = LitScheduler.from_gen_mlp(problem_gen, env_params=env_params, hidden_layer_sizes=[400],
@@ -207,12 +206,11 @@ lit_scheduler = LitScheduler.from_gen_mlp(problem_gen, env_params=env_params, hi
                                           learn_params=learn_params, valid_fwd=True)
 
 algorithms = np.array([
-    ('Random', random_sequencer, 10),
-    ('ERT', earliest_release, 10),
-    ('MCTS', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=.05, th_visit=5), 10),
-    ('Lit Policy', lit_scheduler, 10),
+  ('Random', random_sequencer, 10),
+  ('ERT', earliest_release, 10),
+  ('MCTS', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=.05, th_visit=5), 10),
+  ('Lit Policy', lit_scheduler, 10),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
-
 
 # Evaluate results
 n_gen_learn = 900  # the number of problems generated for learning, per iteration

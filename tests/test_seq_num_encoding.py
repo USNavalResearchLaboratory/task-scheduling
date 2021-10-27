@@ -2,7 +2,7 @@ from math import factorial
 
 import numpy as np
 
-from task_scheduling.learning.environments import int_to_seq, seq_to_int
+from task_scheduling.mdp.environments import int_to_seq, seq_to_int
 
 
 def test_encode_decode():

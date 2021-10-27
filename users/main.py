@@ -20,9 +20,9 @@ from task_scheduling.base import get_now
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
 from task_scheduling.generators import problems as problem_gens
 from task_scheduling.results import evaluate_algorithms_train, evaluate_algorithms_gen
-from task_scheduling.learning.environments import Index
-from task_scheduling.learning.supervised.torch import TorchScheduler, LitScheduler
-# from task_scheduling.learning.reinforcement import StableBaselinesScheduler
+from task_scheduling.mdp.environments import Index
+from task_scheduling.mdp.supervised.torch import TorchScheduler, LitScheduler
+# from task_scheduling.mdp.reinforcement import StableBaselinesScheduler
 
 
 np.set_printoptions(precision=3)
@@ -185,7 +185,7 @@ n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assess
 # TODO: no faster on GPU!?!? CHECK batch size effects!
 # TODO: investigate loss curves with/without valid action enforcement
 
-# FIXME: add random policies, refactor `learning` to be more general!
+# FIXME: add random policies, refactor `mdp` to be more general!
 
 log_path = 'main_temp/log.md'
 img_path = f'main_temp/images/{now}.png'

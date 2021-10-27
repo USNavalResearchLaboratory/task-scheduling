@@ -6,9 +6,9 @@ from stable_baselines3.common.policies import ActorCriticPolicy
 # from stable_baselines.common.vec_env import DummyVecEnv
 from torch import nn
 
-# from task_scheduling.learning import environments as envs
-from task_scheduling.learning.base import Base as BaseLearningScheduler
-from task_scheduling.learning.supervised.torch import reset_weights
+# from task_scheduling.mdp import environments as envs
+from task_scheduling.mdp.base import Base as BaseLearningScheduler
+from task_scheduling.mdp.supervised.torch import reset_weights
 
 
 # class DummyVecTaskingEnv(DummyVecEnv):

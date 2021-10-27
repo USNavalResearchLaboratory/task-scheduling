@@ -10,7 +10,7 @@ from gym.spaces import Discrete, MultiDiscrete
 
 import task_scheduling.spaces as spaces_tasking
 from task_scheduling import tree_search
-from task_scheduling.learning.features import param_features
+from task_scheduling.mdp.features import param_features
 from task_scheduling.util import plot_task_losses
 
 
@@ -272,7 +272,7 @@ class Base(Env, ABC):
 
         """
 
-        # TODO: refactor SL data gen to `learning.supervised.Base`?
+        # TODO: refactor SL data gen to `mdp.supervised.Base`?
 
         for i_batch in range(n_batch):
             # if verbose >= 1:
