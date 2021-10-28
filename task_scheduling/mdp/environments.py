@@ -6,7 +6,7 @@ from types import MethodType
 import matplotlib.pyplot as plt
 import numpy as np
 from gym import Env
-from gym.spaces import Discrete, MultiDiscrete, Box
+from gym.spaces import Discrete, MultiDiscrete, Box, Dict
 
 import task_scheduling.spaces as spaces_tasking
 from task_scheduling import tree_search
@@ -63,20 +63,23 @@ class Base(Env, ABC):
 
         self.node = None  # MDP state
 
-        self.steps_per_episode = None
-
-        # gym.Env observation and action spaces
-        self.observe_ch = observe_ch
-
+        # Observation and action spaces
         obs_space_tasks = spaces_tasking.broadcast_to(spaces_tasking.stack(self.features['space']),
                                                       shape=(self.n_tasks, len(self.features)))
-        if observe_ch:
-            space_ch = self.problem_gen.ch_avail_gen.space
-            max_duration = spaces_tasking.get_space_lims(self.problem_gen.task_gen.param_spaces['duration'])[1]
-            obs_space_ch = Box(space_ch.low.item(), space_ch.high + self.n_tasks * max_duration, shape=(self.n_ch,))
-        # else:  # FIXME
-        self.observation_space = obs_space_tasks
 
+        space_ch = self.problem_gen.ch_avail_gen.space
+        max_duration = spaces_tasking.get_space_lims(self.problem_gen.task_gen.param_spaces['duration'])[1]
+        obs_space_ch = Box(space_ch.low.item(), space_ch.high + self.n_tasks * max_duration, shape=(self.n_ch,))
+
+        if observe_ch:
+            self.observation_space = Dict({
+                'tasks': obs_space_tasks,
+                'ch_avail': obs_space_ch,
+            })
+        else:
+            self.observation_space = obs_space_tasks
+
+        self.steps_per_episode = None
         self.action_space = None
 
     n_tasks = property(lambda self: self.problem_gen.n_tasks)
@@ -429,12 +432,17 @@ class Index(Base):
 
         self._seq_encode_str = seq_encoding
 
-        self.steps_per_episode = self.n_tasks
-
-        # gym.Env observation and action spaces
+        # Observation and action spaces
         obs_space_seq = MultiDiscrete(np.full((self.n_tasks, self.len_seq_encode), 2))
-        self.observation_space = spaces_tasking.concatenate((obs_space_seq, self.observation_space), axis=-1)
+        if isinstance(self.observation_space, Dict):
+            self.observation_space = Dict({
+                'tasks': spaces_tasking.concatenate((obs_space_seq, self.observation_space['tasks']), axis=-1),
+                'ch_avail': self.observation_space['ch_avail'],
+            })  # have to instantiate new space because `Dict` doesn't support `__setitem__`
+        else:
+            self.observation_space = spaces_tasking.concatenate((obs_space_seq, self.observation_space), axis=-1)
 
+        self.steps_per_episode = self.n_tasks
         if self.do_valid_actions:
             # self.action_space = spaces_tasking.DiscreteSet(range(self.n_tasks))
             self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)
@@ -594,6 +602,7 @@ class Seq(Base):
         else:
             raise ValueError
 
+        # Observation and action spaces
         self.steps_per_episode = 1
         self.action_space = self._action_space_map(self.n_tasks)
 
