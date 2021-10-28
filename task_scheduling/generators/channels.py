@@ -2,23 +2,15 @@
 
 from abc import ABC, abstractmethod
 
+from gym.spaces import Box
+
 from task_scheduling.base import RandomGeneratorMixin
 
 
 class Base(RandomGeneratorMixin, ABC):
-    """
-    Generator of random channel availabilities.
-
-    Parameters
-    ----------
-    lims : Sequence of float
-        Lower and upper channel limits.
-
-    """
-
-    def __init__(self, lims=(0., 0.), rng=None):
+    def __init__(self, rng=None):
         super().__init__(rng)
-        self.lims = tuple(lims)
+        self.space = None
 
     @abstractmethod
     def __call__(self, n_ch, rng=None):
@@ -42,6 +34,22 @@ class BaseIID(Base, ABC):
 
 
 class UniformIID(BaseIID):
+    def __init__(self, lims=(0., 0.), rng=None):
+        """
+        Generator of random channel availabilities.
+
+        Parameters
+        ----------
+        lims : Sequence of float
+            Lower and upper channel limits.
+        rng : int or RandomState or Generator, optional
+            NumPy random number generator or seed. Instance RNG if None.
+
+        """
+        super().__init__(rng)
+        self.lims = tuple(lims)
+        self.space = Box(*lims, shape=())
+
     def _gen_single(self, rng):
         return rng.uniform(*self.lims)
 
@@ -57,8 +65,9 @@ class UniformIID(BaseIID):
 
 class Deterministic(Base):
     def __init__(self, ch_avail):
+        super().__init__()
         self.ch_avail = tuple(ch_avail)
-        super().__init__(lims=(min(ch_avail), max(ch_avail)))
+        # super().__init__(lims=(min(ch_avail), max(ch_avail)))
 
     def __call__(self, n_ch, rng=None):
         if n_ch != len(self.ch_avail):
@@ -70,7 +79,7 @@ class Deterministic(Base):
     @classmethod
     def from_uniform(cls, n_ch, lims=(0., 0.), rng=None):
         ch_avail_gen = UniformIID(lims, rng=rng)
-        return cls(ch_avail=list(ch_avail_gen(n_ch)))
+        return cls(tuple(ch_avail_gen(n_ch)))
 
     def summary(self):
         return f"Channel: Deterministic{self.ch_avail}"

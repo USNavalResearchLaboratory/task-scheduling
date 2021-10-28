@@ -16,7 +16,7 @@ from task_scheduling.util import plot_task_losses
 
 # Gym Environments
 class Base(Env, ABC):
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, observe_ch=False):
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, observe_ch=True):
         """Base environment for task scheduling.
 
         Parameters
@@ -71,10 +71,11 @@ class Base(Env, ABC):
         obs_space_tasks = spaces_tasking.broadcast_to(spaces_tasking.stack(self.features['space']),
                                                       shape=(self.n_tasks, len(self.features)))
         if observe_ch:
-            pass
-            # obs_space_ch = Box()  # FIXME: need space from ch_avail, mod with durations!!
-        else:
-            self.observation_space = obs_space_tasks
+            space_ch = self.problem_gen.ch_avail_gen.space
+            max_duration = spaces_tasking.get_space_lims(self.problem_gen.task_gen.param_spaces['duration'])[1]
+            obs_space_ch = Box(space_ch.low.item(), space_ch.high + self.n_tasks * max_duration, shape=(self.n_ch,))
+        # else:  # FIXME
+        self.observation_space = obs_space_tasks
 
         self.action_space = None
 

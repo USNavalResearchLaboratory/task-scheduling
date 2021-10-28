@@ -18,7 +18,7 @@ def broadcast_to(space, shape):
         raise NotImplementedError("Only supported for Box and MultiDiscrete spaces.")
 
 
-def _get_space_lims(space):
+def get_space_lims(space):
     """Get minimum and maximum values of a space."""
 
     if isinstance(space, Box):
@@ -48,7 +48,7 @@ def stack(spaces, axis=0):
     else:
         if axis == -1:
             axis = -2  # point to last index of space shape
-        lims = np.stack([_get_space_lims(space) for space in spaces], axis=axis)
+        lims = np.stack([get_space_lims(space) for space in spaces], axis=axis)
         return Box(lims[..., 0], lims[..., 1], dtype=float)
 
 
@@ -64,7 +64,7 @@ def concatenate(spaces, axis=0):
     else:
         if axis == -1:
             axis = -2  # point to last index of space shape
-        lims = np.concatenate([_get_space_lims(space) for space in spaces], axis=axis)
+        lims = np.concatenate([get_space_lims(space) for space in spaces], axis=axis)
         return Box(lims[..., 0], lims[..., 1], dtype=float)
 
 
