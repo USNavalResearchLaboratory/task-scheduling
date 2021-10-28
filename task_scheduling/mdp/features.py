@@ -18,7 +18,7 @@ def _add_zero(space):
     """Modify space to include zero as a possible value."""
 
     if isinstance(space, Box):
-        space.low = 0
+        space.low = np.array(0.)
         return space
     elif isinstance(space, Discrete):
         return space
