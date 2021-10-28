@@ -20,7 +20,7 @@ from task_scheduling.base import get_now
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
 from task_scheduling.generators import problems as problem_gens
 from task_scheduling.results import evaluate_algorithms_train, evaluate_algorithms_gen
-from task_scheduling.mdp.environments import Index
+from task_scheduling.mdp.environments import Index, Seq
 from task_scheduling.mdp.supervised.torch import TorchScheduler, LitScheduler
 from task_scheduling.mdp.base import RandomAgent
 # from task_scheduling.mdp.reinforcement import StableBaselinesScheduler
@@ -55,6 +55,7 @@ if seed is not None:
 
 data_path = Path('../data/')
 
+# dataset = 'continuous_relu_drop_c1t4'
 dataset = 'continuous_relu_drop_c1t8'
 # dataset = 'continuous_relu_drop_c2t8'
 # dataset = 'discrete_relu_drop_c1t8'
@@ -72,11 +73,12 @@ env_params = {
     # 'masking': False,
     'masking': True,
     # 'seq_encoding': None,
-    # 'seq_encoding': 'binary',
-    'seq_encoding': 'one-hot',
+    'seq_encoding': 'binary',
+    # 'seq_encoding': 'one-hot',
 }
 
 env = Index(problem_gen, **env_params)
+# env = Seq(problem_gen)
 
 
 learn_params_torch = {
@@ -138,6 +140,8 @@ lit_scheduler = LitScheduler.mlp(env, hidden_layer_sizes=[400], lit_kwargs={'opt
                                  valid_fwd=valid_fwd)
 
 
+random_agent = RandomAgent(env)
+
 # RL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
 #            'model_cls': 'DQN', 'model_params': {'verbose': 1, 'policy': 'MlpPolicy'},
 #            'n_episodes': 10000,
@@ -162,9 +166,9 @@ algorithms = np.array([
     ('ERT', earliest_release, 10),
     # *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, th_visit=t), 10)
     #   for c, t in product([0], [5, 10])),
-    ('Random Agent', RandomAgent(env), 10),
+    ('Random Agent', random_agent, 10),
     # ('Torch Policy', torch_scheduler, 10),
-    ('Lit Policy', lit_scheduler, 10),
+    # ('Lit Policy', lit_scheduler, 10),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
     # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
@@ -187,7 +191,6 @@ n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assess
 # TODO: no faster on GPU!?!? CHECK batch size effects!
 # TODO: investigate loss curves with/without valid action enforcement
 
-# FIXME: add random policies, refactor `mdp` to be more general!
 
 log_path = 'main_temp/log.md'
 img_path = f'main_temp/images/{now}.png'

@@ -272,7 +272,7 @@ class Base(Env, ABC):
 
         """
 
-        # TODO: refactor SL data gen to `mdp.supervised.BaseLearning`?
+        # TODO: refactor SL data gen to `mdp.supervised.Base`?
 
         for i_batch in range(n_batch):
             # if verbose >= 1:
@@ -599,7 +599,6 @@ class Seq(Base):
         str_ += f"\n- Action type: {self.action_type}"
         return str_
 
-    @property
     def obs(self):
         """Complete observation."""
         return self._obs_tasks()

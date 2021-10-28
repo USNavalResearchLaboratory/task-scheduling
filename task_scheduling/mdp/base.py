@@ -68,7 +68,9 @@ class RandomAgent(Base):
     def predict(self, obs):
         action_space = self.env.action_space
         # action_space = self.env.infer_action_space(obs)
-        return action_space.sample(), None  # randomly selected action
+
+        return action_space.sample()
+        # return action_space.sample(), None
 
 
 class BaseLearning(Base):
