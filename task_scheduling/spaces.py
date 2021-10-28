@@ -47,7 +47,7 @@ def stack(spaces, axis=0):
         return MultiDiscrete(np.stack(nvecs, axis=axis))
     else:
         if axis == -1:
-            axis = -2
+            axis = -2  # point to last index of space shape
         lims = np.stack([_get_space_lims(space) for space in spaces], axis=axis)
         return Box(lims[..., 0], lims[..., 1], dtype=float)
 
@@ -63,7 +63,7 @@ def concatenate(spaces, axis=0):
         return MultiDiscrete(np.concatenate(nvecs, axis=axis))
     else:
         if axis == -1:
-            axis = -2
+            axis = -2  # point to last index of space shape
         lims = np.concatenate([_get_space_lims(space) for space in spaces], axis=axis)
         return Box(lims[..., 0], lims[..., 1], dtype=float)
 

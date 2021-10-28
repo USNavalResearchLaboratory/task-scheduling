@@ -3,6 +3,7 @@ from itertools import product
 from pathlib import Path
 # from functools import wraps
 # from operator import methodcaller
+from math import factorial
 
 import numpy as np
 import pandas as pd
@@ -20,6 +21,7 @@ from task_scheduling.base import get_now
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
 from task_scheduling.generators import problems as problem_gens
 from task_scheduling.results import evaluate_algorithms_train, evaluate_algorithms_gen
+from task_scheduling.mdp.features import encode_discrete_features
 from task_scheduling.mdp.environments import Index, Seq
 from task_scheduling.mdp.supervised.torch import TorchScheduler, LitScheduler
 from task_scheduling.mdp.base import RandomAgent
@@ -66,6 +68,7 @@ problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 # Algorithms
 env_params = {
     'features': None,  # defaults to task parameters
+    # 'features': encode_discrete_features(problem_gen),
     # 'sort_func': None,
     'sort_func': 't_release',
     # 'time_shift': False,
@@ -87,7 +90,7 @@ learn_params_torch = {
     'batch_size_val': 30,
     'weight_func': None,
     # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-    'max_epochs': 500,
+    'max_epochs': 200,
     'shuffle': True,
 }
 
@@ -100,7 +103,7 @@ class TorchCNN(nn.Module):
         super().__init__()
         n_filter = 400
         l_kernel = 8
-        self.conv1 = nn.Conv2d(1, n_filter, kernel_size=(l_kernel, 8+5))  # TODO: dependent width...
+        self.conv1 = nn.Conv2d(1, n_filter, kernel_size=(l_kernel, 1+5))  # TODO: dependent width...
         self.fc1 = nn.Linear(n_filter * (8-l_kernel+1), 8)
 
     def forward(self, x):
@@ -115,11 +118,15 @@ class TorchCNN(nn.Module):
 
 
 torch_model = TorchCNN()
+# torch_model = nn.Sequential(
+#     nn.Flatten(),
+#     nn.Linear(4*5, factorial(4)),
+# )
 
-# torch_scheduler = TorchScheduler(env, torch_model, optim_params={'lr': 1e-3}, learn_params=learn_params_torch,
-#                                  valid_fwd=valid_fwd)
-torch_scheduler = TorchScheduler.mlp(env, hidden_layer_sizes=[400], optim_params={'lr': 1e-3},
-                                     learn_params=learn_params_torch, valid_fwd=valid_fwd)
+torch_scheduler = TorchScheduler(env, torch_model, optim_params={'lr': 1e-3}, learn_params=learn_params_torch,
+                                 valid_fwd=valid_fwd)
+# torch_scheduler = TorchScheduler.mlp(env, hidden_layer_sizes=[400], optim_params={'lr': 1e-3},
+#                                      learn_params=learn_params_torch, valid_fwd=valid_fwd)
 
 
 pl_trainer_kwargs = {
@@ -167,7 +174,7 @@ algorithms = np.array([
     # *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, th_visit=t), 10)
     #   for c, t in product([0], [5, 10])),
     ('Random Agent', random_agent, 10),
-    # ('Torch Policy', torch_scheduler, 10),
+    ('Torch Policy', torch_scheduler, 10),
     # ('Lit Policy', lit_scheduler, 10),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
     # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),

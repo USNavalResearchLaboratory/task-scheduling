@@ -8,7 +8,7 @@ from task_scheduling.tasks import Shift
 def _get_param(name):
     """Make a feature function to extract parameter attributes from tasks."""
 
-    def func(tasks, _ch_avail):
+    def func(tasks):
         return [getattr(task, name) for task in tasks]
 
     return func
@@ -88,7 +88,7 @@ def param_features(task_gen, time_shift=False, masking=False):
 def _encode_param(name, space):
     """Make a feature function to encode a parameter value to the corresponding DiscreteSet index."""
 
-    def func(tasks, _ch_avail):
+    def func(tasks):
         return [np.flatnonzero(space.elements == getattr(task, name)).item() for task in tasks]
 
     return func

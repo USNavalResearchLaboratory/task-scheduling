@@ -16,7 +16,7 @@ from task_scheduling.util import plot_task_losses
 
 # Gym Environments
 class Base(Env, ABC):
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False):
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, obs_ch=True):
         """Base environment for task scheduling.
 
         Parameters
@@ -31,6 +31,8 @@ class Base(Env, ABC):
             Enables task re-parameterization after sequence updates.
         masking : bool, optional
             If True, features are zeroed out for scheduled tasks.
+        obs_ch : bool, optional
+            Enables observation of channel availabilities in `Dict` observation space
 
         """
         self.problem_gen = problem_gen
@@ -64,8 +66,9 @@ class Base(Env, ABC):
         self.steps_per_episode = None
 
         # gym.Env observation and action spaces
-        self._obs_space_features = spaces_tasking.stack(self.features['space'])
-        self.observation_space = None
+        self.observation_space = spaces_tasking.broadcast_to(spaces_tasking.stack(self.features['space']),
+                                                             shape=(self.n_tasks, len(self.features)))
+
         self.action_space = None
 
     n_tasks = property(lambda self: self.problem_gen.n_tasks)
@@ -119,16 +122,15 @@ class Base(Env, ABC):
     def _obs_tasks(self):
         """Observation tensor for task features."""
 
-        obs_tasks = np.array([func(self.tasks, self.ch_avail) for func in self.features['func']]).transpose()
+        obs_tasks = np.array([func(self.tasks) for func in self.features['func']]).transpose()
         if self.masking:
             obs_tasks[self.node.seq] = 0.  # zero out observation rows for scheduled tasks
 
         return obs_tasks[self.sorted_index]  # sort individual task observations
 
-    @abstractmethod
     def obs(self):
         """Complete observation."""
-        raise NotImplementedError
+        return self._obs_tasks()
 
     @abstractmethod
     def infer_action_space(self, obs):
@@ -373,10 +375,9 @@ class Index(Base):
         super().__init__(problem_gen, features, sort_func, time_shift, masking)
 
         # Action types
-        # FIXME: deprecate once RL algorithms are successfully integrated
         if action_type != 'valid':
             raise NotImplementedError("Action type must be `valid`, all others deprecated.")
-        self.do_valid_actions = True
+        self.do_valid_actions = True  # FIXME: deprecate once RL algorithms are successfully integrated
         # self.action_type = action_type
         # if self.action_type == 'valid':
         #     self.do_valid_actions = True
@@ -423,10 +424,8 @@ class Index(Base):
         self.steps_per_episode = self.n_tasks
 
         # gym.Env observation and action spaces
-        obs_space_seq = MultiDiscrete(2 * np.ones(self.len_seq_encode))
-        obs_space_concat = spaces_tasking.concatenate((obs_space_seq, self._obs_space_features))
-        self.observation_space = spaces_tasking.broadcast_to(obs_space_concat,
-                                                             shape=(self.n_tasks, *obs_space_concat.shape))
+        obs_space_seq = MultiDiscrete(np.full((self.n_tasks, self.len_seq_encode), 2))
+        self.observation_space = spaces_tasking.concatenate((obs_space_seq, self.observation_space), axis=-1)
 
         if self.do_valid_actions:
             # self.action_space = spaces_tasking.DiscreteSet(range(self.n_tasks))
@@ -443,7 +442,19 @@ class Index(Base):
     def obs(self):
         """Complete observation."""
         obs_seq = np.array([self.seq_encoding(n) for n in self.sorted_index])
-        return np.concatenate((obs_seq, self._obs_tasks()), axis=1)
+        return np.concatenate((obs_seq, super().obs()), axis=1)
+
+    def _update_spaces(self):
+        """Update observation and action spaces."""
+        if self.do_valid_actions:
+            seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
+            # self.action_space = spaces_tasking.DiscreteSet(seq_rem_sort)
+            self.action_space.mask = np.isin(np.arange(self.n_tasks), seq_rem_sort, invert=True)
+
+    def opt_action(self):
+        """Optimal action based on current state."""
+        n = self._seq_opt[len(self.node.seq)]  # next optimal task index
+        return self.sorted_index_inv[n]  # encode task index to sorted action
 
     def make_mask(self, obs):
         if self.len_seq_encode == 0:
@@ -468,18 +479,6 @@ class Index(Base):
             return spaces_tasking.DiscreteMasked(self.n_tasks, mask)
         else:
             return Discrete(len(obs))
-
-    def _update_spaces(self):
-        """Update observation and action spaces."""
-        if self.do_valid_actions:
-            seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
-            # self.action_space = spaces_tasking.DiscreteSet(seq_rem_sort)
-            self.action_space.mask = np.isin(np.arange(self.n_tasks), seq_rem_sort, invert=True)
-
-    def opt_action(self):
-        """Optimal action based on current state."""
-        n = self._seq_opt[len(self.node.seq)]  # next optimal task index
-        return self.sorted_index_inv[n]  # encode task index to sorted action
 
     def mask_probability(self, p):  # TODO: deprecate?
         """Returns masked action probabilities based on unscheduled task indices."""
@@ -588,24 +587,12 @@ class Seq(Base):
             raise ValueError
 
         self.steps_per_episode = 1
-
-        # gym.Env observation and action spaces
-        self.observation_space = spaces_tasking.broadcast_to(self._obs_space_features,
-                                                             shape=(self.n_tasks, len(self.features)))
         self.action_space = self._action_space_map(self.n_tasks)
 
     def summary(self):
         str_ = super().summary()
         str_ += f"\n- Action type: {self.action_type}"
         return str_
-
-    def obs(self):
-        """Complete observation."""
-        return self._obs_tasks()
-
-    def infer_action_space(self, obs):
-        """Determines the action Gym.Space from an observation."""
-        return self._action_space_map(len(obs))
 
     def step(self, action):
         if self.action_type == 'int':
@@ -621,27 +608,6 @@ class Seq(Base):
         elif self.action_type == 'int':
             return seq_to_int(seq_action)
 
-    # def _gen_single(self, seq, weight_func):
-    #     """Generate lists of predictor/target/weight samples for a given optimal task index sequence."""
-    #
-    #     x_set = np.empty((self.steps_per_episode, *self.observation_space.shape), dtype=self.observation_space.dtype)
-    #     y_set = np.empty((self.steps_per_episode, *self.action_space.shape), dtype=self.action_space.dtype)
-    #     w_set = np.ones(self.steps_per_episode, dtype=float)
-    #
-    #     seq_action = self.sorted_index_inv[seq]  # encode sequence to sorted actions
-    #
-    #     x_set[0] = self.obs()
-    #
-    #     if self.action_type == 'seq':
-    #         y_set[0] = seq_action
-    #     elif self.action_type == 'int':
-    #         y_set[0] = seq_to_int(seq_action)
-    #
-    #     if callable(weight_func):
-    #         w_set[0] = weight_func(self)
-    #     else:
-    #         w_set[0] = 1.
-    #
-    #     super().step(seq)  # invoke super method to avoid unnecessary encode-decode process
-    #
-    #     return x_set, y_set, w_set
+    def infer_action_space(self, obs):
+        """Determines the action Gym.Space from an observation."""
+        return self._action_space_map(len(obs))
