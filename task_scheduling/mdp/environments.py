@@ -6,7 +6,7 @@ from types import MethodType
 import matplotlib.pyplot as plt
 import numpy as np
 from gym import Env
-from gym.spaces import Discrete, MultiDiscrete
+from gym.spaces import Discrete, MultiDiscrete, Box
 
 import task_scheduling.spaces as spaces_tasking
 from task_scheduling import tree_search
@@ -16,7 +16,7 @@ from task_scheduling.util import plot_task_losses
 
 # Gym Environments
 class Base(Env, ABC):
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, obs_ch=True):
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, observe_ch=False):
         """Base environment for task scheduling.
 
         Parameters
@@ -31,7 +31,7 @@ class Base(Env, ABC):
             Enables task re-parameterization after sequence updates.
         masking : bool, optional
             If True, features are zeroed out for scheduled tasks.
-        obs_ch : bool, optional
+        observe_ch : bool, optional
             Enables observation of channel availabilities in `Dict` observation space
 
         """
@@ -66,8 +66,15 @@ class Base(Env, ABC):
         self.steps_per_episode = None
 
         # gym.Env observation and action spaces
-        self.observation_space = spaces_tasking.broadcast_to(spaces_tasking.stack(self.features['space']),
-                                                             shape=(self.n_tasks, len(self.features)))
+        self.observe_ch = observe_ch
+
+        obs_space_tasks = spaces_tasking.broadcast_to(spaces_tasking.stack(self.features['space']),
+                                                      shape=(self.n_tasks, len(self.features)))
+        if observe_ch:
+            pass
+            # obs_space_ch = Box()  # FIXME: need space from ch_avail, mod with durations!!
+        else:
+            self.observation_space = obs_space_tasks
 
         self.action_space = None
 
@@ -122,7 +129,7 @@ class Base(Env, ABC):
     def _obs_tasks(self):
         """Observation tensor for task features."""
 
-        obs_tasks = np.array([func(self.tasks) for func in self.features['func']]).transpose()
+        obs_tasks = np.array([[func(task) for func in self.features['func']] for task in self.tasks])
         if self.masking:
             obs_tasks[self.node.seq] = 0.  # zero out observation rows for scheduled tasks
 

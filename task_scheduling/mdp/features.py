@@ -1,17 +1,10 @@
+from operator import attrgetter
+
 import numpy as np
 from gym.spaces import Discrete, MultiDiscrete, Box
 
 from task_scheduling.spaces import DiscreteSet
 from task_scheduling.tasks import Shift
-
-
-def _get_param(name):
-    """Make a feature function to extract parameter attributes from tasks."""
-
-    def func(tasks):
-        return [getattr(task, name) for task in tasks]
-
-    return func
 
 
 def _add_zero(space):
@@ -80,7 +73,7 @@ def param_features(task_gen, time_shift=False, masking=False):
             space = _add_zero(space)
         if name in shift_params:
             space = _as_box(space)
-        data.append((name, _get_param(name), space))
+        data.append((name, attrgetter(name), space))
 
     return np.array(data, dtype=[('name', '<U32'), ('func', object), ('space', object)])
 
@@ -103,7 +96,7 @@ def encode_discrete_features(problem_gen):
             func = _encode_param(name, space)
             space = Discrete(len(space))
         else:
-            func = _get_param(name)
+            func = attrgetter(name)
 
         data.append((name, func, space))
 
