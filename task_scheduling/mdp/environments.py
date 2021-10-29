@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from math import factorial
 from operator import attrgetter
 from types import MethodType
+from collections import OrderedDict
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -71,7 +72,8 @@ class Base(Env, ABC):
         max_duration = spaces_tasking.get_space_lims(self.problem_gen.task_gen.param_spaces['duration'])[1]
         obs_space_ch = Box(space_ch.low.item(), space_ch.high + self.n_tasks * max_duration, shape=(self.n_ch,))
 
-        if observe_ch:
+        self._observe_ch = observe_ch
+        if self._observe_ch:
             self.observation_space = Dict({
                 'tasks': obs_space_tasks,
                 'ch_avail': obs_space_ch,
@@ -141,7 +143,12 @@ class Base(Env, ABC):
 
     def obs(self):
         """Complete observation."""
-        return self._obs_tasks()
+        if self._observe_ch:
+            # return OrderedDict(('tasks', self._obs_tasks()), ('ch_avail', None))
+            # return OrderedDict({'tasks': self._obs_tasks(), 'ch_avail': None})
+            return OrderedDict(tasks=self._obs_tasks(), ch_avail=self.ch_avail)
+        else:
+            return self._obs_tasks()
 
     @abstractmethod
     def infer_action_space(self, obs):
@@ -434,7 +441,7 @@ class Index(Base):
 
         # Observation and action spaces
         obs_space_seq = MultiDiscrete(np.full((self.n_tasks, self.len_seq_encode), 2))
-        if isinstance(self.observation_space, Dict):
+        if self._observe_ch:
             self.observation_space = Dict({
                 'tasks': spaces_tasking.concatenate((obs_space_seq, self.observation_space['tasks']), axis=-1),
                 'ch_avail': self.observation_space['ch_avail'],
@@ -455,10 +462,10 @@ class Index(Base):
         str_ += f"\n- Sequence encoding: {self._seq_encode_str}"
         return str_
 
-    def obs(self):
-        """Complete observation."""
+    def _obs_tasks(self):
+        """Observation tensor for task features."""
         obs_seq = np.array([self.seq_encoding(n) for n in self.sorted_index])
-        return np.concatenate((obs_seq, super().obs()), axis=1)
+        return np.concatenate((obs_seq, super()._obs_tasks()), axis=1)
 
     def _update_spaces(self):
         """Update observation and action spaces."""
