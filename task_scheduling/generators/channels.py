@@ -48,7 +48,7 @@ class UniformIID(BaseIID):
         """
         super().__init__(rng)
         self.lims = tuple(lims)
-        self.space = Box(*lims, shape=())
+        self.space = Box(*lims, shape=(), dtype=float)
 
     def _gen_single(self, rng):
         return rng.uniform(*self.lims)
