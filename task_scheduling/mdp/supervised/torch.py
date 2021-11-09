@@ -98,6 +98,47 @@ class Base(BaseSupervisedScheduler):
         env = env_cls(problem_gen, **env_params)
         return cls(env, *args, **kwargs)
 
+    # def _process_obs(self, obs, normalize=False):  # TODO: delete?
+    #     """
+    #     Estimate action probabilities given an observation.
+    #
+    #     Parameters
+    #     ----------
+    #     obs : array_like
+    #         Observation.
+    #     normalize : bool, optional
+    #         Enable normalization of model outputs.
+    #
+    #     Returns
+    #     -------
+    #     numpy.ndarray
+    #         Action probabilities.
+    #
+    #     """
+    #     _batch = True
+    #     if obs.shape == self.env.observation_space.shape:
+    #         _batch = False
+    #         obs = obs[np.newaxis]
+    #     else:
+    #         raise NotImplementedError("Batch prediction not supported.")
+    #     obs = obs.astype('float32')
+    #
+    #     with torch.no_grad():
+    #         # input_ = torch.from_numpy(obs[np.newaxis]).float()
+    #         input_ = torch.from_numpy(obs)
+    #         # input_ = input_.to(device)
+    #         out = self.model(input_)
+    #
+    #     if normalize:
+    #         # out = functional.normalize(out, p=1, dim=-1)
+    #         out = functional.softmax(out, dim=-1)
+    #
+    #     out = out.numpy()
+    #     if not _batch:
+    #         out = out.squeeze(axis=0)
+    #
+    #     return out
+
     def _process_obs(self, obs, normalize=False):
         """
         Estimate action probabilities given an observation.
@@ -115,27 +156,23 @@ class Base(BaseSupervisedScheduler):
             Action probabilities.
 
         """
-        _batch = True
-        if obs.shape == self.env.observation_space.shape:
-            _batch = False
-            obs = obs[np.newaxis]
-        else:
-            raise NotImplementedError("Batch prediction not supported.")
-        obs = obs.astype('float32')
 
+        if self.env.observe_ch:
+            obs = (obs['ch_avail'], obs['tasks'])
+        else:
+            obs = (obs,)
+
+        # input_ = torch.from_numpy(obs[np.newaxis]).float()
+        input_ = (torch.from_numpy(o[np.newaxis]).float() for o in obs)
+        # input_ = input_.to(device)
         with torch.no_grad():
-            # input_ = torch.from_numpy(obs[np.newaxis]).float()
-            input_ = torch.from_numpy(obs)
-            # input_ = input_.to(device)
-            out = self.model(input_)
+            out = self.model(*input_)
 
         if normalize:
-            # out = functional.normalize(out, p=1, dim=-1)
             out = functional.softmax(out, dim=-1)
 
         out = out.numpy()
-        if not _batch:
-            out = out.squeeze(axis=0)
+        out = out.squeeze(axis=0)
 
         return out
 
@@ -217,15 +254,25 @@ class Base(BaseSupervisedScheduler):
         x_val, y_val, *__ = self.env.data_gen_full(n_gen_val, weight_func=self.learn_params['weight_func'],
                                                    verbose=verbose)
 
-        # x_train, y_train, x_val, y_val = map(torch.tensor, (x_train, y_train, x_val, y_val))
-        x_train, x_val = map(partial(torch.tensor, dtype=torch.float32), (x_train, x_val))
+        # x_train, x_val = map(partial(torch.tensor, dtype=torch.float32), (x_train, x_val))
+        if self.env.observe_ch:
+            x_train = (x_train['ch_avail'], x_train['tasks'])
+            x_val = (x_val['ch_avail'], x_val['tasks'])
+        else:
+            x_train = (x_train,)
+            x_val = (x_val,)
+        x_train = tuple(map(partial(torch.tensor, dtype=torch.float32), x_train))
+        x_val = tuple(map(partial(torch.tensor, dtype=torch.float32), x_val))
+
         y_train, y_val = map(partial(torch.tensor, dtype=torch.int64), (y_train, y_val))
 
-        ds_train = TensorDataset(x_train, y_train)
+        # ds_train = TensorDataset(x_train, y_train)
+        ds_train = TensorDataset(*x_train, y_train)
         dl_train = DataLoader(ds_train, batch_size=self.learn_params['batch_size_train'] * self.env.steps_per_episode,
                               shuffle=self.learn_params['shuffle'], pin_memory=PIN_MEMORY, num_workers=NUM_WORKERS)
 
-        ds_val = TensorDataset(x_val, y_val)
+        # ds_val = TensorDataset(x_val, y_val)
+        ds_val = TensorDataset(*x_val, y_val)
         dl_val = DataLoader(ds_val, batch_size=self.learn_params['batch_size_val'] * self.env.steps_per_episode,
                             shuffle=False, pin_memory=PIN_MEMORY, num_workers=NUM_WORKERS)
 
@@ -322,31 +369,63 @@ class TorchScheduler(Base):
         if verbose >= 1:
             print('Training model...')
 
-        def loss_batch(model, loss_func, xb_, yb_, opt=None):
-            xb_, yb_ = xb_.to(device), yb_.to(device, dtype=torch.int64)
-            loss = loss_func(model(xb_), yb_)
+        def loss_batch(model, loss_func, batch_, opt=None):
+            batch_ = [t.to(device) for t in batch]
+            xb_, yb_ = batch_[:-1], batch_[-1]
+            # xb_, yb_ = xb_.to(device), yb_.to(device, dtype=torch.int64)
+            loss = loss_func(model(*xb_), yb_)
 
             if opt is not None:
                 loss.backward()
                 opt.step()
                 opt.zero_grad()
 
-            return loss.item(), len(xb)
+            return loss.item(), len(xb_)
 
         for epoch in range(self.learn_params['max_epochs']):
             self.model.train()
-            for xb, yb in dl_train:
-                loss_batch(self.model, self.loss_func, xb, yb, self.optimizer)
+            for batch in dl_train:
+                loss_batch(self.model, self.loss_func, batch, self.optimizer)
 
             self.model.eval()
             with torch.no_grad():
                 losses, nums = zip(
-                    *[loss_batch(self.model, self.loss_func, xb, yb) for xb, yb in dl_val]
+                    *[loss_batch(self.model, self.loss_func, batch) for batch in dl_val]
                 )
             val_loss = np.sum(np.multiply(losses, nums)) / np.sum(nums)
 
             if verbose >= 1:
                 print(f"  Epoch = {epoch} : loss = {val_loss:.3f}", end='\r')
+
+    # def _fit(self, dl_train, dl_val, verbose=0):
+    #     if verbose >= 1:
+    #         print('Training model...')
+    #
+    #     def loss_batch(model, loss_func, xb_, yb_, opt=None):
+    #         xb_, yb_ = xb_.to(device), yb_.to(device, dtype=torch.int64)
+    #         loss = loss_func(model(xb_), yb_)
+    #
+    #         if opt is not None:
+    #             loss.backward()
+    #             opt.step()
+    #             opt.zero_grad()
+    #
+    #         return loss.item(), len(xb_)
+    #
+    #     for epoch in range(self.learn_params['max_epochs']):
+    #         self.model.train()
+    #         for xb, yb in dl_train:
+    #             loss_batch(self.model, self.loss_func, xb, yb, self.optimizer)
+    #
+    #         self.model.eval()
+    #         with torch.no_grad():
+    #             losses, nums = zip(
+    #                 *[loss_batch(self.model, self.loss_func, xb, yb) for xb, yb in dl_val]
+    #             )
+    #         val_loss = np.sum(np.multiply(losses, nums)) / np.sum(nums)
+    #
+    #         if verbose >= 1:
+    #             print(f"  Epoch = {epoch} : loss = {val_loss:.3f}", end='\r')
 
     def learn(self, n_gen_learn, verbose=0):
         self.model = self.model.to(device)
@@ -397,19 +476,19 @@ class LitModel(pl.LightningModule):
     #     module = build_torch_mlp(layer_sizes, activation, start_layer, end_layer)
     #     return cls(module, loss_func, optim_cls, optim_params)
 
-    def forward(self, x):
-        return self.module(x)
+    def forward(self, *args, **kwargs):
+        return self.module(*args, **kwargs)
 
     def training_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
+        x, y = batch[:-1], batch[-1]
+        y_hat = self(*x)
         loss = self.loss_func(y_hat, y)
         self.log('train_loss', loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
+        x, y = batch[:-1], batch[-1]
+        y_hat = self(*x)
         loss = self.loss_func(y_hat, y)
         self.log('val_loss', loss)
         return loss

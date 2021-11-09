@@ -33,7 +33,7 @@ class Base(Env, ABC):
         masking : bool, optional
             If True, features are zeroed out for scheduled tasks.
         observe_ch : bool, optional
-            Enables observation of channel availabilities in `Dict` observation space
+            Enables observation of channel availabilities in `Dict` observation space.
 
         """
         self.problem_gen = problem_gen
@@ -70,14 +70,13 @@ class Base(Env, ABC):
 
         space_ch = self.problem_gen.ch_avail_gen.space
         max_duration = spaces_tasking.get_space_lims(self.problem_gen.task_gen.param_spaces['duration'])[1]
-        obs_space_ch = Box(space_ch.low.item(), space_ch.high + self.n_tasks * max_duration, shape=(self.n_ch,))
+        obs_space_ch = Box(space_ch.low.item(), space_ch.high + self.n_tasks * max_duration, shape=(self.n_ch,),
+                           dtype=float)
 
-        self._observe_ch = observe_ch
-        if self._observe_ch:
-            self.observation_space = Dict({
-                'tasks': obs_space_tasks,
-                'ch_avail': obs_space_ch,
-            })
+        self.observe_ch = observe_ch
+        if self.observe_ch:
+            self.observation_space = Dict(ch_avail=obs_space_ch, tasks=obs_space_tasks)
+            self._set_obs_space_attr()
         else:
             self.observation_space = obs_space_tasks
 
@@ -88,6 +87,14 @@ class Base(Env, ABC):
     n_ch = property(lambda self: self.problem_gen.n_ch)
     tasks = property(lambda self: self.node.tasks)
     ch_avail = property(lambda self: self.node.ch_avail)
+
+    def _set_obs_space_attr(self):
+        """Dynamically set missing attributes for `gym.spaces.Dict`"""
+        self.observation_space.shape = {}
+        self.observation_space.dtype = {}
+        for key, space in self.observation_space.spaces.items():
+            self.observation_space.shape[key] = space.shape
+            self.observation_space.dtype[key] = space.dtype
 
     def __repr__(self):
         if self.node is None:
@@ -134,7 +141,6 @@ class Base(Env, ABC):
 
     def _obs_tasks(self):
         """Observation tensor for task features."""
-
         obs_tasks = np.array([[func(task) for func in self.features['func']] for task in self.tasks])
         if self.masking:
             obs_tasks[self.node.seq] = 0.  # zero out observation rows for scheduled tasks
@@ -143,10 +149,10 @@ class Base(Env, ABC):
 
     def obs(self):
         """Complete observation."""
-        if self._observe_ch:
-            # return OrderedDict(('tasks', self._obs_tasks()), ('ch_avail', None))
-            # return OrderedDict({'tasks': self._obs_tasks(), 'ch_avail': None})
-            return OrderedDict(tasks=self._obs_tasks(), ch_avail=self.ch_avail)
+        if self.observe_ch:
+            dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
+            return np.array((self.ch_avail, self._obs_tasks()), dtype=dtype)
+            # return OrderedDict(ch_avail=self.ch_avail, tasks=self._obs_tasks())
         else:
             return self._obs_tasks()
 
@@ -257,7 +263,7 @@ class Base(Env, ABC):
         self.problem_gen.rng = seed
 
     @abstractmethod
-    def opt_action(self):  # TODO: `staticmethod` policy taking obs?
+    def opt_action(self):  # TODO: implement a optimal policy calling obs?
         """Optimal action based on current state."""
 
         # if self.solution is None:
@@ -299,7 +305,19 @@ class Base(Env, ABC):
             #     print(f'Batch: {i_batch + 1}/{n_batch}', end='\n')
 
             steps_total = batch_size * self.steps_per_episode
-            x_set = np.empty((steps_total, *self.observation_space.shape), dtype=self.observation_space.dtype)
+            if self.observe_ch:
+                data = list(zip(*(np.empty((steps_total, *space.shape), dtype=space.dtype)
+                                for space in self.observation_space.spaces.values())))
+                dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
+                x_set = np.array(data, dtype=dtype)
+
+                # x_set = OrderedDict([(key, np.empty((steps_total, *space.shape), dtype=space.dtype))
+                #                      for key, space in self.observation_space.spaces.items()])
+                # # x_set = {key: np.empty((steps_total, *space.shape),
+                # #                        dtype=space.dtype) for key, space in self.observation_space.spaces.items()}
+            else:
+                x_set = np.empty((steps_total, *self.observation_space.shape), dtype=self.observation_space.dtype)
+
             y_set = np.empty((steps_total, *self.action_space.shape), dtype=self.action_space.dtype)
             w_set = np.empty(steps_total, dtype=float)
 
@@ -318,7 +336,12 @@ class Base(Env, ABC):
 
                     action = self.opt_action()
 
-                    x_set[i] = obs
+                    if self.observe_ch:
+                        x_set[i] = obs
+                        # x_set['ch_avail'][i] = obs['ch_avail']
+                        # x_set['tasks'][i] = obs['tasks']
+                    else:
+                        x_set[i] = obs
                     y_set[i] = action
                     if callable(weight_func):
                         w_set[i] = weight_func(self)
@@ -366,8 +389,8 @@ class Base(Env, ABC):
 
 
 class Index(Base):
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='valid',
-                 seq_encoding='one-hot'):
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, observe_ch=True,
+                 action_type='valid', seq_encoding='one-hot'):
         """Tasking environment with actions of single task indices.
 
         Parameters
@@ -382,6 +405,8 @@ class Index(Base):
             Enables task re-parameterization after sequence updates.
         masking : bool, optional
             If True, features are zeroed out for scheduled tasks.
+        observe_ch : bool, optional
+            Enables observation of channel availabilities in `Dict` observation space.
         action_type : {'valid', 'any'}, optional
             If 'valid', action space is `DiscreteMasked`; if 'any', action space is `Discrete` and
             repeated actions are allowed (for experimental purposes only).
@@ -390,7 +415,7 @@ class Index(Base):
             encoded array sums to one for scheduled tasks and to zero for unscheduled tasks.
 
         """
-        super().__init__(problem_gen, features, sort_func, time_shift, masking)
+        super().__init__(problem_gen, features, sort_func, time_shift, masking, observe_ch)
 
         # Action types
         if action_type != 'valid':
@@ -441,11 +466,11 @@ class Index(Base):
 
         # Observation and action spaces
         obs_space_seq = MultiDiscrete(np.full((self.n_tasks, self.len_seq_encode), 2))
-        if self._observe_ch:
-            self.observation_space = Dict({
-                'tasks': spaces_tasking.concatenate((obs_space_seq, self.observation_space['tasks']), axis=-1),
-                'ch_avail': self.observation_space['ch_avail'],
-            })  # have to instantiate new space because `Dict` doesn't support `__setitem__`
+        if self.observe_ch:
+            # have to instantiate new space because `Dict` doesn't support `__setitem__`
+            obs_space_tasks = spaces_tasking.concatenate((obs_space_seq, self.observation_space['tasks']), axis=-1)
+            self.observation_space = Dict(ch_avail=self.observation_space['ch_avail'], tasks=obs_space_tasks)
+            self._set_obs_space_attr()
         else:
             self.observation_space = spaces_tasking.concatenate((obs_space_seq, self.observation_space), axis=-1)
 
@@ -579,7 +604,8 @@ def int_to_seq(num, length, check_input=True):
 
 
 class Seq(Base):
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='int'):
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, observe_ch=True,
+                 action_type='int'):
         """Tasking environment with single action of a complete task index sequence.
 
         Parameters
@@ -594,12 +620,14 @@ class Seq(Base):
             Enables task re-parameterization after sequence updates.
         masking : bool, optional
             If True, features are zeroed out for scheduled tasks.
+        observe_ch : bool, optional
+            Enables observation of channel availabilities in `Dict` observation space.
         action_type : {'seq', 'int'}, optional
             If 'seq', action type is index sequence `Permutation`; if 'int', action space is `Discrete` and
             index sequences are mapped to integers.
 
         """
-        super().__init__(problem_gen, features, sort_func, time_shift, masking)
+        super().__init__(problem_gen, features, sort_func, time_shift, masking, observe_ch)
 
         self.action_type = action_type  # 'seq' for sequences, 'int' for integers
         if self.action_type == 'seq':

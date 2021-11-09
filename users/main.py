@@ -49,7 +49,7 @@ if seed is not None:
 # %% Define scheduling problem and algorithms
 
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=seed)
-# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
+# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=4, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
@@ -76,6 +76,8 @@ env_params = {
     # 'masking': False,
     'masking': True,
     # 'seq_encoding': None,
+    'observe_ch': True,
+    # 'observe_ch': False,
     'seq_encoding': 'binary',
     # 'seq_encoding': 'one-hot',
 }
@@ -90,12 +92,12 @@ learn_params_torch = {
     'batch_size_val': 30,
     'weight_func': None,
     # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-    'max_epochs': 200,
+    'max_epochs': 20,
     'shuffle': True,
 }
 
-# valid_fwd = False
-valid_fwd = True
+valid_fwd = False
+# valid_fwd = True
 
 
 class TorchCNN(nn.Module):
@@ -117,11 +119,33 @@ class TorchCNN(nn.Module):
         return x
 
 
-torch_model = TorchCNN()
-# torch_model = nn.Sequential(
-#     nn.Flatten(),
-#     nn.Linear(4*5, factorial(4)),
-# )
+class TorchMulti(nn.Module):
+    def __init__(self):
+        super().__init__()
+        n_tasks = 8
+        n_h = 400
+        self.fc_tasks = nn.Linear(n_tasks * (5 + 1), n_h)
+        self.fc_ch = nn.Linear(1, n_h)
+        self.fc_joint = nn.Linear(n_h, n_tasks)
+
+    def forward(self, ch_avail, tasks):
+        c = torch.flatten(ch_avail, start_dim=1)
+        c = self.fc_ch(c)
+        c = functional.relu(c)
+
+        t = torch.flatten(tasks, start_dim=1)
+        t = self.fc_tasks(t)
+        t = functional.relu(t)
+
+        x = c + t
+        x = self.fc_joint(x)
+
+        # x = functional.softmax(x, dim=1)
+        return x
+
+
+# torch_model = TorchCNN()
+torch_model = TorchMulti()
 
 torch_scheduler = TorchScheduler(env, torch_model, optim_params={'lr': 1e-3}, learn_params=learn_params_torch,
                                  valid_fwd=valid_fwd)
@@ -140,11 +164,11 @@ pl_trainer_kwargs = {
     # 'progress_bar_refresh_rate': 0,
 }
 
-# lit_scheduler = LitScheduler.from_module(env, torch_model, trainer_kwargs=pl_trainer_kwargs,
-#                                          learn_params=learn_params_torch, valid_fwd=valid_fwd)
-lit_scheduler = LitScheduler.mlp(env, hidden_layer_sizes=[400], lit_kwargs={'optim_params': {'lr': 1e-3}},
-                                 trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch,
-                                 valid_fwd=valid_fwd)
+lit_scheduler = LitScheduler.from_module(env, torch_model, trainer_kwargs=pl_trainer_kwargs,
+                                         learn_params=learn_params_torch, valid_fwd=valid_fwd)
+# lit_scheduler = LitScheduler.mlp(env, hidden_layer_sizes=[400], lit_kwargs={'optim_params': {'lr': 1e-3}},
+#                                  trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch,
+#                                  valid_fwd=valid_fwd)
 
 
 random_agent = RandomAgent(env)
