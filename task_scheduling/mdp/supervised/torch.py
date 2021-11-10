@@ -14,7 +14,6 @@ from torch.nn import functional
 from torch.utils.data import TensorDataset, DataLoader
 
 from task_scheduling.mdp.environments import Base as BaseEnv, Index
-# from task_scheduling.mdp.base import BaseLearning
 from task_scheduling.mdp.supervised.base import Base as BaseSupervisedScheduler
 
 
@@ -195,17 +194,18 @@ class Base(BaseSupervisedScheduler):
             Action.
 
         """
-        return self._process_obs(obs).argmax()
+        # return self._process_obs(obs).argmax()
 
-        # if self.valid_fwd:  # TODO: deprecate?
-        #     return self._process_obs(obs).argmax()
-        # else:
-        #     p = self.predict_prob(obs)
-        #     action = p.argmax()
-        #     if action not in self.env.action_space:  # mask out invalid actions
-        #         p = self.env.mask_probability(p)
-        #         action = p.argmax()
-        #     return action
+        # TODO: deprecate?
+        if self.valid_fwd:
+            return self._process_obs(obs).argmax()
+        else:
+            p = self.predict_prob(obs)
+            action = p.argmax()
+            if action not in self.env.action_space:  # mask out invalid actions
+                p = self.env.mask_probability(p)
+                action = p.argmax()
+            return action
 
     def reset(self):
         """Reset the learner."""
