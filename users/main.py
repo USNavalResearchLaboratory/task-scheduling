@@ -76,8 +76,9 @@ env_params = {
     # 'masking': False,
     'masking': True,
     # 'seq_encoding': None,
-    # 'observe_ch': True,
-    'observe_ch': False,
+    'observe_mode': 2,
+    # 'observe_mode': 1,
+    # 'observe_mode': 0,
     'seq_encoding': 'binary',
     # 'seq_encoding': 'one-hot',
 }
@@ -140,12 +141,38 @@ class TorchMulti(nn.Module):
         x = c + t
         x = self.fc_joint(x)
 
-        # x = functional.softmax(x, dim=1)
+        return x
+
+
+class TorchMultiSeq(nn.Module):
+    def __init__(self):
+        super().__init__()
+        n_tasks = 8
+        n_h = 400
+        self.fc_tasks = nn.Linear(n_tasks * 5, n_h)
+        self.fc_ch = nn.Linear(1, n_h)
+        self.fc_joint = nn.Linear(n_h, n_tasks)
+
+    def forward(self, ch_avail, seq, tasks):
+        c = torch.flatten(ch_avail, start_dim=1)
+        c = self.fc_ch(c)
+        c = functional.relu(c)
+
+        t = torch.flatten(tasks, start_dim=1)
+        t = self.fc_tasks(t)
+        t = functional.relu(t)
+
+        x = c + t  # TODO: different combo op? Pooling?
+        x = self.fc_joint(x)
+
+        x = x - 1000 * seq  # TODO: different masking ops
+
         return x
 
 
 # torch_model = TorchCNN()
-torch_model = TorchMulti()
+# torch_model = TorchMulti()
+torch_model = TorchMultiSeq()
 
 torch_scheduler = TorchScheduler(env, torch_model, optim_params={'lr': 1e-3}, learn_params=learn_params_torch,
                                  valid_fwd=valid_fwd)
@@ -164,11 +191,11 @@ pl_trainer_kwargs = {
     # 'progress_bar_refresh_rate': 0,
 }
 
-# lit_scheduler = LitScheduler.from_module(env, torch_model, trainer_kwargs=pl_trainer_kwargs,
-#                                          learn_params=learn_params_torch, valid_fwd=valid_fwd)
-lit_scheduler = LitScheduler.mlp(env, hidden_layer_sizes=[400], model_kwargs={'optim_params': {'lr': 1e-3}},
-                                 trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch,
-                                 valid_fwd=valid_fwd)
+lit_scheduler = LitScheduler.from_module(env, torch_model, trainer_kwargs=pl_trainer_kwargs,
+                                         learn_params=learn_params_torch, valid_fwd=valid_fwd)
+# lit_scheduler = LitScheduler.mlp(env, hidden_layer_sizes=[400], model_kwargs={'optim_params': {'lr': 1e-3}},
+#                                  trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch,
+#                                  valid_fwd=valid_fwd)
 
 
 random_agent = RandomAgent(env)
@@ -198,8 +225,8 @@ algorithms = np.array([
     # *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, th_visit=t), 10)
     #   for c, t in product([0], [5, 10])),
     ('Random Agent', random_agent, 10),
-    # ('Torch Policy', torch_scheduler, 10),
-    ('Lit Policy', lit_scheduler, 10),
+    ('Torch Policy', torch_scheduler, 10),
+    # ('Lit Policy', lit_scheduler, 10),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
     # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),

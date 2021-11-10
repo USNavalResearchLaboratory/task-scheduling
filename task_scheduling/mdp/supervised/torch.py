@@ -157,7 +157,7 @@ class Base(BaseSupervisedScheduler):
 
         """
 
-        if self.env.observe_ch:
+        if self.env.observe_mode:
             # obs = tuple(obs[key] for key in self.env.observation_space)
             obs = tuple(obs[key] for key in obs.dtype.names)
         else:
@@ -195,18 +195,17 @@ class Base(BaseSupervisedScheduler):
             Action.
 
         """
-        # return self._process_obs(obs).argmax()
+        return self._process_obs(obs).argmax()
 
-        if self.valid_fwd:
-            return self._process_obs(obs).argmax()
-        else:
-            # TODO: deprecate?
-            p = self.predict_prob(obs)
-            action = p.argmax()
-            if action not in self.env.action_space:  # mask out invalid actions
-                p = self.env.mask_probability(p)
-                action = p.argmax()
-            return action
+        # if self.valid_fwd:  # TODO: deprecate?
+        #     return self._process_obs(obs).argmax()
+        # else:
+        #     p = self.predict_prob(obs)
+        #     action = p.argmax()
+        #     if action not in self.env.action_space:  # mask out invalid actions
+        #         p = self.env.mask_probability(p)
+        #         action = p.argmax()
+        #     return action
 
     def reset(self):
         """Reset the learner."""
@@ -255,7 +254,7 @@ class Base(BaseSupervisedScheduler):
         x_val, y_val, *__ = self.env.data_gen_full(n_gen_val, weight_func=self.learn_params['weight_func'],
                                                    verbose=verbose)
 
-        if self.env.observe_ch:
+        if self.env.observe_mode:
             x_train = tuple(x_train[key] for key in x_train.dtype.names)
             x_val = tuple(x_val[key] for key in x_val.dtype.names)
         else:
