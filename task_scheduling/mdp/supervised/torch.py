@@ -158,7 +158,8 @@ class Base(BaseSupervisedScheduler):
         """
 
         if self.env.observe_ch:
-            obs = (obs['ch_avail'], obs['tasks'])
+            # obs = tuple(obs[key] for key in self.env.observation_space)
+            obs = tuple(obs[key] for key in obs.dtype.names)
         else:
             obs = (obs,)
 
@@ -254,24 +255,22 @@ class Base(BaseSupervisedScheduler):
         x_val, y_val, *__ = self.env.data_gen_full(n_gen_val, weight_func=self.learn_params['weight_func'],
                                                    verbose=verbose)
 
-        # x_train, x_val = map(partial(torch.tensor, dtype=torch.float32), (x_train, x_val))
         if self.env.observe_ch:
-            x_train = (x_train['ch_avail'], x_train['tasks'])
-            x_val = (x_val['ch_avail'], x_val['tasks'])
+            x_train = tuple(x_train[key] for key in x_train.dtype.names)
+            x_val = tuple(x_val[key] for key in x_val.dtype.names)
         else:
             x_train = (x_train,)
             x_val = (x_val,)
         x_train = tuple(map(partial(torch.tensor, dtype=torch.float32), x_train))
         x_val = tuple(map(partial(torch.tensor, dtype=torch.float32), x_val))
 
+        # x_train, x_val = map(partial(torch.tensor, dtype=torch.float32), (x_train, x_val))
         y_train, y_val = map(partial(torch.tensor, dtype=torch.int64), (y_train, y_val))
 
-        # ds_train = TensorDataset(x_train, y_train)
         ds_train = TensorDataset(*x_train, y_train)
         dl_train = DataLoader(ds_train, batch_size=self.learn_params['batch_size_train'] * self.env.steps_per_episode,
                               shuffle=self.learn_params['shuffle'], pin_memory=PIN_MEMORY, num_workers=NUM_WORKERS)
 
-        # ds_val = TensorDataset(x_val, y_val)
         ds_val = TensorDataset(*x_val, y_val)
         dl_val = DataLoader(ds_val, batch_size=self.learn_params['batch_size_val'] * self.env.steps_per_episode,
                             shuffle=False, pin_memory=PIN_MEMORY, num_workers=NUM_WORKERS)
