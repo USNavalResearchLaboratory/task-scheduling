@@ -61,9 +61,6 @@ learn_params = {
 
 model_kwargs = {'optim_params': {'lr': 1e-3}}
 
-valid_fwd_set = [False, True]
-# valid_fwd_set = [False]
-
 # TODO: generalize for arbitrary models
 layer_sizes_set = [
     # [50],
@@ -123,24 +120,19 @@ for dataset in datasets:
     problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
     algorithms_data = []
-    # for (i_env, env_params), (i_net, layer_sizes) in product(enumerate(env_params_set), enumerate(layer_sizes_set)):
-    for (i_env, env_params), (i_net, layer_sizes), valid_fwd in product(enumerate(env_params_set),
-                                                                        enumerate(layer_sizes_set),
-                                                                        valid_fwd_set):
+    for (i_env, env_params), (i_net, layer_sizes) in product(enumerate(env_params_set), enumerate(layer_sizes_set)):
         if seed is not None:
             seed_everything(seed)
 
         lit_scheduler = LitScheduler.from_gen_mlp(problem_gen, env_params=env_params, hidden_layer_sizes=layer_sizes,
                                                   model_kwargs=model_kwargs, trainer_kwargs=trainer_kwargs,
-                                                  learn_params=learn_params, valid_fwd=valid_fwd)
+                                                  learn_params=learn_params)
 
         net_str = str(i_net)
         # net_str = '-'.join(map(str, layer_sizes))
 
-        # algorithms_data.append((f"Policy: Env {i_env}", lit_scheduler, 10))
-        # algorithms_data.append((f"Policy: Env {i_env}, MLP {net_str}", lit_scheduler, 10))
-        algorithms_data.append((f"Policy: Env {i_env}, Valid={valid_fwd}", lit_scheduler, 10))
-        # algorithms_data.append((f"Policy: Env {i_env}, MLP {net_str}, Valid={valid_fwd}", lit_scheduler, 10))
+        algorithms_data.append((f"Policy: Env {i_env}", lit_scheduler, 10))
+        algorithms_data.append((f"Policy: Env {i_env}, MLP {net_str}", lit_scheduler, 10))
 
     algorithms_learn = np.array(algorithms_data, dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
     algorithms = np.concatenate((algorithms_base, algorithms_learn))

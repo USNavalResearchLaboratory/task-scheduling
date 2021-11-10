@@ -69,12 +69,12 @@ problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 env_params = {
     'features': None,  # defaults to task parameters
     # 'features': encode_discrete_features(problem_gen),
-    # 'sort_func': None,
-    'sort_func': 't_release',
-    # 'time_shift': False,
-    'time_shift': True,
-    # 'masking': False,
-    'masking': True,
+    'sort_func': None,
+    # 'sort_func': 't_release',
+    'time_shift': False,
+    # 'time_shift': True,
+    'masking': False,
+    # 'masking': True,
     # 'seq_encoding': None,
     'observe_mode': 2,
     # 'observe_mode': 1,
@@ -93,17 +93,16 @@ learn_params_torch = {
     'batch_size_val': 30,
     'weight_func': None,
     # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-    'max_epochs': 200,
+    'max_epochs': 2,
     'shuffle': True,
 }
-
-valid_fwd = False
-# valid_fwd = True
 
 
 class TorchCNN(nn.Module):
     def __init__(self):
         super().__init__()
+        self.valid_fwd = False
+
         n_filter = 400
         l_kernel = 8
         self.conv1 = nn.Conv2d(1, n_filter, kernel_size=(l_kernel, 1+5))  # TODO: dependent width...
@@ -123,6 +122,8 @@ class TorchCNN(nn.Module):
 class TorchMulti(nn.Module):
     def __init__(self):
         super().__init__()
+        self.valid_fwd = False
+
         n_tasks = 8
         n_h = 400
         self.fc_tasks = nn.Linear(n_tasks * (5 + 1), n_h)
@@ -174,10 +175,9 @@ class TorchMultiSeq(nn.Module):
 # torch_model = TorchMulti()
 torch_model = TorchMultiSeq()
 
-torch_scheduler = TorchScheduler(env, torch_model, optim_params={'lr': 1e-3}, learn_params=learn_params_torch,
-                                 valid_fwd=valid_fwd)
+torch_scheduler = TorchScheduler(env, torch_model, optim_params={'lr': 1e-3}, learn_params=learn_params_torch)
 # torch_scheduler = TorchScheduler.mlp(env, hidden_layer_sizes=[400], optim_params={'lr': 1e-3},
-#                                      learn_params=learn_params_torch, valid_fwd=valid_fwd)
+#                                      learn_params=learn_params_torch)
 
 
 pl_trainer_kwargs = {
@@ -191,11 +191,10 @@ pl_trainer_kwargs = {
     # 'progress_bar_refresh_rate': 0,
 }
 
-lit_scheduler = LitScheduler.from_module(env, torch_model, trainer_kwargs=pl_trainer_kwargs,
-                                         learn_params=learn_params_torch, valid_fwd=valid_fwd)
-# lit_scheduler = LitScheduler.mlp(env, hidden_layer_sizes=[400], model_kwargs={'optim_params': {'lr': 1e-3}},
-#                                  trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch,
-#                                  valid_fwd=valid_fwd)
+# lit_scheduler = LitScheduler.from_module(env, torch_model, trainer_kwargs=pl_trainer_kwargs,
+#                                          learn_params=learn_params_torch)
+# # lit_scheduler = LitScheduler.mlp(env, hidden_layer_sizes=[400], model_kwargs={'optim_params': {'lr': 1e-3}},
+# #                                  trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch)
 
 
 random_agent = RandomAgent(env)

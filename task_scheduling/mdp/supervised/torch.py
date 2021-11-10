@@ -3,8 +3,6 @@ import math
 from abc import abstractmethod
 from copy import deepcopy
 from functools import partial, wraps
-# from types import MethodType
-from warnings import warn
 
 import numpy as np
 import pytorch_lightning as pl
@@ -42,7 +40,7 @@ class Base(BaseSupervisedScheduler):
         'shuffle': False,
     }
 
-    def __init__(self, env, model, learn_params=None, valid_fwd=True):
+    def __init__(self, env, model, learn_params=None):
         """
         Base class for PyTorch-based schedulers.
 
@@ -54,39 +52,10 @@ class Base(BaseSupervisedScheduler):
             The learning network.
         learn_params : dict, optional
             Parameters used by the `learn` method.
-        valid_fwd : bool, optional
-            Enables wrapping of PyTorch module `forward` method with a parallel function that infers the valid action
-            space and modifies the softmax output accordingly. Only relevant if the `env` type is `Index`.
 
         """
         if not isinstance(model, nn.Module):
             raise TypeError("Argument `model` must be a `torch.nn.Module` instance.")
-
-        if valid_fwd and (not isinstance(env, Index) or env.seq_encoding is None):
-            warn("Valid network can only be enforced using `Index` environment with sequence encoding.")
-            self.valid_fwd = False
-        else:
-            self.valid_fwd = valid_fwd
-
-        if self.valid_fwd:
-            def valid_wrapper(func):
-                @wraps(func)
-                def valid_func(*args, **kwargs):
-                    p = func(*args, **kwargs)  # assumes softmax output for valid probabilities
-
-                    mask = 1 - env.make_mask(*args, **kwargs)
-                    p_mask = p * mask
-
-                    idx_zero = p_mask.sum(dim=1) == 0.
-                    p_mask[idx_zero] = mask[idx_zero]  # if no valid actions are non-zero, make them uniform
-
-                    p_norm = functional.normalize(p_mask, p=1, dim=1)
-                    return p_norm
-
-                return valid_func
-
-            model.forward = valid_wrapper(model.forward)  # FIXME: no longer a bound method!
-            # model.forward = MethodType(valid_wrapper(model.forward), model)
 
         super().__init__(env, model, learn_params)
 
@@ -157,7 +126,6 @@ class Base(BaseSupervisedScheduler):
         """
 
         if self.env.observe_mode:
-            # obs = tuple(obs[key] for key in self.env.observation_space)
             obs = tuple(obs[key] for key in obs.dtype.names)
         else:
             obs = (obs,)
@@ -197,7 +165,7 @@ class Base(BaseSupervisedScheduler):
         # return self._process_obs(obs).argmax()
 
         # TODO: deprecate?
-        if self.valid_fwd:
+        if not hasattr(self.model, 'valid_fwd') or self.model.valid_fwd:
             return self._process_obs(obs).argmax()
         else:
             p = self.predict_prob(obs)
@@ -287,12 +255,15 @@ def build_torch_mlp(layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(),
     layers.pop()
     if end_layer is not None:
         layers.append(end_layer)
-    return nn.Sequential(*layers)
+
+    model = nn.Sequential(*layers)
+    model.valid_fwd = False
+    return model
 
 
 class TorchScheduler(Base):
     def __init__(self, env, model, loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None,
-                 learn_params=None, valid_fwd=True):
+                 learn_params=None):
         """
         Base class for pure PyTorch-based schedulers.
 
@@ -309,12 +280,9 @@ class TorchScheduler(Base):
             Arguments for optimizer instantiation.
         learn_params : dict, optional
             Parameters used by the `learn` method.
-        valid_fwd : bool, optional
-            Enables wrapping of PyTorch module `forward` method with a parallel function that infers the valid action
-            space and modifies the softmax output accordingly. Only relevant if the `env` type is `Index`.
 
         """
-        super().__init__(env, model, learn_params, valid_fwd)
+        super().__init__(env, model, learn_params)
 
         # self.model = model.to(device)
         self.loss_func = loss_func
@@ -324,26 +292,22 @@ class TorchScheduler(Base):
 
     @classmethod
     def mlp(cls, env, hidden_layer_sizes=(), mlp_kwargs=None, loss_func=functional.cross_entropy, optim_cls=optim.Adam,
-            optim_params=None, learn_params=None, valid_fwd=True):
+            optim_params=None, learn_params=None):
         layer_sizes = [np.prod(env.observation_space.shape).item(), *hidden_layer_sizes, env.action_space.n]
         if mlp_kwargs is None:
             mlp_kwargs = {}
-        if valid_fwd:
-            mlp_kwargs['end_layer'] = nn.Softmax(dim=1)  # required for probability masking
         model = build_torch_mlp(layer_sizes, **mlp_kwargs)
 
-        return cls(env, model, loss_func, optim_cls, optim_params, learn_params, valid_fwd)
+        return cls(env, model, loss_func, optim_cls, optim_params, learn_params)
 
     @classmethod
     def from_gen_mlp(cls, problem_gen, env_cls=Index, env_params=None, hidden_layer_sizes=(), mlp_kwargs=None,
-                     loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None, learn_params=None,
-                     valid_fwd=True):
+                     loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None, learn_params=None):
         if env_params is None:
             env_params = {}
         env = env_cls(problem_gen, **env_params)
 
-        return cls.mlp(env, hidden_layer_sizes, mlp_kwargs, loss_func, optim_cls, optim_params, learn_params,
-                       valid_fwd)
+        return cls.mlp(env, hidden_layer_sizes, mlp_kwargs, loss_func, optim_cls, optim_params, learn_params)
 
     def _fit(self, dl_train, dl_val, verbose=0):
         if verbose >= 1:
@@ -463,7 +427,7 @@ class LitModel(pl.LightningModule):
 
 
 class LitScheduler(Base):
-    def __init__(self, env, model, trainer_kwargs=None, learn_params=None, valid_fwd=True):
+    def __init__(self, env, model, trainer_kwargs=None, learn_params=None):
         """
         Base class for PyTorch Lightning-based schedulers.
 
@@ -477,12 +441,9 @@ class LitScheduler(Base):
             Arguments passed to instantiation of pl.Trainer object.
         learn_params : dict, optional
             Parameters used by the `learn` method.
-        valid_fwd : bool, optional
-            Enables wrapping of PyTorch module `forward` method with a parallel function that infers the valid action
-            space and modifies the softmax output accordingly. Only relevant if the `env` type is `Index`.
 
         """
-        super().__init__(env, model, learn_params, valid_fwd)
+        super().__init__(env, model, learn_params)
 
         if trainer_kwargs is None:
             trainer_kwargs = {}
@@ -495,41 +456,38 @@ class LitScheduler(Base):
         self.trainer = pl.Trainer(**self.trainer_kwargs)
 
     @classmethod
-    def from_module(cls, env, module, model_kwargs=None, trainer_kwargs=None, learn_params=None, valid_fwd=True):
+    def from_module(cls, env, module, model_kwargs=None, trainer_kwargs=None, learn_params=None):
         if model_kwargs is None:
             model_kwargs = {}
         model = LitModel(module, **model_kwargs)
-        return cls(env, model, trainer_kwargs, learn_params, valid_fwd)
+        return cls(env, model, trainer_kwargs, learn_params)
 
     @classmethod
     def from_gen_module(cls, problem_gen, module, env_cls=Index, env_params=None,
-                        model_kwargs=None, trainer_kwargs=None, learn_params=None, valid_fwd=True):
+                        model_kwargs=None, trainer_kwargs=None, learn_params=None):
         if env_params is None:
             env_params = {}
         env = env_cls(problem_gen, **env_params)
 
-        cls.from_module(env, module, model_kwargs, trainer_kwargs, learn_params, valid_fwd)
+        cls.from_module(env, module, model_kwargs, trainer_kwargs, learn_params)
 
     @classmethod
-    def mlp(cls, env, hidden_layer_sizes, mlp_kwargs=None, model_kwargs=None, trainer_kwargs=None, learn_params=None,
-            valid_fwd=True):
+    def mlp(cls, env, hidden_layer_sizes, mlp_kwargs=None, model_kwargs=None, trainer_kwargs=None, learn_params=None):
         layer_sizes = [np.prod(env.observation_space.shape).item(), *hidden_layer_sizes, env.action_space.n]
         if mlp_kwargs is None:
             mlp_kwargs = {}
-        if valid_fwd:
-            mlp_kwargs['end_layer'] = nn.Softmax(dim=1)  # required for probability masking
         module = build_torch_mlp(layer_sizes, **mlp_kwargs)
 
-        return cls.from_module(env, module, model_kwargs, trainer_kwargs, learn_params, valid_fwd)
+        return cls.from_module(env, module, model_kwargs, trainer_kwargs, learn_params)
 
     @classmethod
     def from_gen_mlp(cls, problem_gen, env_cls=Index, env_params=None, hidden_layer_sizes=(), mlp_kwargs=None,
-                     model_kwargs=None, trainer_kwargs=None, learn_params=None, valid_fwd=True):
+                     model_kwargs=None, trainer_kwargs=None, learn_params=None):
         if env_params is None:
             env_params = {}
         env = env_cls(problem_gen, **env_params)
 
-        return cls.mlp(env, hidden_layer_sizes, mlp_kwargs, model_kwargs, trainer_kwargs, learn_params, valid_fwd)
+        return cls.mlp(env, hidden_layer_sizes, mlp_kwargs, model_kwargs, trainer_kwargs, learn_params)
 
     def reset(self):
         super().reset()

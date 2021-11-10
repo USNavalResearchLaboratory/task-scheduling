@@ -174,6 +174,7 @@ seed = 12345
 if seed is not None:
     seed_everything(seed)
 
+
 # Define scheduling problem and algorithms
 problem_gen = problem_gens.Dataset.load('../data/continuous_relu_drop_c1t8', repeat=True)
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=seed)
@@ -183,6 +184,7 @@ env_params = {
     'sort_func': 't_release',
     'time_shift': True,
     'masking': True,
+    'observe_mode': 0,
     'seq_encoding': 'one-hot',
 }
 
@@ -203,7 +205,7 @@ learn_params = {
 
 lit_scheduler = LitScheduler.from_gen_mlp(problem_gen, env_params=env_params, hidden_layer_sizes=[400],
                                           model_kwargs={'optim_params': {'lr': 1e-3}}, trainer_kwargs=trainer_kwargs,
-                                          learn_params=learn_params, valid_fwd=True)
+                                          learn_params=learn_params)
 
 algorithms = np.array([
     ('Random', random_sequencer, 10),
@@ -211,6 +213,7 @@ algorithms = np.array([
     ('MCTS', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=.05, th_visit=5), 10),
     ('Lit Policy', lit_scheduler, 10),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
+
 
 # Evaluate results
 n_gen_learn = 900  # the number of problems generated for learning, per iteration

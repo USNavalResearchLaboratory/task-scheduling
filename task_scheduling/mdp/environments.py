@@ -17,7 +17,7 @@ from task_scheduling.util import plot_task_losses
 
 # Gym Environments
 class Base(Env, ABC):
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, observe_mode=1):
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, observe_mode=2):
         """Base environment for task scheduling.
 
         Parameters
@@ -402,7 +402,7 @@ class Base(Env, ABC):
 
 
 class Index(Base):
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, observe_mode=1,
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, observe_mode=2,
                  action_type='valid', seq_encoding='one-hot'):
         """Tasking environment with actions of single task indices.
 
@@ -625,7 +625,7 @@ def int_to_seq(num, length, check_input=True):
 
 
 class Seq(Base):
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, observe_mode=1,
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, observe_mode=2,
                  action_type='int'):
         """Tasking environment with single action of a complete task index sequence.
 
