@@ -59,7 +59,7 @@ learn_params = {
     'callbacks': EarlyStopping('val_loss', min_delta=0., patience=50),
 }
 
-lit_kwargs = {'optim_params': {'lr': 1e-3}}
+model_kwargs = {'optim_params': {'lr': 1e-3}}
 
 valid_fwd_set = [False, True]
 # valid_fwd_set = [False]
@@ -131,7 +131,7 @@ for dataset in datasets:
             seed_everything(seed)
 
         lit_scheduler = LitScheduler.from_gen_mlp(problem_gen, env_params=env_params, hidden_layer_sizes=layer_sizes,
-                                                  lit_kwargs=lit_kwargs, trainer_kwargs=trainer_kwargs,
+                                                  model_kwargs=model_kwargs, trainer_kwargs=trainer_kwargs,
                                                   learn_params=learn_params, valid_fwd=valid_fwd)
 
         net_str = str(i_net)

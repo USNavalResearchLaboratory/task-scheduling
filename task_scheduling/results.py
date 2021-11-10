@@ -88,7 +88,45 @@ def _log_helper(problem_obj, learners, loss, t_run, solve, log_path, ax, img_pat
     _log_and_fig(message, log_path, ax, img_path)
 
 
-#
+# Utilities
+def _iter_to_mean(array):
+    return np.array([tuple(map(np.mean, item)) for item in array.flatten()],
+                    dtype=[(name, float) for name in array.dtype.names]).reshape(array.shape)
+
+
+def _struct_mean(array):
+    array = _iter_to_mean(array)
+    data = tuple(array[name].mean() for name in array.dtype.names)
+    return np.array(data, dtype=array.dtype)
+
+
+def _add_opt(algorithms):
+    if OPT_NAME not in algorithms['name']:
+        _opt = np.array([(OPT_NAME, None, 1)], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
+        algorithms = np.concatenate((_opt, algorithms))
+
+    return algorithms
+
+
+def _empty_result(algorithms, n):
+    return np.array([(np.nan,) * len(algorithms)] * n, dtype=[(alg['name'], float) for alg in algorithms])
+
+
+# Printing/plotting
+def _relative_loss(loss, normalize=False):
+    names = loss.dtype.names
+    if OPT_NAME not in names:
+        raise ValueError("Optimal solutions must be included in the loss array.")
+
+    loss_rel = loss.copy()
+    for name in names:
+        loss_rel[name] -= loss[OPT_NAME]
+        if normalize:
+            loss_rel[name] /= loss[OPT_NAME]
+
+    return loss_rel
+
+
 def _scatter_loss_runtime(t_run, loss, ax=None, ax_kwargs=None):
     """
     Scatter plot of total execution loss versus runtime.
@@ -121,44 +159,6 @@ def _scatter_loss_runtime(t_run, loss, ax=None, ax_kwargs=None):
     ax.set(xlabel='Runtime (ms)', ylabel='Loss')
     ax.legend()
     ax.set(**ax_kwargs)
-
-
-# Utilities
-def _iter_to_mean(array):
-    return np.array([tuple(map(np.mean, item)) for item in array.flatten()],
-                    dtype=[(name, float) for name in array.dtype.names]).reshape(array.shape)
-
-
-def _struct_mean(array):
-    array = _iter_to_mean(array)
-    data = tuple(array[name].mean() for name in array.dtype.names)
-    return np.array(data, dtype=array.dtype)
-
-
-def _add_opt(algorithms):
-    if OPT_NAME not in algorithms['name']:
-        _opt = np.array([(OPT_NAME, None, 1)], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
-        algorithms = np.concatenate((_opt, algorithms))
-
-    return algorithms
-
-
-def _empty_result(algorithms, n):
-    return np.array([(np.nan,) * len(algorithms)] * n, dtype=[(alg['name'], float) for alg in algorithms])
-
-
-def _relative_loss(loss, normalize=False):
-    names = loss.dtype.names
-    if OPT_NAME not in names:
-        raise ValueError("Optimal solutions must be included in the loss array.")
-
-    loss_rel = loss.copy()
-    for name in names:
-        loss_rel[name] -= loss[OPT_NAME]
-        if normalize:
-            loss_rel[name] /= loss[OPT_NAME]
-
-    return loss_rel
 
 
 def _scatter_results(t_run, loss, label='Results', do_relative=False):
@@ -210,6 +210,7 @@ def _print_averages(loss, t_run, do_relative=False):
     #         print(df_str, end='\n\n', file=fid)
 
 
+# RNG handling
 def _set_algorithm_rng(algorithms, rng):
     """Makes algorithms into `functools.partial` objects, overwrites any existing `rng` arguments."""
     for algorithm in algorithms:

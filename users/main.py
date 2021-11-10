@@ -76,8 +76,8 @@ env_params = {
     # 'masking': False,
     'masking': True,
     # 'seq_encoding': None,
-    'observe_ch': True,
-    # 'observe_ch': False,
+    # 'observe_ch': True,
+    'observe_ch': False,
     'seq_encoding': 'binary',
     # 'seq_encoding': 'one-hot',
 }
@@ -92,7 +92,7 @@ learn_params_torch = {
     'batch_size_val': 30,
     'weight_func': None,
     # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-    'max_epochs': 20,
+    'max_epochs': 200,
     'shuffle': True,
 }
 
@@ -164,11 +164,11 @@ pl_trainer_kwargs = {
     # 'progress_bar_refresh_rate': 0,
 }
 
-lit_scheduler = LitScheduler.from_module(env, torch_model, trainer_kwargs=pl_trainer_kwargs,
-                                         learn_params=learn_params_torch, valid_fwd=valid_fwd)
-# lit_scheduler = LitScheduler.mlp(env, hidden_layer_sizes=[400], lit_kwargs={'optim_params': {'lr': 1e-3}},
-#                                  trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch,
-#                                  valid_fwd=valid_fwd)
+# lit_scheduler = LitScheduler.from_module(env, torch_model, trainer_kwargs=pl_trainer_kwargs,
+#                                          learn_params=learn_params_torch, valid_fwd=valid_fwd)
+lit_scheduler = LitScheduler.mlp(env, hidden_layer_sizes=[400], model_kwargs={'optim_params': {'lr': 1e-3}},
+                                 trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch,
+                                 valid_fwd=valid_fwd)
 
 
 random_agent = RandomAgent(env)
@@ -198,8 +198,8 @@ algorithms = np.array([
     # *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, th_visit=t), 10)
     #   for c, t in product([0], [5, 10])),
     ('Random Agent', random_agent, 10),
-    ('Torch Policy', torch_scheduler, 10),
-    # ('Lit Policy', lit_scheduler, 10),
+    # ('Torch Policy', torch_scheduler, 10),
+    ('Lit Policy', lit_scheduler, 10),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
     # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
     # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
