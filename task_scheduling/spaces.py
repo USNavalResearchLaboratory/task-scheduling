@@ -172,17 +172,17 @@ class DiscreteMasked(Discrete):
         return self._ma.size
 
     @n.setter
-    def n(self, val):
-        self._ma = np.ma.masked_array(range(int(val)))
+    def n(self, value):
+        self._ma = np.ma.masked_array(range(int(value)))
 
     @property
     def mask(self):
         return self._ma.mask
 
     @mask.setter
-    def mask(self, val):
+    def mask(self, value):
         self._ma.mask = np.ma.nomask
-        self._ma[np.array(val, dtype=bool)] = np.ma.masked
+        self._ma[np.array(value, dtype=bool)] = np.ma.masked
 
     @property
     def valid_entries(self):
