@@ -31,8 +31,6 @@ env_params = {
     'sort_func': 't_release',
     'time_shift': True,
     'masking': True,
-    'observe_mode': 0,
-    'seq_encoding': 'one-hot',
 }
 
 trainer_kwargs = {

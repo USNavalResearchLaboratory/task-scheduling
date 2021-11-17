@@ -458,8 +458,8 @@ class LitScheduler(Base):
         return cls(env, model, trainer_kwargs, learn_params)
 
     @classmethod
-    def from_gen_module(cls, problem_gen, module, env_cls=Index, env_params=None,
-                        model_kwargs=None, trainer_kwargs=None, learn_params=None):
+    def from_gen_module(cls, problem_gen, module, env_cls=Index, env_params=None, model_kwargs=None,
+                        trainer_kwargs=None, learn_params=None):
         if env_params is None:
             env_params = {}
         env = env_cls(problem_gen, **env_params)

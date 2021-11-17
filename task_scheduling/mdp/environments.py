@@ -13,7 +13,7 @@ from task_scheduling.mdp.features import param_features
 
 # Gym Environments
 class Base(Env, ABC):
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, observe_mode=2):
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False):
         """Base environment for task scheduling.
 
         Parameters
@@ -28,9 +28,6 @@ class Base(Env, ABC):
             Enables task re-parameterization after sequence updates.
         masking : bool, optional
             If True, features are zeroed out for scheduled tasks.
-        observe_mode : {0, 1}, optional
-            If `0`, only tasks and sequence info are encoded into a single tensor. If `1`, an observation for channel \
-            availability is added.
 
         """
         self.problem_gen = problem_gen
@@ -72,14 +69,7 @@ class Base(Env, ABC):
         self._obs_space_tasks = spaces_tasking.broadcast_to(spaces_tasking.stack(self.features['space']),
                                                             shape=(self.n_tasks, len(self.features)))
 
-        self.observe_mode = observe_mode
-        if self.observe_mode == 2:
-            self.observation_space = Dict(ch_avail=self._obs_space_ch, seq=self._obs_space_seq,
-                                          tasks=self._obs_space_tasks)
-        elif self.observe_mode == 1:
-            self.observation_space = Dict(ch_avail=self._obs_space_ch, tasks=self._obs_space_tasks)
-        else:
-            self.observation_space = self._obs_space_tasks
+        self.observation_space = Dict(ch_avail=self._obs_space_ch, seq=self._obs_space_seq, tasks=self._obs_space_tasks)
 
         # Action space
         self.steps_per_episode = None  # TODO: deprecate?
@@ -148,14 +138,11 @@ class Base(Env, ABC):
 
     def obs(self):
         """Complete observation."""
-        if self.observe_mode > 0:
-            data = tuple(getattr(self, f"_obs_{key}")() for key in self.observation_space)  # invoke `_obs_tasks`, etc.
-            dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
-            return np.array(data, dtype=dtype)
+        data = tuple(getattr(self, f"_obs_{key}")() for key in self.observation_space)  # invoke `_obs_tasks`, etc.
+        dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
+        return np.array(data, dtype=dtype)
 
-            # return OrderedDict(ch_avail=self.ch_avail, tasks=self._obs_tasks())
-        else:
-            return self._obs_tasks()
+        # return OrderedDict(ch_avail=self.ch_avail, tasks=self._obs_tasks())
 
     # @abstractmethod  # TODO: subclasses need update
     # def infer_action_space(self, obs):
@@ -305,18 +292,15 @@ class Base(Env, ABC):
             #     print(f'Batch: {i_batch + 1}/{n_batch}', end='\n')
 
             steps_total = batch_size * self.steps_per_episode
-            if self.observe_mode > 0:
-                data = list(zip(*(np.empty((steps_total, *space.shape), dtype=space.dtype)
-                                for space in self.observation_space.spaces.values())))
-                dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
-                x_set = np.array(data, dtype=dtype)
+            data = list(zip(*(np.empty((steps_total, *space.shape), dtype=space.dtype)
+                            for space in self.observation_space.spaces.values())))
+            dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
+            x_set = np.array(data, dtype=dtype)
 
-                # x_set = OrderedDict([(key, np.empty((steps_total, *space.shape), dtype=space.dtype))
-                #                      for key, space in self.observation_space.spaces.items()])
-                # # x_set = {key: np.empty((steps_total, *space.shape),
-                # #                        dtype=space.dtype) for key, space in self.observation_space.spaces.items()}
-            else:
-                x_set = np.empty((steps_total, *self.observation_space.shape), dtype=self.observation_space.dtype)
+            # x_set = OrderedDict([(key, np.empty((steps_total, *space.shape), dtype=space.dtype))
+            #                      for key, space in self.observation_space.spaces.items()])
+            # # x_set = {key: np.empty((steps_total, *space.shape),
+            # #                        dtype=space.dtype) for key, space in self.observation_space.spaces.items()}
 
             y_set = np.empty((steps_total, *self.action_space.shape), dtype=self.action_space.dtype)
             w_set = np.empty(steps_total, dtype=float)
@@ -339,7 +323,7 @@ class Base(Env, ABC):
                     x_set[i] = obs
                     y_set[i] = action
                     if callable(weight_func):
-                        w_set[i] = weight_func(self)
+                        w_set[i] = weight_func(self)  # TODO: use rewards for weighting!?!
 
                     obs, reward, done, info = self.step(action)  # updates environment state
                     i_step += 1
@@ -360,7 +344,7 @@ class Base(Env, ABC):
 
 
 class Index(Base):
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, observe_mode=2):
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False):
         """Tasking environment with actions of single task indices.
 
         Parameters
@@ -375,12 +359,9 @@ class Index(Base):
             Enables task re-parameterization after sequence updates.
         masking : bool, optional
             If True, features are zeroed out for scheduled tasks.
-        observe_mode : {0, 1}, optional
-            If `0`, only tasks and sequence info are encoded into a single tensor. If `1`, an observation for channel \
-            availability is added.
 
         """
-        super().__init__(problem_gen, features, sort_func, time_shift, masking, observe_mode)
+        super().__init__(problem_gen, features, sort_func, time_shift, masking)
 
         # Action space
         self.steps_per_episode = self.n_tasks
@@ -483,8 +464,7 @@ def int_to_seq(num, length, check_input=True):
 
 
 class Seq(Base):
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, observe_mode=2,
-                 action_type='int'):
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='int'):
         """Tasking environment with single action of a complete task index sequence.
 
         Parameters
@@ -499,15 +479,12 @@ class Seq(Base):
             Enables task re-parameterization after sequence updates.
         masking : bool, optional
             If True, features are zeroed out for scheduled tasks.
-        observe_mode : {0, 1}, optional
-            If `0`, only tasks and sequence info are encoded into a single tensor. If `1`, an observation for channel \
-            availability is added.
         action_type : {'seq', 'int'}, optional
             If 'seq', action type is index sequence `Permutation`; if 'int', action space is `Discrete` and
             index sequences are mapped to integers.
 
         """
-        super().__init__(problem_gen, features, sort_func, time_shift, masking, observe_mode)
+        super().__init__(problem_gen, features, sort_func, time_shift, masking)
 
         self.action_type = action_type  # 'seq' for sequences, 'int' for integers
         if self.action_type == 'int':

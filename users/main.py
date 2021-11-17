@@ -75,9 +75,6 @@ env_params = {
     'time_shift': True,
     # 'masking': False,
     'masking': True,
-    'observe_mode': 0,
-    # 'observe_mode': 1,
-    # 'observe_mode': 2,
 }
 
 env = Index(problem_gen, **env_params)
@@ -90,59 +87,33 @@ learn_params_torch = {
     'batch_size_val': 30,
     'weight_func': None,
     # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-    'max_epochs': 200,
+    'max_epochs': 20,
     'shuffle': True,
 }
 
 
-class TorchCNN(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.valid_fwd = False
-
-        n_filter = 400
-        l_kernel = 8
-        self.conv1 = nn.Conv2d(1, n_filter, kernel_size=(l_kernel, 5))  # TODO: dependent width...
-        self.fc1 = nn.Linear(n_filter * (8-l_kernel+1), 8)
-
-    def forward(self, x):
-        x = x.view(len(x), 1, *x.shape[1:])
-        x = functional.relu(self.conv1(x))
-        # x = functional.avg_pool2d(x, (x.shape[2], 1))
-        # x = functional.adaptive_avg_pool2d(x, (1, x.shape[-1]))
-        x = torch.flatten(x, 1)
-        x = self.fc1(x)
-        x = functional.softmax(x, dim=1)
-        return x
+# class TorchCNN(nn.Module):
+#     def __init__(self):
+#         super().__init__()
+#         self.valid_fwd = False
+#
+#         n_filter = 400
+#         l_kernel = 8
+#         self.conv1 = nn.Conv2d(1, n_filter, kernel_size=(l_kernel, 5))  # TODO: dependent width...
+#         self.fc1 = nn.Linear(n_filter * (8-l_kernel+1), 8)
+#
+#     def forward(self, x):
+#         x = x.view(len(x), 1, *x.shape[1:])
+#         x = functional.relu(self.conv1(x))
+#         # x = functional.avg_pool2d(x, (x.shape[2], 1))
+#         # x = functional.adaptive_avg_pool2d(x, (1, x.shape[-1]))
+#         x = torch.flatten(x, 1)
+#         x = self.fc1(x)
+#         x = functional.softmax(x, dim=1)
+#         return x
 
 
 class TorchMulti(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.valid_fwd = False
-
-        n_tasks = 8
-        n_h = 400
-        self.fc_ch = nn.Linear(1, 10)
-        self.fc_tasks = nn.Linear(n_tasks * 5, n_h)
-        self.fc_joint = nn.Linear(10 + n_h, n_tasks)
-
-    def forward(self, ch_avail, tasks):
-        c = torch.flatten(ch_avail, start_dim=1)
-        c = self.fc_ch(c)
-        c = functional.relu(c)
-
-        t = torch.flatten(tasks, start_dim=1)
-        t = self.fc_tasks(t)
-        t = functional.relu(t)
-
-        x = torch.cat((c, t), dim=-1)
-        x = self.fc_joint(x)
-
-        return x
-
-
-class TorchMultiSeq(nn.Module):
     def __init__(self):
         super().__init__()
         n_tasks = 8
@@ -168,9 +139,8 @@ class TorchMultiSeq(nn.Module):
         return x
 
 
-torch_model = TorchCNN()
-# torch_model = TorchMulti()
-# torch_model = TorchMultiSeq()
+# torch_model = TorchCNN()
+torch_model = TorchMulti()
 
 torch_scheduler = TorchScheduler(env, torch_model, optim_params={'lr': 1e-3}, learn_params=learn_params_torch)
 # torch_scheduler = TorchScheduler.mlp(env, hidden_layer_sizes=[400], optim_params={'lr': 1e-3},
