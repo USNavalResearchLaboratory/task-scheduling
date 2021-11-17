@@ -1,10 +1,7 @@
 from abc import ABC, abstractmethod
 from math import factorial
 from operator import attrgetter
-from types import MethodType
-# from collections import OrderedDict
 
-import matplotlib.pyplot as plt
 import numpy as np
 from gym import Env
 from gym.spaces import Discrete, MultiDiscrete, Box, Dict
@@ -12,7 +9,6 @@ from gym.spaces import Discrete, MultiDiscrete, Box, Dict
 import task_scheduling.spaces as spaces_tasking
 from task_scheduling import tree_search
 from task_scheduling.mdp.features import param_features
-from task_scheduling.util import plot_task_losses
 
 
 # Gym Environments
@@ -65,7 +61,7 @@ class Base(Env, ABC):
 
         self.node = None  # MDP state
 
-        # Observation and action spaces
+        # Observation space
         space_ch = self.problem_gen.ch_avail_gen.space
         max_duration = spaces_tasking.get_space_lims(self.problem_gen.task_gen.param_spaces['duration'])[1]
         self._obs_space_ch = Box(space_ch.low.item(), space_ch.high + self.n_tasks * max_duration, shape=(self.n_ch,),
@@ -85,7 +81,8 @@ class Base(Env, ABC):
         else:
             self.observation_space = self._obs_space_tasks
 
-        self.steps_per_episode = None
+        # Action space
+        self.steps_per_episode = None  # TODO: deprecate?
         self.action_space = None
 
     n_tasks = property(lambda self: self.problem_gen.n_tasks)
@@ -139,7 +136,6 @@ class Base(Env, ABC):
         return self.ch_avail
 
     def _obs_seq(self):
-        # FIXME: DRY with binary sequence encoding from `Index`
         return np.array([1 if n in self.node.seq else 0 for n in self.sorted_index])
 
     def _obs_tasks(self):
@@ -161,7 +157,7 @@ class Base(Env, ABC):
         else:
             return self._obs_tasks()
 
-    # @abstractmethod  # TODO
+    # @abstractmethod  # TODO: subclasses need update
     # def infer_action_space(self, obs):
     #     """Determines the action `gym.Space` from an observation."""
     #     raise NotImplementedError
@@ -229,7 +225,7 @@ class Base(Env, ABC):
         Parameters
         ----------
         action : int or Sequence of int
-            Complete index sequence.
+            Task indices.
 
         Returns
         -------
@@ -255,10 +251,10 @@ class Base(Env, ABC):
 
         return self.obs(), reward, done, {}
 
-    def render(self, mode='human'):  # TODO: improve or delete
+    def render(self, mode='human'):
         if mode == 'human':
-            _, ax_env = plt.subplots(num='Task Scheduling Env', clear=True)
-            plot_task_losses(self.tasks, ax=ax_env)
+            pass
+        raise NotImplementedError  # TODO
 
     def close(self):
         self.node = None
@@ -364,8 +360,7 @@ class Base(Env, ABC):
 
 
 class Index(Base):
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, observe_mode=2,
-                 seq_encoding='one-hot'):
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, observe_mode=2):
         """Tasking environment with actions of single task indices.
 
         Parameters
@@ -383,89 +378,17 @@ class Index(Base):
         observe_mode : {0, 1}, optional
             If `0`, only tasks and sequence info are encoded into a single tensor. If `1`, an observation for channel \
             availability is added.
-        seq_encoding : function or str, optional
-            Method that returns a 1-D encoded sequence representation for a given task index 'n'. Assumes that the
-            encoded array sums to one for scheduled tasks and to zero for unscheduled tasks.
 
         """
         super().__init__(problem_gen, features, sort_func, time_shift, masking, observe_mode)
 
-        # Set sequence encoder method
-        if seq_encoding is None:
-            self.seq_encoding = MethodType(lambda env, n: [], self)
-            self.len_seq_encode = 0
-        elif isinstance(seq_encoding, str):  # simple string specification for supported encoders
-            if seq_encoding == 'binary':
-                def _seq_encoding(env, n):
-                    return [1] if n in env.node.seq else [0]
-
-                self.len_seq_encode = 1
-            elif seq_encoding == 'one-hot':
-                def _seq_encoding(env, n):
-                    out = np.zeros(env.n_tasks, dtype=int)
-                    if n in env.node.seq:
-                        out[env.node.seq.index(n)] = 1
-                    return out
-
-                self.len_seq_encode = self.n_tasks
-            else:
-                raise ValueError("Unsupported sequence encoder string.")
-
-            self.seq_encoding = MethodType(_seq_encoding, self)
-
-        elif callable(seq_encoding):
-            raise NotImplementedError('Generic callables not yet supported.')
-        else:
-            raise TypeError("Permutation encoding input must be callable or str.")
-
-        self._seq_encode_str = seq_encoding
-
-        # Observation and action spaces
-        if self.observe_mode == 2:
-            pass
-        elif self.observe_mode == 1:
-            # have to instantiate new space because `Dict` doesn't support `__setitem__`
-            obs_space_seq = MultiDiscrete(np.full((self.n_tasks, self.len_seq_encode), 2))
-            obs_space_comb = spaces_tasking.concatenate((obs_space_seq, self.observation_space['tasks']), axis=-1)
-            self.observation_space = Dict(ch_avail=self._obs_space_ch, tasks=obs_space_comb)
-        else:
-            obs_space_seq = MultiDiscrete(np.full((self.n_tasks, self.len_seq_encode), 2))
-            self.observation_space = spaces_tasking.concatenate((obs_space_seq, self.observation_space), axis=-1)
-
+        # Action space
         self.steps_per_episode = self.n_tasks
         self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)
-
-    def summary(self):
-        str_ = super().summary()
-        str_ += f"\n- Sequence encoding: {self._seq_encode_str}"
-        return str_
-
-    # def _obs_seq(self):  # FIXME: move seq stuff to base class!
-    #     return np.array([self.seq_encoding(n) for n in self.sorted_index])
-
-    def _obs_tasks(self):
-        """Observation tensor for task features."""
-        if self.observe_mode == 2:
-            return super()._obs_tasks()
-        else:
-            obs_seq = np.array([self.seq_encoding(n) for n in self.sorted_index])
-            return np.concatenate((obs_seq, super()._obs_tasks()), axis=1)
-
-    # def obs(self):
-    #     """Complete observation."""
-    #     if self.observe_mode == 2:
-    #         return super().obs()
-    #     elif self.observe_mode == 1:
-    #         data = (self._obs_ch_avail(), np.concatenate((self._obs_seq(), self._obs_tasks()), axis=1))
-    #         dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
-    #         return np.array(data, dtype=dtype)
-    #     else:
-    #         return np.concatenate((self._obs_seq(), self._obs_tasks()), axis=1)
 
     def _update_spaces(self):
         """Update observation and action spaces."""
         seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
-        # self.action_space = spaces_tasking.DiscreteSet(seq_rem_sort)
         self.action_space.mask = np.isin(np.arange(self.n_tasks), seq_rem_sort, invert=True)
 
     def opt_action(self):
@@ -473,7 +396,6 @@ class Index(Base):
         n = self._seq_opt[len(self.node.seq)]  # next optimal task index
         return self.sorted_index_inv[n]  # encode task index to sorted action
 
-    # TODO: needs update
     # def make_mask(self, obs):
     #     if self.len_seq_encode == 0:
     #         raise ValueError("Cannot infer valid actions without encoding sequence into the observation.")
@@ -490,7 +412,7 @@ class Index(Base):
     #     mask = self.make_mask(obs).astype(bool)
     #     return spaces_tasking.DiscreteMasked(self.n_tasks, mask)
 
-    def mask_probability(self, p):  # TODO: deprecate?
+    def mask_probability(self, p):
         """Returns masked action probabilities based on unscheduled task indices."""
         return np.ma.masked_array(p, self.action_space.mask)
 
@@ -588,14 +510,14 @@ class Seq(Base):
         super().__init__(problem_gen, features, sort_func, time_shift, masking, observe_mode)
 
         self.action_type = action_type  # 'seq' for sequences, 'int' for integers
-        if self.action_type == 'seq':
-            self._action_space_map = lambda n: spaces_tasking.Permutation(n)
-        elif self.action_type == 'int':
+        if self.action_type == 'int':
             self._action_space_map = lambda n: Discrete(factorial(n))
+        elif self.action_type == 'seq':
+            self._action_space_map = lambda n: spaces_tasking.Permutation(n)
         else:
             raise ValueError
 
-        # Observation and action spaces
+        # Action space
         self.steps_per_episode = 1
         self.action_space = self._action_space_map(self.n_tasks)
 
@@ -618,6 +540,6 @@ class Seq(Base):
         elif self.action_type == 'int':
             return seq_to_int(seq_action)
 
-    # def infer_action_space(self, obs):  # TODO: needs update
+    # def infer_action_space(self, obs):
     #     """Determines the action Gym.Space from an observation."""
     #     return self._action_space_map(len(obs))
