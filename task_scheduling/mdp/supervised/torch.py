@@ -2,7 +2,7 @@ import math
 # from pathlib import Path
 from abc import abstractmethod
 from copy import deepcopy
-from functools import partial, wraps
+from functools import partial
 
 import numpy as np
 import pytorch_lightning as pl
@@ -107,6 +107,13 @@ class Base(BaseSupervisedScheduler):
     #
     #     return out
 
+    @staticmethod
+    def _obs_to_tuple(obs):
+        if obs.dtype.names is not None:
+            return tuple(obs[key] for key in obs.dtype.names)
+        else:
+            return obs,
+
     def _process_obs(self, obs, softmax=False):
         """
         Estimate action probabilities given an observation.
@@ -125,12 +132,7 @@ class Base(BaseSupervisedScheduler):
 
         """
 
-        if self.env.observe_mode:
-            obs = tuple(obs[key] for key in obs.dtype.names)
-        else:
-            obs = (obs,)
-
-        input_ = (torch.from_numpy(o[np.newaxis]).float() for o in obs)
+        input_ = (torch.from_numpy(o[np.newaxis]).float() for o in self._obs_to_tuple(obs))
         # input_ = input_.to(device)
         with torch.no_grad():
             out = self.model(*input_)
@@ -221,14 +223,8 @@ class Base(BaseSupervisedScheduler):
         x_val, y_val, *__ = self.env.data_gen_full(n_gen_val, weight_func=self.learn_params['weight_func'],
                                                    verbose=verbose)
 
-        if self.env.observe_mode:
-            x_train = tuple(x_train[key] for key in x_train.dtype.names)
-            x_val = tuple(x_val[key] for key in x_val.dtype.names)
-        else:
-            x_train = (x_train,)
-            x_val = (x_val,)
-        x_train = tuple(map(partial(torch.tensor, dtype=torch.float32), x_train))
-        x_val = tuple(map(partial(torch.tensor, dtype=torch.float32), x_val))
+        x_train = tuple(map(partial(torch.tensor, dtype=torch.float32), self._obs_to_tuple(x_train)))
+        x_val = tuple(map(partial(torch.tensor, dtype=torch.float32), self._obs_to_tuple(x_val)))
 
         # x_train, x_val = map(partial(torch.tensor, dtype=torch.float32), (x_train, x_val))
         y_train, y_val = map(partial(torch.tensor, dtype=torch.int64), (y_train, y_val))
