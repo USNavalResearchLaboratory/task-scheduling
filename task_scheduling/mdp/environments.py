@@ -403,7 +403,7 @@ class Base(Env, ABC):
 
 class Index(Base):
     def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, observe_mode=2,
-                 action_type='valid', seq_encoding='one-hot'):
+                 seq_encoding='one-hot'):
         """Tasking environment with actions of single task indices.
 
         Parameters
@@ -421,27 +421,12 @@ class Index(Base):
         observe_mode : {0, 1}, optional
             If `0`, only tasks and sequence info are encoded into a single tensor. If `1`, an observation for channel \
             availability is added.
-        action_type : {'valid', 'any'}, optional
-            If 'valid', action space is `DiscreteMasked`; if 'any', action space is `Discrete` and
-            repeated actions are allowed (for experimental purposes only).
         seq_encoding : function or str, optional
             Method that returns a 1-D encoded sequence representation for a given task index 'n'. Assumes that the
             encoded array sums to one for scheduled tasks and to zero for unscheduled tasks.
 
         """
         super().__init__(problem_gen, features, sort_func, time_shift, masking, observe_mode)
-
-        # Action types
-        # FIXME: deprecate once RL algorithms are successfully integrated
-        if action_type != 'valid':
-            raise NotImplementedError("Action type must be `valid`, all others deprecated.")
-        # self.action_type = action_type
-        # if self.action_type == 'valid':
-        #     self.do_valid_actions = True
-        # elif self.action_type == 'any':
-        #     self.do_valid_actions = False
-        # else:
-        #     raise ValueError("Action type must be 'valid' or 'any'.")
 
         # Set sequence encoder method
         if seq_encoding is None:
@@ -492,15 +477,9 @@ class Index(Base):
 
         self.steps_per_episode = self.n_tasks
         self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)
-        # if self.do_valid_actions:
-        #     # self.action_space = spaces_tasking.DiscreteSet(range(self.n_tasks))
-        #     self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)
-        # else:
-        #     self.action_space = Discrete(self.n_tasks)
 
     def summary(self):
         str_ = super().summary()
-        # str_ += f"\n- Action type: {self.action_type}"
         str_ += f"\n- Sequence encoding: {self._seq_encode_str}"
         return str_
 
@@ -517,7 +496,6 @@ class Index(Base):
 
     def _update_spaces(self):
         """Update observation and action spaces."""
-        # if self.do_valid_actions:
         seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
         # self.action_space = spaces_tasking.DiscreteSet(seq_rem_sort)
         self.action_space.mask = np.isin(np.arange(self.n_tasks), seq_rem_sort, invert=True)
@@ -542,24 +520,10 @@ class Index(Base):
 
         mask = self.make_mask(obs).astype(bool)
         return spaces_tasking.DiscreteMasked(self.n_tasks, mask)
-        # if self.do_valid_actions:
-        #     # obs_seq = obs[..., :self.len_seq_encode]
-        #     # # seq_rem_sort = np.flatnonzero(1 - obs_seq.sum(1))
-        #     # # return spaces_tasking.DiscreteSet(seq_rem_sort)
-        #     #
-        #     # mask = obs_seq.sum(axis=-1).astype(bool)
-        #     mask = self.make_mask(obs).astype(bool)
-        #     return spaces_tasking.DiscreteMasked(self.n_tasks, mask)
-        # else:
-        #     return Discrete(len(obs))
 
     def mask_probability(self, p):  # TODO: deprecate?
         """Returns masked action probabilities based on unscheduled task indices."""
         return np.ma.masked_array(p, self.action_space.mask)
-        # if self.do_valid_actions:
-        #     return np.ma.masked_array(p, self.action_space.mask)
-        # else:
-        #     return super().mask_probability(p)
 
 
 def seq_to_int(seq, check_input=True):
