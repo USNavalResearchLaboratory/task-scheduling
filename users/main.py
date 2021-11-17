@@ -76,9 +76,9 @@ env_params = {
     # 'masking': False,
     'masking': True,
     # 'seq_encoding': None,
-    'observe_mode': 2,
-    # 'observe_mode': 1,
     # 'observe_mode': 0,
+    # 'observe_mode': 1,
+    'observe_mode': 2,
     'seq_encoding': 'binary',
     # 'seq_encoding': 'one-hot',
 }
@@ -93,7 +93,7 @@ learn_params_torch = {
     'batch_size_val': 30,
     'weight_func': None,
     # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-    'max_epochs': 200,
+    'max_epochs': 20,
     'shuffle': True,
 }
 
@@ -105,7 +105,7 @@ class TorchCNN(nn.Module):
 
         n_filter = 400
         l_kernel = 8
-        self.conv1 = nn.Conv2d(1, n_filter, kernel_size=(l_kernel, 1+5))  # TODO: dependent width...
+        self.conv1 = nn.Conv2d(1, n_filter, kernel_size=(l_kernel, 1 + 5))  # TODO: dependent width...
         self.fc1 = nn.Linear(n_filter * (8-l_kernel+1), 8)
 
     def forward(self, x):
@@ -126,7 +126,7 @@ class TorchMulti(nn.Module):
 
         n_tasks = 8
         n_h = 400
-        self.fc_tasks = nn.Linear(n_tasks * (5 + 1), n_h)
+        self.fc_tasks = nn.Linear(n_tasks * (1 + 5), n_h)
         self.fc_ch = nn.Linear(1, n_h)
         self.fc_joint = nn.Linear(n_h, n_tasks)
 
@@ -166,7 +166,7 @@ class TorchMultiSeq(nn.Module):
         x = c + t  # TODO: different combo op? Pooling?
         x = self.fc_joint(x)
 
-        x = x - 1000 * seq  # TODO: different masking ops
+        x = x - 1000 * seq  # TODO: different masking ops?
 
         return x
 

@@ -61,7 +61,7 @@ class Base(Env, ABC):
         self.masking = masking
 
         self.reward_range = (-np.inf, 0)
-        self.loss_agg = None
+        self._loss_agg = None
 
         self.node = None  # MDP state
 
@@ -80,7 +80,6 @@ class Base(Env, ABC):
         if self.observe_mode == 2:
             self.observation_space = Dict(ch_avail=self._obs_space_ch, seq=self._obs_space_seq,
                                           tasks=self._obs_space_tasks)
-
         elif self.observe_mode == 1:
             self.observation_space = Dict(ch_avail=self._obs_space_ch, tasks=self._obs_space_tasks)
         else:
@@ -93,14 +92,6 @@ class Base(Env, ABC):
     n_ch = property(lambda self: self.problem_gen.n_ch)
     tasks = property(lambda self: self.node.tasks)
     ch_avail = property(lambda self: self.node.ch_avail)
-
-    # def _set_obs_space_attr(self):  # TODO: delete?
-    #     """Dynamically set missing attributes for `gym.spaces.Dict`"""
-    #     self.observation_space.shape = {}
-    #     self.observation_space.dtype = {}
-    #     for key, space in self.observation_space.spaces.items():
-    #         self.observation_space.shape[key] = space.shape
-    #         self.observation_space.dtype[key] = space.dtype
 
     def __repr__(self):
         if self.node is None:
@@ -163,20 +154,19 @@ class Base(Env, ABC):
     def obs(self):
         """Complete observation."""
         if self.observe_mode > 0:
-            data = tuple(getattr(self, f"_obs_{key}")() for key in self.observation_space)
+            data = tuple(getattr(self, f"_obs_{key}")() for key in self.observation_space)  # invoke `_obs_tasks`, etc.
             dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
             return np.array(data, dtype=dtype)
-            # return np.array((self.ch_avail, self._obs_tasks()), dtype=dtype)
 
             # TODO: delete `OrderedDict` approach in favor of my structured array?
             # return OrderedDict(ch_avail=self.ch_avail, tasks=self._obs_tasks())
         else:
             return self._obs_tasks()
 
-    @abstractmethod
-    def infer_action_space(self, obs):
-        """Determines the action `gym.Space` from an observation."""
-        raise NotImplementedError
+    # @abstractmethod  # TODO
+    # def infer_action_space(self, obs):
+    #     """Determines the action `gym.Space` from an observation."""
+    #     raise NotImplementedError
 
     def _update_spaces(self):
         """Update observation and action spaces."""
@@ -228,7 +218,7 @@ class Base(Env, ABC):
             self.node = tree_search.ScheduleNodeShift(tasks, ch_avail)
         else:
             self.node = tree_search.ScheduleNode(tasks, ch_avail)
-        self.loss_agg = self.node.loss  # Loss can be non-zero due to time origin shift during node initialization
+        self._loss_agg = self.node.loss  # Loss can be non-zero due to time origin shift during node initialization
 
         self._update_spaces()
 
@@ -260,7 +250,7 @@ class Base(Env, ABC):
 
         self.node.seq_extend(action)  # updates sequence, loss, task parameters, etc.
 
-        reward, self.loss_agg = self.loss_agg - self.node.loss, self.node.loss
+        reward, self._loss_agg = self._loss_agg - self.node.loss, self.node.loss
         done = len(self.node.seq_rem) == 0  # sequence is complete
 
         self._update_spaces()
@@ -273,8 +263,7 @@ class Base(Env, ABC):
             plot_task_losses(self.tasks, ax=ax_env)
 
     def close(self):
-        pass  # TODO: clear current problem?
-        # plt.close('all')
+        self.node = None
 
     def seed(self, seed=None):
         self.problem_gen.rng = seed
@@ -483,7 +472,7 @@ class Index(Base):
         str_ += f"\n- Sequence encoding: {self._seq_encode_str}"
         return str_
 
-    # def _obs_seq(self):  # FIXME
+    # def _obs_seq(self):  # FIXME: move seq stuff to base class!
     #     return np.array([self.seq_encoding(n) for n in self.sorted_index])
 
     def _obs_tasks(self):
@@ -493,6 +482,17 @@ class Index(Base):
         else:
             obs_seq = np.array([self.seq_encoding(n) for n in self.sorted_index])
             return np.concatenate((obs_seq, super()._obs_tasks()), axis=1)
+
+    # def obs(self):
+    #     """Complete observation."""
+    #     if self.observe_mode == 2:
+    #         return super().obs()
+    #     elif self.observe_mode == 1:
+    #         data = (self._obs_ch_avail(), np.concatenate((self._obs_seq(), self._obs_tasks()), axis=1))
+    #         dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
+    #         return np.array(data, dtype=dtype)
+    #     else:
+    #         return np.concatenate((self._obs_seq(), self._obs_tasks()), axis=1)
 
     def _update_spaces(self):
         """Update observation and action spaces."""
@@ -505,21 +505,22 @@ class Index(Base):
         n = self._seq_opt[len(self.node.seq)]  # next optimal task index
         return self.sorted_index_inv[n]  # encode task index to sorted action
 
-    def make_mask(self, obs):
-        if self.len_seq_encode == 0:
-            raise ValueError("Cannot infer valid actions without encoding sequence into the observation.")
-
-        obs_seq = obs[..., :self.len_seq_encode]
-        return obs_seq.sum(axis=-1)
-
-    def infer_action_space(self, obs):
-        """Determines the action Gym.Space from an observation."""
-        obs = np.asarray(obs)
-        if obs.ndim > 2:
-            raise ValueError("Input must be a single observation.")
-
-        mask = self.make_mask(obs).astype(bool)
-        return spaces_tasking.DiscreteMasked(self.n_tasks, mask)
+    # TODO: needs update
+    # def make_mask(self, obs):
+    #     if self.len_seq_encode == 0:
+    #         raise ValueError("Cannot infer valid actions without encoding sequence into the observation.")
+    #
+    #     obs_seq = obs[..., :self.len_seq_encode]
+    #     return obs_seq.sum(axis=-1)
+    #
+    # def infer_action_space(self, obs):
+    #     """Determines the action Gym.Space from an observation."""
+    #     obs = np.asarray(obs)
+    #     if obs.ndim > 2:
+    #         raise ValueError("Input must be a single observation.")
+    #
+    #     mask = self.make_mask(obs).astype(bool)
+    #     return spaces_tasking.DiscreteMasked(self.n_tasks, mask)
 
     def mask_probability(self, p):  # TODO: deprecate?
         """Returns masked action probabilities based on unscheduled task indices."""
@@ -649,6 +650,6 @@ class Seq(Base):
         elif self.action_type == 'int':
             return seq_to_int(seq_action)
 
-    def infer_action_space(self, obs):
-        """Determines the action Gym.Space from an observation."""
-        return self._action_space_map(len(obs))
+    # def infer_action_space(self, obs):  # TODO: needs update
+    #     """Determines the action Gym.Space from an observation."""
+    #     return self._action_space_map(len(obs))

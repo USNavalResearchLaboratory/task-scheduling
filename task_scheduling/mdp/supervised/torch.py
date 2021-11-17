@@ -107,7 +107,7 @@ class Base(BaseSupervisedScheduler):
     #
     #     return out
 
-    def _process_obs(self, obs, normalize=False):
+    def _process_obs(self, obs, softmax=False):
         """
         Estimate action probabilities given an observation.
 
@@ -115,7 +115,7 @@ class Base(BaseSupervisedScheduler):
         ----------
         obs : array_like
             Observation.
-        normalize : bool, optional
+        softmax : bool, optional
             Enable normalization of model outputs.
 
         Returns
@@ -135,7 +135,7 @@ class Base(BaseSupervisedScheduler):
         with torch.no_grad():
             out = self.model(*input_)
 
-        if normalize:
+        if softmax:
             out = functional.softmax(out, dim=-1)
 
         out = out.numpy()
@@ -144,7 +144,7 @@ class Base(BaseSupervisedScheduler):
         return out
 
     def predict_prob(self, obs):
-        return self._process_obs(obs, normalize=True)
+        return self._process_obs(obs, softmax=True)
 
     def predict(self, obs):
         """
