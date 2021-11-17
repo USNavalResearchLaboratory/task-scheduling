@@ -161,10 +161,8 @@ class DiscreteSet(Space):
 class DiscreteMasked(Discrete):
     def __init__(self, n, mask=np.ma.nomask):
         """A Discrete space with masked elements for sampling and membership testing."""
-
         super().__init__(n)
         self.mask = mask
-
         self._rng = np.random.default_rng()
 
     @property

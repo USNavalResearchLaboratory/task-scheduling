@@ -130,7 +130,6 @@ class Base(BaseSupervisedScheduler):
         else:
             obs = (obs,)
 
-        # input_ = torch.from_numpy(obs[np.newaxis]).float()
         input_ = (torch.from_numpy(o[np.newaxis]).float() for o in obs)
         # input_ = input_.to(device)
         with torch.no_grad():

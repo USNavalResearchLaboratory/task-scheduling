@@ -432,9 +432,9 @@ class Index(Base):
         super().__init__(problem_gen, features, sort_func, time_shift, masking, observe_mode)
 
         # Action types
+        # FIXME: deprecate once RL algorithms are successfully integrated
         if action_type != 'valid':
             raise NotImplementedError("Action type must be `valid`, all others deprecated.")
-        self.do_valid_actions = True  # FIXME: deprecate once RL algorithms are successfully integrated
         # self.action_type = action_type
         # if self.action_type == 'valid':
         #     self.do_valid_actions = True
@@ -491,11 +491,12 @@ class Index(Base):
             self.observation_space = spaces_tasking.concatenate((obs_space_seq, self.observation_space), axis=-1)
 
         self.steps_per_episode = self.n_tasks
-        if self.do_valid_actions:
-            # self.action_space = spaces_tasking.DiscreteSet(range(self.n_tasks))
-            self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)
-        else:
-            self.action_space = Discrete(self.n_tasks)
+        self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)
+        # if self.do_valid_actions:
+        #     # self.action_space = spaces_tasking.DiscreteSet(range(self.n_tasks))
+        #     self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)
+        # else:
+        #     self.action_space = Discrete(self.n_tasks)
 
     def summary(self):
         str_ = super().summary()
@@ -516,10 +517,10 @@ class Index(Base):
 
     def _update_spaces(self):
         """Update observation and action spaces."""
-        if self.do_valid_actions:
-            seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
-            # self.action_space = spaces_tasking.DiscreteSet(seq_rem_sort)
-            self.action_space.mask = np.isin(np.arange(self.n_tasks), seq_rem_sort, invert=True)
+        # if self.do_valid_actions:
+        seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
+        # self.action_space = spaces_tasking.DiscreteSet(seq_rem_sort)
+        self.action_space.mask = np.isin(np.arange(self.n_tasks), seq_rem_sort, invert=True)
 
     def opt_action(self):
         """Optimal action based on current state."""
@@ -539,24 +540,26 @@ class Index(Base):
         if obs.ndim > 2:
             raise ValueError("Input must be a single observation.")
 
-        if self.do_valid_actions:
-            # obs_seq = obs[..., :self.len_seq_encode]
-            # # seq_rem_sort = np.flatnonzero(1 - obs_seq.sum(1))
-            # # return spaces_tasking.DiscreteSet(seq_rem_sort)
-            #
-            # mask = obs_seq.sum(axis=-1).astype(bool)
-            mask = self.make_mask(obs).astype(bool)
-            return spaces_tasking.DiscreteMasked(self.n_tasks, mask)
-        else:
-            return Discrete(len(obs))
+        mask = self.make_mask(obs).astype(bool)
+        return spaces_tasking.DiscreteMasked(self.n_tasks, mask)
+        # if self.do_valid_actions:
+        #     # obs_seq = obs[..., :self.len_seq_encode]
+        #     # # seq_rem_sort = np.flatnonzero(1 - obs_seq.sum(1))
+        #     # # return spaces_tasking.DiscreteSet(seq_rem_sort)
+        #     #
+        #     # mask = obs_seq.sum(axis=-1).astype(bool)
+        #     mask = self.make_mask(obs).astype(bool)
+        #     return spaces_tasking.DiscreteMasked(self.n_tasks, mask)
+        # else:
+        #     return Discrete(len(obs))
 
     def mask_probability(self, p):  # TODO: deprecate?
         """Returns masked action probabilities based on unscheduled task indices."""
-
-        if self.do_valid_actions:
-            return np.ma.masked_array(p, self.action_space.mask)
-        else:
-            return super().mask_probability(p)
+        return np.ma.masked_array(p, self.action_space.mask)
+        # if self.do_valid_actions:
+        #     return np.ma.masked_array(p, self.action_space.mask)
+        # else:
+        #     return super().mask_probability(p)
 
 
 def seq_to_int(seq, check_input=True):

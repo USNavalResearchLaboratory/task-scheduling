@@ -69,12 +69,12 @@ problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 env_params = {
     'features': None,  # defaults to task parameters
     # 'features': encode_discrete_features(problem_gen),
-    'sort_func': None,
-    # 'sort_func': 't_release',
-    'time_shift': False,
-    # 'time_shift': True,
-    'masking': False,
-    # 'masking': True,
+    # 'sort_func': None,
+    'sort_func': 't_release',
+    # 'time_shift': False,
+    'time_shift': True,
+    # 'masking': False,
+    'masking': True,
     # 'seq_encoding': None,
     'observe_mode': 2,
     # 'observe_mode': 1,
@@ -93,7 +93,7 @@ learn_params_torch = {
     'batch_size_val': 30,
     'weight_func': None,
     # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-    'max_epochs': 2,
+    'max_epochs': 200,
     'shuffle': True,
 }
 
