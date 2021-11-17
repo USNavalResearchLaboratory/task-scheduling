@@ -118,8 +118,7 @@ class Base(Env, ABC):
         if value is None:
             self._seq_opt = None
         else:
-            self._seq_opt = np.argsort(value.sch['t'])
-            # maps to optimal schedule (empirical proof in `test_tree_nodes.test_argsort`)
+            self._seq_opt = np.argsort(value.sch['t'])  # maps to optimal schedule (see `test_tree_nodes.test_argsort`)
 
     @property
     def sorted_index(self):
@@ -158,7 +157,6 @@ class Base(Env, ABC):
             dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
             return np.array(data, dtype=dtype)
 
-            # TODO: delete `OrderedDict` approach in favor of my structured array?
             # return OrderedDict(ch_avail=self.ch_avail, tasks=self._obs_tasks())
         else:
             return self._obs_tasks()
@@ -317,7 +315,6 @@ class Base(Env, ABC):
                 dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
                 x_set = np.array(data, dtype=dtype)
 
-                # TODO: delete `OrderedDict` approach in favor of my structured array?
                 # x_set = OrderedDict([(key, np.empty((steps_total, *space.shape), dtype=space.dtype))
                 #                      for key, space in self.observation_space.spaces.items()])
                 # # x_set = {key: np.empty((steps_total, *space.shape),
@@ -360,30 +357,6 @@ class Base(Env, ABC):
         """Generate observation-action data, return in single feature/class arrays."""
         data, = self.data_gen(n_batch=1, batch_size=n_gen, weight_func=weight_func, verbose=verbose)
         return data
-
-    # def data_gen_baselines(self, n_gen):
-    #     steps_total = n_gen * self.steps_per_episode
-    #
-    #     observations, actions = self.data_gen_full(n_gen)
-    #     if observations.ndim == 1:
-    #         observations.shape = (steps_total, 1)
-    #     if actions.ndim == 1:
-    #         actions.shape = (steps_total, 1)
-    #
-    #     rewards = np.zeros(steps_total, dtype=float)
-    #     episode_returns = np.zeros(n_gen, dtype=float)
-    #     episode_starts = np.full(steps_total, False, dtype=bool)
-    #     episode_starts[np.arange(0, steps_total, self.steps_per_episode)] = True
-    #
-    #     numpy_dict = {
-    #         'actions': actions,
-    #         'obs': observations,
-    #         'rewards': rewards,
-    #         'episode_returns': episode_returns,
-    #         'episode_starts': episode_starts
-    #     }
-    #
-    #     return numpy_dict  # used to instantiate ExpertDataset object via `traj_data` arg
 
     def mask_probability(self, p):  # TODO: deprecate?
         """Returns masked action probabilities."""
@@ -442,11 +415,6 @@ class Index(Base):
 
         elif callable(seq_encoding):
             raise NotImplementedError('Generic callables not yet supported.')
-            # self.seq_encoding = MethodType(seq_encoding, self)
-            #
-            # env_copy = deepcopy(self)
-            # env_copy.reset()
-            # self.len_seq_encode = len(env_copy.seq_encoding(0))
         else:
             raise TypeError("Permutation encoding input must be callable or str.")
 
