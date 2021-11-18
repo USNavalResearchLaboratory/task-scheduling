@@ -23,7 +23,7 @@ from task_scheduling.generators import problems as problem_gens
 from task_scheduling.results import evaluate_algorithms_train, evaluate_algorithms_gen
 from task_scheduling.mdp.features import encode_discrete_features
 from task_scheduling.mdp.environments import Index, Seq
-from task_scheduling.mdp.supervised.torch import TorchScheduler, LitScheduler
+from task_scheduling.mdp.supervised.torch import TorchScheduler, LitScheduler, ValidNet
 from task_scheduling.mdp.base import RandomAgent
 # from task_scheduling.mdp.reinforcement import StableBaselinesScheduler
 
@@ -122,7 +122,7 @@ class TorchMulti(nn.Module):  # TODO: add CNN
         self.fc_tasks = nn.Linear(n_tasks * 5, n_h)
         self.fc_joint = nn.Linear(10 + n_h, n_tasks)
 
-    def forward(self, ch_avail, seq, tasks):
+    def forward(self, ch_avail, tasks):
         c = torch.flatten(ch_avail, start_dim=1)
         c = self.fc_ch(c)
         c = functional.relu(c)
@@ -133,14 +133,11 @@ class TorchMulti(nn.Module):  # TODO: add CNN
 
         x = torch.cat((c, t), dim=-1)
         x = self.fc_joint(x)
-
-        x = x - 1e6 * seq  # TODO: different masking ops?
-
         return x
 
 
 # torch_model = TorchCNN()
-torch_model = TorchMulti()
+torch_model = ValidNet(TorchMulti())
 
 torch_scheduler = TorchScheduler(env, torch_model, optim_params={'lr': 1e-3}, learn_params=learn_params_torch)
 # torch_scheduler = TorchScheduler.mlp(env, hidden_sizes_joint=[400], optim_params={'lr': 1e-3},

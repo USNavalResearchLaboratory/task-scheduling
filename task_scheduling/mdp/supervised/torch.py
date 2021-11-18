@@ -30,66 +30,6 @@ def reset_weights(model):
         model.reset_parameters()
 
 
-def _build_mlp(layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_layer=None):
-    """
-    PyTorch-Lightning sequential MLP.
-
-    Parameters
-    ----------
-    layer_sizes : iterable of int
-        Hidden layer sizes.
-    activation : nn.Module, optional
-    start_layer : nn.Module, optional
-    end_layer : nn.Module, optional
-
-    Returns
-    -------
-    nn.Sequential
-
-    """
-    layers = []
-    if start_layer is not None:
-        layers.append(start_layer)
-    for i, (in_, out_) in enumerate(zip(layer_sizes[:-1], layer_sizes[1:])):
-        layers.append(nn.Linear(in_, out_))
-        if i < len(layer_sizes) - 2:
-            layers.append(activation)
-    if end_layer is not None:
-        layers.append(end_layer)
-    return nn.Sequential(*layers)
-
-
-class MultiMLP(nn.Module):
-    def __init__(self, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=()):
-        super().__init__()
-
-        size_in_ch = np.prod(env.observation_space['ch_avail'].shape).item()
-        layer_sizes_ch = [size_in_ch, *hidden_sizes_ch]
-        end_layer_ch = nn.ReLU() if bool(hidden_sizes_ch) else None
-        self.mlp_ch = _build_mlp(layer_sizes_ch, end_layer=end_layer_ch)
-
-        size_in_tasks = np.prod(env.observation_space['tasks'].shape).item()
-        layer_sizes_tasks = [size_in_tasks, *hidden_sizes_tasks]
-        end_layer_tasks = nn.ReLU() if bool(hidden_sizes_tasks) else None
-        self.mlp_tasks = _build_mlp(layer_sizes_tasks, end_layer=end_layer_tasks)
-
-        size_in_joint = layer_sizes_ch[-1] + layer_sizes_tasks[-1]
-        layer_sizes_joint = [size_in_joint, *hidden_sizes_joint, env.action_space.n]
-        self.mlp_joint = _build_mlp(layer_sizes_joint, start_layer=None)
-
-    def forward(self, ch_avail, seq, tasks):
-        c = self.mlp_ch(ch_avail)
-        t = self.mlp_tasks(tasks)
-
-        x = torch.cat((c, t), dim=-1)
-        x = self.mlp_joint(x)
-
-        x = x - 1e6 * seq  # TODO: different masking ops?
-
-        return x
-
-
-# Scheduler classes
 class Base(BaseSupervisedScheduler):
     _learn_params_default = {
         'batch_size_train': 1,
@@ -258,6 +198,73 @@ class Base(BaseSupervisedScheduler):
         self._fit(dl_train, dl_val, verbose)
 
 
+def _build_mlp(layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_layer=None):
+    """
+    PyTorch-Lightning sequential MLP.
+
+    Parameters
+    ----------
+    layer_sizes : iterable of int
+        Hidden layer sizes.
+    activation : nn.Module, optional
+    start_layer : nn.Module, optional
+    end_layer : nn.Module, optional
+
+    Returns
+    -------
+    nn.Sequential
+
+    """
+    layers = []
+    if start_layer is not None:
+        layers.append(start_layer)
+    for i, (in_, out_) in enumerate(zip(layer_sizes[:-1], layer_sizes[1:])):
+        layers.append(nn.Linear(in_, out_))
+        if i < len(layer_sizes) - 2:
+            layers.append(activation)
+    if end_layer is not None:
+        layers.append(end_layer)
+    return nn.Sequential(*layers)
+
+
+class ValidNet(nn.Module):
+    def __init__(self, module):
+        super().__init__()
+        self.module = module
+
+    def forward(self, ch_avail, seq, tasks):
+        y = self.module(ch_avail, tasks)
+        y = y - 1e6 * seq  # TODO: try different masking operations?
+        return y
+
+
+class MultiMLP(nn.Module):
+    def __init__(self, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=()):
+        super().__init__()
+
+        size_in_ch = np.prod(env.observation_space['ch_avail'].shape).item()
+        layer_sizes_ch = [size_in_ch, *hidden_sizes_ch]
+        end_layer_ch = nn.ReLU() if bool(hidden_sizes_ch) else None
+        self.mlp_ch = _build_mlp(layer_sizes_ch, end_layer=end_layer_ch)
+
+        size_in_tasks = np.prod(env.observation_space['tasks'].shape).item()
+        layer_sizes_tasks = [size_in_tasks, *hidden_sizes_tasks]
+        end_layer_tasks = nn.ReLU() if bool(hidden_sizes_tasks) else None
+        self.mlp_tasks = _build_mlp(layer_sizes_tasks, end_layer=end_layer_tasks)
+
+        size_in_joint = layer_sizes_ch[-1] + layer_sizes_tasks[-1]
+        layer_sizes_joint = [size_in_joint, *hidden_sizes_joint, env.action_space.n]
+        self.mlp_joint = _build_mlp(layer_sizes_joint, start_layer=None)
+
+    def forward(self, ch_avail, tasks):
+        c = self.mlp_ch(ch_avail)
+        t = self.mlp_tasks(tasks)
+
+        x = torch.cat((c, t), dim=-1)
+        x = self.mlp_joint(x)
+        return x
+
+
 class TorchScheduler(Base):
     def __init__(self, env, model, loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None,
                  learn_params=None):
@@ -291,6 +298,7 @@ class TorchScheduler(Base):
     def mlp(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=(),
             loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None, learn_params=None):
         model = MultiMLP(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint)
+        model = ValidNet(model)
         return cls(env, model, loss_func, optim_cls, optim_params, learn_params)
 
     @classmethod
@@ -440,6 +448,7 @@ class LitScheduler(Base):
     def mlp(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=(), model_kwargs=None,
             trainer_kwargs=None, learn_params=None):
         module = MultiMLP(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint)
+        module = ValidNet(module)
         return cls.from_module(env, module, model_kwargs, trainer_kwargs, learn_params)
 
     @classmethod
