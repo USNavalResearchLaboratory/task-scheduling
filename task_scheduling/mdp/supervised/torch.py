@@ -126,47 +126,6 @@ class Base(BaseSupervisedScheduler):
         env = env_cls(problem_gen, **env_params)
         return cls(env, *args, **kwargs)
 
-    # def _process_obs(self, obs, normalize=False):  # TODO: delete?
-    #     """
-    #     Estimate action probabilities given an observation.
-    #
-    #     Parameters
-    #     ----------
-    #     obs : array_like
-    #         Observation.
-    #     normalize : bool, optional
-    #         Enable normalization of model outputs.
-    #
-    #     Returns
-    #     -------
-    #     numpy.ndarray
-    #         Action probabilities.
-    #
-    #     """
-    #     _batch = True
-    #     if obs.shape == self.env.observation_space.shape:
-    #         _batch = False
-    #         obs = obs[np.newaxis]
-    #     else:
-    #         raise NotImplementedError("Batch prediction not supported.")
-    #     obs = obs.astype('float32')
-    #
-    #     with torch.no_grad():
-    #         # input_ = torch.from_numpy(obs[np.newaxis]).float()
-    #         input_ = torch.from_numpy(obs)
-    #         # input_ = input_.to(device)
-    #         out = self.model(input_)
-    #
-    #     if normalize:
-    #         # out = functional.normalize(out, p=1, dim=-1)
-    #         out = functional.softmax(out, dim=-1)
-    #
-    #     out = out.numpy()
-    #     if not _batch:
-    #         out = out.squeeze(axis=0)
-    #
-    #     return out
-
     @staticmethod
     def _obs_to_tuple(obs):
         if obs.dtype.names is not None:
@@ -286,7 +245,6 @@ class Base(BaseSupervisedScheduler):
         x_train = tuple(map(partial(torch.tensor, dtype=torch.float32), self._obs_to_tuple(x_train)))
         x_val = tuple(map(partial(torch.tensor, dtype=torch.float32), self._obs_to_tuple(x_val)))
 
-        # x_train, x_val = map(partial(torch.tensor, dtype=torch.float32), (x_train, x_val))
         y_train, y_val = map(partial(torch.tensor, dtype=torch.int64), (y_train, y_val))
 
         ds_train = TensorDataset(*x_train, y_train)
@@ -328,25 +286,6 @@ class TorchScheduler(Base):
         if optim_params is None:
             optim_params = {}
         self.optimizer = optim_cls(self.model.parameters(), **optim_params)
-
-    # @classmethod
-    # def mlp(cls, env, hidden_layer_sizes=(), mlp_kwargs=None, loss_func=functional.cross_entropy, optim_cls=optim.Adam,
-    #         optim_params=None, learn_params=None):
-    #     layer_sizes = [np.prod(env.observation_space.shape).item(), *hidden_layer_sizes, env.action_space.n]
-    #     if mlp_kwargs is None:
-    #         mlp_kwargs = {}
-    #     model = _build_mlp(layer_sizes, **mlp_kwargs)
-    #
-    #     return cls(env, model, loss_func, optim_cls, optim_params, learn_params)
-    #
-    # @classmethod
-    # def from_gen_mlp(cls, problem_gen, env_cls=Index, env_params=None, hidden_layer_sizes=(), mlp_kwargs=None,
-    #                  loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None, learn_params=None):
-    #     if env_params is None:
-    #         env_params = {}
-    #     env = env_cls(problem_gen, **env_params)
-    #
-    #     return cls.mlp(env, hidden_layer_sizes, mlp_kwargs, loss_func, optim_cls, optim_params, learn_params)
 
     @classmethod
     def mlp(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=(),
@@ -395,36 +334,6 @@ class TorchScheduler(Base):
 
             if verbose >= 1:
                 print(f"  Epoch = {epoch} : loss = {val_loss:.3f}", end='\r')
-
-    # def _fit(self, dl_train, dl_val, verbose=0):
-    #     if verbose >= 1:
-    #         print('Training model...')
-    #
-    #     def loss_batch(model, loss_func, xb_, yb_, opt=None):
-    #         xb_, yb_ = xb_.to(device), yb_.to(device, dtype=torch.int64)
-    #         loss = loss_func(model(xb_), yb_)
-    #
-    #         if opt is not None:
-    #             loss.backward()
-    #             opt.step()
-    #             opt.zero_grad()
-    #
-    #         return loss.item(), len(xb_)
-    #
-    #     for epoch in range(self.learn_params['max_epochs']):
-    #         self.model.train()
-    #         for xb, yb in dl_train:
-    #             loss_batch(self.model, self.loss_func, xb, yb, self.optimizer)
-    #
-    #         self.model.eval()
-    #         with torch.no_grad():
-    #             losses, nums = zip(
-    #                 *[loss_batch(self.model, self.loss_func, xb, yb) for xb, yb in dl_val]
-    #             )
-    #         val_loss = np.sum(np.multiply(losses, nums)) / np.sum(nums)
-    #
-    #         if verbose >= 1:
-    #             print(f"  Epoch = {epoch} : loss = {val_loss:.3f}", end='\r')
 
     def learn(self, n_gen_learn, verbose=0):
         self.model = self.model.to(device)
@@ -526,24 +435,6 @@ class LitScheduler(Base):
         env = env_cls(problem_gen, **env_params)
 
         cls.from_module(env, module, model_kwargs, trainer_kwargs, learn_params)
-
-    # @classmethod
-    # def mlp(cls, env, hidden_layer_sizes, mlp_kwargs=None, model_kwargs=None, trainer_kwargs=None, learn_params=None):
-    #     layer_sizes = [np.prod(env.observation_space.shape).item(), *hidden_layer_sizes, env.action_space.n]
-    #     if mlp_kwargs is None:
-    #         mlp_kwargs = {}
-    #     module = _build_mlp(layer_sizes, **mlp_kwargs)
-    #
-    #     return cls.from_module(env, module, model_kwargs, trainer_kwargs, learn_params)
-
-    # @classmethod
-    # def from_gen_mlp(cls, problem_gen, env_cls=Index, env_params=None, hidden_layer_sizes=(), mlp_kwargs=None,
-    #                  model_kwargs=None, trainer_kwargs=None, learn_params=None):
-    #     if env_params is None:
-    #         env_params = {}
-    #     env = env_cls(problem_gen, **env_params)
-    #
-    #     return cls.mlp(env, hidden_layer_sizes, mlp_kwargs, model_kwargs, trainer_kwargs, learn_params)
 
     @classmethod
     def mlp(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=(), model_kwargs=None,
