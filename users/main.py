@@ -113,7 +113,7 @@ learn_params_torch = {
 #         return x
 
 
-class TorchMulti(nn.Module):  # TODO: delete. Generalized in `MultiMLP`
+class TorchMulti(nn.Module):  # TODO: add CNN
     def __init__(self):
         super().__init__()
         n_tasks = 8
