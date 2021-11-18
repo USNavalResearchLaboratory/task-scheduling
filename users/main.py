@@ -87,7 +87,7 @@ learn_params_torch = {
     'batch_size_val': 30,
     'weight_func': None,
     # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
-    'max_epochs': 20,
+    'max_epochs': 200,
     'shuffle': True,
 }
 
@@ -113,7 +113,7 @@ learn_params_torch = {
 #         return x
 
 
-class TorchMulti(nn.Module):
+class TorchMulti(nn.Module):  # TODO: delete. Generalized in `MultiMLP`
     def __init__(self):
         super().__init__()
         n_tasks = 8
@@ -134,7 +134,7 @@ class TorchMulti(nn.Module):
         x = torch.cat((c, t), dim=-1)
         x = self.fc_joint(x)
 
-        x = x - 1000 * seq  # TODO: different masking ops?
+        x = x - 1e6 * seq  # TODO: different masking ops?
 
         return x
 
@@ -143,7 +143,7 @@ class TorchMulti(nn.Module):
 torch_model = TorchMulti()
 
 torch_scheduler = TorchScheduler(env, torch_model, optim_params={'lr': 1e-3}, learn_params=learn_params_torch)
-# torch_scheduler = TorchScheduler.mlp(env, hidden_layer_sizes=[400], optim_params={'lr': 1e-3},
+# torch_scheduler = TorchScheduler.mlp(env, hidden_sizes_joint=[400], optim_params={'lr': 1e-3},
 #                                      learn_params=learn_params_torch)
 
 
@@ -160,7 +160,7 @@ pl_trainer_kwargs = {
 
 # lit_scheduler = LitScheduler.from_module(env, torch_model, trainer_kwargs=pl_trainer_kwargs,
 #                                          learn_params=learn_params_torch)
-# # lit_scheduler = LitScheduler.mlp(env, hidden_layer_sizes=[400], model_kwargs={'optim_params': {'lr': 1e-3}},
+# # lit_scheduler = LitScheduler.mlp(env, hidden_sizes_joint=[400], model_kwargs={'optim_params': {'lr': 1e-3}},
 # #                                  trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch)
 
 

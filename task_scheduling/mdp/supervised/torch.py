@@ -240,20 +240,63 @@ class Base(BaseSupervisedScheduler):
         self._fit(dl_train, dl_val, verbose)
 
 
-def build_torch_mlp(layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_layer=None):
+def _build_mlp(layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_layer=None):
+    """
+    PyTorch-Lightning sequential MLP.
+
+    Parameters
+    ----------
+    layer_sizes : iterable of int
+        Hidden layer sizes.
+    activation : nn.Module, optional
+    start_layer : nn.Module, optional
+    end_layer : nn.Module, optional
+
+    Returns
+    -------
+    nn.Sequential
+
+    """
     layers = []
     if start_layer is not None:
         layers.append(start_layer)
-    for in_out in zip(layer_sizes[:-1], layer_sizes[1:]):
-        layers.append(nn.Linear(*in_out))
-        layers.append(activation)
-    layers.pop()
+    for i, (in_, out_) in enumerate(zip(layer_sizes[:-1], layer_sizes[1:])):
+        layers.append(nn.Linear(in_, out_))
+        if i < len(layer_sizes) - 2:
+            layers.append(activation)
     if end_layer is not None:
         layers.append(end_layer)
+    return nn.Sequential(*layers)
 
-    model = nn.Sequential(*layers)
-    model.valid_fwd = False
-    return model
+
+class MultiMLP(nn.Module):
+    def __init__(self, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=()):
+        super().__init__()
+
+        size_in_ch = np.prod(env.observation_space['ch_avail'].shape).item()
+        layer_sizes_ch = [size_in_ch, *hidden_sizes_ch]
+        end_layer_ch = nn.ReLU() if bool(hidden_sizes_ch) else None
+        self.mlp_ch = _build_mlp(layer_sizes_ch, end_layer=end_layer_ch)
+
+        size_in_tasks = np.prod(env.observation_space['tasks'].shape).item()
+        layer_sizes_tasks = [size_in_tasks, *hidden_sizes_tasks]
+        end_layer_tasks = nn.ReLU() if bool(hidden_sizes_tasks) else None
+        self.mlp_tasks = _build_mlp(layer_sizes_tasks, end_layer=end_layer_tasks)
+
+        size_in_joint = layer_sizes_ch[-1] + layer_sizes_tasks[-1]
+        layer_sizes_joint = [size_in_joint, *hidden_sizes_joint, env.action_space.n]
+        self.mlp_joint = _build_mlp(layer_sizes_joint, start_layer=None)
+
+    def forward(self, ch_avail, seq, tasks):
+        c = self.mlp_ch(ch_avail)
+        t = self.mlp_tasks(tasks)
+
+        x = torch.cat((c, t), dim=-1)
+        x = self.mlp_joint(x)
+
+        x = x - 1e6 * seq  # TODO: different masking ops?
+
+        return x
 
 
 class TorchScheduler(Base):
@@ -285,24 +328,41 @@ class TorchScheduler(Base):
             optim_params = {}
         self.optimizer = optim_cls(self.model.parameters(), **optim_params)
 
-    @classmethod
-    def mlp(cls, env, hidden_layer_sizes=(), mlp_kwargs=None, loss_func=functional.cross_entropy, optim_cls=optim.Adam,
-            optim_params=None, learn_params=None):
-        layer_sizes = [np.prod(env.observation_space.shape).item(), *hidden_layer_sizes, env.action_space.n]
-        if mlp_kwargs is None:
-            mlp_kwargs = {}
-        model = build_torch_mlp(layer_sizes, **mlp_kwargs)
+    # @classmethod
+    # def mlp(cls, env, hidden_layer_sizes=(), mlp_kwargs=None, loss_func=functional.cross_entropy, optim_cls=optim.Adam,
+    #         optim_params=None, learn_params=None):
+    #     layer_sizes = [np.prod(env.observation_space.shape).item(), *hidden_layer_sizes, env.action_space.n]
+    #     if mlp_kwargs is None:
+    #         mlp_kwargs = {}
+    #     model = _build_mlp(layer_sizes, **mlp_kwargs)
+    #
+    #     return cls(env, model, loss_func, optim_cls, optim_params, learn_params)
+    #
+    # @classmethod
+    # def from_gen_mlp(cls, problem_gen, env_cls=Index, env_params=None, hidden_layer_sizes=(), mlp_kwargs=None,
+    #                  loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None, learn_params=None):
+    #     if env_params is None:
+    #         env_params = {}
+    #     env = env_cls(problem_gen, **env_params)
+    #
+    #     return cls.mlp(env, hidden_layer_sizes, mlp_kwargs, loss_func, optim_cls, optim_params, learn_params)
 
+    @classmethod
+    def mlp(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=(),
+            loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None, learn_params=None):
+        model = MultiMLP(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint)
         return cls(env, model, loss_func, optim_cls, optim_params, learn_params)
 
     @classmethod
-    def from_gen_mlp(cls, problem_gen, env_cls=Index, env_params=None, hidden_layer_sizes=(), mlp_kwargs=None,
-                     loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None, learn_params=None):
+    def from_gen_mlp(cls, problem_gen, env_cls=Index, env_params=None, hidden_sizes_ch=(), hidden_sizes_tasks=(),
+                     hidden_sizes_joint=(), loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None,
+                     learn_params=None):
         if env_params is None:
             env_params = {}
         env = env_cls(problem_gen, **env_params)
 
-        return cls.mlp(env, hidden_layer_sizes, mlp_kwargs, loss_func, optim_cls, optim_params, learn_params)
+        return cls.mlp(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint, loss_func, optim_cls, optim_params,
+                       learn_params)
 
     def _fit(self, dl_train, dl_val, verbose=0):
         if verbose >= 1:
@@ -466,23 +526,39 @@ class LitScheduler(Base):
 
         cls.from_module(env, module, model_kwargs, trainer_kwargs, learn_params)
 
-    @classmethod
-    def mlp(cls, env, hidden_layer_sizes, mlp_kwargs=None, model_kwargs=None, trainer_kwargs=None, learn_params=None):
-        layer_sizes = [np.prod(env.observation_space.shape).item(), *hidden_layer_sizes, env.action_space.n]
-        if mlp_kwargs is None:
-            mlp_kwargs = {}
-        module = build_torch_mlp(layer_sizes, **mlp_kwargs)
+    # @classmethod
+    # def mlp(cls, env, hidden_layer_sizes, mlp_kwargs=None, model_kwargs=None, trainer_kwargs=None, learn_params=None):
+    #     layer_sizes = [np.prod(env.observation_space.shape).item(), *hidden_layer_sizes, env.action_space.n]
+    #     if mlp_kwargs is None:
+    #         mlp_kwargs = {}
+    #     module = _build_mlp(layer_sizes, **mlp_kwargs)
+    #
+    #     return cls.from_module(env, module, model_kwargs, trainer_kwargs, learn_params)
 
+    # @classmethod
+    # def from_gen_mlp(cls, problem_gen, env_cls=Index, env_params=None, hidden_layer_sizes=(), mlp_kwargs=None,
+    #                  model_kwargs=None, trainer_kwargs=None, learn_params=None):
+    #     if env_params is None:
+    #         env_params = {}
+    #     env = env_cls(problem_gen, **env_params)
+    #
+    #     return cls.mlp(env, hidden_layer_sizes, mlp_kwargs, model_kwargs, trainer_kwargs, learn_params)
+
+    @classmethod
+    def mlp(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=(), model_kwargs=None,
+            trainer_kwargs=None, learn_params=None):
+        module = MultiMLP(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint)
         return cls.from_module(env, module, model_kwargs, trainer_kwargs, learn_params)
 
     @classmethod
-    def from_gen_mlp(cls, problem_gen, env_cls=Index, env_params=None, hidden_layer_sizes=(), mlp_kwargs=None,
-                     model_kwargs=None, trainer_kwargs=None, learn_params=None):
+    def from_gen_mlp(cls, problem_gen, env_cls=Index, env_params=None, hidden_sizes_ch=(), hidden_sizes_tasks=(),
+                     hidden_sizes_joint=(), model_kwargs=None, trainer_kwargs=None, learn_params=None):
         if env_params is None:
             env_params = {}
         env = env_cls(problem_gen, **env_params)
 
-        return cls.mlp(env, hidden_layer_sizes, mlp_kwargs, model_kwargs, trainer_kwargs, learn_params)
+        return cls.mlp(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint, model_kwargs, trainer_kwargs,
+                       learn_params)
 
     def reset(self):
         super().reset()
