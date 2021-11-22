@@ -2,6 +2,7 @@ import math
 from abc import abstractmethod
 from copy import deepcopy
 from functools import partial
+from inspect import signature
 from pathlib import Path
 
 import dill
@@ -176,24 +177,33 @@ class Base(BaseSupervisedScheduler):
 
         if verbose >= 1:
             print("Generating training data...")
-        x_train, y_train, *__ = self.env.data_gen_full(n_gen_train, weight_func=self.learn_params['weight_func'],
-                                                       verbose=verbose)
+        x_train, y_train, *w_train = self.env.data_gen_full(n_gen_train, weight_func=self.learn_params['weight_func'],
+                                                            verbose=verbose)
 
         if verbose >= 1:
             print("Generating validation data...")
-        x_val, y_val, *__ = self.env.data_gen_full(n_gen_val, weight_func=self.learn_params['weight_func'],
-                                                   verbose=verbose)
+        x_val, y_val, *w_val = self.env.data_gen_full(n_gen_val, weight_func=self.learn_params['weight_func'],
+                                                      verbose=verbose)
 
         x_train = tuple(map(partial(torch.tensor, dtype=torch.float32), self._obs_to_tuple(x_train)))
         x_val = tuple(map(partial(torch.tensor, dtype=torch.float32), self._obs_to_tuple(x_val)))
 
         y_train, y_val = map(partial(torch.tensor, dtype=torch.int64), (y_train, y_val))
 
-        ds_train = TensorDataset(*x_train, y_train)
+        tensors_train = [*x_train, y_train]
+        tensors_val = [*x_val, y_val]
+
+        if callable(self.learn_params['weight_func']):
+            w_train, w_val = map(partial(torch.tensor, dtype=torch.float32), (w_train[0], w_val[0]))
+            tensors_train.append(w_train)
+            tensors_val.append(w_val)
+
+        # ds_train = TensorDataset(*x_train, y_train)
+        ds_train = TensorDataset(*tensors_train)
         dl_train = DataLoader(ds_train, batch_size=self.learn_params['batch_size_train'] * self.env.steps_per_episode,
                               shuffle=self.learn_params['shuffle'], pin_memory=PIN_MEMORY, num_workers=NUM_WORKERS)
 
-        ds_val = TensorDataset(*x_val, y_val)
+        ds_val = TensorDataset(*tensors_val)
         dl_val = DataLoader(ds_val, batch_size=self.learn_params['batch_size_val'] * self.env.steps_per_episode,
                             shuffle=False, pin_memory=PIN_MEMORY, num_workers=NUM_WORKERS)
 
@@ -377,8 +387,14 @@ class TorchScheduler(Base):
 
         def loss_batch(model, loss_func, batch_, opt=None):
             batch_ = [t.to(device) for t in batch_]
-            xb_, yb_ = batch_[:-1], batch_[-1]
-            loss = loss_func(model(*xb_), yb_)
+
+            if callable(self.learn_params['weight_func']):
+                xb_, yb_, wb_ = batch_[:-2], batch_[-2], batch_[-1]
+                losses_ = loss_func(model(*xb_), yb_, reduction='none')
+                loss = torch.mean(wb_ * losses_)
+            else:
+                xb_, yb_ = batch_[:-1], batch_[-1]
+                loss = loss_func(model(*xb_), yb_)
 
             if opt is not None:
                 loss.backward()
@@ -419,20 +435,35 @@ class LitModel(pl.LightningModule):
             optim_params = {}
         self.optim_params = optim_params
 
+        sig = signature(module.forward)
+        self._n_in = len(sig.parameters)
+
     def forward(self, *args, **kwargs):
         return self.module(*args, **kwargs)
 
+    def _process_batch(self, batch, batch_idx):
+        if len(batch) > self._n_in + 1:  # includes sample weighting
+            x, y, w = batch[:-2], batch[-2], batch[-1]
+            losses = self.loss_func(self(*x), y, reduction='none')
+            loss = torch.mean(w * losses)
+        elif len(batch) == self._n_in + 1:
+            x, y = batch[:-1], batch[-1]
+            loss = self.loss_func(self(*x), y)
+        else:
+            raise ValueError
+
+        # x, y = batch[:-1], batch[-1]
+        # y_hat = self(*x)
+        # loss = self.loss_func(y_hat, y)
+        return loss
+
     def training_step(self, batch, batch_idx):
-        x, y = batch[:-1], batch[-1]
-        y_hat = self(*x)
-        loss = self.loss_func(y_hat, y)
+        loss = self._process_batch(batch, batch_idx)
         self.log('train_loss', loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch[:-1], batch[-1]
-        y_hat = self(*x)
-        loss = self.loss_func(y_hat, y)
+        loss = self._process_batch(batch, batch_idx)
         self.log('val_loss', loss)
         return loss
 

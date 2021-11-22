@@ -325,8 +325,7 @@ class Base(Env, ABC):
 
                     obs, reward, done, info = self.step(action)  # updates environment state
                     if callable(weight_func):
-                        # w_set[i] = weight_func(self)  # TODO: use rewards for weighting!?!
-                        w_set[i] = reward
+                        w_set[i] = weight_func(obs, action, reward)  # TODO: use rewards for weighting!?!
 
                     i_step += 1
 
