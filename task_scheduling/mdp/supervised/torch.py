@@ -1,8 +1,8 @@
 import math
-# from pathlib import Path
 from abc import abstractmethod
 from copy import deepcopy
 from functools import partial
+from pathlib import Path
 
 import numpy as np
 import pytorch_lightning as pl
@@ -91,7 +91,8 @@ class Base(BaseSupervisedScheduler):
 
         """
 
-        input_ = (torch.from_numpy(o[np.newaxis]).float() for o in self._obs_to_tuple(obs))
+        # input_ = (torch.from_numpy(o[np.newaxis]).float() for o in self._obs_to_tuple(obs))
+        input_ = (torch.from_numpy(o).float().unsqueeze(0) for o in self._obs_to_tuple(obs))
         # input_ = input_.to(device)
         with torch.no_grad():
             out = self.model(*input_)
@@ -197,6 +198,27 @@ class Base(BaseSupervisedScheduler):
 
         self._fit(dl_train, dl_val, verbose)
 
+    # def save(self, save_path):
+    #     save_path = Path(save_path)
+    #
+    #     if save_path.is_file():
+    #         pass
+    #     # file.parent.mkdir(parents=True, exist_ok=True)
+    #
+    #     with Path(save_path).joinpath('env').open(mode='wb') as fid:
+    #         dill.dump(self.env, fid)  # save environment
+    #
+    #     torch.save(self.model, save_path)
+    #
+    # @classmethod
+    # def load(cls, load_path, *args, **kwargs):
+    #     model = torch.load(load_path)
+    #
+    #     with Path(load_path).joinpath('env').open(mode='rb') as fid:
+    #         env = dill.load(fid)
+    #
+    #     return cls(env, model, *args, **kwargs)
+
 
 def _build_mlp(layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_layer=None):
     """
@@ -262,6 +284,42 @@ class MultiMLP(nn.Module):
 
         x = torch.cat((c, t), dim=-1)
         x = self.mlp_joint(x)
+        return x
+
+
+class VaryCNN(nn.Module):
+    def __init__(self, n_features):
+        super().__init__()
+
+        n_filter = 400
+        l_kernel = 2
+
+        # TODO: padding mode?
+        # self.conv1 = nn.Conv2d(1, n_filter, kernel_size=(l_kernel, n_features), padding=(l_kernel-1, 0))
+        # self.conv2 = nn.Conv1d(n_filter, 1, kernel_size=(l_kernel,), padding=l_kernel - 1)
+        self.conv1 = nn.Conv2d(1, n_filter, kernel_size=(l_kernel, n_features))
+        self.conv2 = nn.Conv1d(n_filter, 1, kernel_size=(l_kernel,))
+
+    def forward(self, ch_avail, tasks):  # TODO: chan info?
+        x = tasks
+
+        n_batch, n_tasks, n_features = x.shape
+        device_ = x.device
+
+        x = x.view(n_batch, 1, n_tasks, n_features)
+
+        pad = torch.zeros(n_batch, 1, self.conv1.kernel_size[0] - 1, n_features, device=device_)
+        x = torch.cat((x, pad), dim=2)
+        x = self.conv1(x)
+        x = x.squeeze(dim=3)
+        x = functional.relu(x)
+
+        pad = torch.zeros(n_batch, self.conv2.in_channels, self.conv2.kernel_size[0] - 1, device=device_)
+        x = torch.cat((x, pad), dim=2)
+        x = self.conv2(x)
+        x = x.squeeze(dim=1)
+        x = functional.relu(x)
+
         return x
 
 
@@ -347,24 +405,6 @@ class TorchScheduler(Base):
         self.model = self.model.to(device)
         super().learn(n_gen_learn, verbose)
         self.model = self.model.to('cpu')  # move back to CPU for single sample evaluations in `__call__`
-
-    # def save(self, save_path=None):
-    #     if save_path is None:
-    #         save_path = f"models/temp/{NOW_STR}.pth"
-    #
-    #     with Path(save_path).joinpath('env').open(mode='wb') as fid:
-    #         dill.dump(self.env, fid)  # save environment
-    #
-    #     torch.save(self.model, save_path)
-    #
-    # @classmethod
-    # def load(cls, load_path):
-    #     model = torch.load(load_path)
-    #
-    #     with Path(load_path).joinpath('env').open(mode='rb') as fid:
-    #         env = dill.load(fid)
-    #
-    #     return cls(model, env)
 
 
 class LitModel(pl.LightningModule):

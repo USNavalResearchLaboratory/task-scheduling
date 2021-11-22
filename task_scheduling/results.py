@@ -360,7 +360,7 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, n_gen_learn=0, sol
     """
 
     learners = algorithms[[isinstance(alg['func'], BaseLearningScheduler) for alg in algorithms]]
-    _do_learn = bool(len(learners))
+    _do_learn = bool(len(learners)) and bool(n_gen_learn)
     if not _do_learn:
         n_gen_learn = 0
 

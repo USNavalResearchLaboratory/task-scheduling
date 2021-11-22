@@ -23,7 +23,7 @@ from task_scheduling.generators import problems as problem_gens
 from task_scheduling.results import evaluate_algorithms_train, evaluate_algorithms_gen
 from task_scheduling.mdp.features import encode_discrete_features
 from task_scheduling.mdp.environments import Index, Seq
-from task_scheduling.mdp.supervised.torch import TorchScheduler, LitScheduler, ValidNet, _build_mlp
+from task_scheduling.mdp.supervised.torch import TorchScheduler, LitScheduler, ValidNet, VaryCNN
 from task_scheduling.mdp.base import RandomAgent
 # from task_scheduling.mdp.reinforcement import StableBaselinesScheduler
 
@@ -57,8 +57,8 @@ if seed is not None:
 
 data_path = Path('../data/')
 
-# dataset = 'continuous_relu_drop_c1t4'
-dataset = 'continuous_relu_drop_c1t8'
+dataset = 'continuous_relu_drop_c1t4'
+# dataset = 'continuous_relu_drop_c1t8'
 # dataset = 'continuous_relu_drop_c2t8'
 # dataset = 'discrete_relu_drop_c1t8'
 # dataset = 'discrete_relu_drop_c2t8'
@@ -92,72 +92,7 @@ learn_params_torch = {
 }
 
 
-class TorchCNN(nn.Module):
-    def __init__(self, n_features):
-        super().__init__()
-
-        n_filter = 400
-        l_kernel = 2
-
-        # TODO: padding mode?
-        # self.conv1 = nn.Conv2d(1, n_filter, kernel_size=(l_kernel, n_features), padding=(l_kernel-1, 0))
-        # self.conv2 = nn.Conv1d(n_filter, 1, kernel_size=(l_kernel,), padding=l_kernel - 1)
-        self.conv1 = nn.Conv2d(1, n_filter, kernel_size=(l_kernel, n_features))
-        self.conv2 = nn.Conv1d(n_filter, 1, kernel_size=(l_kernel,))
-
-    def forward(self, ch_avail, tasks):  # TODO: chan info?
-        x = tasks
-
-        n_batch, n_tasks, n_features = x.shape
-        device = x.device
-
-        x = x.view(n_batch, 1, n_tasks, n_features)
-
-        pad = torch.zeros(n_batch, 1, self.conv1.kernel_size[0]-1, n_features, device=device)
-        x = torch.cat((x, pad), dim=2)
-        x = self.conv1(x)
-        x = x.squeeze(dim=3)
-        # x = x[:, :, self.conv1.kernel_size[0]-1:, 0]
-        x = functional.relu(x)
-
-        pad = torch.zeros(n_batch, self.conv2.in_channels, self.conv2.kernel_size[0] - 1, device=device)
-        x = torch.cat((x, pad), dim=2)
-        x = self.conv2(x)
-        x = x.squeeze(dim=1)
-        # x = x[:, 0, self.conv2.kernel_size[0]-1:]
-        x = functional.relu(x)
-
-        return x
-
-
-class MultiNet(nn.Module):
-    def __init__(self, env_, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=()):
-        super().__init__()
-
-        size_in_ch = np.prod(env_.observation_space['ch_avail'].shape).item()
-        layer_sizes_ch = [size_in_ch, *hidden_sizes_ch]
-        end_layer_ch = nn.ReLU() if bool(hidden_sizes_ch) else None
-        self.mlp_ch = _build_mlp(layer_sizes_ch, end_layer=end_layer_ch)
-
-        size_in_tasks = np.prod(env_.observation_space['tasks'].shape).item()
-        layer_sizes_tasks = [size_in_tasks, *hidden_sizes_tasks]
-        end_layer_tasks = nn.ReLU() if bool(hidden_sizes_tasks) else None
-        self.mlp_tasks = _build_mlp(layer_sizes_tasks, end_layer=end_layer_tasks)
-
-        size_in_joint = layer_sizes_ch[-1] + layer_sizes_tasks[-1]
-        layer_sizes_joint = [size_in_joint, *hidden_sizes_joint, env_.action_space.n]
-        self.mlp_joint = _build_mlp(layer_sizes_joint, start_layer=None)
-
-    def forward(self, ch_avail, tasks):
-        c = self.mlp_ch(ch_avail)
-        t = self.mlp_tasks(tasks)
-
-        x = torch.cat((c, t), dim=-1)
-        x = self.mlp_joint(x)
-        return x
-
-
-torch_model = TorchCNN(len(env.features))
+torch_model = VaryCNN(len(env.features))
 # torch_model = MultiNet(env, hidden_sizes_joint=[400])
 
 # torch_scheduler = TorchScheduler(env, ValidNet(torch_model), optim_params={'lr': 1e-3}, learn_params=learn_params_torch)
@@ -182,6 +117,8 @@ lit_scheduler = LitScheduler.from_module(env, ValidNet(torch_model), model_kwarg
                                          learn_params=learn_params_torch)
 # lit_scheduler = LitScheduler.mlp(env, hidden_sizes_joint=[400], model_kwargs={'optim_params': {'lr': 1e-3}},
 #                                  trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch)
+
+# lit_scheduler = LitScheduler(env, torch.load('model.pth'))
 
 
 random_agent = RandomAgent(env)
