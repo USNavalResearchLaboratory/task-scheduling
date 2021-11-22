@@ -113,12 +113,12 @@ pl_trainer_kwargs = {
     # 'progress_bar_refresh_rate': 0,
 }
 
-lit_scheduler = LitScheduler.from_module(env, ValidNet(torch_model), model_kwargs, trainer_kwargs=pl_trainer_kwargs,
-                                         learn_params=learn_params_torch)
-# lit_scheduler = LitScheduler.mlp(env, hidden_sizes_joint=[400], model_kwargs={'optim_params': {'lr': 1e-3}},
-#                                  trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch)
+# lit_scheduler = LitScheduler.from_module(env, ValidNet(torch_model), model_kwargs, trainer_kwargs=pl_trainer_kwargs,
+#                                          learn_params=learn_params_torch)
+# # lit_scheduler = LitScheduler.mlp(env, hidden_sizes_joint=[400], model_kwargs={'optim_params': {'lr': 1e-3}},
+# #                                  trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch)
 
-# lit_scheduler = LitScheduler(env, torch.load('model.pth'))
+lit_scheduler = LitScheduler.load('../models/c1t8.mdl', env=env)
 
 
 random_agent = RandomAgent(env)
@@ -158,6 +158,7 @@ algorithms = np.array([
 
 # %% Evaluate and record results
 n_gen_learn = 900  # the number of problems generated for learning, per iteration
+n_gen_learn = 0  # the number of problems generated for learning, per iteration
 n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
 

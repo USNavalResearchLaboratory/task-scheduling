@@ -4,6 +4,7 @@ from copy import deepcopy
 from functools import partial
 from pathlib import Path
 
+import dill
 import numpy as np
 import pytorch_lightning as pl
 import torch
@@ -198,26 +199,26 @@ class Base(BaseSupervisedScheduler):
 
         self._fit(dl_train, dl_val, verbose)
 
-    # def save(self, save_path):
-    #     save_path = Path(save_path)
-    #
-    #     if save_path.is_file():
-    #         pass
-    #     # file.parent.mkdir(parents=True, exist_ok=True)
-    #
-    #     with Path(save_path).joinpath('env').open(mode='wb') as fid:
-    #         dill.dump(self.env, fid)  # save environment
-    #
-    #     torch.save(self.model, save_path)
-    #
-    # @classmethod
-    # def load(cls, load_path, *args, **kwargs):
-    #     model = torch.load(load_path)
-    #
-    #     with Path(load_path).joinpath('env').open(mode='rb') as fid:
-    #         env = dill.load(fid)
-    #
-    #     return cls(env, model, *args, **kwargs)
+    def save(self, save_path):
+        torch.save(self.model, save_path)
+
+        save_path = Path(save_path)
+        env_path = save_path.parent / f'{save_path.stem}.pth'
+
+        with env_path.open(mode='wb') as fid:
+            dill.dump(self.env, fid)  # save environment
+
+    @classmethod
+    def load(cls, load_path, env=None, **kwargs):
+        model = torch.load(load_path)
+
+        if env is None:
+            load_path = Path(load_path)
+            env_path = load_path.parent / f'{load_path.stem}.pth'
+            with env_path.open(mode='rb') as fid:
+                env = dill.load(fid)
+
+        return cls(env, model, **kwargs)
 
 
 def _build_mlp(layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_layer=None):

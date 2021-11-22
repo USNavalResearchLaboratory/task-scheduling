@@ -382,8 +382,6 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, n_gen_learn=0, sol
 
     if _do_learn:
         # Get training problems, make solutions if needed for SL
-
-        # TODO: check SL with attribute, not empty subclass?
         supervised_learners = learners[[isinstance(alg['func'], BaseSupervisedScheduler) for alg in learners]]
         _do_sl = bool(len(supervised_learners))
 
