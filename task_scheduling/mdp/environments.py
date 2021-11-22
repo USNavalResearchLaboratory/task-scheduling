@@ -30,7 +30,7 @@ class Base(Env, ABC):
             If True, features are zeroed out for scheduled tasks.
 
         """
-        self.problem_gen = problem_gen
+        self._problem_gen = problem_gen
         self.solution = None
 
         # Set features and observation bounds
@@ -94,6 +94,16 @@ class Base(Env, ABC):
         str_ += f"\n- Task shifting: {self.time_shift}"
         str_ += f"\n- Masking: {self.masking}"
         return str_
+
+    @property
+    def problem_gen(self):
+        return self._problem_gen
+
+    @problem_gen.setter
+    def problem_gen(self, value):
+        if self._problem_gen.task_gen != value.task_gen or self._problem_gen.ch_avail_gen != value.ch_avail_gen:
+            raise ValueError('New generator must match.')
+        self._problem_gen = value
 
     @property
     def solution(self):
@@ -190,10 +200,12 @@ class Base(Env, ABC):
                 else:
                     (tasks, ch_avail), self.solution = out, None
 
-            elif len(tasks) != self.n_tasks:
-                raise ValueError(f"Input `tasks` must be None or a list of {self.n_tasks} tasks")
-            elif len(ch_avail) != self.n_ch:
-                raise ValueError(f"Input `ch_avail` must be None or an array of {self.n_ch} channel availabilities")
+            # elif len(tasks) != self.n_tasks:
+            #     raise ValueError(f"Input `tasks` must be None or a list of {self.n_tasks} tasks")
+            # elif len(ch_avail) != self.n_ch:
+            #     raise ValueError(f"Input `ch_avail` must be None or an array of {self.n_ch} channel availabilities")
+
+        # self.n_tasks, self.n_ch = len(tasks), len(ch_avail)
 
         if self.time_shift:
             self.node = tree_search.ScheduleNodeShift(tasks, ch_avail)
