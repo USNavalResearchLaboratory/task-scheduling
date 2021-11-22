@@ -86,7 +86,6 @@ learn_params_torch = {
     'n_gen_val': 1/3,
     'batch_size_val': 30,
     'weight_func': None,
-    # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
     'max_epochs': 200,
     'shuffle': True,
 }
@@ -245,7 +244,6 @@ loss_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, 
 #                    'n_gen_val': 1/3,
 #                    'batch_size_val': 30,
 #                    'weight_func': None,
-#                    # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
 #                    'epochs': 400,
 #                    'shuffle': True,
 #                    # 'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=20, min_delta=0.)]
@@ -254,7 +252,6 @@ loss_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, 
 
 # train_args = {'n_batch_train': 30, 'batch_size_train': 20, 'n_batch_val': 10, 'batch_size_val': 30,
 #               'weight_func': None,
-#               # 'weight_func': lambda env_: 1 - len(env_.node.seq) / env_.n_tasks,
 #               'fit_params': {'epochs': 400,
 #                              'shuffle': True,
 #                              # 'callbacks': [keras.callbacks.EarlyStopping('val_loss', patience=20, min_delta=0.)]

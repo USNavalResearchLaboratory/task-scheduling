@@ -322,10 +322,12 @@ class Base(Env, ABC):
 
                     x_set[i] = obs
                     y_set[i] = action
-                    if callable(weight_func):
-                        w_set[i] = weight_func(self)  # TODO: use rewards for weighting!?!
 
                     obs, reward, done, info = self.step(action)  # updates environment state
+                    if callable(weight_func):
+                        # w_set[i] = weight_func(self)  # TODO: use rewards for weighting!?!
+                        w_set[i] = reward
+
                     i_step += 1
 
             if callable(weight_func):
