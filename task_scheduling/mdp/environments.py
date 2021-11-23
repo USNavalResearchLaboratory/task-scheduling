@@ -77,6 +77,9 @@ class Base(Env, ABC):
 
     n_tasks = property(lambda self: self.problem_gen.n_tasks)
     n_ch = property(lambda self: self.problem_gen.n_ch)
+    # n_tasks = property(lambda self: self.node.n_tasks)
+    # n_ch = property(lambda self: self.node.n_ch)
+
     tasks = property(lambda self: self.node.tasks)
     ch_avail = property(lambda self: self.node.ch_avail)
 
@@ -161,7 +164,7 @@ class Base(Env, ABC):
 
     def _update_spaces(self):
         """Update observation and action spaces."""
-        pass
+        pass  # TODO: varying `n_tasks` control
 
     def reset(self, tasks=None, ch_avail=None, persist=False, solve=False, rng=None):
         """
@@ -199,13 +202,10 @@ class Base(Env, ABC):
                     (tasks, ch_avail), self.solution = out
                 else:
                     (tasks, ch_avail), self.solution = out, None
-
-            # elif len(tasks) != self.n_tasks:
-            #     raise ValueError(f"Input `tasks` must be None or a list of {self.n_tasks} tasks")
-            # elif len(ch_avail) != self.n_ch:
-            #     raise ValueError(f"Input `ch_avail` must be None or an array of {self.n_ch} channel availabilities")
-
-        # self.n_tasks, self.n_ch = len(tasks), len(ch_avail)
+            elif len(tasks) != self.n_tasks:
+                raise ValueError(f"Input `tasks` must be None or a list of {self.n_tasks} tasks")
+            elif len(ch_avail) != self.n_ch:
+                raise ValueError(f"Input `ch_avail` must be None or an array of {self.n_ch} channel availabilities")
 
         if self.time_shift:
             self.node = tree_search.ScheduleNodeShift(tasks, ch_avail)
@@ -378,7 +378,7 @@ class Index(Base):
 
         # Action space
         self.steps_per_episode = self.n_tasks
-        self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)
+        self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)  # TODO: necessary with valid models?
 
     def _update_spaces(self):
         """Update observation and action spaces."""

@@ -86,7 +86,7 @@ learn_params_torch = {
     'n_gen_val': 1/3,
     'batch_size_val': 30,
     'weight_func': None,
-    # 'weight_func': lambda o, a, r: r,
+    # 'weight_func': lambda o, a, r: r,  # TODO: investigate!
     'max_epochs': 200,
     'shuffle': True,
 }
@@ -113,13 +113,13 @@ pl_trainer_kwargs = {
     # 'progress_bar_refresh_rate': 0,
 }
 
-lit_scheduler = LitScheduler.from_module(env, ValidNet(torch_model), model_kwargs, trainer_kwargs=pl_trainer_kwargs,
-                                         learn_params=learn_params_torch)
-# lit_scheduler = LitScheduler.mlp(env, hidden_sizes_joint=[400], model_kwargs={'optim_params': {'lr': 1e-3}},
-#                                  trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch)
+# lit_scheduler = LitScheduler.from_module(env, ValidNet(torch_model), model_kwargs, trainer_kwargs=pl_trainer_kwargs,
+#                                          learn_params=learn_params_torch)
+# # lit_scheduler = LitScheduler.mlp(env, hidden_sizes_joint=[400], model_kwargs={'optim_params': {'lr': 1e-3}},
+# #                                  trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch)
 
 # lit_scheduler = LitScheduler.load('../models/c1t8.mdl', env=env)
-# lit_scheduler = LitScheduler.load('../models/c1t8.mdl')  # FIXME
+lit_scheduler = LitScheduler.load('../models/c1t8.mdl', trainer_kwargs={'logger': False})  # FIXME
 
 
 random_agent = RandomAgent(env)
@@ -159,7 +159,7 @@ algorithms = np.array([
 
 # %% Evaluate and record results
 n_gen_learn = 900  # the number of problems generated for learning, per iteration
-# n_gen_learn = 0  # the number of problems generated for learning, per iteration
+n_gen_learn = 0  # the number of problems generated for learning, per iteration
 n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
 
