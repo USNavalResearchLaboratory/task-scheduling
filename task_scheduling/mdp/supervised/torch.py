@@ -213,7 +213,7 @@ class Base(BaseSupervisedScheduler):
         torch.save(self.model, save_path)
 
         save_path = Path(save_path)
-        env_path = save_path.parent / f'{save_path.stem}.pth'
+        env_path = save_path.parent / f'{save_path.stem}.env'
 
         with env_path.open(mode='wb') as fid:
             dill.dump(self.env, fid)  # save environment
@@ -224,7 +224,7 @@ class Base(BaseSupervisedScheduler):
 
         if env is None:
             load_path = Path(load_path)
-            env_path = load_path.parent / f'{load_path.stem}.pth'
+            env_path = load_path.parent / f'{load_path.stem}.env'
             with env_path.open(mode='rb') as fid:
                 env = dill.load(fid)
 
