@@ -302,15 +302,16 @@ class VaryCNN(nn.Module):
         super().__init__()
 
         self.n_features = n_features
-        self.n_ch = n_ch
+        # self.n_ch = n_ch
 
         self.n_filter = 400
 
         self.conv2d = nn.Conv2d(1, self.n_filter, kernel_size=(kernel_len, self.n_features))
-        self.conv1 = nn.Conv1d(self.n_filter, 1, kernel_size=(kernel_len,))
+        self.conv1 = nn.Conv1d(self.n_filter, 1, kernel_size=kernel_len)
         # self.conv1 = nn.Conv1d(self.n_filter + self.n_ch, 1, kernel_size=(l_kernel,))
 
-        self.affine_ch = nn.Linear(self.n_ch, self.n_filter, bias=False)
+        # self.affine_ch = nn.Linear(self.n_ch, self.n_filter, bias=False)
+        self.conv_ch = nn.Conv1d(1, self.n_filter, kernel_size=(3,), padding='same')
 
     def forward(self, ch_avail, tasks):
         c, t = ch_avail, tasks
@@ -324,10 +325,12 @@ class VaryCNN(nn.Module):
         t = torch.cat((t, pad), dim=2)
         t = self.conv2d(t)
         t = t.squeeze(dim=3)
-        # t = functional.relu(t)
 
-        c = self.affine_ch(c)
-        c = c.unsqueeze(-1)
+        # c = self.affine_ch(c)
+        # c = c.unsqueeze(-1)
+
+        c = self.conv_ch(c.unsqueeze(1))
+        c = functional.adaptive_avg_pool1d(c, (1,))
 
         x = t + c
         x = functional.relu(x)

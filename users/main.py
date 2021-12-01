@@ -58,8 +58,8 @@ if seed is not None:
 data_path = Path('../data/')
 
 # dataset = 'continuous_relu_drop_c1t4'
-dataset = 'continuous_relu_drop_c1t8'
-# dataset = 'continuous_relu_drop_c2t8'
+# dataset = 'continuous_relu_drop_c1t8'
+dataset = 'continuous_relu_drop_c2t8'
 # dataset = 'discrete_relu_drop_c1t8'
 # dataset = 'discrete_relu_drop_c2t8'
 problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
@@ -91,16 +91,14 @@ learn_params_torch = {
     'shuffle': True,
 }
 
+model_kwargs = {'optim_cls': optim.Adam, 'optim_params': {'lr': 1e-4}}
 
-torch_model = VaryCNN(2, env.features.size, env.n_ch)
+torch_model = VaryCNN(4, env.features.size, env.n_ch)
 # torch_model = MultiNet(env, hidden_sizes_joint=[400])
 
-# torch_scheduler = TorchScheduler(env, ValidNet(torch_model), optim_params={'lr': 1e-4}, learn_params=learn_params_torch)
-# # torch_scheduler = TorchScheduler.mlp(env, hidden_sizes_joint=[400], optim_params={'lr': 1e-3},
-# #                                      learn_params=learn_params_torch)
+# torch_scheduler = TorchScheduler(env, ValidNet(torch_model), **model_kwargs, learn_params=learn_params_torch)
+# # torch_scheduler = TorchScheduler.mlp(env, hidden_sizes_joint=[400], **model_kwargs, learn_params=learn_params_torch)
 
-
-model_kwargs = {'optim_params': {'lr': 1e-4}}
 
 pl_trainer_kwargs = {
     'logger': TensorBoardLogger('main_temp/logs/', name=now),
@@ -159,7 +157,7 @@ algorithms = np.array([
 
 # %% Evaluate and record results
 n_gen_learn = 900  # the number of problems generated for learning, per iteration
-# n_gen_learn = 0  # the number of problems generated for learning, per iteration
+# n_gen_learn = 0
 n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
 
