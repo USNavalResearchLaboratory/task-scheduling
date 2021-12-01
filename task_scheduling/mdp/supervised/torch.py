@@ -93,7 +93,6 @@ class Base(BaseSupervisedScheduler):
 
         """
 
-        # input_ = (torch.from_numpy(o[np.newaxis]).float() for o in self._obs_to_tuple(obs))
         input_ = (torch.from_numpy(o).float().unsqueeze(0) for o in self._obs_to_tuple(obs))
         # input_ = input_.to(device)
         with torch.no_grad():
@@ -299,35 +298,45 @@ class MultiMLP(nn.Module):
 
 
 class VaryCNN(nn.Module):
-    def __init__(self, n_features):
+    def __init__(self, kernel_len, n_features, n_ch):
         super().__init__()
 
-        n_filter = 400
-        l_kernel = 2
+        self.n_features = n_features
+        self.n_ch = n_ch
 
-        # TODO: padding mode?
-        # self.conv1 = nn.Conv2d(1, n_filter, kernel_size=(l_kernel, n_features), padding=(l_kernel-1, 0))
-        # self.conv2 = nn.Conv1d(n_filter, 1, kernel_size=(l_kernel,), padding=l_kernel - 1)
-        self.conv1 = nn.Conv2d(1, n_filter, kernel_size=(l_kernel, n_features))
-        self.conv2 = nn.Conv1d(n_filter, 1, kernel_size=(l_kernel,))
+        self.n_filter = 400
 
-    def forward(self, ch_avail, tasks):  # TODO: chan info?
-        x = tasks
+        self.conv2d = nn.Conv2d(1, self.n_filter, kernel_size=(kernel_len, self.n_features))
+        self.conv1 = nn.Conv1d(self.n_filter, 1, kernel_size=(kernel_len,))
+        # self.conv1 = nn.Conv1d(self.n_filter + self.n_ch, 1, kernel_size=(l_kernel,))
 
-        n_batch, n_tasks, n_features = x.shape
-        device_ = x.device
+        self.affine_ch = nn.Linear(self.n_ch, self.n_filter, bias=False)
 
-        x = x.view(n_batch, 1, n_tasks, n_features)
+    def forward(self, ch_avail, tasks):
+        c, t = ch_avail, tasks
 
-        pad = torch.zeros(n_batch, 1, self.conv1.kernel_size[0] - 1, n_features, device=device_)
+        n_batch, n_tasks, n_features = t.shape
+        device_ = t.device
+
+        t = t.unsqueeze(dim=1)
+
+        pad = torch.zeros(n_batch, 1, self.conv2d.kernel_size[0] - 1, n_features, device=device_)
+        t = torch.cat((t, pad), dim=2)
+        t = self.conv2d(t)
+        t = t.squeeze(dim=3)
+        # t = functional.relu(t)
+
+        c = self.affine_ch(c)
+        c = c.unsqueeze(-1)
+
+        x = t + c
+        x = functional.relu(x)
+        # c = c.unsqueeze(-1).expand(n_batch, self.n_ch, n_tasks)
+        # x = torch.cat((t, z), dim=1)
+
+        pad = torch.zeros(n_batch, self.conv1.in_channels, self.conv1.kernel_size[0] - 1, device=device_)
         x = torch.cat((x, pad), dim=2)
         x = self.conv1(x)
-        x = x.squeeze(dim=3)
-        x = functional.relu(x)
-
-        pad = torch.zeros(n_batch, self.conv2.in_channels, self.conv2.kernel_size[0] - 1, device=device_)
-        x = torch.cat((x, pad), dim=2)
-        x = self.conv2(x)
         x = x.squeeze(dim=1)
         x = functional.relu(x)
 
@@ -435,13 +444,13 @@ class LitModel(pl.LightningModule):
             optim_params = {}
         self.optim_params = optim_params
 
-        sig = signature(module.forward)
-        self._n_in = len(sig.parameters)
+        _sig_fwd = signature(module.forward)
+        self._n_in = len(_sig_fwd.parameters)
 
     def forward(self, *args, **kwargs):
         return self.module(*args, **kwargs)
 
-    def _process_batch(self, batch, batch_idx):
+    def _process_batch(self, batch, _batch_idx):
         if len(batch) > self._n_in + 1:  # includes sample weighting
             x, y, w = batch[:-2], batch[-2], batch[-1]
             losses = self.loss_func(self(*x), y, reduction='none')
