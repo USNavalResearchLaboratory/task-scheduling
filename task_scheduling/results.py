@@ -16,8 +16,8 @@ from task_scheduling.mdp.base import BaseLearning as BaseLearningScheduler
 from task_scheduling.mdp.supervised.base import Base as BaseSupervisedScheduler
 from task_scheduling.util import eval_wrapper, plot_schedule
 
-OPT_NAME = 'BB Optimal'
-PICKLE_FIGS = True
+opt_name = 'BB Optimal'
+pickle_figs = True
 
 # Logging
 logger = logging.getLogger(__name__)
@@ -54,7 +54,7 @@ def _log_and_fig(message, log_path, ax, img_path):
 
         fig = ax.figure
         fig.savefig(img_path)
-        if PICKLE_FIGS:
+        if pickle_figs:
             mpl_file = img_path.parent / f"{img_path.stem}.mpl"
             with open(mpl_file, 'wb') as fid:
                 pickle.dump(fig, fid)
@@ -101,8 +101,8 @@ def _struct_mean(array):
 
 
 def _add_opt(algorithms):
-    if OPT_NAME not in algorithms['name']:
-        _opt = np.array([(OPT_NAME, None, 1)], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
+    if opt_name not in algorithms['name']:
+        _opt = np.array([(opt_name, None, 1)], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
         algorithms = np.concatenate((_opt, algorithms))
 
     return algorithms
@@ -115,14 +115,14 @@ def _empty_result(algorithms, n):
 # Printing/plotting
 def _relative_loss(loss, normalize=False):
     names = loss.dtype.names
-    if OPT_NAME not in names:
+    if opt_name not in names:
         raise ValueError("Optimal solutions must be included in the loss array.")
 
     loss_rel = loss.copy()
     for name in names:
-        loss_rel[name] -= loss[OPT_NAME]
+        loss_rel[name] -= loss[opt_name]
         if normalize:
-            loss_rel[name] /= loss[OPT_NAME]
+            loss_rel[name] /= loss[opt_name]
 
     return loss_rel
 
@@ -151,7 +151,7 @@ def _scatter_loss_runtime(t_run, loss, ax=None, ax_kwargs=None):
 
     for name in t_run.dtype.names:
         kwargs = {}
-        if name == OPT_NAME:
+        if name == opt_name:
             kwargs.update(c='k')
 
         ax.scatter(1e3 * t_run[name], loss[name], label=name, **kwargs)
@@ -175,7 +175,7 @@ def _scatter_results(t_run, loss, label='Results', do_relative=False):
         loss_rel = _relative_loss(loss, normalize)
 
         names = list(loss.dtype.names)
-        names.remove(OPT_NAME)
+        names.remove(opt_name)
         __, ax_results_rel = plt.subplots(num=f'{label} (Relative)', clear=True)
         _scatter_loss_runtime(t_run[names], loss_rel[names],
                               ax=ax_results_rel,
@@ -194,7 +194,7 @@ def _print_averages(loss, t_run, do_relative=False):
     if do_relative:
         loss_rel = _relative_loss(loss)
 
-        loss_opt = data[names.index(OPT_NAME)][0]
+        loss_opt = data[names.index(opt_name)][0]
         for item, name in zip(data, names):
             item.insert(0, loss_rel[name].mean() / loss_opt)
         columns.insert(0, 'Excess Loss (%)')
@@ -296,7 +296,7 @@ def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0
                 print(f'Iteration: {iter_ + 1}/{n_iter})', end='\r')
 
             # Run algorithm
-            if name == OPT_NAME:
+            if name == opt_name:
                 solution = solution_opt
             else:
                 solution = eval_wrapper(func)(problem.tasks, problem.ch_avail)

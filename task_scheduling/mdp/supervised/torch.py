@@ -20,11 +20,11 @@ from task_scheduling.mdp.supervised.base import Base as BaseSupervisedScheduler
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 # device = torch.device("cpu")
 
-NUM_WORKERS = 0
-# NUM_WORKERS = os.cpu_count()
+num_workers = 0
+# num_workers = os.cpu_count()
 
-PIN_MEMORY = True
-# PIN_MEMORY = False
+pin_memory = True
+# pin_memory = False
 
 
 def reset_weights(model):
@@ -200,11 +200,11 @@ class Base(BaseSupervisedScheduler):
         # ds_train = TensorDataset(*x_train, y_train)
         ds_train = TensorDataset(*tensors_train)
         dl_train = DataLoader(ds_train, batch_size=self.learn_params['batch_size_train'] * self.env.steps_per_episode,
-                              shuffle=self.learn_params['shuffle'], pin_memory=PIN_MEMORY, num_workers=NUM_WORKERS)
+                              shuffle=self.learn_params['shuffle'], pin_memory=pin_memory, num_workers=num_workers)
 
         ds_val = TensorDataset(*tensors_val)
         dl_val = DataLoader(ds_val, batch_size=self.learn_params['batch_size_val'] * self.env.steps_per_episode,
-                            shuffle=False, pin_memory=PIN_MEMORY, num_workers=NUM_WORKERS)
+                            shuffle=False, pin_memory=pin_memory, num_workers=num_workers)
 
         self._fit(dl_train, dl_val, verbose)
 
