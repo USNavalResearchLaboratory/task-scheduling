@@ -243,7 +243,9 @@ class Base(Env, ABC):
 
         self.node.seq_extend(action)  # updates sequence, loss, task parameters, etc.
 
-        reward, self._loss_agg = self._loss_agg - self.node.loss, self.node.loss
+        loss_step, self._loss_agg = self.node.loss - self._loss_agg, self.node.loss
+
+        reward = -loss_step
         done = len(self.node.seq_rem) == 0  # sequence is complete
 
         self._update_spaces()

@@ -58,8 +58,8 @@ if seed is not None:
 data_path = Path('../data/')
 
 # dataset = 'continuous_relu_drop_c1t4'
-# dataset = 'continuous_relu_drop_c1t8'
-dataset = 'continuous_relu_drop_c2t8'
+dataset = 'continuous_relu_drop_c1t8'
+# dataset = 'continuous_relu_drop_c2t8'
 # dataset = 'discrete_relu_drop_c1t8'
 # dataset = 'discrete_relu_drop_c2t8'
 problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
@@ -91,7 +91,7 @@ learn_params_torch = {
     'shuffle': True,
 }
 
-model_kwargs = {'optim_cls': optim.Adam, 'optim_params': {'lr': 1e-4}}
+model_kwargs = {'optim_cls': optim.Adam, 'optim_params': {'lr': 1e-5}}
 
 torch_model = VaryCNN(4, env.features.size, env.n_ch)
 # torch_model = MultiNet(env, hidden_sizes_joint=[400])
@@ -116,8 +116,8 @@ lit_scheduler = LitScheduler.from_module(env, ValidNet(torch_model), model_kwarg
 # lit_scheduler = LitScheduler.mlp(env, hidden_sizes_joint=[400], model_kwargs={'optim_params': {'lr': 1e-3}},
 #                                  trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch)
 
-# lit_scheduler = LitScheduler.load('../models/c1t8.mdl', env=env)
-# lit_scheduler = LitScheduler.load('../models/c1t8.mdl', trainer_kwargs={'logger': False})  # FIXME
+# lit_scheduler = LitScheduler.load('../models/c1t8.pth', env=env)
+# lit_scheduler = LitScheduler.load('../models/c1t8.pth', trainer_kwargs={'logger': False})  # FIXME
 
 
 random_agent = RandomAgent(env)
