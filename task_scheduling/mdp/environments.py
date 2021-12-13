@@ -67,7 +67,7 @@ class Base(Env, ABC):
         self._obs_space_seq = MultiDiscrete(np.full(self.n_tasks, 2))
 
         self._obs_space_tasks = spaces_tasking.broadcast_to(spaces_tasking.stack(self.features['space']),
-                                                            shape=(self.n_tasks, len(self.features)))
+                                                            shape=(1, self.n_tasks, len(self.features)))
 
         self.observation_space = Dict(ch_avail=self._obs_space_ch, seq=self._obs_space_seq, tasks=self._obs_space_tasks)
 
@@ -146,8 +146,9 @@ class Base(Env, ABC):
         obs_tasks = np.array([[func(task) for func in self.features['func']] for task in self.tasks])
         if self.masking:
             obs_tasks[self.node.seq] = 0.  # zero out observation rows for scheduled tasks
-
-        return obs_tasks[self.sorted_index]  # sort individual task observations
+        obs_tasks = obs_tasks[self.sorted_index]  # sort individual task observations
+        # return obs_tasks
+        return obs_tasks[np.newaxis]  # add channel dimension
 
     def obs(self):
         """Complete observation."""
@@ -240,12 +241,11 @@ class Base(Env, ABC):
         """
 
         action = self.sorted_index[action]  # decode task index to original order
-
         self.node.seq_extend(action)  # updates sequence, loss, task parameters, etc.
 
         loss_step, self._loss_agg = self.node.loss - self._loss_agg, self.node.loss
-
         reward = -loss_step
+
         done = len(self.node.seq_rem) == 0  # sequence is complete
 
         self._update_spaces()
@@ -484,7 +484,7 @@ def int_to_seq(num, length, check_input=True):
 
 class IndexUni(Index):
     def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False):
-        """`Index` environment with single tensor observations.
+        """`Index` environment with single tensor observations. Concatenates sequence and task feature tensors.
 
         Parameters
         ----------
@@ -503,13 +503,13 @@ class IndexUni(Index):
         super().__init__(problem_gen, features, sort_func, time_shift, masking)
 
         # Observation space
-        _space_seq_reshape = spaces_tasking.reshape(self._obs_space_seq, (self.n_tasks, 1))
-        self.observation_space = spaces_tasking.concatenate((_space_seq_reshape, self._obs_space_tasks), axis=1)
+        _space_seq_reshape = spaces_tasking.reshape(self._obs_space_seq, (1, self.n_tasks, 1))
+        self.observation_space = spaces_tasking.concatenate((_space_seq_reshape, self._obs_space_tasks), axis=-1)
 
     def obs(self):
         """Complete observation."""
-        _obs_seq_reshape = self._obs_seq().reshape((self.n_tasks, 1))
-        return np.concatenate((_obs_seq_reshape, self._obs_tasks()), axis=1)
+        _obs_seq_reshape = self._obs_seq().reshape((1, self.n_tasks, 1))
+        return np.concatenate((_obs_seq_reshape, self._obs_tasks()), axis=-1)
 
 
 class Seq(Base):
