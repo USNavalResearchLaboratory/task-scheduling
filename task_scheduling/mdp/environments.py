@@ -38,6 +38,8 @@ class Base(Env, ABC):
             self.features = features
         else:
             self.features = param_features(self.problem_gen.task_gen, time_shift, masking)
+        if any(space.shape != () for space in self.features['space']):
+            raise ValueError("Features must be scalar valued")
 
         # Set sorting method
         if callable(sort_func):
@@ -66,7 +68,8 @@ class Base(Env, ABC):
 
         self._obs_space_seq = MultiDiscrete(np.full(self.n_tasks, 2))
 
-        self._obs_space_tasks = spaces_tasking.broadcast_to(spaces_tasking.stack(self.features['space']),
+        _obs_space_features = spaces_tasking.stack(self.features['space'])
+        self._obs_space_tasks = spaces_tasking.broadcast_to(_obs_space_features,
                                                             shape=(1, self.n_tasks, len(self.features)))
 
         self.observation_space = Dict(ch_avail=self._obs_space_ch, seq=self._obs_space_seq, tasks=self._obs_space_tasks)

@@ -22,11 +22,11 @@ def get_space_lims(space):
     """Get minimum and maximum values of a space."""
 
     if isinstance(space, Box):
-        return np.stack((space.low, space.high), axis=-1)
+        return np.stack((space.low, space.high))
     elif isinstance(space, Discrete):
         return np.array([0, space.n - 1])
     elif isinstance(space, MultiDiscrete):
-        return np.stack((np.zeros(space.shape), space.nvec - 1), axis=-1)
+        return np.stack((np.zeros(space.shape), space.nvec - 1))
     elif isinstance(space, DiscreteSet):
         return space.elements[[0, -1]]
     else:
@@ -46,10 +46,9 @@ def stack(spaces, axis=0):
         nvecs = [space.nvec for space in spaces]
         return MultiDiscrete(np.stack(nvecs, axis=axis))
     else:
-        if axis == -1:
-            axis = -2  # point to last index of space shape
-        lims = np.stack([get_space_lims(space) for space in spaces], axis=axis)
-        return Box(lims[..., 0], lims[..., 1], dtype=float)
+        lows, highs = zip(*(get_space_lims(space) for space in spaces))
+        low, high = np.stack(lows, axis=axis), np.stack(highs, axis=axis)
+        return Box(low, high, dtype=float)
 
 
 def concatenate(spaces, axis=0):
@@ -62,10 +61,9 @@ def concatenate(spaces, axis=0):
         nvecs = [space.nvec for space in spaces]
         return MultiDiscrete(np.concatenate(nvecs, axis=axis))
     else:
-        if axis == -1:
-            axis = -2  # point to last index of space shape
-        lims = np.concatenate([get_space_lims(space) for space in spaces], axis=axis)
-        return Box(lims[..., 0], lims[..., 1], dtype=float)
+        lows, highs = zip(*(get_space_lims(space) for space in spaces))
+        low, high = np.concatenate(lows, axis=axis), np.concatenate(highs, axis=axis)
+        return Box(low, high, dtype=float)
 
 
 def reshape(space, newshape):
