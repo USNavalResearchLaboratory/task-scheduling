@@ -91,6 +91,8 @@ class Base(Env, ABC):
     # n_tasks = property(lambda self: self.node.n_tasks)
     # n_ch = property(lambda self: self.node.n_ch)
 
+    n_features = property(lambda self: len(self.features))
+
     tasks = property(lambda self: self.node.tasks)
     ch_avail = property(lambda self: self.node.ch_avail)
 

@@ -51,14 +51,21 @@ class UniMLP(nn.Module):
         super().__init__()
 
         layer_sizes = [
-            np.prod(env.observation_space.shape).item(),
+            # np.prod(env.observation_space.shape).item(),
+            env.n_tasks * env.n_features,
             *hidden_sizes,
             env.action_space.n,
         ]
         self.mlp = _build_mlp(layer_sizes)
 
     def forward(self, x):
-        return self.mlp(x)
+        seq, x = x[..., :1], x[..., 1:]
+        seq = seq.squeeze(3).squeeze(1)
+
+        x = self.mlp(x)
+
+        x = valid_logits(x, seq)
+        return x
 
 
 class MultiMLP(nn.Module):
@@ -94,7 +101,7 @@ class VaryCNN(nn.Module):
     def __init__(self, env, kernel_len):
         super().__init__()
 
-        self.n_features = len(env.features)
+        self.n_features = env.n_features
         # self.n_ch = env.n_ch
 
         self.n_filter = 400
