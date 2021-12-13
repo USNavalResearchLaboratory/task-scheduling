@@ -8,20 +8,23 @@ from gym.spaces import Discrete, MultiDiscrete, Box, Dict
 
 import task_scheduling.spaces as spaces_tasking
 from task_scheduling import tree_search
-from task_scheduling.mdp.features import param_features
+from task_scheduling.mdp.features import param_features, normalize as normalize_features
 
 
 # Gym Environments
 class Base(Env, ABC):
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False):
+    def __init__(self, problem_gen, features=None, normalize=True, sort_func=None, time_shift=False, masking=False):
         """Base environment for task scheduling.
 
         Parameters
         ----------
+        normalize
         problem_gen : generators.problems.Base
             Scheduling problem generation object.
         features : numpy.ndarray, optional
             Structured numpy array of features with fields 'name', 'func', and 'lims'.
+        normalize : bool, optional
+            Rescale task features to unit interval.
         sort_func : function or str, optional
             Method that returns a sorting value for re-indexing given a task index 'n'.
         time_shift : bool, optional
@@ -38,8 +41,13 @@ class Base(Env, ABC):
             self.features = features
         else:
             self.features = param_features(self.problem_gen.task_gen, time_shift, masking)
+
         if any(space.shape != () for space in self.features['space']):
             raise ValueError("Features must be scalar valued")
+
+        self.normalize = normalize
+        if self.normalize:
+            self.features = normalize_features(self.features)
 
         # Set sorting method
         if callable(sort_func):
@@ -139,7 +147,11 @@ class Base(Env, ABC):
         return np.array([_idx_list.index(n) for n in range(self.n_tasks)])
 
     def _obs_ch_avail(self):
-        return self.ch_avail
+        if self.normalize:
+            low, high = self._obs_space_ch.low, self._obs_space_ch.high
+            return (self.ch_avail - low) / (high - low)
+        else:
+            return self.ch_avail
 
     def _obs_seq(self):
         return np.array([1 if n in self.node.seq else 0 for n in self.sorted_index])
@@ -150,7 +162,6 @@ class Base(Env, ABC):
         if self.masking:
             obs_tasks[self.node.seq] = 0.  # zero out observation rows for scheduled tasks
         obs_tasks = obs_tasks[self.sorted_index]  # sort individual task observations
-        # return obs_tasks
         return obs_tasks[np.newaxis]  # add channel dimension
 
     def obs(self):
@@ -366,7 +377,7 @@ class Base(Env, ABC):
 
 
 class Index(Base):
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False):
+    def __init__(self, problem_gen, features=None, normalize=True, sort_func=None, time_shift=False, masking=False):
         """Tasking environment with actions of single task indices.
 
         Parameters
@@ -375,6 +386,8 @@ class Index(Base):
             Scheduling problem generation object.
         features : numpy.ndarray, optional
             Structured numpy array of features with fields 'name', 'func', and 'lims'.
+        normalize : bool, optional
+            Rescale task features to unit interval.
         sort_func : function or str, optional
             Method that returns a sorting value for re-indexing given a task index 'n'.
         time_shift : bool, optional
@@ -383,7 +396,7 @@ class Index(Base):
             If True, features are zeroed out for scheduled tasks.
 
         """
-        super().__init__(problem_gen, features, sort_func, time_shift, masking)
+        super().__init__(problem_gen, features, normalize, sort_func, time_shift, masking)
 
         # Action space
         self.steps_per_episode = self.n_tasks
@@ -486,7 +499,7 @@ def int_to_seq(num, length, check_input=True):
 
 
 class IndexUni(Index):
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False):
+    def __init__(self, problem_gen, features=None, normalize=True, sort_func=None, time_shift=False, masking=False):
         """`Index` environment with single tensor observations. Concatenates sequence and task feature tensors.
 
         Parameters
@@ -495,6 +508,8 @@ class IndexUni(Index):
             Scheduling problem generation object.
         features : numpy.ndarray, optional
             Structured numpy array of features with fields 'name', 'func', and 'lims'.
+        normalize : bool, optional
+            Rescale task features to unit interval.
         sort_func : function or str, optional
             Method that returns a sorting value for re-indexing given a task index 'n'.
         time_shift : bool, optional
@@ -503,7 +518,7 @@ class IndexUni(Index):
             If True, features are zeroed out for scheduled tasks.
 
         """
-        super().__init__(problem_gen, features, sort_func, time_shift, masking)
+        super().__init__(problem_gen, features, normalize, sort_func, time_shift, masking)
 
         # Observation space
         _space_seq_reshape = spaces_tasking.reshape(self._obs_space_seq, (1, self.n_tasks, 1))
@@ -516,7 +531,8 @@ class IndexUni(Index):
 
 
 class Seq(Base):
-    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False, action_type='int'):
+    def __init__(self, problem_gen, features=None, normalize=True, sort_func=None, time_shift=False, masking=False,
+                 action_type='int'):
         """Tasking environment with single action of a complete task index sequence.
 
         Parameters
@@ -525,6 +541,8 @@ class Seq(Base):
             Scheduling problem generation object.
         features : numpy.ndarray, optional
             Structured numpy array of features with fields 'name', 'func', and 'lims'.
+        normalize : bool, optional
+            Rescale task features to unit interval.
         sort_func : function or str, optional
             Method that returns a sorting value for re-indexing given a task index 'n'.
         time_shift : bool, optional
@@ -536,7 +554,7 @@ class Seq(Base):
             index sequences are mapped to integers.
 
         """
-        super().__init__(problem_gen, features, sort_func, time_shift, masking)
+        super().__init__(problem_gen, features, normalize, sort_func, time_shift, masking)
 
         self.action_type = action_type  # 'seq' for sequences, 'int' for integers
         if self.action_type == 'int':

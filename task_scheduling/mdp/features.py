@@ -3,8 +3,11 @@ from operator import attrgetter
 import numpy as np
 from gym.spaces import Discrete, MultiDiscrete, Box
 
-from task_scheduling.spaces import DiscreteSet
+from task_scheduling.spaces import DiscreteSet, get_space_lims
 from task_scheduling.tasks import Shift
+
+
+feature_dtype = [('name', '<U32'), ('func', object), ('space', object)]
 
 
 def _add_zero(space):
@@ -75,16 +78,7 @@ def param_features(task_gen, time_shift=False, masking=False):
             space = _as_box(space)
         data.append((name, attrgetter(name), space))
 
-    return np.array(data, dtype=[('name', '<U32'), ('func', object), ('space', object)])
-
-
-def _encode_param(name, space):
-    """Make a feature function to encode a parameter value to the corresponding DiscreteSet index."""
-
-    def func(tasks):
-        return [np.flatnonzero(space.elements == getattr(task, name)).item() for task in tasks]
-
-    return func
+    return np.array(data, dtype=feature_dtype)
 
 
 def encode_discrete_features(problem_gen):
@@ -93,11 +87,32 @@ def encode_discrete_features(problem_gen):
     data = []
     for name, space in problem_gen.task_gen.param_spaces.items():
         if isinstance(space, DiscreteSet):  # use encoding feature func, change space to Discrete
-            func = _encode_param(name, space)
+            def func(task):
+                return np.flatnonzero(space.elements == getattr(task, name)).item()
             space = Discrete(len(space))
         else:
             func = attrgetter(name)
 
         data.append((name, func, space))
 
-    return np.array(data, dtype=[('name', '<U32'), ('func', object), ('space', object)])
+    return np.array(data, dtype=feature_dtype)
+
+
+def _make_norm_func(func, space):
+    low, high = get_space_lims(space)
+
+    def norm_func(task):
+        return (func(task) - low) / (high - low)
+
+    return norm_func
+
+
+def normalize(features):
+    """Make normalized features."""
+    data = []
+    for name, func, space in features:
+        func = _make_norm_func(func, space)
+        space = Box(0, 1, shape=space.shape, dtype=float)  # all features are `float` in unit interval
+
+        data.append((name, func, space))
+    return np.array(data, dtype=feature_dtype)
