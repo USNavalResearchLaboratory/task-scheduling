@@ -317,11 +317,11 @@ class MultiMLP(nn.Module):
 
 
 class VaryCNN(nn.Module):
-    def __init__(self, kernel_len, n_features, n_ch):
+    def __init__(self, env, kernel_len):
         super().__init__()
 
-        self.n_features = n_features
-        # self.n_ch = n_ch
+        self.n_features = len(env.features)
+        # self.n_ch = env.n_ch
 
         self.n_filter = 400
 
@@ -335,10 +335,10 @@ class VaryCNN(nn.Module):
     def forward(self, ch_avail, seq, tasks):
         c, t = ch_avail, tasks
 
-        n_batch, n_tasks, n_features = t.shape
+        n_batch, __, n_tasks, n_features = t.shape
         device_ = t.device
 
-        t = t.unsqueeze(dim=1)
+        # t = t.unsqueeze(dim=1)
 
         pad = torch.zeros(n_batch, 1, self.conv2d.kernel_size[0] - 1, n_features, device=device_)
         t = torch.cat((t, pad), dim=2)
