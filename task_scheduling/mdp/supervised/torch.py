@@ -259,15 +259,28 @@ def _build_mlp(layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_
     return nn.Sequential(*layers)
 
 
-class ValidNet(nn.Module):
-    def __init__(self, module):
-        super().__init__()
-        self.module = module
+def valid_logits(x, seq):
+    return x - 1e6 * seq  # TODO: try different masking operations?
 
-    def forward(self, ch_avail, seq, tasks):
-        y = self.module(ch_avail, tasks)
-        y = y - 1e6 * seq  # TODO: try different masking operations?
-        return y
+
+# class ValidNet(nn.Module):
+#     def __init__(self, module):
+#         super().__init__()
+#         self.module = module
+#
+#     def forward(self, ch_avail, seq, tasks):
+#         y = self.module(ch_avail, tasks)
+#         y = valid_logits(y, seq)
+#         return y
+
+
+# def valid_wrapper(func):
+#     # @wraps(func)
+#     def valid_fwd(self, ch_avail, seq, tasks):
+#         y = func(self, ch_avail, tasks)
+#         y = valid_logits(y, seq)
+#         return y
+#     return valid_fwd
 
 
 class UniMLP(nn.Module):
@@ -303,12 +316,14 @@ class MultiMLP(nn.Module):
         layer_sizes_joint = [size_in_joint, *hidden_sizes_joint, env.action_space.n]
         self.mlp_joint = _build_mlp(layer_sizes_joint, start_layer=None)
 
-    def forward(self, ch_avail, tasks):
+    def forward(self, ch_avail, seq, tasks):
         c = self.mlp_ch(ch_avail)
         t = self.mlp_tasks(tasks)
 
         x = torch.cat((c, t), dim=-1)
         x = self.mlp_joint(x)
+
+        x = valid_logits(x, seq)
         return x
 
 
@@ -328,7 +343,7 @@ class VaryCNN(nn.Module):
         # self.affine_ch = nn.Linear(self.n_ch, self.n_filter, bias=False)
         self.conv_ch = nn.Conv1d(1, self.n_filter, kernel_size=(3,), padding='same')
 
-    def forward(self, ch_avail, tasks):
+    def forward(self, ch_avail, seq, tasks):
         c, t = ch_avail, tasks
 
         n_batch, n_tasks, n_features = t.shape
@@ -358,6 +373,7 @@ class VaryCNN(nn.Module):
         x = x.squeeze(dim=1)
         x = functional.relu(x)
 
+        x = valid_logits(x, seq)
         return x
 
 
@@ -394,7 +410,6 @@ class TorchScheduler(Base):
     def mlp(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=(),
             loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None, learn_params=None):
         model = MultiMLP(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint)
-        model = ValidNet(model)
         return cls(env, model, loss_func, optim_cls, optim_params, learn_params)
 
     @classmethod
@@ -547,7 +562,6 @@ class LitScheduler(Base):
     def mlp(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=(), model_kwargs=None,
             trainer_kwargs=None, learn_params=None):
         module = MultiMLP(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint)
-        module = ValidNet(module)
         return cls.from_module(env, module, model_kwargs, trainer_kwargs, learn_params)
 
     @classmethod

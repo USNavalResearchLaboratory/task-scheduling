@@ -307,18 +307,18 @@ class Base(Env, ABC):
 
             steps_total = batch_size * self.steps_per_episode
 
-            if isinstance(self.observation_space, Dict):  # TODO: relocate functionality to subclasses?
+            if isinstance(self.observation_space, Dict):
                 data = list(zip(*(np.empty((steps_total, *space.shape), dtype=space.dtype)
                                 for space in self.observation_space.spaces.values())))
                 dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
                 x_set = np.array(data, dtype=dtype)
+
+                # x_set = OrderedDict([(key, np.empty((steps_total, *space.shape), dtype=space.dtype))
+                #                      for key, space in self.observation_space.spaces.items()])
+                # # x_set = {key: np.empty((steps_total, *space.shape),
+                # #                        dtype=space.dtype) for key, space in self.observation_space.spaces.items()}
             else:
                 x_set = np.empty((steps_total, *self.observation_space.shape), dtype=self.observation_space.dtype)
-
-            # x_set = OrderedDict([(key, np.empty((steps_total, *space.shape), dtype=space.dtype))
-            #                      for key, space in self.observation_space.spaces.items()])
-            # # x_set = {key: np.empty((steps_total, *space.shape),
-            # #                        dtype=space.dtype) for key, space in self.observation_space.spaces.items()}
 
             y_set = np.empty((steps_total, *self.action_space.shape), dtype=self.action_space.dtype)
             w_set = np.empty(steps_total, dtype=float)

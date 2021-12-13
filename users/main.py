@@ -15,17 +15,17 @@ from torch.nn import functional
 from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import EarlyStopping
-# from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.env_checker import check_env
 
 from task_scheduling.base import get_now
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
 from task_scheduling.generators import problems as problem_gens
 from task_scheduling.results import evaluate_algorithms_train, evaluate_algorithms_gen
-from task_scheduling.mdp.features import encode_discrete_features
-from task_scheduling.mdp.environments import Index, Seq
-from task_scheduling.mdp.supervised.torch import TorchScheduler, LitScheduler, ValidNet, VaryCNN
 from task_scheduling.mdp.base import RandomAgent
-# from task_scheduling.mdp.reinforcement import StableBaselinesScheduler
+from task_scheduling.mdp.environments import Index, IndexUni, Seq
+# from task_scheduling.mdp.features import encode_discrete_features
+from task_scheduling.mdp.supervised.torch import TorchScheduler, LitScheduler, VaryCNN, UniMLP, MultiMLP
+from task_scheduling.mdp.reinforcement import StableBaselinesScheduler
 
 
 np.set_printoptions(precision=3)
@@ -77,8 +77,11 @@ env_params = {
     'masking': True,
 }
 
-env = Index(problem_gen, **env_params)
+# env = Index(problem_gen, **env_params)
+env = IndexUni(problem_gen, **env_params)
 # env = Seq(problem_gen)
+
+# check_env(env)
 
 
 learn_params_torch = {
@@ -87,20 +90,23 @@ learn_params_torch = {
     'batch_size_val': 30,
     'weight_func': None,
     # 'weight_func': lambda o, a, r: r,  # TODO: investigate!
+    # 'weight_func': lambda o, a, r: 1 - o['seq'].sum() / o['seq'].size,
     'max_epochs': 500,
     'shuffle': True,
 }
 
-model_kwargs = {'optim_cls': optim.Adam, 'optim_params': {'lr': 1e-5}}
+model_kwargs = {'optim_cls': optim.Adam, 'optim_params': {'lr': 1e-4}}
 
-torch_model = VaryCNN(4, env.features.size, env.n_ch)
-# torch_model = MultiNet(env, hidden_sizes_joint=[400])
 
-# torch_scheduler = TorchScheduler(env, ValidNet(torch_model), **model_kwargs, learn_params=learn_params_torch)
+# torch_model = VaryCNN(4, env.features.size, env.n_ch)
+# torch_model = MultiMLP(env, hidden_sizes_joint=[400])
+torch_model = UniMLP(env, hidden_sizes=[400])
+
+# torch_scheduler = TorchScheduler(env, torch_model, **model_kwargs, learn_params=learn_params_torch)
 # # torch_scheduler = TorchScheduler.mlp(env, hidden_sizes_joint=[400], **model_kwargs, learn_params=learn_params_torch)
 
 
-pl_trainer_kwargs = {
+trainer_kwargs = {
     'logger': TensorBoardLogger('main_temp/logs/', name=now),
     'checkpoint_callback': False,
     'callbacks': EarlyStopping('val_loss', min_delta=1e-3, patience=50),
@@ -111,10 +117,10 @@ pl_trainer_kwargs = {
     # 'progress_bar_refresh_rate': 0,
 }
 
-lit_scheduler = LitScheduler.from_module(env, ValidNet(torch_model), model_kwargs, trainer_kwargs=pl_trainer_kwargs,
+lit_scheduler = LitScheduler.from_module(env, torch_model, model_kwargs, trainer_kwargs=trainer_kwargs,
                                          learn_params=learn_params_torch)
-# lit_scheduler = LitScheduler.mlp(env, hidden_sizes_joint=[400], model_kwargs={'optim_params': {'lr': 1e-3}},
-#                                  trainer_kwargs=pl_trainer_kwargs, learn_params=learn_params_torch)
+# lit_scheduler = LitScheduler.mlp(env, hidden_sizes_joint=[400], model_kwargs=model_kwargs,
+#                                  trainer_kwargs=trainer_kwargs, learn_params=learn_params_torch)
 
 # lit_scheduler = LitScheduler.load('../models/c1t8.pth', env=env)
 # lit_scheduler = LitScheduler.load('../models/c1t8.pth', trainer_kwargs={'logger': False})  # FIXME
@@ -122,15 +128,17 @@ lit_scheduler = LitScheduler.from_module(env, ValidNet(torch_model), model_kwarg
 
 random_agent = RandomAgent(env)
 
+
+
+
 # RL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
 #            'model_cls': 'DQN', 'model_params': {'verbose': 1, 'policy': 'MlpPolicy'},
 #            'n_episodes': 10000,
 #            'save': False, 'save_path': None}
 # dqn_agent = StableBaselinesScheduler
-# dqn_agent = RL_Scheduler.load('temp/DQN_2020-10-28_15-44-00', env=None, model_cls='DQN')
-
+#
 # env = Index(problem_gen, **env_params)
-# check_env(env)
+#
 # # model_cls, model_params = StableBaselinesScheduler.model_defaults['DQN_MLP']
 # model_cls, model_params = StableBaselinesScheduler.model_defaults['PPO']
 # # model_sb = model_cls(env=env, **model_params)
