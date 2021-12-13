@@ -75,13 +75,13 @@ env_params = {
     'time_shift': True,
     # 'masking': False,
     'masking': True,
+    'normalize': True,
+    # 'normalize': False,
 }
 
 # env = Index(problem_gen, **env_params)
 env = IndexUni(problem_gen, **env_params)
 # env = Seq(problem_gen)
-
-# check_env(env)
 
 
 learn_params_torch = {
@@ -91,7 +91,7 @@ learn_params_torch = {
     'weight_func': None,
     # 'weight_func': lambda o, a, r: r,  # TODO: investigate!
     # 'weight_func': lambda o, a, r: 1 - o['seq'].sum() / o['seq'].size,
-    'max_epochs': 500,
+    'max_epochs': 1000,
     'shuffle': True,
 }
 
@@ -130,7 +130,8 @@ random_agent = RandomAgent(env)
 
 
 
-
+# check_env(env)
+#
 # RL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
 #            'model_cls': 'DQN', 'model_params': {'verbose': 1, 'policy': 'MlpPolicy'},
 #            'n_episodes': 10000,

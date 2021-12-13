@@ -75,6 +75,7 @@ layer_sizes_set = [
 
 env_params_base = {
     'masking': True,
+    'normalize': True,
 }
 
 env_params_set = [

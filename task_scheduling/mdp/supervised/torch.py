@@ -263,18 +263,7 @@ def valid_logits(x, seq):
     return x - 1e6 * seq  # TODO: try different masking operations?
 
 
-# class ValidNet(nn.Module):
-#     def __init__(self, module):
-#         super().__init__()
-#         self.module = module
-#
-#     def forward(self, ch_avail, seq, tasks):
-#         y = self.module(ch_avail, tasks)
-#         y = valid_logits(y, seq)
-#         return y
-
-
-# def valid_wrapper(func):
+# def valid_wrapper(func):  # TODO: make `wraps` work
 #     # @wraps(func)
 #     def valid_fwd(self, ch_avail, seq, tasks):
 #         y = func(self, ch_avail, tasks)
