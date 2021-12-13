@@ -270,6 +270,21 @@ class ValidNet(nn.Module):
         return y
 
 
+class UniMLP(nn.Module):
+    def __init__(self, env, hidden_sizes=()):
+        super().__init__()
+
+        layer_sizes = [
+            np.prod(env.observation_space.shape).item(),
+            *hidden_sizes,
+            env.action_space.n,
+        ]
+        self.mlp = _build_mlp(layer_sizes)
+
+    def forward(self, x):
+        return self.mlp(x)
+
+
 class MultiMLP(nn.Module):
     def __init__(self, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=()):
         super().__init__()

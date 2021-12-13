@@ -306,10 +306,14 @@ class Base(Env, ABC):
             #     print(f'Batch: {i_batch + 1}/{n_batch}', end='\n')
 
             steps_total = batch_size * self.steps_per_episode
-            data = list(zip(*(np.empty((steps_total, *space.shape), dtype=space.dtype)
-                            for space in self.observation_space.spaces.values())))
-            dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
-            x_set = np.array(data, dtype=dtype)
+
+            if isinstance(self.observation_space, Dict):  # TODO: relocate functionality to subclasses?
+                data = list(zip(*(np.empty((steps_total, *space.shape), dtype=space.dtype)
+                                for space in self.observation_space.spaces.values())))
+                dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
+                x_set = np.array(data, dtype=dtype)
+            else:
+                x_set = np.empty((steps_total, *self.observation_space.shape), dtype=self.observation_space.dtype)
 
             # x_set = OrderedDict([(key, np.empty((steps_total, *space.shape), dtype=space.dtype))
             #                      for key, space in self.observation_space.spaces.items()])
@@ -476,6 +480,36 @@ def int_to_seq(num, length, check_input=True):
         seq.append(n)
 
     return tuple(seq)
+
+
+class IndexUni(Index):
+    def __init__(self, problem_gen, features=None, sort_func=None, time_shift=False, masking=False):
+        """`Index` environment with single tensor observations.
+
+        Parameters
+        ----------
+        problem_gen : generators.problems.Base
+            Scheduling problem generation object.
+        features : numpy.ndarray, optional
+            Structured numpy array of features with fields 'name', 'func', and 'lims'.
+        sort_func : function or str, optional
+            Method that returns a sorting value for re-indexing given a task index 'n'.
+        time_shift : bool, optional
+            Enables task re-parameterization after sequence updates.
+        masking : bool, optional
+            If True, features are zeroed out for scheduled tasks.
+
+        """
+        super().__init__(problem_gen, features, sort_func, time_shift, masking)
+
+        # Observation space
+        _space_seq_reshape = spaces_tasking.reshape(self._obs_space_seq, (self.n_tasks, 1))
+        self.observation_space = spaces_tasking.concatenate((_space_seq_reshape, self._obs_space_tasks), axis=1)
+
+    def obs(self):
+        """Complete observation."""
+        _obs_seq_reshape = self._obs_seq().reshape((self.n_tasks, 1))
+        return np.concatenate((_obs_seq_reshape, self._obs_tasks()), axis=1)
 
 
 class Seq(Base):

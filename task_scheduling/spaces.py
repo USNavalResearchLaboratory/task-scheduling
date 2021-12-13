@@ -68,6 +68,17 @@ def concatenate(spaces, axis=0):
         return Box(lims[..., 0], lims[..., 1], dtype=float)
 
 
+def reshape(space, newshape):
+    """Reshape space."""
+
+    if isinstance(space, Box):
+        low, high = space.low.reshape(newshape), space.high.reshape(newshape)
+        return Box(low, high, dtype=float)
+    elif isinstance(space, MultiDiscrete):
+        return MultiDiscrete(space.nvec.reshape(newshape))
+    else:
+        raise NotImplementedError
+
 # def as_box(space):
 #     """Upcast space to a Box."""
 #
