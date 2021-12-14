@@ -25,7 +25,7 @@ from task_scheduling.mdp.base import RandomAgent
 from task_scheduling.mdp.environments import Index, IndexUni, Seq
 # from task_scheduling.mdp.features import encode_discrete_features
 from task_scheduling.mdp.supervised.torch import TorchScheduler, LitScheduler, VaryCNN, UniMLP, MultiMLP
-from task_scheduling.mdp.reinforcement import StableBaselinesScheduler
+from task_scheduling.mdp.reinforcement import StableBaselinesScheduler, CustomActorCriticPolicy
 
 
 np.set_printoptions(precision=3)
@@ -48,8 +48,8 @@ if seed is not None:
 
 # %% Define scheduling problem and algorithms
 
+# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=seed)
-# problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=4, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
 # problem_gen = problem_gens.DeterministicTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.PermutedTasks.continuous_relu_drop(n_tasks=8, n_ch=1, rng=seed)
@@ -69,18 +69,18 @@ problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 env_params = {
     'features': None,  # defaults to task parameters
     # 'features': encode_discrete_features(problem_gen),
+    'normalize': True,
+    # 'normalize': False,
     # 'sort_func': None,
     'sort_func': 't_release',
     # 'time_shift': False,
     'time_shift': True,
     # 'masking': False,
     'masking': True,
-    'normalize': True,
-    # 'normalize': False,
 }
 
-# env = Index(problem_gen, **env_params)
-env = IndexUni(problem_gen, **env_params)
+env = Index(problem_gen, **env_params)
+# env = IndexUni(problem_gen, **env_params)
 # env = Seq(problem_gen)
 
 
@@ -88,8 +88,8 @@ learn_params_torch = {
     'batch_size_train': 20,
     'n_gen_val': 1/3,
     'batch_size_val': 30,
-    'weight_func': None,
-    # 'weight_func': lambda o, a, r: r,  # TODO: investigate!
+    'weight_func': None,  # TODO: use reward!?
+    # 'weight_func': lambda o, a, r: r,
     # 'weight_func': lambda o, a, r: 1 - o['seq'].sum() / o['seq'].size,
     'max_epochs': 1000,
     'shuffle': True,
@@ -98,9 +98,9 @@ learn_params_torch = {
 model_kwargs = {'optim_cls': optim.Adam, 'optim_params': {'lr': 1e-4}}
 
 
-# torch_model = VaryCNN(4, env.features.size, env.n_ch)
-# torch_model = MultiMLP(env, hidden_sizes_joint=[400])
-torch_model = UniMLP(env, hidden_sizes=[400])
+# torch_model = VaryCNN(env, kernel_len=2)
+torch_model = MultiMLP(env, hidden_sizes_joint=[400])
+# torch_model = UniMLP(env, hidden_sizes=[400])
 
 # torch_scheduler = TorchScheduler(env, torch_model, **model_kwargs, learn_params=learn_params_torch)
 # # torch_scheduler = TorchScheduler.mlp(env, hidden_sizes_joint=[400], **model_kwargs, learn_params=learn_params_torch)
@@ -131,20 +131,21 @@ random_agent = RandomAgent(env)
 
 
 # check_env(env)
-#
-# RL_args = {'problem_gen': problem_gen, 'env_cls': env_cls, 'env_params': env_params,
-#            'model_cls': 'DQN', 'model_params': {'verbose': 1, 'policy': 'MlpPolicy'},
-#            'n_episodes': 10000,
-#            'save': False, 'save_path': None}
-# dqn_agent = StableBaselinesScheduler
-#
-# env = Index(problem_gen, **env_params)
-#
-# # model_cls, model_params = StableBaselinesScheduler.model_defaults['DQN_MLP']
-# model_cls, model_params = StableBaselinesScheduler.model_defaults['PPO']
-# # model_sb = model_cls(env=env, **model_params)
-#
-# learn_params_sb = {}
+
+# TODO: SB tensorboard
+
+learn_params_sb = {}
+
+# model_params = None
+model_params = {
+    'policy': CustomActorCriticPolicy,
+    'n_steps': 800,
+    'verbose': 1
+}
+
+sb_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', model_params, learn_params_sb)
+
+
 
 
 algorithms = np.array([
@@ -157,10 +158,9 @@ algorithms = np.array([
     #   for c, t in product([0], [5, 10])),
     ('Random Agent', random_agent, 10),
     # ('Torch Policy', torch_scheduler, 10),
-    ('Lit Policy', lit_scheduler, 10),
+    # ('Lit Policy', lit_scheduler, 10),
     # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
-    # ('DQN Agent', StableBaselinesScheduler.make_model(env, model_cls, model_params), 5),
-    # ('DQN Agent', StableBaselinesScheduler(model_sb, env), 5),
+    ('SB Agent', sb_scheduler, 5),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
 

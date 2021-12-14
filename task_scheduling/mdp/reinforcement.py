@@ -1,14 +1,25 @@
 from collections import namedtuple
 
+import torch
+from gym.spaces import Box, Dict
 from stable_baselines3 import DQN, A2C, PPO
 # from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.policies import ActorCriticPolicy
 # from stable_baselines.common.vec_env import DummyVecEnv
+from stable_baselines3.common.policies import ActorCriticPolicy
+from stable_baselines3.common.preprocessing import get_flattened_obs_dim
+from stable_baselines3.common.torch_layers import (
+    BaseFeaturesExtractor,
+    CombinedExtractor,
+    FlattenExtractor,
+    MlpExtractor,
+    NatureCNN,
+    create_mlp,
+)
 from torch import nn
 
 # from task_scheduling.mdp import environments as envs
 from task_scheduling.mdp.base import BaseLearning as BaseLearningScheduler
-from task_scheduling.mdp.supervised.torch import reset_weights
+from task_scheduling.mdp.supervised.torch import reset_weights, valid_logits
 
 
 # class DummyVecTaskingEnv(DummyVecEnv):
@@ -42,7 +53,13 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         # self.env = env  # invokes setter
 
     @classmethod
-    def make_model(cls, env, model_cls, model_params, learn_params=None):
+    def make_model(cls, env, model_cls, model_params=None, learn_params=None):
+        if model_params is None:
+            model_params = {}
+        if isinstance(model_cls, str):
+            model_cls, _params = cls.model_defaults[model_cls]
+            model_params = _params | model_params
+
         model = model_cls(env=env, **model_params)
         return cls(env, model, learn_params)
 
@@ -63,14 +80,16 @@ class StableBaselinesScheduler(BaseLearningScheduler):
     #     return self.model.action_probability(obs)  # TODO: need `env.env_method` to access my reset?
 
     def predict(self, obs):
-        action, _state = self.model.predict(obs)
+        action, _state = self.model.predict(obs, deterministic=True)
         return action
 
     def learn(self, n_gen_learn, verbose=0):
         # TODO: consider using `eval_env` argument to pass original env for `model.learn` call
 
         steps_per_episode = self.env.steps_per_episode  # FIXME: breaks due to env vectorization
-        self.model.learn(total_timesteps=n_gen_learn * steps_per_episode)
+        # total_timesteps = n_gen_learn * steps_per_episode
+        total_timesteps = n_gen_learn * steps_per_episode - self.model.n_steps  # TODO
+        self.model.learn(total_timesteps)
 
         # if self.do_monitor:
         #     plot_results([str(self.log_dir)], num_timesteps=None, x_axis='timesteps', task_name='Training history')
@@ -181,44 +200,84 @@ class StableBaselinesScheduler(BaseLearningScheduler):
 
 
 # FIXME
-class CustomNetwork(nn.Module):
-    """
-    Custom network for policy and value function.
-    It receives as input the features extracted by the feature extractor.
+# class CustomNetwork(nn.Module):
+#     """
+#     Custom network for policy and value function.
+#     It receives as input the features extracted by the feature extractor.
+#
+#     :param feature_dim: dimension of the features extracted with the features_extractor (e.g. features from a CNN)
+#     :param last_layer_dim_pi: (int) number of units for the last layer of the policy network
+#     :param last_layer_dim_vf: (int) number of units for the last layer of the value network
+#     """
+#
+#     def __init__(
+#         self,
+#         feature_dim: int,
+#         last_layer_dim_pi: int = 64,
+#         last_layer_dim_vf: int = 64,
+#     ):
+#         super(CustomNetwork, self).__init__()
+#
+#         # IMPORTANT:
+#         # Save output dimensions, used to create the distributions
+#         self.latent_dim_pi = last_layer_dim_pi
+#         self.latent_dim_vf = last_layer_dim_vf
+#
+#         # Policy network
+#         self.policy_net = nn.Sequential(
+#             nn.Linear(feature_dim, last_layer_dim_pi), nn.ReLU()
+#         )
+#         # Value network
+#         self.value_net = nn.Sequential(
+#             nn.Linear(feature_dim, last_layer_dim_vf), nn.ReLU()
+#         )
+#
+#     def forward(self, features):
+#         """
+#         :return: (th.Tensor, th.Tensor) latent_policy, latent_value of the specified network.
+#             If all layers are shared, then ``latent_policy == latent_value``
+#         """
+#         return self.policy_net(features), self.value_net(features)
 
-    :param feature_dim: dimension of the features extracted with the features_extractor (e.g. features from a CNN)
-    :param last_layer_dim_pi: (int) number of units for the last layer of the policy network
-    :param last_layer_dim_vf: (int) number of units for the last layer of the value network
-    """
 
-    def __init__(
-            self,
-            feature_dim: int,
-            last_layer_dim_pi: int = 64,
-            last_layer_dim_vf: int = 64,
-    ):
-        super(CustomNetwork, self).__init__()
+# class CustomFlattenExtractor(FlattenExtractor):
+#     def __init__(self, observation_space: Box):
+#         # create new space for only the task feature observation
+#         low, high = observation_space.low[..., 1:], observation_space.high[..., 1:]
+#         observation_space = Box(low, high, dtype=observation_space.dtype)
+#         super().__init__(observation_space)
 
-        # IMPORTANT:
-        # Save output dimensions, used to create the distributions
-        self.latent_dim_pi = last_layer_dim_pi
-        self.latent_dim_vf = last_layer_dim_vf
 
-        # Policy network
-        self.policy_net = nn.Sequential(
-            nn.Linear(feature_dim, last_layer_dim_pi), nn.ReLU()
-        )
-        # Value network
-        self.value_net = nn.Sequential(
-            nn.Linear(feature_dim, last_layer_dim_vf), nn.ReLU()
-        )
+class CustomCombinedExtractor(BaseFeaturesExtractor):
+    # space_keys = ['ch_avail', 'tasks']
+    space_keys = ['tasks']  # TODO: ignores chan info for simplicity
 
-    def forward(self, features):
-        """
-        :return: (th.Tensor, th.Tensor) latent_policy, latent_value of the specified network.
-            If all layers are shared, then ``latent_policy == latent_value``
-        """
-        return self.policy_net(features), self.value_net(features)
+    def __init__(self, observation_space: Dict):
+        # TODO we do not know features-dim here before going over all the items, so put something there. This is dirty!
+        super().__init__(observation_space, features_dim=1)
+
+        extractors = {}
+
+        total_concat_size = 0
+        for key in self.space_keys:
+            extractors[key] = nn.Flatten()
+            total_concat_size += get_flattened_obs_dim(observation_space[key])
+        # for key, space in observation_space.spaces.items():
+        #     # The observation key is a vector, flatten it if needed
+        #     extractors[key] = nn.Flatten()
+        #     total_concat_size += get_flattened_obs_dim(space)
+
+        self.extractors = nn.ModuleDict(extractors)
+
+        # Update the features dim manually
+        self._features_dim = total_concat_size
+
+    def forward(self, observations: dict) -> torch.Tensor:
+        encoded_tensor_list = []
+
+        for key, extractor in self.extractors.items():
+            encoded_tensor_list.append(extractor(observations[key]))
+        return torch.cat(encoded_tensor_list, dim=1)
 
 
 class CustomActorCriticPolicy(ActorCriticPolicy):
@@ -227,23 +286,71 @@ class CustomActorCriticPolicy(ActorCriticPolicy):
             observation_space,
             action_space,
             lr_schedule,
-            net_arch,
+            net_arch=None,
             activation_fn=nn.Tanh,
-            *args,
-            **kwargs,
+            ortho_init=True,  # TODO: `False` like tutorial?
+            use_sde=False,
+            log_std_init=0.0,
+            full_std=True,
+            sde_net_arch=None,
+            use_expln=False,
+            squash_output=False,
+            features_extractor_class=CustomCombinedExtractor,  # TODO
+            features_extractor_kwargs=None,
+            normalize_images=False,  # TODO: use my `env` normalization and exclude here?
+            optimizer_class=torch.optim.Adam,
+            optimizer_kwargs=None,
     ):
-        super(CustomActorCriticPolicy, self).__init__(
+        super().__init__(
             observation_space,
             action_space,
             lr_schedule,
             net_arch,
             activation_fn,
-            # Pass remaining arguments to base class
-            *args,
-            **kwargs,
+            ortho_init,
+            use_sde,
+            log_std_init,
+            full_std,
+            sde_net_arch,
+            use_expln,
+            squash_output,
+            features_extractor_class,
+            features_extractor_kwargs,
+            normalize_images,
+            optimizer_class,
+            optimizer_kwargs,
         )
-        # Disable orthogonal initialization
-        self.ortho_init = False
 
-    def _build_mlp_extractor(self) -> None:
-        self.mlp_extractor = CustomNetwork(self.features_dim)
+    # def _build_mlp_extractor(self) -> None:
+    #     self.mlp_extractor = CustomNetwork(self.features_dim)
+
+    def _get_action_dist_from_latent_valid(self, obs, latent_pi, latent_sde=None):
+        mean_actions = self.action_net(latent_pi)
+        mean_actions = valid_logits(mean_actions, obs['seq'])  # mask out invalid actions
+        return self.action_dist.proba_distribution(action_logits=mean_actions)
+
+    def forward(self, obs, deterministic=False):
+        latent_pi, latent_vf, latent_sde = self._get_latent(obs)
+        # Evaluate the values for the given observations
+        values = self.value_net(latent_vf)
+
+        # distribution = self._get_action_dist_from_latent(latent_pi, latent_sde=latent_sde)
+        distribution = self._get_action_dist_from_latent_valid(obs, latent_pi, latent_sde=latent_sde)
+
+        actions = distribution.get_actions(deterministic=deterministic)
+        log_prob = distribution.log_prob(actions)
+        return actions, values, log_prob
+
+    def _predict(self, obs, deterministic=False):
+        latent_pi, _, latent_sde = self._get_latent(obs)
+        # distribution = self._get_action_dist_from_latent(latent_pi, latent_sde)
+        distribution = self._get_action_dist_from_latent_valid(obs, latent_pi, latent_sde)
+        return distribution.get_actions(deterministic=deterministic)
+
+    def evaluate_actions(self, obs, actions):
+        latent_pi, latent_vf, latent_sde = self._get_latent(obs)
+        # distribution = self._get_action_dist_from_latent(latent_pi, latent_sde)
+        distribution = self._get_action_dist_from_latent_valid(obs, latent_pi, latent_sde)
+        log_prob = distribution.log_prob(actions)
+        values = self.value_net(latent_vf)
+        return values, log_prob, distribution.entropy()
