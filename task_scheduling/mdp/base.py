@@ -17,8 +17,8 @@ class Base(ABC):
 
         """
         self.env = env
-        if not isinstance(self.env.action_space, Discrete):
-            raise TypeError("Action space must be Discrete.")
+        # if not isinstance(self.env.action_space, Discrete):  # TODO: delete?
+        #     raise TypeError("Action space must be Discrete.")
 
     def __call__(self, tasks, ch_avail):
         """
@@ -95,8 +95,9 @@ class BaseLearning(Base):
         self.model = model
 
         self._learn_params = self._learn_params_default.copy()
+        if learn_params is None:
+            learn_params = {}
         self.learn_params = learn_params  # invoke property setter
-        # self._set_learn_params(learn_params)
 
     @property
     def learn_params(self):
@@ -104,17 +105,7 @@ class BaseLearning(Base):
 
     @learn_params.setter
     def learn_params(self, params):
-        # self._learn_params = self._learn_params_default.copy()
-        if params is not None:
-            self._learn_params.update(params)
-
-    # def _set_learn_params(self, learn_params):
-    #     # if learn_params is None:
-    #     #     learn_params = {}
-    #     # self.learn_params = self._learn_params_default | learn_params
-    #     self.learn_params = self._learn_params_default.copy()
-    #     if learn_params is not None:
-    #         self.learn_params.update(learn_params)
+        self._learn_params.update(params)
 
     # @abstractmethod
     # def predict_prob(self, obs):

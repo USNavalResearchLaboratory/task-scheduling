@@ -324,7 +324,7 @@ class CustomActorCriticPolicy(ActorCriticPolicy):
     # def _build_mlp_extractor(self) -> None:
     #     self.mlp_extractor = CustomNetwork(self.features_dim)
 
-    def _get_action_dist_from_latent_valid(self, obs, latent_pi, latent_sde=None):
+    def _get_action_dist_from_latent_valid(self, obs, latent_pi, _latent_sde=None):
         mean_actions = self.action_net(latent_pi)
         mean_actions = valid_logits(mean_actions, obs['seq'])  # mask out invalid actions
         return self.action_dist.proba_distribution(action_logits=mean_actions)
@@ -335,7 +335,7 @@ class CustomActorCriticPolicy(ActorCriticPolicy):
         values = self.value_net(latent_vf)
 
         # distribution = self._get_action_dist_from_latent(latent_pi, latent_sde=latent_sde)
-        distribution = self._get_action_dist_from_latent_valid(obs, latent_pi, latent_sde=latent_sde)
+        distribution = self._get_action_dist_from_latent_valid(obs, latent_pi, latent_sde)
 
         actions = distribution.get_actions(deterministic=deterministic)
         log_prob = distribution.log_prob(actions)

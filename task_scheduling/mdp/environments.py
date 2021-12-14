@@ -23,7 +23,7 @@ class Base(Env, ABC):
         problem_gen : generators.problems.Base
             Scheduling problem generation object.
         features : numpy.ndarray, optional
-            Structured numpy array of features with fields 'name', 'func', and 'lims'.
+            Structured numpy array of features with fields 'name', 'func', and 'space'.
         normalize : bool, optional
             Rescale task features to unit interval.
         sort_func : function or str, optional
@@ -37,7 +37,8 @@ class Base(Env, ABC):
         self._problem_gen = problem_gen
         self.solution = None
 
-        # Set features and observation bounds
+        # Set features
+        # TODO: custom features combining release times and chan availabilities?
         if features is not None:
             self.features = features
         else:
@@ -395,7 +396,7 @@ class Index(Base):
         problem_gen : generators.problems.Base
             Scheduling problem generation object.
         features : numpy.ndarray, optional
-            Structured numpy array of features with fields 'name', 'func', and 'lims'.
+            Structured numpy array of features with fields 'name', 'func', and 'space'.
         normalize : bool, optional
             Rescale task features to unit interval.
         sort_func : function or str, optional
@@ -517,7 +518,7 @@ class IndexUni(Index):
         problem_gen : generators.problems.Base
             Scheduling problem generation object.
         features : numpy.ndarray, optional
-            Structured numpy array of features with fields 'name', 'func', and 'lims'.
+            Structured numpy array of features with fields 'name', 'func', and 'space'.
         normalize : bool, optional
             Rescale task features to unit interval.
         sort_func : function or str, optional
@@ -550,7 +551,7 @@ class Seq(Base):
         problem_gen : generators.problems.Base
             Scheduling problem generation object.
         features : numpy.ndarray, optional
-            Structured numpy array of features with fields 'name', 'func', and 'lims'.
+            Structured numpy array of features with fields 'name', 'func', and 'space'.
         normalize : bool, optional
             Rescale task features to unit interval.
         sort_func : function or str, optional

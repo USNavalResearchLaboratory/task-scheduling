@@ -18,6 +18,9 @@ from task_scheduling.mdp.environments import Base as BaseEnv, Index
 from task_scheduling.mdp.supervised.base import Base as BaseSupervisedScheduler
 
 
+# TODO: use reward!? Add task loss to NLL loss for backprop?
+
+
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 # device = torch.device("cpu")
 

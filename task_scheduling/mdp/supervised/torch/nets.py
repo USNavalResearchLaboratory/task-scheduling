@@ -34,7 +34,7 @@ def _build_mlp(layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_
 
 
 def valid_logits(x, seq):
-    return x - 1e6 * seq  # TODO: try different masking operations?
+    return x - 1e6 * seq  # TODO: `inf`? try different masking operations?
 
 
 # def valid_wrapper(func):  # TODO: make `wraps` work
