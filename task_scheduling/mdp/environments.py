@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections import OrderedDict
+# from collections import OrderedDict
 from math import factorial
 from operator import attrgetter
 
@@ -81,7 +81,11 @@ class Base(Env, ABC):
         self._obs_space_tasks = spaces_tasking.broadcast_to(_obs_space_features,
                                                             shape=(1, self.n_tasks, len(self.features)))
 
-        self.observation_space = Dict(ch_avail=self._obs_space_ch, seq=self._obs_space_seq, tasks=self._obs_space_tasks)
+        self.observation_space = Dict(  # note: `spaces` attribute is `OrderedDict` with sorted keys
+            ch_avail=self._obs_space_ch,
+            seq=self._obs_space_seq,
+            tasks=self._obs_space_tasks
+        )
 
         # Action space
         self.steps_per_episode = None  # TODO: deprecate?
@@ -173,8 +177,9 @@ class Base(Env, ABC):
         # dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
         # return np.array(data, dtype=dtype)
 
-        return OrderedDict({key: getattr(self, f"_obs_{key}")() for key in self.observation_space})
-
+        # return OrderedDict([(key, getattr(self, f"_obs_{key}")()) for key in self.observation_space])
+        return {key: getattr(self, f"_obs_{key}")() for key in self.observation_space}
+    #
     # @abstractmethod  # TODO: subclasses need update
     # def infer_action_space(self, obs):
     #     """Determines the action `gym.Space` from an observation."""
@@ -330,8 +335,10 @@ class Base(Env, ABC):
                 # dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
                 # x_set = np.array(data, dtype=dtype)
 
-                x_set = OrderedDict([(key, np.empty((steps_total, *space.shape), dtype=space.dtype))
-                                     for key, space in self.observation_space.spaces.items()])
+                # x_set = OrderedDict([(key, np.empty((steps_total, *space.shape), dtype=space.dtype))
+                #                      for key, space in self.observation_space.spaces.items()])
+                x_set = {key: np.empty((steps_total, *space.shape), dtype=space.dtype)
+                         for key, space in self.observation_space.spaces.items()}
             else:
                 x_set = np.empty((steps_total, *self.observation_space.shape), dtype=self.observation_space.dtype)
 
