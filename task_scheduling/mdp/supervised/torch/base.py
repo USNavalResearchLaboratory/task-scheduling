@@ -71,8 +71,10 @@ class Base(BaseSupervisedScheduler):
 
     @staticmethod
     def _obs_to_tuple(obs):
-        if obs.dtype.names is not None:
-            return tuple(obs[key] for key in obs.dtype.names)
+        if isinstance(obs, dict):
+            return tuple(obs.values())
+        # if obs.dtype.names is not None:
+        #     return tuple(obs[key] for key in obs.dtype.names)
         else:
             return obs,
 

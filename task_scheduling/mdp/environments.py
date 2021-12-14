@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 from math import factorial
 from operator import attrgetter
 
@@ -168,11 +169,11 @@ class Base(Env, ABC):
 
     def obs(self):
         """Complete observation."""
-        data = tuple(getattr(self, f"_obs_{key}")() for key in self.observation_space)  # invoke `_obs_tasks`, etc.
-        dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
-        return np.array(data, dtype=dtype)
+        # data = tuple(getattr(self, f"_obs_{key}")() for key in self.observation_space)  # invoke `_obs_tasks`, etc.
+        # dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
+        # return np.array(data, dtype=dtype)
 
-        # return OrderedDict(ch_avail=self.ch_avail, tasks=self._obs_tasks())
+        return OrderedDict({key: getattr(self, f"_obs_{key}")() for key in self.observation_space})
 
     # @abstractmethod  # TODO: subclasses need update
     # def infer_action_space(self, obs):
@@ -324,15 +325,13 @@ class Base(Env, ABC):
             steps_total = batch_size * self.steps_per_episode
 
             if isinstance(self.observation_space, Dict):
-                data = list(zip(*(np.empty((steps_total, *space.shape), dtype=space.dtype)
-                                for space in self.observation_space.spaces.values())))
-                dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
-                x_set = np.array(data, dtype=dtype)
+                # data = list(zip(*(np.empty((steps_total, *space.shape), dtype=space.dtype)
+                #                 for space in self.observation_space.spaces.values())))
+                # dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
+                # x_set = np.array(data, dtype=dtype)
 
-                # x_set = OrderedDict([(key, np.empty((steps_total, *space.shape), dtype=space.dtype))
-                #                      for key, space in self.observation_space.spaces.items()])
-                # # x_set = {key: np.empty((steps_total, *space.shape),
-                # #                        dtype=space.dtype) for key, space in self.observation_space.spaces.items()}
+                x_set = OrderedDict([(key, np.empty((steps_total, *space.shape), dtype=space.dtype))
+                                     for key, space in self.observation_space.spaces.items()])
             else:
                 x_set = np.empty((steps_total, *self.observation_space.shape), dtype=self.observation_space.dtype)
 
@@ -354,7 +353,9 @@ class Base(Env, ABC):
 
                     action = self.opt_action()
 
-                    x_set[i] = obs
+                    # x_set[i] = obs
+                    for key in self.observation_space:
+                        x_set[key][i] = obs[key]
                     y_set[i] = action
 
                     obs, reward, done, info = self.step(action)  # updates environment state
