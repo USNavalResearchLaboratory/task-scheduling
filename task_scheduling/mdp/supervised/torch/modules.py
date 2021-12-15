@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional
@@ -34,7 +33,7 @@ def _build_mlp(layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_
 
 
 def valid_logits(x, seq):
-    return x - 1e8 * seq  # TODO: `inf`? try different masking operations?
+    return x - 1e8 * seq  # TODO: try different masking operations?
 
 
 # def valid_wrapper(func):  # TODO: make `wraps` work
@@ -46,39 +45,38 @@ def valid_logits(x, seq):
 #     return valid_fwd
 
 
-class UniMLP(nn.Module):
-    def __init__(self, env, hidden_sizes=()):
-        super().__init__()
-
-        layer_sizes = [
-            # np.prod(env.observation_space.shape).item(),
-            env.n_tasks * env.n_features,
-            *hidden_sizes,
-            env.action_space.n,
-        ]
-        self.mlp = _build_mlp(layer_sizes)
-
-    def forward(self, x):
-        seq, t = x[..., :1], x[..., 1:]
-        seq = seq.squeeze(3).squeeze(1)
-
-        t = self.mlp(t)
-
-        x = valid_logits(t, seq)
-        return x
+# class UniMLP(nn.Module):
+#     def __init__(self, env, hidden_sizes=()):
+#         super().__init__()
+#
+#         layer_sizes = [
+#             # np.prod(env.observation_space.shape).item(),
+#             env.n_tasks * env.n_features,
+#             *hidden_sizes,
+#             env.action_space.n,
+#         ]
+#         self.mlp = _build_mlp(layer_sizes)
+#
+#     def forward(self, x):
+#         seq, t = x[..., :1], x[..., 1:]
+#         seq = seq.squeeze(3).squeeze(1)
+#
+#         t = self.mlp(t)
+#
+#         x = valid_logits(t, seq)
+#         return x
 
 
 class MultiMLP(nn.Module):
     def __init__(self, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=()):
         super().__init__()
 
-        size_in_ch = np.prod(env.observation_space['ch_avail'].shape).item()
-        layer_sizes_ch = [size_in_ch, *hidden_sizes_ch]
+        layer_sizes_ch = [env.n_ch, *hidden_sizes_ch]
         end_layer_ch = nn.ReLU() if bool(hidden_sizes_ch) else None
         self.mlp_ch = _build_mlp(layer_sizes_ch, end_layer=end_layer_ch)
 
-        size_in_tasks = np.prod(env.observation_space['tasks'].shape).item()
-        layer_sizes_tasks = [size_in_tasks, *hidden_sizes_tasks]
+        # layer_sizes_tasks = [env.n_tasks * env.n_features, *hidden_sizes_tasks]
+        layer_sizes_tasks = [env.n_tasks * (1 + env.n_features), *hidden_sizes_tasks]
         end_layer_tasks = nn.ReLU() if bool(hidden_sizes_tasks) else None
         self.mlp_tasks = _build_mlp(layer_sizes_tasks, end_layer=end_layer_tasks)
 
@@ -88,6 +86,8 @@ class MultiMLP(nn.Module):
 
     def forward(self, ch_avail, seq, tasks):
         c = self.mlp_ch(ch_avail)
+
+        tasks = torch.cat((seq.unsqueeze(1).unsqueeze(-1), tasks), dim=-1)
         t = self.mlp_tasks(tasks)
 
         x = torch.cat((c, t), dim=-1)
@@ -101,12 +101,14 @@ class VaryCNN(nn.Module):
     def __init__(self, env, kernel_len):
         super().__init__()
 
-        self.n_features = env.n_features
+        # self.n_features = env.n_features
         # self.n_ch = env.n_ch
 
         self.n_filter = 400
 
-        self.conv2d = nn.Conv2d(1, self.n_filter, kernel_size=(kernel_len, self.n_features))
+        # self.conv2d = nn.Conv2d(1, self.n_filter, kernel_size=(kernel_len, env.n_features))
+        self.conv2d = nn.Conv2d(1, self.n_filter, kernel_size=(kernel_len, 1 + env.n_features))
+
         self.conv1 = nn.Conv1d(self.n_filter, 1, kernel_size=kernel_len)
         # self.conv1 = nn.Conv1d(self.n_filter + self.n_ch, 1, kernel_size=(l_kernel,))
 
@@ -116,12 +118,13 @@ class VaryCNN(nn.Module):
     def forward(self, ch_avail, seq, tasks):
         c, t = ch_avail, tasks
 
-        n_batch, __, n_tasks, n_features = t.shape
+        # n_batch, __, n_tasks, n_features = t.shape
+        n_batch = len(t)
         device_ = t.device
 
-        # t = t.unsqueeze(dim=1)
+        t = torch.cat((seq.unsqueeze(1).unsqueeze(-1), t), dim=-1)
 
-        pad = torch.zeros(n_batch, 1, self.conv2d.kernel_size[0] - 1, n_features, device=device_)
+        pad = torch.zeros(n_batch, 1, self.conv2d.kernel_size[0] - 1, self.conv2d.kernel_size[1], device=device_)
         t = torch.cat((t, pad), dim=2)
         t = self.conv2d(t)
         t = t.squeeze(dim=3)
