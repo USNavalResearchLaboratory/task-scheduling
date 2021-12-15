@@ -1,7 +1,6 @@
 from functools import partial
 from itertools import product
 from pathlib import Path
-# from functools import wraps
 # from operator import methodcaller
 from math import factorial
 
@@ -11,7 +10,6 @@ from matplotlib import pyplot as plt
 
 import torch
 from torch import nn, optim
-from torch.nn import functional
 from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import EarlyStopping
@@ -22,10 +20,11 @@ from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
 from task_scheduling.generators import problems as problem_gens
 from task_scheduling.results import evaluate_algorithms_train, evaluate_algorithms_gen
 from task_scheduling.mdp.base import RandomAgent
-from task_scheduling.mdp.environments import Index, IndexUni, Seq
+from task_scheduling.mdp.environments import Index, IndexUni
 # from task_scheduling.mdp.features import encode_discrete_features
 from task_scheduling.mdp.supervised.torch import TorchScheduler, LitScheduler, VaryCNN, UniMLP, MultiMLP
-from task_scheduling.mdp.reinforcement import StableBaselinesScheduler, CustomActorCriticPolicy
+from task_scheduling.mdp.supervised.torch.modules import _build_mlp
+from task_scheduling.mdp.reinforcement import StableBaselinesScheduler, ValidActorCriticPolicy, CustomCombinedExtractor
 
 
 np.set_printoptions(precision=3)
@@ -81,7 +80,6 @@ env_params = {
 
 env = Index(problem_gen, **env_params)
 # env = IndexUni(problem_gen, **env_params)
-# env = Seq(problem_gen)
 
 
 learn_params_torch = {
@@ -96,7 +94,6 @@ learn_params_torch = {
 }
 
 model_kwargs = {'optim_cls': optim.Adam, 'optim_params': {'lr': 1e-4}}
-
 
 # torch_model = VaryCNN(env, kernel_len=2)
 torch_model = MultiMLP(env, hidden_sizes_joint=[400])
@@ -129,21 +126,21 @@ lit_scheduler = LitScheduler.from_module(env, torch_model, model_kwargs, trainer
 random_agent = RandomAgent(env)
 
 
-
-# check_env(env)
-
 # TODO: SB tensorboard
 
-learn_params_sb = {}
-
-# model_params = None
+# check_env(env)
 model_params = {
-    'policy': CustomActorCriticPolicy,
-    'n_steps': 800,
+    'policy': ValidActorCriticPolicy,
+    'policy_kwargs': dict(
+        features_extractor_class=CustomCombinedExtractor,
+        normalize_images=False,
+        infer_valid_mask=env.infer_valid_mask,
+    ),
+    'n_steps': 900,
     'verbose': 1
 }
-
-sb_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', model_params, learn_params_sb)
+# sb_scheduler = StableBaselinesScheduler.make_model(env, 'A2C', model_params, learn_params={})
+sb_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', model_params, learn_params={})
 
 
 
@@ -166,7 +163,6 @@ algorithms = np.array([
 
 # %% Evaluate and record results
 n_gen_learn = 900  # the number of problems generated for learning, per iteration
-# n_gen_learn = 0
 n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
 

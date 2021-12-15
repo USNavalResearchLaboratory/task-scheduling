@@ -1,5 +1,6 @@
 from collections import namedtuple
 
+import numpy as np
 import torch
 from gym.spaces import Box, Dict
 from stable_baselines3 import DQN, A2C, PPO
@@ -250,7 +251,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
 
 class CustomCombinedExtractor(BaseFeaturesExtractor):  # TODO: improve!!!
     # space_keys = ['ch_avail', 'tasks']
-    space_keys = ['tasks']  # TODO: ignores chan info for simplicity
+    space_keys = ['tasks']  # TODO: ignores chan info for simplicity. ADD SEQ
 
     def __init__(self, observation_space: Dict):
         # TODO we do not know features-dim here before going over all the items, so put something there. This is dirty!
@@ -280,76 +281,37 @@ class CustomCombinedExtractor(BaseFeaturesExtractor):  # TODO: improve!!!
         return torch.cat(encoded_tensor_list, dim=1)
 
 
-class CustomActorCriticPolicy(ActorCriticPolicy):
-    def __init__(
-            self,
-            observation_space,
-            action_space,
-            lr_schedule,
-            net_arch=None,
-            activation_fn=nn.Tanh,
-            ortho_init=True,  # TODO: `False` like tutorial?
-            use_sde=False,
-            log_std_init=0.0,
-            full_std=True,
-            sde_net_arch=None,
-            use_expln=False,
-            squash_output=False,
-            features_extractor_class=CustomCombinedExtractor,  # TODO
-            features_extractor_kwargs=None,
-            normalize_images=False,  # TODO: use my `env` normalization and exclude here?
-            optimizer_class=torch.optim.Adam,
-            optimizer_kwargs=None,
-    ):
-        super().__init__(
-            observation_space,
-            action_space,
-            lr_schedule,
-            net_arch,
-            activation_fn,
-            ortho_init,
-            use_sde,
-            log_std_init,
-            full_std,
-            sde_net_arch,
-            use_expln,
-            squash_output,
-            features_extractor_class,
-            features_extractor_kwargs,
-            normalize_images,
-            optimizer_class,
-            optimizer_kwargs,
-        )
+class ValidActorCriticPolicy(ActorCriticPolicy):
+    def __init__(self, *args, infer_valid_mask=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if callable(infer_valid_mask):
+            self.infer_valid_mask = infer_valid_mask
+        else:
+            self.infer_valid_mask = lambda obs: np.ones(self.observation_space.shape)
 
     # def _build_mlp_extractor(self) -> None:
     #     self.mlp_extractor = CustomNetwork(self.features_dim)
 
     def _get_action_dist_from_latent_valid(self, obs, latent_pi, _latent_sde=None):
         mean_actions = self.action_net(latent_pi)
-        mean_actions = valid_logits(mean_actions, obs['seq'])  # mask out invalid actions
+        mean_actions = valid_logits(mean_actions, self.infer_valid_mask(obs))  # mask out invalid actions
         return self.action_dist.proba_distribution(action_logits=mean_actions)
 
     def forward(self, obs, deterministic=False):
         latent_pi, latent_vf, latent_sde = self._get_latent(obs)
-        # Evaluate the values for the given observations
         values = self.value_net(latent_vf)
-
-        # distribution = self._get_action_dist_from_latent(latent_pi, latent_sde=latent_sde)
         distribution = self._get_action_dist_from_latent_valid(obs, latent_pi, latent_sde)
-
         actions = distribution.get_actions(deterministic=deterministic)
         log_prob = distribution.log_prob(actions)
         return actions, values, log_prob
 
     def _predict(self, obs, deterministic=False):
         latent_pi, _, latent_sde = self._get_latent(obs)
-        # distribution = self._get_action_dist_from_latent(latent_pi, latent_sde)
         distribution = self._get_action_dist_from_latent_valid(obs, latent_pi, latent_sde)
         return distribution.get_actions(deterministic=deterministic)
 
     def evaluate_actions(self, obs, actions):
         latent_pi, latent_vf, latent_sde = self._get_latent(obs)
-        # distribution = self._get_action_dist_from_latent(latent_pi, latent_sde)
         distribution = self._get_action_dist_from_latent_valid(obs, latent_pi, latent_sde)
         log_prob = distribution.log_prob(actions)
         values = self.value_net(latent_vf)
