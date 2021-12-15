@@ -34,7 +34,7 @@ def _build_mlp(layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_
 
 
 def valid_logits(x, seq):
-    return x - 1e6 * seq  # TODO: `inf`? try different masking operations?
+    return x - 1e8 * seq  # TODO: `inf`? try different masking operations?
 
 
 # def valid_wrapper(func):  # TODO: make `wraps` work
@@ -59,12 +59,12 @@ class UniMLP(nn.Module):
         self.mlp = _build_mlp(layer_sizes)
 
     def forward(self, x):
-        seq, x = x[..., :1], x[..., 1:]
+        seq, t = x[..., :1], x[..., 1:]
         seq = seq.squeeze(3).squeeze(1)
 
-        x = self.mlp(x)
+        t = self.mlp(t)
 
-        x = valid_logits(x, seq)
+        x = valid_logits(t, seq)
         return x
 
 

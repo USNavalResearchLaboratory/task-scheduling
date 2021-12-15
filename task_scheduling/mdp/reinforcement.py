@@ -248,7 +248,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
 #         super().__init__(observation_space)
 
 
-class CustomCombinedExtractor(BaseFeaturesExtractor):
+class CustomCombinedExtractor(BaseFeaturesExtractor):  # TODO: improve!!!
     # space_keys = ['ch_avail', 'tasks']
     space_keys = ['tasks']  # TODO: ignores chan info for simplicity
 

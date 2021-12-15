@@ -13,7 +13,7 @@ from torch import nn, optim
 from torch.nn import functional
 from torch.utils.data import TensorDataset, DataLoader
 
-from task_scheduling.mdp.supervised.torch.nets import MultiMLP
+from task_scheduling.mdp.supervised.torch.modules import MultiMLP
 from task_scheduling.mdp.environments import Base as BaseEnv, Index
 from task_scheduling.mdp.supervised.base import Base as BaseSupervisedScheduler
 
