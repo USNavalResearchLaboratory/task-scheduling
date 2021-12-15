@@ -20,9 +20,9 @@ from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
 from task_scheduling.generators import problems as problem_gens
 from task_scheduling.results import evaluate_algorithms_train, evaluate_algorithms_gen
 from task_scheduling.mdp.base import RandomAgent
-from task_scheduling.mdp.environments import Index, IndexUni
+from task_scheduling.mdp.environments import Index
 # from task_scheduling.mdp.features import encode_discrete_features
-from task_scheduling.mdp.supervised.torch import TorchScheduler, LitScheduler, VaryCNN, UniMLP, MultiMLP
+from task_scheduling.mdp.supervised.torch import TorchScheduler, LitScheduler, VaryCNN, MultiMLP
 from task_scheduling.mdp.supervised.torch.modules import _build_mlp
 from task_scheduling.mdp.reinforcement import StableBaselinesScheduler, ValidActorCriticPolicy, CustomCombinedExtractor
 
@@ -79,7 +79,6 @@ env_params = {
 }
 
 env = Index(problem_gen, **env_params)
-# env = IndexUni(problem_gen, **env_params)
 
 
 learn_params_torch = {
@@ -95,9 +94,8 @@ learn_params_torch = {
 
 model_kwargs = {'optim_cls': optim.Adam, 'optim_params': {'lr': 1e-4}}
 
-# torch_model = VaryCNN(env, kernel_len=2)
-torch_model = MultiMLP(env, hidden_sizes_joint=[400])
-# torch_model = UniMLP(env, hidden_sizes=[400])
+torch_model = VaryCNN(env, kernel_len=2)
+# torch_model = MultiMLP(env, hidden_sizes_joint=[400])
 
 # torch_scheduler = TorchScheduler(env, torch_model, **model_kwargs, learn_params=learn_params_torch)
 # # torch_scheduler = TorchScheduler.mlp(env, hidden_sizes_joint=[400], **model_kwargs, learn_params=learn_params_torch)
@@ -129,6 +127,11 @@ random_agent = RandomAgent(env)
 # TODO: SB tensorboard
 
 # check_env(env)
+
+learn_params_sb = {
+    'max_epochs': 1000,  # TODO: check
+}
+
 model_params = {
     'policy': ValidActorCriticPolicy,
     'policy_kwargs': dict(
@@ -136,15 +139,14 @@ model_params = {
         normalize_images=False,
         infer_valid_mask=env.infer_valid_mask,
     ),
-    'n_steps': 900,
+    'n_steps': 2048,  # TODO: investigate problem reuse
     'verbose': 1
 }
-# sb_scheduler = StableBaselinesScheduler.make_model(env, 'A2C', model_params, learn_params={})
-sb_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', model_params, learn_params={})
+# sb_scheduler = StableBaselinesScheduler.make_model(env, 'A2C', model_params, learn_params_sb)
+sb_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', model_params, learn_params_sb)
 
 
-
-
+#
 algorithms = np.array([
     # ('BB', branch_bound, 1),
     # ('BB_p', partial(branch_bound_priority, heuristic=methodcaller('roll_out', inplace=False)), 1),

@@ -399,7 +399,7 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, n_gen_learn=0, sol
             func = learner['func']
             func.reset()
             # instantiate new generator for each learner
-            func.env.problem_gen = Dataset(problems, solutions,
+            func.env.problem_gen = Dataset(problems, solutions, shuffle=True, repeat=True,
                                            task_gen=problem_gen.task_gen, ch_avail_gen=problem_gen.ch_avail_gen)
             func.learn(n_gen_learn, verbose=verbose)  # calls `problem_gen` via environment `reset`
 

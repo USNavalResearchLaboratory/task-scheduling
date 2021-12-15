@@ -2,7 +2,7 @@ from collections import namedtuple
 
 import numpy as np
 import torch
-from gym.spaces import Box, Dict
+from gym import spaces
 from stable_baselines3 import DQN, A2C, PPO
 # from stable_baselines3.common.monitor import Monitor
 # from stable_baselines.common.vec_env import DummyVecEnv
@@ -18,6 +18,7 @@ from stable_baselines3.common.torch_layers import (
 )
 from torch import nn
 
+
 # from task_scheduling.mdp import environments as envs
 from task_scheduling.mdp.base import BaseLearning as BaseLearningScheduler
 from task_scheduling.mdp.supervised.torch import reset_weights, valid_logits
@@ -30,12 +31,16 @@ from task_scheduling.mdp.supervised.torch import reset_weights, valid_logits
 #             self._save_obs(env_idx, obs)
 #         return self._obs_from_buf()
 
-# TODO: add normalization option for RL learners!? Or just use gym.Wrappers on `env`?
 # TODO: use agents that can exploit expert knowledge
+
+_default_tuple = namedtuple('ModelDefault', ['cls', 'params'], defaults={})
 
 
 class StableBaselinesScheduler(BaseLearningScheduler):
-    _default_tuple = namedtuple('ModelDefault', ['cls', 'params'], defaults={})
+    _learn_params_default = {
+        'max_epochs': 1,
+    }
+
     model_defaults = {
         # 'Random': _default_tuple(RandomAgent, {}),
         'DQN_MLP': _default_tuple(DQN, {'policy': 'MlpPolicy', 'verbose': 1}),
@@ -87,9 +92,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
     def learn(self, n_gen_learn, verbose=0):
         # TODO: consider using `eval_env` argument to pass original env for `model.learn` call
 
-        steps_per_episode = self.env.steps_per_episode  # FIXME: breaks due to env vectorization
-        # total_timesteps = n_gen_learn * steps_per_episode
-        total_timesteps = n_gen_learn * steps_per_episode - self.model.n_steps  # TODO
+        total_timesteps = self.learn_params['max_epochs'] * n_gen_learn * self.env.steps_per_episode
         self.model.learn(total_timesteps)
 
         # if self.do_monitor:
@@ -249,11 +252,20 @@ class StableBaselinesScheduler(BaseLearningScheduler):
 #         super().__init__(observation_space)
 
 
-class CustomCombinedExtractor(BaseFeaturesExtractor):  # TODO: improve!!!
-    # space_keys = ['ch_avail', 'tasks']
-    space_keys = ['tasks']  # TODO: ignores chan info for simplicity. ADD SEQ
+class FlattenDownsample(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.flatten = nn.Flatten()
 
-    def __init__(self, observation_space: Dict):
+    def forward(self, x):
+        return self.flatten(x)[:, ::2]
+
+
+class CustomCombinedExtractor(BaseFeaturesExtractor):  # TODO: generalize for my SL modules!!!
+    # space_keys = ['ch_avail', 'seq', 'tasks']
+    space_keys = ['seq', 'tasks']  # TODO: ignores chan info for simplicity
+
+    def __init__(self, observation_space: spaces.Dict):
         # TODO we do not know features-dim here before going over all the items, so put something there. This is dirty!
         super().__init__(observation_space, features_dim=1)
 
@@ -261,12 +273,13 @@ class CustomCombinedExtractor(BaseFeaturesExtractor):  # TODO: improve!!!
 
         total_concat_size = 0
         for key in self.space_keys:
-            extractors[key] = nn.Flatten()
-            total_concat_size += get_flattened_obs_dim(observation_space[key])
-        # for key, space in observation_space.spaces.items():
-        #     # The observation key is a vector, flatten it if needed
-        #     extractors[key] = nn.Flatten()
-        #     total_concat_size += get_flattened_obs_dim(space)
+            space = observation_space[key]
+            if key == 'seq':  # override one-hot encoding
+                extractors[key] = FlattenDownsample()
+                total_concat_size += spaces.utils.flatdim(space)
+            else:
+                extractors[key] = nn.Flatten()
+                total_concat_size += get_flattened_obs_dim(space)
 
         self.extractors = nn.ModuleDict(extractors)
 
