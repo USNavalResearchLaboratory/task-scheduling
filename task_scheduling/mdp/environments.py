@@ -180,8 +180,14 @@ class Base(Env, ABC):
 
         # return OrderedDict([(key, getattr(self, f"_obs_{key}")()) for key in self.observation_space])
         return {key: getattr(self, f"_obs_{key}")() for key in self.observation_space}
-    #
-    # @abstractmethod  # TODO: subclasses need update
+
+    @staticmethod
+    @abstractmethod
+    def infer_valid_mask(obs):
+        """Create a binary valid action mask from an observation."""
+        raise NotImplementedError
+
+    # @abstractmethod
     # def infer_action_space(self, obs):
     #     """Determines the action `gym.Space` from an observation."""
     #     raise NotImplementedError
@@ -382,9 +388,9 @@ class Base(Env, ABC):
         data, = self.data_gen(n_batch=1, batch_size=n_gen, weight_func=weight_func, verbose=verbose)
         return data
 
-    def mask_probability(self, p):  # TODO: deprecate?
-        """Returns masked action probabilities."""
-        return np.array(p)
+    # def mask_probability(self, p):  # TODO: deprecate?
+    #     """Returns masked action probabilities."""
+    #     return np.array(p)
 
 
 class Index(Base):
@@ -423,25 +429,23 @@ class Index(Base):
         n = self._seq_opt[len(self.node.seq)]  # next optimal task index
         return self.sorted_index_inv[n]  # encode task index to sorted action
 
-    # def make_mask(self, obs):
-    #     if self.len_seq_encode == 0:
-    #         raise ValueError("Cannot infer valid actions without encoding sequence into the observation.")
-    #
-    #     obs_seq = obs[..., :self.len_seq_encode]
-    #     return obs_seq.sum(axis=-1)
-    #
+    @staticmethod
+    def infer_valid_mask(obs):
+        """Create a binary valid action mask from an observation."""
+        return obs['seq']
+
     # def infer_action_space(self, obs):
     #     """Determines the action Gym.Space from an observation."""
     #     obs = np.asarray(obs)
-    #     if obs.ndim > 2:
+    #     if obs.ndim > 3:
     #         raise ValueError("Input must be a single observation.")
     #
-    #     mask = self.make_mask(obs).astype(bool)
+    #     mask = self.infer_valid_mask(obs).astype(bool)
     #     return spaces_tasking.DiscreteMasked(self.n_tasks, mask)
 
-    def mask_probability(self, p):
-        """Returns masked action probabilities based on unscheduled task indices."""
-        return np.ma.masked_array(p, self.action_space.mask)
+    # def mask_probability(self, p):
+    #     """Returns masked action probabilities based on unscheduled task indices."""
+    #     return np.ma.masked_array(p, self.action_space.mask)
 
 
 def seq_to_int(seq, check_input=True):
@@ -541,63 +545,69 @@ class IndexUni(Index):
         return np.concatenate((_obs_seq_reshape, self._obs_tasks()), axis=-1)
 
 
-class Seq(Base):
-    def __init__(self, problem_gen, features=None, normalize=True, sort_func=None, time_shift=False, masking=False,
-                 action_type='int'):
-        """Tasking environment with single action of a complete task index sequence.
-
-        Parameters
-        ----------
-        problem_gen : generators.problems.Base
-            Scheduling problem generation object.
-        features : numpy.ndarray, optional
-            Structured numpy array of features with fields 'name', 'func', and 'space'.
-        normalize : bool, optional
-            Rescale task features to unit interval.
-        sort_func : function or str, optional
-            Method that returns a sorting value for re-indexing given a task index 'n'.
-        time_shift : bool, optional
-            Enables task re-parameterization after sequence updates.
-        masking : bool, optional
-            If True, features are zeroed out for scheduled tasks.
-        action_type : {'seq', 'int'}, optional
-            If 'seq', action type is index sequence `Permutation`; if 'int', action space is `Discrete` and
-            index sequences are mapped to integers.
-
-        """
-        super().__init__(problem_gen, features, normalize, sort_func, time_shift, masking)
-
-        self.action_type = action_type  # 'seq' for sequences, 'int' for integers
-        if self.action_type == 'int':
-            self._action_space_map = lambda n: Discrete(factorial(n))
-        elif self.action_type == 'seq':
-            self._action_space_map = lambda n: spaces_tasking.Permutation(n)
-        else:
-            raise ValueError
-
-        # Action space
-        self.steps_per_episode = 1
-        self.action_space = self._action_space_map(self.n_tasks)
-
-    def summary(self):
-        str_ = super().summary()
-        str_ += f"\n- Action type: {self.action_type}"
-        return str_
-
-    def step(self, action):
-        if self.action_type == 'int':
-            action = list(int_to_seq(action, self.n_tasks))  # decode integer to sequence
-
-        return super().step(action)
-
-    def opt_action(self):
-        """Optimal action based on current state."""
-        seq_action = self.sorted_index_inv[self._seq_opt]  # encode sequence to sorted actions
-        if self.action_type == 'seq':
-            return seq_action
-        elif self.action_type == 'int':
-            return seq_to_int(seq_action)
-
-    # def infer_action_space(self, obs):
-    #     """Determines the action Gym.Space from an observation."""
-    #     return self._action_space_map(len(obs))
+# class Seq(Base):
+#     def __init__(self, problem_gen, features=None, normalize=True, sort_func=None, time_shift=False, masking=False,
+#                  action_type='int'):
+#         """Tasking environment with single action of a complete task index sequence.
+#
+#         Parameters
+#         ----------
+#         problem_gen : generators.problems.Base
+#             Scheduling problem generation object.
+#         features : numpy.ndarray, optional
+#             Structured numpy array of features with fields 'name', 'func', and 'space'.
+#         normalize : bool, optional
+#             Rescale task features to unit interval.
+#         sort_func : function or str, optional
+#             Method that returns a sorting value for re-indexing given a task index 'n'.
+#         time_shift : bool, optional
+#             Enables task re-parameterization after sequence updates.
+#         masking : bool, optional
+#             If True, features are zeroed out for scheduled tasks.
+#         action_type : {'seq', 'int'}, optional
+#             If 'seq', action type is index sequence `Permutation`; if 'int', action space is `Discrete` and
+#             index sequences are mapped to integers.
+#
+#         """
+#         super().__init__(problem_gen, features, normalize, sort_func, time_shift, masking)
+#
+#         self.action_type = action_type  # 'seq' for sequences, 'int' for integers
+#         if self.action_type == 'int':
+#             self._action_space_map = lambda n: Discrete(factorial(n))
+#         elif self.action_type == 'seq':
+#             raise NotImplementedError("Deprecated.")
+#             # self._action_space_map = lambda n: spaces_tasking.Permutation(n)
+#         else:
+#             raise ValueError
+#
+#         # Action space
+#         self.steps_per_episode = 1
+#         self.action_space = self._action_space_map(self.n_tasks)
+#
+#     def summary(self):
+#         str_ = super().summary()
+#         str_ += f"\n- Action type: {self.action_type}"
+#         return str_
+#
+#     def step(self, action):
+#         if self.action_type == 'int':
+#             action = list(int_to_seq(action, self.n_tasks))  # decode integer to sequence
+#
+#         return super().step(action)
+#
+#     def opt_action(self):
+#         """Optimal action based on current state."""
+#         seq_action = self.sorted_index_inv[self._seq_opt]  # encode sequence to sorted actions
+#         if self.action_type == 'int':
+#             return seq_to_int(seq_action)
+#         elif self.action_type == 'seq':
+#             return seq_action
+#
+#     @staticmethod
+#     def infer_valid_mask(obs):
+#         """Create a binary valid action mask from an observation."""
+#         return np.ones(factorial(len(obs)))
+#
+#     # def infer_action_space(self, obs):
+#     #     """Determines the action Gym.Space from an observation."""
+#     #     return self._action_space_map(len(obs))
