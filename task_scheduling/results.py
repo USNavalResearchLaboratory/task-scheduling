@@ -123,6 +123,7 @@ def _relative_loss(loss, normalize=False):
         loss_rel[name] -= loss[opt_name]
         if normalize:
             loss_rel[name] /= loss[opt_name]
+            loss_rel[name] *= 100  # as percentage
 
     return loss_rel
 
@@ -196,7 +197,7 @@ def _print_averages(loss, t_run, do_relative=False):
 
         loss_opt = data[names.index(opt_name)][0]
         for item, name in zip(data, names):
-            item.insert(0, loss_rel[name].mean() / loss_opt)
+            item.insert(0, loss_rel[name].mean() / loss_opt * 100)  # normalize to percentage
         columns.insert(0, 'Excess Loss (%)')
 
     df = pd.DataFrame(data, index=pd.CategoricalIndex(names), columns=columns)
