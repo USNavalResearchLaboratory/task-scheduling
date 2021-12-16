@@ -22,6 +22,7 @@ from torch import nn
 # from task_scheduling.mdp import environments as envs
 from task_scheduling.mdp.base import BaseLearning as BaseLearningScheduler
 from task_scheduling.mdp.supervised.torch import reset_weights, valid_logits
+from task_scheduling.mdp.supervised.torch.modules import build_mlp
 
 
 # class DummyVecTaskingEnv(DummyVecEnv):
@@ -30,8 +31,6 @@ from task_scheduling.mdp.supervised.torch import reset_weights, valid_logits
 #             obs = self.envs[env_idx].reset(*args, **kwargs)
 #             self._save_obs(env_idx, obs)
 #         return self._obs_from_buf()
-
-# TODO: use agents that can exploit expert knowledge
 
 _default_tuple = namedtuple('ModelDefault', ['cls', 'params'], defaults={})
 
@@ -100,6 +99,9 @@ class StableBaselinesScheduler(BaseLearningScheduler):
 
     def reset(self):
         self.model.policy.apply(reset_weights)
+
+    def _print_model(self):
+        return f"{self.model}\n\n{self.model.policy}"
 
     # def save(self, save_path=None):
     #     if save_path is None:
@@ -244,54 +246,48 @@ class StableBaselinesScheduler(BaseLearningScheduler):
 #         return self.policy_net(features), self.value_net(features)
 
 
-# class CustomFlattenExtractor(FlattenExtractor):
-#     def __init__(self, observation_space: Box):
-#         # create new space for only the task feature observation
-#         low, high = observation_space.low[..., 1:], observation_space.high[..., 1:]
-#         observation_space = Box(low, high, dtype=observation_space.dtype)
-#         super().__init__(observation_space)
+class MultiExtractor(BaseFeaturesExtractor):
+    def __init__(self, observation_space: spaces.Dict, net_ch, net_tasks):
+        super().__init__(observation_space, features_dim=1)  # `features_dim` must be overridden
 
+        self.net_ch = net_ch
+        self.net_tasks = net_tasks
 
-class FlattenDownsample(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.flatten = nn.Flatten()
+        # if self.features_dim == 1:
+        with torch.no_grad():  # determine `features_dim` with single forward pass
+            sample = observation_space.sample()
+            sample['seq'] = np.repeat(sample['seq'], 2)  # workaround SB3 preprocessing
+            sample = {key: torch.tensor(sample[key]).float().unsqueeze(0) for key in sample}
+            features_dim = self.forward(sample).shape[1]
+        self._features_dim = features_dim  # SB3's workaround
 
-    def forward(self, x):
-        return self.flatten(x)[:, ::2]
+    def forward(self, observations: dict):
+        c, s, t = observations.values()
+        s = s[:, ::2]  # override SB3 one-hot encoding
+        t = torch.cat((s.unsqueeze(1).unsqueeze(-1), t), dim=-1)  # combine task features and sequence mask
 
+        c = self.net_ch(c)
+        t = self.net_tasks(t)
 
-class CustomCombinedExtractor(BaseFeaturesExtractor):  # TODO: generalize for my SL modules!!!
-    # space_keys = ['ch_avail', 'seq', 'tasks']
-    space_keys = ['seq', 'tasks']  # TODO: ignores chan info for simplicity
+        return torch.cat((c, t), dim=-1)
 
-    def __init__(self, observation_space: spaces.Dict):
-        # TODO we do not know features-dim here before going over all the items, so put something there. This is dirty!
-        super().__init__(observation_space, features_dim=1)
+    @classmethod
+    def mlp(cls, observation_space, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=()):
+        n_ch = observation_space['ch_avail'].shape[-1]
+        n_tasks, n_features = observation_space['tasks'].shape[-2:]
 
-        extractors = {}
+        # TODO: DRY from `modules`? Or use extractor for vanilla policies?
+        layer_sizes_ch = [n_ch, *hidden_sizes_ch]
+        end_layer_ch = nn.ReLU() if bool(hidden_sizes_ch) else None
+        net_ch = build_mlp(layer_sizes_ch, end_layer=end_layer_ch)
 
-        total_concat_size = 0
-        for key in self.space_keys:
-            space = observation_space[key]
-            if key == 'seq':  # override one-hot encoding
-                extractors[key] = FlattenDownsample()
-                total_concat_size += spaces.utils.flatdim(space)
-            else:
-                extractors[key] = nn.Flatten()
-                total_concat_size += get_flattened_obs_dim(space)
+        layer_sizes_tasks = [n_tasks * (1 + n_features), *hidden_sizes_tasks]
+        end_layer_tasks = nn.ReLU() if bool(hidden_sizes_tasks) else None
+        net_tasks = build_mlp(layer_sizes_tasks, end_layer=end_layer_tasks)
 
-        self.extractors = nn.ModuleDict(extractors)
+        # features_dim = layer_sizes_ch[-1] + layer_sizes_tasks[-1]
 
-        # Update the features dim manually
-        self._features_dim = total_concat_size
-
-    def forward(self, observations: dict) -> torch.Tensor:
-        encoded_tensor_list = []
-
-        for key, extractor in self.extractors.items():
-            encoded_tensor_list.append(extractor(observations[key]))
-        return torch.cat(encoded_tensor_list, dim=1)
+        return cls(observation_space, net_ch, net_tasks)
 
 
 class ValidActorCriticPolicy(ActorCriticPolicy):

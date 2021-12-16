@@ -22,9 +22,9 @@ from task_scheduling.results import evaluate_algorithms_train, evaluate_algorith
 from task_scheduling.mdp.base import RandomAgent
 from task_scheduling.mdp.environments import Index
 # from task_scheduling.mdp.features import encode_discrete_features
-from task_scheduling.mdp.supervised.torch import TorchScheduler, LitScheduler, VaryCNN, MultiMLP
-from task_scheduling.mdp.supervised.torch.modules import _build_mlp
-from task_scheduling.mdp.reinforcement import StableBaselinesScheduler, ValidActorCriticPolicy, CustomCombinedExtractor
+from task_scheduling.mdp.supervised.torch import TorchScheduler, LitScheduler, MultiNet, VaryCNN
+from task_scheduling.mdp.supervised.torch.modules import build_mlp
+from task_scheduling.mdp.reinforcement import StableBaselinesScheduler, ValidActorCriticPolicy, MultiExtractor
 
 
 np.set_printoptions(precision=3)
@@ -44,6 +44,8 @@ if seed is not None:
 # TODO: document instantiation parameters under init or under the class def?
 # TODO: rework docstring parameter typing?
 
+# TODO: generate new, larger datasets
+# TODO: try making new features
 
 # %% Define scheduling problem and algorithms
 
@@ -94,18 +96,20 @@ learn_params_torch = {
 
 model_kwargs = {'optim_cls': optim.Adam, 'optim_params': {'lr': 1e-4}}
 
+# torch_model = MultiMLP(env, hidden_sizes_ch=[], hidden_sizes_tasks=[60], hidden_sizes_joint=[400])
+# torch_model = MultiNet.mlp(env, hidden_sizes_ch=[], hidden_sizes_tasks=[60], hidden_sizes_joint=[400])
+# torch_model = MultiNet.cnn(env, hidden_sizes_ch=[], hidden_sizes_tasks=[400], hidden_sizes_joint=[])
 torch_model = VaryCNN(env, kernel_len=2)
-# torch_model = MultiMLP(env, hidden_sizes_joint=[400])
 
 # torch_scheduler = TorchScheduler(env, torch_model, **model_kwargs, learn_params=learn_params_torch)
 # # torch_scheduler = TorchScheduler.mlp(env, hidden_sizes_joint=[400], **model_kwargs, learn_params=learn_params_torch)
 
 
 trainer_kwargs = {
-    'logger': TensorBoardLogger('main_temp/logs/', name=now),
+    'logger': TensorBoardLogger('main_temp/logs/lit/', name=now),
     'checkpoint_callback': False,
-    'callbacks': EarlyStopping('val_loss', min_delta=1e-3, patience=50),
-    'default_root_dir': 'main_temp/logs/',
+    'callbacks': EarlyStopping('val_loss', min_delta=1e-3, patience=100),
+    'default_root_dir': 'main_temp/logs/pl/',
     'gpus': min(1, torch.cuda.device_count()),
     # 'distributed_backend': 'ddp',
     # 'profiler': 'simple',
@@ -123,27 +127,33 @@ lit_scheduler = LitScheduler.from_module(env, torch_model, model_kwargs, trainer
 
 random_agent = RandomAgent(env)
 
+# TODO: imitation learning
 
-# TODO: SB tensorboard
+# TODO: stopping callbacks
+# TODO: more tensorboard, add path to my log
 
 # check_env(env)
 
 learn_params_sb = {
-    'max_epochs': 1000,  # TODO: check
+    'max_epochs': 1,  # TODO: check
 }
 
 model_params = {
     'policy': ValidActorCriticPolicy,
     'policy_kwargs': dict(
-        features_extractor_class=CustomCombinedExtractor,
+        features_extractor_class=MultiExtractor.mlp,
+        features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[60]),
+        net_arch=[400],
+        activation_fn=nn.ReLU,
         normalize_images=False,
         infer_valid_mask=env.infer_valid_mask,
     ),
     'n_steps': 2048,  # TODO: investigate problem reuse
-    'verbose': 1
+    'tensorboard_log': 'main_temp/logs/sb/',
+    'verbose': 1,
 }
-# sb_scheduler = StableBaselinesScheduler.make_model(env, 'A2C', model_params, learn_params_sb)
 sb_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', model_params, learn_params_sb)
+# sb_scheduler = StableBaselinesScheduler.make_model(env, 'A2C', model_params, learn_params_sb)
 
 
 #
@@ -169,15 +179,9 @@ n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
 
 
-# TODO: generate new, larger datasets
-# TODO: try making new features
-# TODO: sample weighting based on `len(seq_rem)` or execution loss?
-
-# TODO: avoid state correlation? Do Env transforms already achieve this?
-# TODO: export masking functionality from `envs` to custom policies!
-
 # TODO: no faster on GPU!?!? CHECK batch size effects!
 # TODO: investigate loss curves with/without valid action enforcement
+# TODO: avoid state correlation? Do Env transforms already achieve this?
 
 
 log_path = 'main_temp/log.md'

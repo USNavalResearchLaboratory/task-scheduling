@@ -13,7 +13,7 @@ from torch import nn, optim
 from torch.nn import functional
 from torch.utils.data import TensorDataset, DataLoader
 
-from task_scheduling.mdp.supervised.torch.modules import MultiMLP
+from task_scheduling.mdp.supervised.torch.modules import MultiNet
 from task_scheduling.mdp.environments import Base as BaseEnv, Index
 from task_scheduling.mdp.supervised.base import Base as BaseSupervisedScheduler
 
@@ -268,7 +268,7 @@ class TorchScheduler(Base):
     @classmethod
     def mlp(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=(),
             loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None, learn_params=None):
-        model = MultiMLP(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint)
+        model = MultiNet.mlp(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint)
         return cls(env, model, loss_func, optim_cls, optim_params, learn_params)
 
     @classmethod
@@ -420,7 +420,7 @@ class LitScheduler(Base):
     @classmethod
     def mlp(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=(), model_kwargs=None,
             trainer_kwargs=None, learn_params=None):
-        module = MultiMLP(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint)
+        module = MultiNet.mlp(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint)
         return cls.from_module(env, module, model_kwargs, trainer_kwargs, learn_params)
 
     @classmethod

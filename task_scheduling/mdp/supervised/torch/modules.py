@@ -26,7 +26,7 @@ def _build_mlp(layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_
     for i, (in_, out_) in enumerate(zip(layer_sizes[:-1], layer_sizes[1:])):
         layers.append(nn.Linear(in_, out_))
         if i < len(layer_sizes) - 2:
-            layers.append(activation)
+            layers.append(activation())
     if end_layer is not None:
         layers.append(end_layer)
     return nn.Sequential(*layers)
@@ -45,56 +45,63 @@ def valid_logits(x, seq):
 #     return valid_fwd
 
 
-# class UniMLP(nn.Module):
-#     def __init__(self, env, hidden_sizes=()):
-#         super().__init__()
-#
-#         layer_sizes = [
-#             # np.prod(env.observation_space.shape).item(),
-#             env.n_tasks * env.n_features,
-#             *hidden_sizes,
-#             env.action_space.n,
-#         ]
-#         self.mlp = _build_mlp(layer_sizes)
-#
-#     def forward(self, x):
-#         seq, t = x[..., :1], x[..., 1:]
-#         seq = seq.squeeze(3).squeeze(1)
-#
-#         t = self.mlp(t)
-#
-#         x = valid_logits(t, seq)
-#         return x
-
-
-class MultiMLP(nn.Module):
-    def __init__(self, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=()):
+class MultiNet(nn.Module):
+    def __init__(self, net_ch, net_tasks, net_joint):
         super().__init__()
-
-        layer_sizes_ch = [env.n_ch, *hidden_sizes_ch]
-        end_layer_ch = nn.ReLU() if bool(hidden_sizes_ch) else None
-        self.mlp_ch = _build_mlp(layer_sizes_ch, end_layer=end_layer_ch)
-
-        # layer_sizes_tasks = [env.n_tasks * env.n_features, *hidden_sizes_tasks]
-        layer_sizes_tasks = [env.n_tasks * (1 + env.n_features), *hidden_sizes_tasks]
-        end_layer_tasks = nn.ReLU() if bool(hidden_sizes_tasks) else None
-        self.mlp_tasks = _build_mlp(layer_sizes_tasks, end_layer=end_layer_tasks)
-
-        size_in_joint = layer_sizes_ch[-1] + layer_sizes_tasks[-1]
-        layer_sizes_joint = [size_in_joint, *hidden_sizes_joint, env.action_space.n]
-        self.mlp_joint = _build_mlp(layer_sizes_joint, start_layer=None)
+        self.net_ch = net_ch
+        self.net_tasks = net_tasks
+        self.net_joint = net_joint
 
     def forward(self, ch_avail, seq, tasks):
-        c = self.mlp_ch(ch_avail)
+        c, s, t = ch_avail, seq, tasks
+        t = torch.cat((s.unsqueeze(1).unsqueeze(-1), t), dim=-1)  # combine task features and sequence mask
 
-        tasks = torch.cat((seq.unsqueeze(1).unsqueeze(-1), tasks), dim=-1)
-        t = self.mlp_tasks(tasks)
+        c = self.net_ch(c)
+        t = self.net_tasks(t)
 
         x = torch.cat((c, t), dim=-1)
-        x = self.mlp_joint(x)
+        x = self.net_joint(x)
 
         x = valid_logits(x, seq)
         return x
+
+    @classmethod
+    def mlp(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=()):
+        layer_sizes_ch = [env.n_ch, *hidden_sizes_ch]
+        end_layer_ch = nn.ReLU() if bool(hidden_sizes_ch) else None
+        net_ch = build_mlp(layer_sizes_ch, end_layer=end_layer_ch)
+
+        layer_sizes_tasks = [env.n_tasks * (1 + env.n_features), *hidden_sizes_tasks]
+        end_layer_tasks = nn.ReLU() if bool(hidden_sizes_tasks) else None
+        net_tasks = build_mlp(layer_sizes_tasks, end_layer=end_layer_tasks)
+
+        size_in_joint = layer_sizes_ch[-1] + layer_sizes_tasks[-1]
+        layer_sizes_joint = [size_in_joint, *hidden_sizes_joint, env.action_space.n]
+        net_joint = build_mlp(layer_sizes_joint, start_layer=None)
+
+        return cls(net_ch, net_tasks, net_joint)
+
+    @classmethod
+    def cnn(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=()):
+        layer_sizes_ch = [env.n_ch, *hidden_sizes_ch]
+        end_layer_ch = nn.ReLU() if bool(hidden_sizes_ch) else None
+        net_ch = build_mlp(layer_sizes_ch, end_layer=end_layer_ch)
+
+        # FIXME: generalize, make `build_cnn` util? Add to SB extractor, too.
+        n_filters = hidden_sizes_tasks[0]
+        l_kernel = 4
+        net_tasks = nn.Sequential(
+            nn.Conv2d(1, n_filters, kernel_size=(l_kernel, 1 + env.n_features)),
+            nn.ReLU(),
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+        )
+
+        size_in_joint = layer_sizes_ch[-1] + n_filters
+        layer_sizes_joint = [size_in_joint, *hidden_sizes_joint, env.action_space.n]
+        net_joint = build_mlp(layer_sizes_joint, start_layer=None)
+
+        return cls(net_ch, net_tasks, net_joint)
 
 
 class VaryCNN(nn.Module):
