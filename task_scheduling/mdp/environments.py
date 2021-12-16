@@ -12,6 +12,9 @@ from task_scheduling import tree_search
 from task_scheduling.mdp.features import param_features, normalize as normalize_features
 
 
+# TODO: move masking op to policies?
+
+
 # Gym Environments
 class Base(Env, ABC):
     def __init__(self, problem_gen, features=None, normalize=True, sort_func=None, time_shift=False, masking=False):

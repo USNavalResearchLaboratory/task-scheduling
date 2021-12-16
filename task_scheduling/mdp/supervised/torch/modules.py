@@ -3,9 +3,9 @@ from torch import nn
 from torch.nn import functional
 
 
-def _build_mlp(layer_sizes, activation=nn.ReLU(), start_layer=nn.Flatten(), end_layer=None):
+def build_mlp(layer_sizes, activation=nn.ReLU, start_layer=nn.Flatten(), end_layer=None):
     """
-    PyTorch-Lightning sequential MLP.
+    PyTorch sequential MLP.
 
     Parameters
     ----------
@@ -125,11 +125,10 @@ class VaryCNN(nn.Module):
     def forward(self, ch_avail, seq, tasks):
         c, t = ch_avail, tasks
 
-        # n_batch, __, n_tasks, n_features = t.shape
+        t = torch.cat((seq.unsqueeze(1).unsqueeze(-1), t), dim=-1)
+
         n_batch = len(t)
         device_ = t.device
-
-        t = torch.cat((seq.unsqueeze(1).unsqueeze(-1), t), dim=-1)
 
         pad = torch.zeros(n_batch, 1, self.conv2d.kernel_size[0] - 1, self.conv2d.kernel_size[1], device=device_)
         t = torch.cat((t, pad), dim=2)
@@ -142,7 +141,7 @@ class VaryCNN(nn.Module):
         c = self.conv_ch(c.unsqueeze(1))
         c = functional.adaptive_avg_pool1d(c, (1,))
 
-        x = t + c
+        x = c + t
         x = functional.relu(x)
         # c = c.unsqueeze(-1).expand(n_batch, self.n_ch, n_tasks)
         # x = torch.cat((t, z), dim=1)
