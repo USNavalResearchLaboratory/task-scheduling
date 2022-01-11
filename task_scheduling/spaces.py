@@ -115,7 +115,7 @@ class Permutation(Space):
     def contains(self, x):
         return True if (np.sort(np.asarray(x, dtype=int)) == np.arange(self.n)).all() else False
 
-    def __repr__(self):
+    def __str__(self):
         return f"Permutation({self.n})"
 
     def __eq__(self, other):
@@ -154,7 +154,7 @@ class DiscreteSet(Space):
     def contains(self, x):
         return True if x in self.elements else False
 
-    def __repr__(self):
+    def __str__(self):
         return f"DiscreteSet({self.elements})"
 
     def __eq__(self, other):
@@ -201,7 +201,7 @@ class DiscreteMasked(Discrete):
     def contains(self, x):
         return x in self.valid_entries
 
-    def __repr__(self):
+    def __str__(self):
         return f"DiscreteMasked({self.n}, mask={self.mask})"
 
     def __eq__(self, other):

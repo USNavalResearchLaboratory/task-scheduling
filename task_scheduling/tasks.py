@@ -26,7 +26,7 @@ class Base(ABC):
         self.duration = float(duration)
         self.t_release = float(t_release)
 
-    def __repr__(self):
+    def __str__(self):
         params_str = ", ".join([f"{name}: {getattr(self, name):.3f}" for name in ("duration", "t_release")])
         # params_str = ", ".join([f"{name}: {getattr(self, name):.3f}" for name in self.param_names])
         return f"{self.__class__.__name__}({params_str})"
@@ -93,9 +93,9 @@ class Base(ABC):
             _, ax = plt.subplots()
 
             ax.set(xlabel='t', ylabel='Loss')
-            plt.title(self.__repr__())
+            plt.title(str(self))
 
-        plot_data = ax.plot(t_plot, self(t_plot), label=self.__repr__())
+        plot_data = ax.plot(t_plot, self(t_plot), label=str(self))
 
         return plot_data
 
@@ -179,8 +179,10 @@ class ReluDrop(Shift):
         """Loss function versus time."""
         t = np.asarray(t)[np.newaxis] - self.t_release  # relative time
 
+        eps = 1e-9
+
         loss = self.slope * t
-        loss[t < -1e-9] = np.nan
+        loss[t < -eps] = np.nan
         loss[t >= self.t_drop] = self.l_drop
         if loss.size == 1:
             return loss.item()

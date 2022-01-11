@@ -20,7 +20,6 @@ def summarize_tasks(tasks, **tabulate_kwargs):
         str_ = '\n'.join(task.summary() for task in tasks)
 
     return str_
-    # print(, file=file)
 
 
 def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
@@ -38,8 +37,6 @@ def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
         Additional Axes keyword parameters.
 
     """
-    if ax_kwargs is None:
-        ax_kwargs = {}
 
     if t_plot is None:
         x_lim = min(task.plot_lim[0] for task in tasks), max(task.plot_lim[1] for task in tasks)
@@ -61,11 +58,12 @@ def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
     for task in tasks:
         task.plot_loss(t_plot, ax)
 
-    ax.set(xlabel='t', ylabel='Loss')
-    ax.set_xlim(*x_lim)
-    ax.set_ylim(*y_lim)
-    ax.legend()
+    if ax_kwargs is None:
+        ax_kwargs = {}
+    ax_kwargs = dict(xlabel='t', ylabel='Loss', xlim=x_lim, ylim=y_lim) | ax_kwargs
     ax.set(**ax_kwargs)
+
+    ax.legend()
 
 
 def check_schedule(tasks, sch, tol=1e-12):
@@ -126,7 +124,7 @@ def evaluate_schedule(tasks, sch):
     return loss
 
 
-def plot_schedule(tasks, sch, loss=None, name=None, ax=None, ax_kwargs=None):
+def plot_schedule(tasks, sch, n_ch=None, loss=None, name=None, ax=None, ax_kwargs=None):
     """
     Plot task schedule.
 
@@ -135,6 +133,8 @@ def plot_schedule(tasks, sch, loss=None, name=None, ax=None, ax_kwargs=None):
     tasks : list of task_scheduling.tasks.Base
     sch : numpy.ndarray
         Task execution schedule.
+    n_ch : int, optional
+        Number of channels.
     loss : float or None
         Total loss of scheduled tasks.
     name : str or None
@@ -148,23 +148,16 @@ def plot_schedule(tasks, sch, loss=None, name=None, ax=None, ax_kwargs=None):
     if ax is None:
         _, ax = plt.subplots()
 
-    if ax_kwargs is None:
-        ax_kwargs = {}
-
-    n_ch = max(sch['c'])
-    bar_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-
+    cycle = plt.rcParams['axes.prop_cycle']()
     for n, task in enumerate(tasks):
-        label = str(task)
-        # label = f'Task #{n}'
         ax.broken_barh([(sch['t'][n], task.duration)], (sch['c'][n] - 0.5, 1),
-                       facecolors=bar_colors[n % len(bar_colors)], edgecolor='black', label=label)
+                       facecolors=next(cycle)['color'], edgecolor='black', label=str(task))
 
-    x_lim = min(sch['t']), max(task.duration + t for task, t in zip(tasks, sch['t']))
-    ax.set(xlim=x_lim, ylim=(-.5, n_ch - 1 + .5), xlabel='t',
-           yticks=list(range(n_ch)), ylabel='Channel')
-
-    ax.legend()
+    # x_lim = min(sch['t']), max(task.duration + t for task, t in zip(tasks, sch['t']))
+    if np.isnan(sch['t']).all():
+        x_lim = (0, plt.rcParams['axes.xmargin'])
+    else:
+        x_lim = np.nanmin(sch['t']), np.nanmax([task.duration + t for task, t in zip(tasks, sch['t'])])
 
     _temp = []
     if isinstance(name, str):
@@ -172,10 +165,17 @@ def plot_schedule(tasks, sch, loss=None, name=None, ax=None, ax_kwargs=None):
     if loss is not None:
         _temp.append(f'Loss = {loss:.3f}')
     title = ', '.join(_temp)
-    if len(title) > 0:
-        ax.set_title(title)
 
+    if n_ch is None:  # infer from `sch`
+        n_ch = sch['c'].max() + 1
+
+    if ax_kwargs is None:
+        ax_kwargs = {}
+    ax_kwargs = dict(xlim=x_lim, ylim=(-.5, n_ch - 1 + .5), xlabel='t', yticks=list(range(n_ch)), ylabel='Channel',
+                     title=title) | ax_kwargs
     ax.set(**ax_kwargs)
+
+    ax.legend()
 
 
 def eval_wrapper(scheduler):

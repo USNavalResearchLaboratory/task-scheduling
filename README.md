@@ -115,7 +115,6 @@ plt.style.use('seaborn')
 
 seed = 12345
 
-
 # Define scheduling problem
 task_gen = task_gens.ContinuousUniformIID.relu_drop(rng=seed)
 
@@ -124,7 +123,6 @@ ch_avail = [0., 0.5]
 
 print(summarize_tasks(tasks))
 plot_task_losses(tasks)
-
 
 # Define and assess algorithms
 algorithms = [

@@ -34,7 +34,9 @@ def test_shift():
 
         (tasks, ch_avail), = problem_gen(1)
         seq = np.random.permutation(problem_gen.n_tasks)
-        node, node_s = ScheduleNode(tasks, ch_avail, seq), ScheduleNodeShift(tasks, ch_avail, seq)
+        node = ScheduleNode(tasks, ch_avail, seq)
+        node_s = ScheduleNodeShift(tasks, ch_avail, seq)
+
         assert np.allclose(node.sch['t'], node_s.sch['t'])
         assert abs(node.loss - node_s.loss) < 1e-9
 

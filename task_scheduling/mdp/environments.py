@@ -5,11 +5,13 @@ from operator import attrgetter
 
 import numpy as np
 from gym import Env
-from gym.spaces import Discrete, MultiDiscrete, Box, Dict
+from gym.spaces import MultiDiscrete, Box, Dict
+from matplotlib import pyplot as plt
 
 import task_scheduling.spaces as spaces_tasking
 from task_scheduling import tree_search
 from task_scheduling.mdp.features import param_features, normalize as normalize_features
+from task_scheduling.util import plot_task_losses, plot_schedule
 
 
 # TODO: move masking op to policies?
@@ -38,7 +40,6 @@ class Base(Env, ABC):
 
         """
         self._problem_gen = problem_gen
-        self.solution = None
 
         # Set features
         # TODO: custom features combining release times and chan availabilities?
@@ -72,6 +73,10 @@ class Base(Env, ABC):
         self._loss_agg = None
 
         self.node = None  # MDP state
+        self._tasks_init = None
+        self._ch_avail_init = None
+
+        self._seq_opt = None
 
         # Observation space
         space_ch = self.problem_gen.ch_avail_gen.space
@@ -105,11 +110,11 @@ class Base(Env, ABC):
     tasks = property(lambda self: self.node.tasks)
     ch_avail = property(lambda self: self.node.ch_avail)
 
-    def __repr__(self):
+    def __str__(self):
         if self.node is None:
             _status = 'Initialized'
         else:
-            _status = f'{len(self.node.seq)}/{self.n_tasks} Tasks Scheduled'
+            _status = f'{len(self.node.seq)}/{self.n_tasks}'
         return f"{self.__class__.__name__}({_status})"
 
     def summary(self):
@@ -129,18 +134,6 @@ class Base(Env, ABC):
         if self._problem_gen.task_gen != value.task_gen or self._problem_gen.ch_avail_gen != value.ch_avail_gen:
             raise ValueError('New generator must match.')
         self._problem_gen = value
-
-    @property
-    def solution(self):
-        return self._solution
-
-    @solution.setter
-    def solution(self, value):
-        self._solution = value
-        if value is None:
-            self._seq_opt = None
-        else:
-            self._seq_opt = np.argsort(value.sch['t'])  # maps to optimal schedule (see `test_tree_nodes.test_argsort`)
 
     @property
     def sorted_index(self):
@@ -199,7 +192,7 @@ class Base(Env, ABC):
         """Update observation and action spaces."""
         pass  # TODO: varying `n_tasks` control
 
-    def reset(self, tasks=None, ch_avail=None, persist=False, solve=False, rng=None):
+    def reset(self, tasks=None, ch_avail=None, solve=False, rng=None):
         """
         Reset environment by re-initializing node object with random (or user-specified) tasks/channels.
 
@@ -209,8 +202,6 @@ class Base(Env, ABC):
             Optional task set for non-random reset.
         ch_avail : Sequence of float, optional
             Optional initial channel availabilities for non-random reset.
-        persist : bool
-            If True, keeps tasks and channels fixed during reset, regardless of other inputs.
         solve : bool
             Solves for and stores the Branch & Bound optimal schedule.
         rng : int or RandomState or Generator, optional
@@ -223,27 +214,26 @@ class Base(Env, ABC):
 
         """
 
-        if persist:
-            if self.time_shift:
-                raise NotImplementedError("Shift nodes cannot recover original tasks")
+        if tasks is None or ch_avail is None:  # generate new scheduling problem
+            out = list(self.problem_gen(1, solve=solve, rng=rng))[0]
+            if solve:
+                (tasks, ch_avail), (sch, *__) = out
+                self._seq_opt = np.argsort(sch['t'])  # optimal schedule (see `test_tree_nodes.test_argsort`)
             else:
-                tasks, ch_avail = self.tasks, self.ch_avail
-        else:
-            if tasks is None or ch_avail is None:  # generate new scheduling problem
-                out = list(self.problem_gen(1, solve=solve, rng=rng))[0]
-                if solve:
-                    (tasks, ch_avail), self.solution = out
-                else:
-                    (tasks, ch_avail), self.solution = out, None
-            elif len(tasks) != self.n_tasks:
-                raise ValueError(f"Input `tasks` must be None or a list of {self.n_tasks} tasks")
-            elif len(ch_avail) != self.n_ch:
-                raise ValueError(f"Input `ch_avail` must be None or an array of {self.n_ch} channel availabilities")
+                tasks, ch_avail = out
+                self._seq_opt = None
+        elif len(tasks) != self.n_tasks:
+            raise ValueError(f"Input `tasks` must be None or a list of {self.n_tasks} tasks")
+        elif len(ch_avail) != self.n_ch:
+            raise ValueError(f"Input `ch_avail` must be None or an array of {self.n_ch} channel availabilities")
+
+        self._tasks_init, self._ch_avail_init = tasks, ch_avail  # store problem before any in-place operations
 
         if self.time_shift:
             self.node = tree_search.ScheduleNodeShift(tasks, ch_avail)
         else:
             self.node = tree_search.ScheduleNode(tasks, ch_avail)
+
         self._loss_agg = self.node.loss  # Loss can be non-zero due to time origin shift during node initialization
 
         self._update_spaces()
@@ -285,9 +275,33 @@ class Base(Env, ABC):
         return self.obs(), reward, done, {}
 
     def render(self, mode='human'):
-        if mode == 'human':
-            pass
-        raise NotImplementedError  # TODO
+        if mode != 'human':
+            raise NotImplementedError("Render `mode` must be 'human'")
+
+        fig, axes = plt.subplots(2, num='render', clear=True,
+                                 figsize=[12.8, 6.4], gridspec_kw={'left': .05, 'right': 0.7})
+        # fig.subplots_adjust(right=0.7)
+        # fig.set_size_inches(12.8, 6.4)
+
+        fig.suptitle(", ".join((str(self), f"Loss = {self._loss_agg:.3f}")), y=0.95)
+
+        plot_schedule(self._tasks_init, self.node.sch, n_ch=self.n_ch, loss=self._loss_agg, ax=axes[1],
+                      ax_kwargs=dict(title=''))
+
+        lows, highs = zip(axes[1].get_xlim(), *(task.plot_lim for task in self._tasks_init))
+        t_plot = np.arange(min(*lows), max(*highs), 0.01)
+        plot_task_losses(self._tasks_init, t_plot, ax=axes[0], ax_kwargs=dict(xlabel=''))
+
+        lows, highs = zip(*(ax.get_xlim() for ax in axes))
+        x_lims = min(lows), max(highs)
+        for ax in axes:
+            ax.set(xlim=x_lims)
+
+        fig.legend(*axes[0].get_legend_handles_labels(), loc='center right', bbox_to_anchor=(1, .5))
+        axes[0].get_legend().remove()
+        axes[1].get_legend().remove()
+
+        return fig
 
     def close(self):
         self.node = None
@@ -298,9 +312,6 @@ class Base(Env, ABC):
     @abstractmethod
     def opt_action(self):  # TODO: implement a optimal policy calling obs?
         """Optimal action based on current state."""
-
-        # if self.solution is None:
-        #     raise ValueError("Optimal action cannot be determined unless `solution` attribute is populated.")
         raise NotImplementedError
 
     def data_gen(self, n_batch, batch_size=1, weight_func=None, verbose=0, rng=None):
@@ -429,6 +440,9 @@ class Index(Base):
 
     def opt_action(self):
         """Optimal action based on current state."""
+        if self._seq_opt is None:
+            raise ValueError("Optimal action cannot be determined unless `reset` was called with `solve=True`.")
+
         n = self._seq_opt[len(self.node.seq)]  # next optimal task index
         return self.sorted_index_inv[n]  # encode task index to sorted action
 

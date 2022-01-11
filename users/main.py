@@ -58,11 +58,12 @@ if seed is not None:
 
 data_path = Path('../data/')
 
-# dataset = 'continuous_relu_drop_c1t4'
-dataset = 'continuous_relu_drop_c1t8'
-# dataset = 'continuous_relu_drop_c2t8'
+# dataset = 'continuous_relu_drop_c1t8'
+# dataset = 'continuous_relu_drop_c1t16'
+dataset = 'continuous_relu_drop_c2t8'
 # dataset = 'discrete_relu_drop_c1t8'
 # dataset = 'discrete_relu_drop_c2t8'
+
 problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
 
@@ -82,6 +83,11 @@ env_params = {
 
 env = Index(problem_gen, **env_params)
 
+# env.reset()
+# env.render()
+# for __ in range(problem_gen.n_tasks):
+#     env.step(0)
+#     env.render()
 
 learn_params_torch = {
     'batch_size_train': 20,
@@ -96,10 +102,9 @@ learn_params_torch = {
 
 model_kwargs = {'optim_cls': optim.Adam, 'optim_params': {'lr': 1e-4}}
 
-# torch_model = MultiMLP(env, hidden_sizes_ch=[], hidden_sizes_tasks=[60], hidden_sizes_joint=[400])
-# torch_model = MultiNet.mlp(env, hidden_sizes_ch=[], hidden_sizes_tasks=[60], hidden_sizes_joint=[400])
-# torch_model = MultiNet.cnn(env, hidden_sizes_ch=[], hidden_sizes_tasks=[400], hidden_sizes_joint=[])
-torch_model = VaryCNN(env, kernel_len=2)
+torch_model = MultiNet.mlp(env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_sizes_joint=[400])
+# torch_model = MultiNet.cnn(env, hidden_sizes_ch=[], hidden_sizes_tasks=[400], l_kernel=2, hidden_sizes_joint=[])
+# torch_model = VaryCNN(env, kernel_len=2)
 
 # torch_scheduler = TorchScheduler(env, torch_model, **model_kwargs, learn_params=learn_params_torch)
 # # torch_scheduler = TorchScheduler.mlp(env, hidden_sizes_joint=[400], **model_kwargs, learn_params=learn_params_torch)
@@ -132,17 +137,20 @@ random_agent = RandomAgent(env)
 # TODO: stopping callbacks
 # TODO: more tensorboard, add path to my log
 
+# TODO: integrate DQN
+# FIXME: finish CNN extractor
+
 # check_env(env)
 
 learn_params_sb = {
-    'max_epochs': 1,  # TODO: check
+    'max_epochs': 10000,  # TODO: check
 }
 
 model_params = {
     'policy': ValidActorCriticPolicy,
     'policy_kwargs': dict(
         features_extractor_class=MultiExtractor.mlp,
-        features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[60]),
+        features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[]),
         net_arch=[400],
         activation_fn=nn.ReLU,
         normalize_images=False,
@@ -167,13 +175,13 @@ algorithms = np.array([
     #   for c, t in product([0], [5, 10])),
     ('Random Agent', random_agent, 10),
     # ('Torch Policy', torch_scheduler, 10),
-    # ('Lit Policy', lit_scheduler, 10),
-    # ('TF Policy', tfScheduler(env, model_tf, train_params_tf), 10),
-    ('SB Agent', sb_scheduler, 5),
+    ('Lit Policy', lit_scheduler, 10),
+    # ('SB Agent', sb_scheduler, 10),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
 
 # %% Evaluate and record results
+# n_gen_learn = 250000
 n_gen_learn = 900  # the number of problems generated for learning, per iteration
 n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment

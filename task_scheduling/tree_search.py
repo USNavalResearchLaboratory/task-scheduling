@@ -11,7 +11,7 @@ import pandas as pd
 from sortedcontainers import SortedKeyList
 
 from task_scheduling.base import RandomGeneratorMixin
-from task_scheduling.tasks import Shift as ShiftTask
+# from task_scheduling.tasks import Shift as ShiftTask
 
 
 # TODO: make problem a shared class attribute? Make a class constructor?
@@ -37,7 +37,6 @@ class ScheduleNode(RandomGeneratorMixin):
         super().__init__(rng)
 
         self._tasks = list(tasks)
-        # self._tasks = deepcopy(tasks)
         self._ch_avail = np.array(ch_avail, dtype=float)
 
         if min(self._ch_avail) < 0.:
@@ -50,9 +49,9 @@ class ScheduleNode(RandomGeneratorMixin):
 
         self._loss = 0.  # incurred loss
 
-        self.seq = seq
+        self.seq = seq  # triggers setter
 
-    def __repr__(self):
+    def __str__(self):
         return f"ScheduleNode(sequence: {self.seq}, loss incurred:{self.loss:.3f})"
 
     def __eq__(self, other):
@@ -138,7 +137,7 @@ class ScheduleNode(RandomGeneratorMixin):
         self._update_sch(n)
 
     def _update_sch(self, n):
-        c_min = np.argmin(self.ch_avail)  # assign task to channel with earliest availability
+        c_min = np.argmin(self._ch_avail)  # assign task to channel with earliest availability
 
         self._sch[n] = (max(self._tasks[n].t_release, self._ch_avail[c_min]), c_min)
         self._loss += self._tasks[n](self.sch['t'][n])  # add task execution loss
@@ -204,7 +203,7 @@ class ScheduleNode(RandomGeneratorMixin):
         return self._extend_util(seq_ext, inplace)
 
     def _earliest_sorter(self, name, inplace=True):
-        _dict = {n: getattr(self.tasks[n], name) for n in self.seq_rem}
+        _dict = {n: getattr(self._tasks[n], name) for n in self.seq_rem}
         seq_ext = sorted(self.seq_rem, key=_dict.__getitem__)
 
         return self._extend_util(seq_ext, inplace)
@@ -326,7 +325,7 @@ class ScheduleNodeBound(ScheduleNode):
         self._bounds = [0., np.inf]
         super().__init__(tasks, ch_avail, seq, rng)
 
-    def __repr__(self):
+    def __str__(self):
         return f"ScheduleNodeBound(sequence: {self.seq}, {self.l_lo:.3f} < loss < {self.l_up:.3f})"
 
     bounds = property(lambda self: self._bounds)
@@ -480,7 +479,7 @@ class ScheduleNodeBound(ScheduleNode):
 
 
 class ScheduleNodeShift(ScheduleNode):
-    _tasks: Sequence[ShiftTask]
+    # _tasks: Sequence[ShiftTask]
 
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
         self.t_origin = 0.
@@ -490,12 +489,12 @@ class ScheduleNodeShift(ScheduleNode):
         if len(seq) == 0:
             self.shift_origin()  # performs initial shift when initialized with empty sequence
 
-    def __repr__(self):
+    def __str__(self):
         return f"ScheduleNodeShift(sequence: {self.seq}, loss incurred:{self.loss:.3f})"
 
     def _update_sch(self, n):
         super()._update_sch(n)
-        self._sch['t'][n] += self.t_origin  # relative to absolute
+        self._sch['t'][n] += self.t_origin  # convert from relative to absolute
         self.shift_origin()
 
     def shift_origin(self):
@@ -562,7 +561,7 @@ class MCTSNode(RandomGeneratorMixin):
     n_visits = property(lambda self: self._n_visits)
     l_avg = property(lambda self: self._l_avg)
 
-    def __repr__(self):
+    def __str__(self):
         return f"MCTSNode(seq={self._seq}, children={list(self._children.keys())}, " \
                f"visits={self._n_visits}, avg_loss={self._l_avg:.3f})"
 

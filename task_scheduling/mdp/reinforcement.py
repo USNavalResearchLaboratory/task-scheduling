@@ -253,13 +253,13 @@ class MultiExtractor(BaseFeaturesExtractor):
         self.net_ch = net_ch
         self.net_tasks = net_tasks
 
+        # determine `features_dim` with single forward pass
         # if self.features_dim == 1:
-        with torch.no_grad():  # determine `features_dim` with single forward pass
-            sample = observation_space.sample()
-            sample['seq'] = np.repeat(sample['seq'], 2)  # workaround SB3 preprocessing
-            sample = {key: torch.tensor(sample[key]).float().unsqueeze(0) for key in sample}
-            features_dim = self.forward(sample).shape[1]
-        self._features_dim = features_dim  # SB3's workaround
+        sample = observation_space.sample()
+        sample['seq'] = np.repeat(sample['seq'], 2)  # workaround SB3 preprocessing
+        sample = {key: torch.tensor(sample[key]).float().unsqueeze(0) for key in sample}
+        with torch.no_grad():
+            self._features_dim = self.forward(sample).shape[1] # SB3's workaround
 
     def forward(self, observations: dict):
         c, s, t = observations.values()

@@ -82,14 +82,13 @@ class MultiNet(nn.Module):
         return cls(net_ch, net_tasks, net_joint)
 
     @classmethod
-    def cnn(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=()):
+    def cnn(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), l_kernel=2, hidden_sizes_joint=()):
         layer_sizes_ch = [env.n_ch, *hidden_sizes_ch]
         end_layer_ch = nn.ReLU() if bool(hidden_sizes_ch) else None
         net_ch = build_mlp(layer_sizes_ch, end_layer=end_layer_ch)
 
         # FIXME: generalize, make `build_cnn` util? Add to SB extractor, too.
         n_filters = hidden_sizes_tasks[0]
-        l_kernel = 4
         net_tasks = nn.Sequential(
             nn.Conv2d(1, n_filters, kernel_size=(l_kernel, 1 + env.n_features)),
             nn.ReLU(),
