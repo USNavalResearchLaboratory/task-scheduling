@@ -7,7 +7,7 @@ from stable_baselines3 import DQN, A2C, PPO
 # from stable_baselines3.common.monitor import Monitor
 # from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines3.common.policies import ActorCriticPolicy
-from stable_baselines3.common.preprocessing import get_flattened_obs_dim
+# from stable_baselines3.common.preprocessing import get_flattened_obs_dim
 from stable_baselines3.common.torch_layers import (
     BaseFeaturesExtractor,
     CombinedExtractor,
@@ -254,17 +254,17 @@ class MultiExtractor(BaseFeaturesExtractor):
         self.net_tasks = net_tasks
 
         # determine `features_dim` with single forward pass
-        # if self.features_dim == 1:
         sample = observation_space.sample()
-        sample['seq'] = np.repeat(sample['seq'], 2)  # workaround SB3 preprocessing
+        # sample['seq'] = np.repeat(sample['seq'], 2)  # workaround SB3 preprocessing
+        sample['seq'] = np.stack((sample['seq'], 1 - sample['seq'])).flatten(order='F')  # workaround SB3 encoding
         sample = {key: torch.tensor(sample[key]).float().unsqueeze(0) for key in sample}
         with torch.no_grad():
-            self._features_dim = self.forward(sample).shape[1] # SB3's workaround
+            self._features_dim = self.forward(sample).shape[1]  # SB3's workaround
 
     def forward(self, observations: dict):
         c, s, t = observations.values()
         s = s[:, ::2]  # override SB3 one-hot encoding
-        t = torch.cat((s.unsqueeze(1).unsqueeze(-1), t), dim=-1)  # combine task features and sequence mask
+        t = torch.cat((t.permute(0, 2, 1), s.unsqueeze(1)), dim=1)  # reshape task features, combine w/ sequence mask
 
         c = self.net_ch(c)
         t = self.net_tasks(t)
@@ -272,11 +272,12 @@ class MultiExtractor(BaseFeaturesExtractor):
         return torch.cat((c, t), dim=-1)
 
     @classmethod
-    def mlp(cls, observation_space, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=()):
+    def mlp(cls, observation_space, hidden_sizes_ch=(), hidden_sizes_tasks=()):
         n_ch = observation_space['ch_avail'].shape[-1]
         n_tasks, n_features = observation_space['tasks'].shape[-2:]
 
         # TODO: DRY from `modules`? Or use extractor for vanilla policies?
+
         layer_sizes_ch = [n_ch, *hidden_sizes_ch]
         end_layer_ch = nn.ReLU() if bool(hidden_sizes_ch) else None
         net_ch = build_mlp(layer_sizes_ch, end_layer=end_layer_ch)
@@ -286,6 +287,25 @@ class MultiExtractor(BaseFeaturesExtractor):
         net_tasks = build_mlp(layer_sizes_tasks, end_layer=end_layer_tasks)
 
         # features_dim = layer_sizes_ch[-1] + layer_sizes_tasks[-1]
+
+        return cls(observation_space, net_ch, net_tasks)
+
+    @classmethod
+    def cnn(cls, observation_space, hidden_sizes_ch=(), hidden_sizes_tasks=(), l_kernel=2):
+        n_ch = observation_space['ch_avail'].shape[-1]
+        n_features = observation_space['tasks'].shape[-1]
+
+        layer_sizes_ch = [n_ch, *hidden_sizes_ch]
+        end_layer_ch = nn.ReLU() if bool(hidden_sizes_ch) else None
+        net_ch = build_mlp(layer_sizes_ch, end_layer=end_layer_ch)
+
+        n_filters = hidden_sizes_tasks[0]
+        net_tasks = nn.Sequential(
+            nn.Conv1d(1 + n_features, n_filters, kernel_size=(l_kernel,)),
+            nn.ReLU(),
+            nn.AdaptiveAvgPool1d(1),
+            nn.Flatten(),
+        )
 
         return cls(observation_space, net_ch, net_tasks)
 

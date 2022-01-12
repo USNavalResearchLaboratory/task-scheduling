@@ -54,7 +54,8 @@ class MultiNet(nn.Module):
 
     def forward(self, ch_avail, seq, tasks):
         c, s, t = ch_avail, seq, tasks
-        t = torch.cat((s.unsqueeze(1).unsqueeze(-1), t), dim=-1)  # combine task features and sequence mask
+
+        t = torch.cat((t.permute(0, 2, 1), s.unsqueeze(1)), dim=1)  # reshape task features, combine w/ sequence mask
 
         c = self.net_ch(c)
         t = self.net_tasks(t)
@@ -88,11 +89,12 @@ class MultiNet(nn.Module):
         net_ch = build_mlp(layer_sizes_ch, end_layer=end_layer_ch)
 
         # FIXME: generalize, make `build_cnn` util? Add to SB extractor, too.
+
         n_filters = hidden_sizes_tasks[0]
         net_tasks = nn.Sequential(
-            nn.Conv2d(1, n_filters, kernel_size=(l_kernel, 1 + env.n_features)),
+            nn.Conv1d(1 + env.n_features, n_filters, kernel_size=(l_kernel,)),
             nn.ReLU(),
-            nn.AdaptiveAvgPool2d(1),
+            nn.AdaptiveAvgPool1d(1),
             nn.Flatten(),
         )
 
@@ -107,32 +109,23 @@ class VaryCNN(nn.Module):
     def __init__(self, env, kernel_len):
         super().__init__()
 
-        # self.n_features = env.n_features
-        # self.n_ch = env.n_ch
+        n_filters = 400
 
-        self.n_filter = 400
+        self.conv1 = nn.Conv1d(1 + env.n_features, n_filters, kernel_size=kernel_len)
+        self.conv2 = nn.Conv1d(n_filters, 1, kernel_size=kernel_len)
+        # self.conv2 = nn.Conv1d(self.n_filter + self.n_ch, 1, kernel_size=(l_kernel,))
 
-        # self.conv2d = nn.Conv2d(1, self.n_filter, kernel_size=(kernel_len, env.n_features))
-        self.conv2d = nn.Conv2d(1, self.n_filter, kernel_size=(kernel_len, 1 + env.n_features))
-
-        self.conv1 = nn.Conv1d(self.n_filter, 1, kernel_size=kernel_len)
-        # self.conv1 = nn.Conv1d(self.n_filter + self.n_ch, 1, kernel_size=(l_kernel,))
-
-        # self.affine_ch = nn.Linear(self.n_ch, self.n_filter, bias=False)
-        self.conv_ch = nn.Conv1d(1, self.n_filter, kernel_size=(3,), padding='same')
+        # self.affine_ch = nn.Linear(self.n_ch, self.n_filters, bias=False)
+        self.conv_ch = nn.Conv1d(1, n_filters, kernel_size=(3,), padding='same')
 
     def forward(self, ch_avail, seq, tasks):
-        c, t = ch_avail, tasks
+        c, s, t = ch_avail, seq, tasks
 
-        t = torch.cat((seq.unsqueeze(1).unsqueeze(-1), t), dim=-1)
+        t = torch.cat((t.permute(0, 2, 1), s.unsqueeze(1)), dim=1)  # reshape task features, combine w/ sequence mask
 
-        n_batch = len(t)
-        device_ = t.device
-
-        pad = torch.zeros(n_batch, 1, self.conv2d.kernel_size[0] - 1, self.conv2d.kernel_size[1], device=device_)
-        t = torch.cat((t, pad), dim=2)
-        t = self.conv2d(t)
-        t = t.squeeze(dim=3)
+        pad = torch.zeros(*t.shape[:-1], self.conv1.kernel_size[0] - 1, device=t.device)
+        t = torch.cat((t, pad), dim=-1)
+        t = self.conv1(t)
 
         # c = self.affine_ch(c)
         # c = c.unsqueeze(-1)
@@ -145,9 +138,9 @@ class VaryCNN(nn.Module):
         # c = c.unsqueeze(-1).expand(n_batch, self.n_ch, n_tasks)
         # x = torch.cat((t, z), dim=1)
 
-        pad = torch.zeros(n_batch, self.conv1.in_channels, self.conv1.kernel_size[0] - 1, device=device_)
-        x = torch.cat((x, pad), dim=2)
-        x = self.conv1(x)
+        pad = torch.zeros(*x.shape[:-1], self.conv2.kernel_size[0] - 1, device=x.device)
+        x = torch.cat((x, pad), dim=-1)
+        x = self.conv2(x)
         x = x.squeeze(dim=1)
         x = functional.relu(x)
 

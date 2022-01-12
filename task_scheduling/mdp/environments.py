@@ -88,7 +88,7 @@ class Base(Env, ABC):
 
         _obs_space_features = spaces_tasking.stack(self.features['space'])
         self._obs_space_tasks = spaces_tasking.broadcast_to(_obs_space_features,
-                                                            shape=(1, self.n_tasks, len(self.features)))
+                                                            shape=(self.n_tasks, len(self.features)))
 
         self.observation_space = Dict(  # note: `spaces` attribute is `OrderedDict` with sorted keys
             ch_avail=self._obs_space_ch,
@@ -102,8 +102,6 @@ class Base(Env, ABC):
 
     n_tasks = property(lambda self: self.problem_gen.n_tasks)
     n_ch = property(lambda self: self.problem_gen.n_ch)
-    # n_tasks = property(lambda self: self.node.n_tasks)
-    # n_ch = property(lambda self: self.node.n_ch)
 
     n_features = property(lambda self: len(self.features))
 
@@ -165,8 +163,8 @@ class Base(Env, ABC):
         obs_tasks = np.array([[func(task) for func in self.features['func']] for task in self.tasks])
         if self.masking:
             obs_tasks[self.node.seq] = 0.  # zero out observation rows for scheduled tasks
-        obs_tasks = obs_tasks[self.sorted_index]  # sort individual task observations
-        return obs_tasks[np.newaxis]  # add channel dimension
+
+        return obs_tasks[self.sorted_index]  # sort individual task observations
 
     def obs(self):
         """Complete observation."""
@@ -297,7 +295,7 @@ class Base(Env, ABC):
         for ax in axes:
             ax.set(xlim=x_lims)
 
-        fig.legend(*axes[0].get_legend_handles_labels(), loc='center right', bbox_to_anchor=(1, .5))
+        fig.legend(*axes[0].get_legend_handles_labels(), loc='center right', bbox_to_anchor=(1., .5))
         axes[0].get_legend().remove()
         axes[1].get_legend().remove()
 
