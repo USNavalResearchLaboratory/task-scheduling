@@ -248,7 +248,7 @@ def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0
 
     Parameters
     ----------
-    algorithms: iterable of callable
+    algorithms: Collection of callable
         Scheduling algorithms
     problem : SchedulingProblem
     solution_opt : SchedulingSolution, optional
@@ -330,7 +330,7 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, n_gen_learn=0, sol
 
     Parameters
     ----------
-    algorithms: iterable of callable
+    algorithms: Collection of callable
         Scheduling algorithms
     problem_gen : generators.problems.Base
         Scheduling problem generator
@@ -438,7 +438,7 @@ def evaluate_algorithms_train(algorithms, problem_gen, n_gen=1, n_gen_learn=0, n
 
     Parameters
     ----------
-    algorithms: iterable of callable
+    algorithms: Collection of callable
         Scheduling algorithms
     problem_gen : generators.problems.Base
         Scheduling problem generator

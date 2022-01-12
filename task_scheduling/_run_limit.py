@@ -14,10 +14,10 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
 
     Parameters
     ----------
-    tasks : list of tasks.Base
-    ch_avail : list of float
+    tasks : Collection of tasks.Base
+    ch_avail : Collection of float
         Channel availability times.
-    runtimes : list of float
+    runtimes : Collection of float
         Allotted algorithm runtime.
     verbose : bool
         Enables printing of algorithm state information.

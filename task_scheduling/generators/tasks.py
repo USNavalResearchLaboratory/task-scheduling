@@ -109,7 +109,7 @@ class ContinuousUniformIID(BaseIID):
         ----------
         cls_task : class
             Class for instantiating task objects.
-        param_lims : dict of iterable
+        param_lims : dict of Collection
             Maps parameter name strings to 2-tuples of parameter limits.
         rng : int or RandomState or Generator, optional
             Random number generator seed or object.

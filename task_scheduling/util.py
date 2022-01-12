@@ -24,11 +24,11 @@ def summarize_tasks(tasks, **tabulate_kwargs):
 
 def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
     """
-    Plot loss functions for a list of tasks.
+    Plot loss functions for various tasks.
 
     Parameters
     ----------
-    tasks : list of task_scheduling.tasks.Base
+    tasks : Collection of task_scheduling.tasks.Base
     t_plot : numpy.ndarray
         Loss evaluation times.
     ax : matplotlib.axes.Axes, optional
@@ -72,7 +72,7 @@ def check_schedule(tasks, sch, tol=1e-12):
 
     Parameters
     ----------
-    tasks : list of task_scheduling.tasks.Base
+    tasks : Collection of task_scheduling.tasks.Base
     sch : numpy.ndarray
         Task execution schedule.
     tol : float, optional
@@ -130,7 +130,7 @@ def plot_schedule(tasks, sch, n_ch=None, loss=None, name=None, ax=None, ax_kwarg
 
     Parameters
     ----------
-    tasks : list of task_scheduling.tasks.Base
+    tasks : Collection of task_scheduling.tasks.Base
     sch : numpy.ndarray
         Task execution schedule.
     n_ch : int, optional

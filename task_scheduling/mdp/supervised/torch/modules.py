@@ -11,7 +11,7 @@ def build_mlp(layer_sizes, activation=nn.ReLU, start_layer=nn.Flatten(), end_lay
 
     Parameters
     ----------
-    layer_sizes : iterable of int
+    layer_sizes : Collection of int
         Hidden layer sizes.
     activation : nn.Module, optional
     start_layer : nn.Module, optional
@@ -40,7 +40,7 @@ def build_mlp(layer_sizes, activation=nn.ReLU, start_layer=nn.Flatten(), end_lay
 #
 #     Parameters
 #     ----------
-#     layer_sizes : iterable of int
+#     layer_sizes : Collection of int
 #         Hidden layer sizes.
 #     activation : nn.Module, optional
 #     start_layer : nn.Module, optional

@@ -221,7 +221,7 @@ class Base(Env, ABC):
                 tasks, ch_avail = out
                 self._seq_opt = None
         elif len(tasks) != self.n_tasks:
-            raise ValueError(f"Input `tasks` must be None or a list of {self.n_tasks} tasks")
+            raise ValueError(f"Input `tasks` must be None or a collection of {self.n_tasks} tasks")
         elif len(ch_avail) != self.n_ch:
             raise ValueError(f"Input `ch_avail` must be None or an array of {self.n_ch} channel availabilities")
 
