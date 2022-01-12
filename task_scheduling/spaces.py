@@ -1,5 +1,5 @@
 from math import factorial
-from typing import Sequence
+from typing import Collection
 
 import numpy as np
 from gym.spaces import Space, Discrete, MultiDiscrete, Box
@@ -135,7 +135,7 @@ class DiscreteSet(Space):
 
         Parameters
         ----------
-        elements : Sequence
+        elements : Collection
 
         """
 

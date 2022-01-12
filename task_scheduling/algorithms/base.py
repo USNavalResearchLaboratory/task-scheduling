@@ -7,8 +7,8 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
 
     Parameters
     ----------
-    tasks : Sequence of task_scheduling.tasks.Base
-    ch_avail : Sequence of float
+    tasks : Collection of task_scheduling.tasks.Base
+    ch_avail : Collection of float
         Channel availability times.
     verbose : bool
         Enables printing of algorithm state information.
@@ -34,8 +34,8 @@ def branch_bound_priority(tasks, ch_avail, priority_func=None, heuristic=None, v
 
     Parameters
     ----------
-    tasks : Sequence of task_scheduling.tasks.Base
-    ch_avail : Sequence of float
+    tasks : Collection of task_scheduling.tasks.Base
+    ch_avail : Collection of float
         Channel availability times.
     priority_func : callable, optional
         Key function that maps `ScheduleNode` objects to priority values. Defaults to negative lower bound.
@@ -64,8 +64,8 @@ def mcts(tasks, ch_avail, max_runtime=float('inf'), max_rollouts=None, c_explore
 
     Parameters
     ----------
-    tasks : Sequence of task_scheduling.tasks.Base
-    ch_avail : Sequence of float
+    tasks : Collection of task_scheduling.tasks.Base
+    ch_avail : Collection of float
         Channel availability times.
     max_runtime : float, optional
         Allotted algorithm runtime.
@@ -99,8 +99,8 @@ def random_sequencer(tasks, ch_avail, rng=None):
 
     Parameters
     ----------
-    tasks : Sequence of task_scheduling.tasks.Base
-    ch_avail : Sequence of float
+    tasks : Collection of task_scheduling.tasks.Base
+    ch_avail : Collection of float
         Channel availability times.
     rng : int or RandomState or Generator, optional
         NumPy random number generator or seed. Instance RNG if None.
@@ -124,8 +124,8 @@ def earliest_release(tasks, ch_avail):
 
     Parameters
     ----------
-    tasks : Sequence of task_scheduling.tasks.Base
-    ch_avail : Sequence of float
+    tasks : Collection of task_scheduling.tasks.Base
+    ch_avail : Collection of float
         Channel availability times.
 
     Returns
@@ -147,8 +147,8 @@ def earliest_drop(tasks, ch_avail):
 
     Parameters
     ----------
-    tasks : Sequence of task_scheduling.tasks.Base
-    ch_avail : Sequence of float
+    tasks : Collection of task_scheduling.tasks.Base
+    ch_avail : Collection of float
         Channel availability times.
 
     Returns
@@ -170,8 +170,8 @@ def brute_force(tasks, ch_avail, verbose=False):
 
     Parameters
     ----------
-    tasks : Sequence of task_scheduling.tasks.Base
-    ch_avail : Sequence of float
+    tasks : Collection of task_scheduling.tasks.Base
+    ch_avail : Collection of float
         Channel availability times.
     verbose : bool
         Enables printing of algorithm state information.

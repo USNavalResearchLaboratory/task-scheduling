@@ -26,8 +26,8 @@ class Base(ABC):
 
         Parameters
         ----------
-        tasks : Sequence of task_scheduling.tasks.Base
-        ch_avail : Sequence of float
+        tasks : Collection of task_scheduling.tasks.Base
+        ch_avail : Collection of float
             Channel availability times.
 
         Returns

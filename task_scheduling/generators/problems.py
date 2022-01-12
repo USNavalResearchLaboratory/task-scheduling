@@ -120,9 +120,9 @@ class Base(RandomGeneratorMixin, ABC):
 
         Parameters
         ----------
-        problems : Sequence of SchedulingProblem
+        problems : Collection of SchedulingProblem
             Named tuple with fields 'tasks' and 'ch_avail'.
-        solutions : Sequence of SchedulingSolution
+        solutions : Collection of SchedulingSolution
             Named tuple with fields 'sch', 'loss', and 't_run'.
         file_path : os.PathLike or str, optional
             File location relative to data/schedules/

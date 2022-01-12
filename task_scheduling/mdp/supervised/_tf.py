@@ -188,7 +188,7 @@ class Scheduler(Base):
     #         Gym environment class.
     #     env_params : dict, optional
     #         Parameters for environment initialization.
-    #     layers : Sequence of tensorflow.keras.layers.Layer
+    #     layers : Collection of tensorflow.keras.layers.Layer
     #         Neural network layers.
     #     compile_params : dict, optional
     #         Parameters for the model compile method.

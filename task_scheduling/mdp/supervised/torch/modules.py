@@ -1,3 +1,5 @@
+from typing import Collection
+
 import torch
 from torch import nn
 from torch.nn import functional
@@ -30,6 +32,39 @@ def build_mlp(layer_sizes, activation=nn.ReLU, start_layer=nn.Flatten(), end_lay
     if end_layer is not None:
         layers.append(end_layer)
     return nn.Sequential(*layers)
+
+
+# def build_cnn(layer_sizes, kernel_size, pooling=None, activation=nn.ReLU, start_layer=nn.Flatten(), end_layer=None):
+#     """
+#     PyTorch sequential CNN.
+#
+#     Parameters
+#     ----------
+#     layer_sizes : iterable of int
+#         Hidden layer sizes.
+#     activation : nn.Module, optional
+#     start_layer : nn.Module, optional
+#     end_layer : nn.Module, optional
+#
+#     Returns
+#     -------
+#     nn.Sequential
+#
+#     """
+#
+#     if not isinstance(kernel_size, )
+#
+#     layers = []
+#     if start_layer is not None:
+#         layers.append(start_layer)
+#     for i, (in_, out_) in enumerate(zip(layer_sizes[:-1], layer_sizes[1:])):
+#         layers.append(nn.Linear(in_, out_))
+#         nn.Conv1d(in_, out_, kernel_size=(l_kernel,)),
+#         if i < len(layer_sizes) - 2:
+#             layers.append(activation())
+#     if end_layer is not None:
+#         layers.append(end_layer)
+#     return nn.Sequential(*layers)
 
 
 def valid_logits(x, seq):
@@ -89,6 +124,10 @@ class MultiNet(nn.Module):
         net_ch = build_mlp(layer_sizes_ch, end_layer=end_layer_ch)
 
         # FIXME: generalize, make `build_cnn` util? Add to SB extractor, too.
+
+        # layer_sizes_tasks = [1 + env.n_features, *hidden_sizes_tasks]
+        # end_layer_tasks = nn.ReLU() if bool(hidden_sizes_tasks) else None
+        # net_tasks = build_cnn(layer_sizes_tasks, end_layer=end_layer_tasks)
 
         n_filters = hidden_sizes_tasks[0]
         net_tasks = nn.Sequential(

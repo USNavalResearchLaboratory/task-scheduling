@@ -40,7 +40,7 @@ class UniformIID(BaseIID):
 
         Parameters
         ----------
-        lims : Sequence of float
+        lims : Collection of float
             Lower and upper channel limits.
         rng : int or RandomState or Generator, optional
             NumPy random number generator or seed. Instance RNG if None.

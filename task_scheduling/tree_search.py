@@ -4,7 +4,7 @@ from itertools import permutations
 from math import factorial
 from operator import methodcaller
 from time import perf_counter
-from typing import Sequence, Iterable
+from typing import Collection
 
 import numpy as np
 import pandas as pd
@@ -24,10 +24,10 @@ class ScheduleNode(RandomGeneratorMixin):
 
         Parameters
         ----------
-        tasks : Sequence
-        ch_avail : Sequence of float
+        tasks : Collection
+        ch_avail : Collection of float
             Channel availabilities
-        seq : Sequence of int
+        seq : Collection of int
             Partial task index sequence.
         rng : int or RandomState or Generator, optional
                 NumPy random number generator or seed. Instance RNG if None.
@@ -97,14 +97,14 @@ class ScheduleNode(RandomGeneratorMixin):
 
         Parameters
         ----------
-        seq_ext : int or Sequence of int
+        seq_ext : int or Collection of int
             Indices referencing self.tasks.
         check_valid : bool
             Perform check of index sequence validity.
 
         """
 
-        if not isinstance(seq_ext, Iterable):  # FIXME: catch ndarray, use Iterable instead of Sequence?
+        if not isinstance(seq_ext, Collection):
             seq_ext = [seq_ext]
         if check_valid:
             set_ext = set(seq_ext)
@@ -338,7 +338,7 @@ class ScheduleNodeBound(ScheduleNode):
 
         Parameters
         ----------
-        seq_ext : int or Sequence of int
+        seq_ext : int or Collection of int
             Indices referencing self.tasks.
         check_valid : bool
             Perform check of index sequence validity.
@@ -479,7 +479,7 @@ class ScheduleNodeBound(ScheduleNode):
 
 
 class ScheduleNodeShift(ScheduleNode):
-    # _tasks: Sequence[ShiftTask]
+    # _tasks: Collection[ShiftTask]
 
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
         self.t_origin = 0.
@@ -521,9 +521,9 @@ class MCTSNode(RandomGeneratorMixin):
         Parameters
         ----------
         n_tasks : int
-        bounds : Sequence of float
+        bounds : Collection of float
             Lower and upper loss bounds for node value normalization
-        seq : Sequence of int
+        seq : Collection of int
             Partial task index sequence.
         c_explore : float, optional
             Exploration weight. Higher values prioritize searching new branches.

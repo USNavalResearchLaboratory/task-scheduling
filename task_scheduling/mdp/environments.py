@@ -196,9 +196,9 @@ class Base(Env, ABC):
 
         Parameters
         ----------
-        tasks : Sequence of task_scheduling.tasks.Base, optional
+        tasks : Collection of task_scheduling.tasks.Base, optional
             Optional task set for non-random reset.
-        ch_avail : Sequence of float, optional
+        ch_avail : Collection of float, optional
             Optional initial channel availabilities for non-random reset.
         solve : bool
             Solves for and stores the Branch & Bound optimal schedule.
@@ -244,7 +244,7 @@ class Base(Env, ABC):
 
         Parameters
         ----------
-        action : int or Sequence of int
+        action : int or Collection of int
             Task indices.
 
         Returns
@@ -469,7 +469,7 @@ def seq_to_int(seq, check_input=True):
 
     Parameters
     ----------
-    seq : Sequence of int
+    seq : Collection of int
         Elements are unique in range(len(seq)).
     check_input : bool
         Enables value checking of input sequence.

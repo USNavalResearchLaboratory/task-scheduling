@@ -10,7 +10,7 @@ Assumes all tasks are instances of the same class. Heterogeneous task types will
 from abc import ABC, abstractmethod
 from collections import deque
 from types import MethodType
-from typing import Iterable
+from typing import Collection
 
 import numpy as np
 import pandas as pd
@@ -275,7 +275,7 @@ class Fixed(Base, ABC):
 
         Parameters
         ----------
-        tasks : Sequence of task_scheduling.tasks.Base
+        tasks : Collection of task_scheduling.tasks.Base
         param_spaces : dict, optional
             Maps parameter name strings to gym.spaces.Space objects
         rng : int or RandomState or Generator, optional
@@ -359,7 +359,7 @@ class Dataset(Fixed):
         self.repeat = repeat
 
     def add_tasks(self, tasks):
-        if isinstance(tasks, Iterable):
+        if isinstance(tasks, Collection):
             self.tasks.extendleft(tasks)
         else:
             self.tasks.appendleft(tasks)  # for single tasks
