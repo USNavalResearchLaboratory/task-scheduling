@@ -125,7 +125,7 @@ for dataset in datasets:
         if seed is not None:
             seed_everything(seed)
 
-        lit_scheduler = LitScheduler.from_gen_mlp(problem_gen, env_params=env_params, hidden_layer_sizes=layer_sizes,
+        lit_scheduler = LitScheduler.from_gen_mlp(problem_gen, env_params=env_params, hidden_sizes_joint=layer_sizes,
                                                   model_kwargs=model_kwargs, trainer_kwargs=trainer_kwargs,
                                                   learn_params=learn_params)
 

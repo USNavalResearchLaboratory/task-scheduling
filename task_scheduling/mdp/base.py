@@ -1,7 +1,5 @@
 from abc import ABC, abstractmethod
 
-from gym.spaces import Discrete
-
 from task_scheduling.mdp.environments import Base as BaseEnv
 
 
@@ -17,8 +15,6 @@ class Base(ABC):
 
         """
         self.env = env
-        # if not isinstance(self.env.action_space, Discrete):  # TODO: delete?
-        #     raise TypeError("Action space must be Discrete.")
 
     def __call__(self, tasks, ch_avail):
         """

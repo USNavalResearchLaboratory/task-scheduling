@@ -10,11 +10,11 @@ from stable_baselines3.common.policies import ActorCriticPolicy
 # from stable_baselines3.common.preprocessing import get_flattened_obs_dim
 from stable_baselines3.common.torch_layers import (
     BaseFeaturesExtractor,
-    CombinedExtractor,
-    FlattenExtractor,
-    MlpExtractor,
-    NatureCNN,
-    create_mlp,
+    # CombinedExtractor,
+    # FlattenExtractor,
+    # MlpExtractor,
+    # NatureCNN,
+    # create_mlp,
 )
 from torch import nn
 
