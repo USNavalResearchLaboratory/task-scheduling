@@ -102,9 +102,10 @@ learn_params_torch = {
 
 model_kwargs = {'optim_cls': optim.Adam, 'optim_params': {'lr': 1e-4}}
 
-torch_model = MultiNet.mlp(env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_sizes_joint=[400])
-# torch_model = MultiNet.cnn(env, hidden_sizes_ch=[], hidden_sizes_tasks=[400], l_kernel=2, hidden_sizes_joint=[])
-# torch_model = VaryCNN(env, kernel_len=2)
+# torch_model = MultiNet.mlp(env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_sizes_joint=[400])
+# torch_model = MultiNet.cnn(env, hidden_sizes_ch=[], hidden_sizes_tasks=[400], kernel_sizes=2,
+#                            cnn_kwargs=dict(pooling_layers=[nn.AdaptiveMaxPool1d(1)]), hidden_sizes_joint=[])
+torch_model = VaryCNN(env, kernel_len=2)
 
 # torch_scheduler = TorchScheduler(env, torch_model, **model_kwargs, learn_params=learn_params_torch)
 # # torch_scheduler = TorchScheduler.mlp(env, hidden_sizes_joint=[400], **model_kwargs, learn_params=learn_params_torch)
@@ -138,7 +139,6 @@ random_agent = RandomAgent(env)
 # TODO: more tensorboard, add path to my log
 
 # TODO: integrate DQN
-# FIXME: finish CNN extractor
 
 check_env(env)
 

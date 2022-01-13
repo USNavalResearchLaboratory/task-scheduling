@@ -22,7 +22,7 @@ from torch import nn
 # from task_scheduling.mdp import environments as envs
 from task_scheduling.mdp.base import BaseLearning as BaseLearningScheduler
 from task_scheduling.mdp.supervised.torch import reset_weights, valid_logits
-from task_scheduling.mdp.supervised.torch.modules import build_mlp
+from task_scheduling.mdp.supervised.torch.modules import build_mlp, build_cnn
 
 
 # class DummyVecTaskingEnv(DummyVecEnv):
@@ -253,9 +253,8 @@ class MultiExtractor(BaseFeaturesExtractor):
         self.net_ch = net_ch
         self.net_tasks = net_tasks
 
-        # determine `features_dim` with single forward pass
+        # Determine `features_dim` with single forward pass
         sample = observation_space.sample()
-        # sample['seq'] = np.repeat(sample['seq'], 2)  # workaround SB3 preprocessing
         sample['seq'] = np.stack((sample['seq'], 1 - sample['seq'])).flatten(order='F')  # workaround SB3 encoding
         sample = {key: torch.tensor(sample[key]).float().unsqueeze(0) for key in sample}
         with torch.no_grad():
@@ -276,36 +275,28 @@ class MultiExtractor(BaseFeaturesExtractor):
         n_ch = observation_space['ch_avail'].shape[-1]
         n_tasks, n_features = observation_space['tasks'].shape[-2:]
 
-        # TODO: DRY from `modules`? Or use extractor for vanilla policies?
+        # TODO: DRY from `modules`?
 
         layer_sizes_ch = [n_ch, *hidden_sizes_ch]
-        end_layer_ch = nn.ReLU() if bool(hidden_sizes_ch) else None
-        net_ch = build_mlp(layer_sizes_ch, end_layer=end_layer_ch)
+        net_ch = build_mlp(layer_sizes_ch, end=False)
 
         layer_sizes_tasks = [n_tasks * (1 + n_features), *hidden_sizes_tasks]
-        end_layer_tasks = nn.ReLU() if bool(hidden_sizes_tasks) else None
-        net_tasks = build_mlp(layer_sizes_tasks, end_layer=end_layer_tasks)
-
-        # features_dim = layer_sizes_ch[-1] + layer_sizes_tasks[-1]
+        net_tasks = nn.Sequential(nn.Flatten(), *build_mlp(layer_sizes_tasks, end=False))
 
         return cls(observation_space, net_ch, net_tasks)
 
     @classmethod
-    def cnn(cls, observation_space, hidden_sizes_ch=(), hidden_sizes_tasks=(), l_kernel=2):
+    def cnn(cls, observation_space, hidden_sizes_ch=(), hidden_sizes_tasks=(), kernel_sizes=2, cnn_kwargs=None):
         n_ch = observation_space['ch_avail'].shape[-1]
         n_features = observation_space['tasks'].shape[-1]
 
         layer_sizes_ch = [n_ch, *hidden_sizes_ch]
-        end_layer_ch = nn.ReLU() if bool(hidden_sizes_ch) else None
-        net_ch = build_mlp(layer_sizes_ch, end_layer=end_layer_ch)
+        net_ch = build_mlp(layer_sizes_ch, end=False)
 
-        n_filters = hidden_sizes_tasks[0]
-        net_tasks = nn.Sequential(
-            nn.Conv1d(1 + n_features, n_filters, kernel_size=(l_kernel,)),
-            nn.ReLU(),
-            nn.AdaptiveAvgPool1d(1),
-            nn.Flatten(),
-        )
+        layer_sizes_tasks = [1 + n_features, *hidden_sizes_tasks]
+        if cnn_kwargs is None:
+            cnn_kwargs = {}
+        net_tasks = nn.Sequential(*build_cnn(layer_sizes_tasks, kernel_sizes, **cnn_kwargs, end=False), nn.Flatten())
 
         return cls(observation_space, net_ch, net_tasks)
 
