@@ -16,6 +16,7 @@ from stable_baselines3.common.torch_layers import (
     # NatureCNN,
     # create_mlp,
 )
+from stable_baselines3.dqn.policies import QNetwork, DQNPolicy
 from torch import nn
 
 
@@ -269,7 +270,7 @@ class ValidActorCriticPolicy(ActorCriticPolicy):
         else:
             self.infer_valid_mask = lambda obs: np.ones(self.observation_space.shape)
 
-    def _get_action_dist_from_latent_valid(self, obs, latent_pi, _latent_sde=None):
+    def _get_action_dist_from_latent_valid(self, obs, latent_pi, _latent_sde=None):  # added `obs` to signature
         mean_actions = self.action_net(latent_pi)
         mean_actions = valid_logits(mean_actions, self.infer_valid_mask(obs))  # mask out invalid actions
         return self.action_dist.proba_distribution(action_logits=mean_actions)
@@ -293,3 +294,27 @@ class ValidActorCriticPolicy(ActorCriticPolicy):
         log_prob = distribution.log_prob(actions)
         values = self.value_net(latent_vf)
         return values, log_prob, distribution.entropy()
+
+
+class ValidQNetwork(QNetwork):
+    def __init__(self, *args, infer_valid_mask=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.infer_valid_mask = infer_valid_mask
+
+    def forward(self, obs):
+        logits = self.q_net(self.extract_features(obs))
+        return valid_logits(logits, self.infer_valid_mask(obs))
+
+
+class ValidDQNPolicy(DQNPolicy):
+    def __init__(self, *args, infer_valid_mask=None, **kwargs):
+        if callable(infer_valid_mask):
+            self.infer_valid_mask = infer_valid_mask
+        else:
+            self.infer_valid_mask = lambda obs: np.ones(self.observation_space.shape)
+
+        super().__init__(*args, **kwargs)
+
+    def make_q_net(self):
+        net_args = self._update_features_extractor(self.net_args, features_extractor=None)
+        return ValidQNetwork(**net_args, infer_valid_mask=self.infer_valid_mask).to(self.device)
