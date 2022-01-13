@@ -235,10 +235,10 @@ class MultiExtractor(BaseFeaturesExtractor):
         n_tasks, n_features = observation_space['tasks'].shape[-2:]
 
         layer_sizes_ch = [n_ch, *hidden_sizes_ch]
-        net_ch = build_mlp(layer_sizes_ch, end=False)
+        net_ch = build_mlp(layer_sizes_ch, last_act=True)
 
         layer_sizes_tasks = [n_tasks * (1 + n_features), *hidden_sizes_tasks]
-        net_tasks = nn.Sequential(nn.Flatten(), *build_mlp(layer_sizes_tasks, end=False))
+        net_tasks = nn.Sequential(nn.Flatten(), *build_mlp(layer_sizes_tasks, last_act=True))
 
         return cls(observation_space, net_ch, net_tasks)
 
@@ -248,12 +248,15 @@ class MultiExtractor(BaseFeaturesExtractor):
         n_features = observation_space['tasks'].shape[-1]
 
         layer_sizes_ch = [n_ch, *hidden_sizes_ch]
-        net_ch = build_mlp(layer_sizes_ch, end=False)
+        net_ch = build_mlp(layer_sizes_ch, last_act=True)
 
         layer_sizes_tasks = [1 + n_features, *hidden_sizes_tasks]
         if cnn_kwargs is None:
             cnn_kwargs = {}
-        net_tasks = nn.Sequential(*build_cnn(layer_sizes_tasks, kernel_sizes, **cnn_kwargs, end=False), nn.Flatten())
+        net_tasks = nn.Sequential(
+            *build_cnn(layer_sizes_tasks, kernel_sizes, last_act=True, **cnn_kwargs),
+            nn.Flatten(),
+        )
 
         return cls(observation_space, net_ch, net_tasks)
 

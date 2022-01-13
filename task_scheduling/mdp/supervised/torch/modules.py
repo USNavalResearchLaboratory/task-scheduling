@@ -5,7 +5,7 @@ from torch import nn
 from torch.nn import functional
 
 
-def build_mlp(layer_sizes, activation=nn.ReLU, end=True):
+def build_mlp(layer_sizes, activation=nn.ReLU, last_act=False):
     """
     PyTorch sequential MLP.
 
@@ -14,8 +14,8 @@ def build_mlp(layer_sizes, activation=nn.ReLU, end=True):
     layer_sizes : Collection of int
         Hidden layer sizes.
     activation : nn.Module, optional
-    end : bool, optional
-        Exclude final activation function.
+    last_act : bool, optional
+        Include final activation function.
 
     Returns
     -------
@@ -25,12 +25,12 @@ def build_mlp(layer_sizes, activation=nn.ReLU, end=True):
     layers = []
     for i, (in_, out_) in enumerate(zip(layer_sizes[:-1], layer_sizes[1:])):
         layers.append(nn.Linear(in_, out_))
-        if not end or i < len(layer_sizes) - 2:
+        if last_act or i < len(layer_sizes) - 2:
             layers.append(activation())
     return nn.Sequential(*layers)
 
 
-def build_cnn(layer_sizes, kernel_sizes, pooling_layers=None, activation=nn.ReLU, end=True):
+def build_cnn(layer_sizes, kernel_sizes, pooling_layers=None, activation=nn.ReLU, last_act=False):
     """
     PyTorch sequential CNN.
 
@@ -43,8 +43,8 @@ def build_cnn(layer_sizes, kernel_sizes, pooling_layers=None, activation=nn.ReLU
     pooling_layers : nn.Module or Collection of nn.Module, optional
         Pooling modules.
     activation : nn.Module, optional
-    end : bool, optional
-        Exclude final activation function.
+    last_act : bool, optional
+        Include final activation function.
 
     Returns
     -------
@@ -64,7 +64,7 @@ def build_cnn(layer_sizes, kernel_sizes, pooling_layers=None, activation=nn.ReLU
     for i, (in_, out_, kernel_size, pooling) in enumerate(zip(layer_sizes[:-1], layer_sizes[1:], kernel_sizes,
                                                               pooling_layers)):
         layers.append(nn.Conv1d(in_, out_, kernel_size=kernel_size))
-        if not end or i < len(layer_sizes) - 2:
+        if last_act or i < len(layer_sizes) - 2:
             layers.append(activation())
         if pooling is not None:
             layers.append(pooling)
@@ -109,10 +109,10 @@ class MultiNet(nn.Module):
     @classmethod
     def mlp(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=()):
         layer_sizes_ch = [env.n_ch, *hidden_sizes_ch]
-        net_ch = build_mlp(layer_sizes_ch, end=False)
+        net_ch = build_mlp(layer_sizes_ch, last_act=True)
 
         layer_sizes_tasks = [env.n_tasks * (1 + env.n_features), *hidden_sizes_tasks]
-        net_tasks = nn.Sequential(nn.Flatten(), *build_mlp(layer_sizes_tasks, end=False))
+        net_tasks = nn.Sequential(nn.Flatten(), *build_mlp(layer_sizes_tasks, last_act=True))
 
         size_in_joint = layer_sizes_ch[-1] + layer_sizes_tasks[-1]
         layer_sizes_joint = [size_in_joint, *hidden_sizes_joint, env.action_space.n]
@@ -124,12 +124,15 @@ class MultiNet(nn.Module):
     def cnn(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), kernel_sizes=2, cnn_kwargs=None,
             hidden_sizes_joint=()):
         layer_sizes_ch = [env.n_ch, *hidden_sizes_ch]
-        net_ch = build_mlp(layer_sizes_ch, end=False)
+        net_ch = build_mlp(layer_sizes_ch, last_act=True)
 
         layer_sizes_tasks = [1 + env.n_features, *hidden_sizes_tasks]
         if cnn_kwargs is None:
             cnn_kwargs = {}
-        net_tasks = nn.Sequential(*build_cnn(layer_sizes_tasks, kernel_sizes, **cnn_kwargs, end=False), nn.Flatten())
+        net_tasks = nn.Sequential(
+            *build_cnn(layer_sizes_tasks, kernel_sizes, last_act=True, **cnn_kwargs),
+            nn.Flatten(),
+        )
 
         size_in_joint = layer_sizes_ch[-1] + layer_sizes_tasks[-1]
         layer_sizes_joint = [size_in_joint, *hidden_sizes_joint, env.action_space.n]
