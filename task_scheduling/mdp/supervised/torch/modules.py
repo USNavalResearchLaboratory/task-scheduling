@@ -93,7 +93,6 @@ class MultiNet(nn.Module):
 
     def forward(self, ch_avail, seq, tasks):
         c, s, t = ch_avail, seq, tasks
-
         t = torch.cat((t.permute(0, 2, 1), s.unsqueeze(1)), dim=1)  # reshape task features, combine w/ sequence mask
 
         c = self.net_ch(c)
@@ -104,6 +103,8 @@ class MultiNet(nn.Module):
 
         x = valid_logits(x, seq)
         return x
+
+    # TODO: constructors DRY from one another and from SB3 extractors?
 
     @classmethod
     def mlp(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=()):
@@ -123,7 +124,7 @@ class MultiNet(nn.Module):
     def cnn(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), kernel_sizes=2, cnn_kwargs=None,
             hidden_sizes_joint=()):
         layer_sizes_ch = [env.n_ch, *hidden_sizes_ch]
-        net_ch = build_mlp(layer_sizes_ch, end=False)  # TODO: DRY?
+        net_ch = build_mlp(layer_sizes_ch, end=False)
 
         layer_sizes_tasks = [1 + env.n_features, *hidden_sizes_tasks]
         if cnn_kwargs is None:
@@ -137,25 +138,25 @@ class MultiNet(nn.Module):
         return cls(net_ch, net_tasks, net_joint)
 
 
-class VaryCNN(nn.Module):  # TODO: as `MultiNet` classmethod?
-    def __init__(self, env, kernel_len):
+class VaryCNN(nn.Module):
+    def __init__(self, env, kernel_len):  # TODO: add arguments
         super().__init__()
 
         n_filters = 400
 
         self.conv_t = nn.Conv1d(1 + env.n_features, n_filters, kernel_size=kernel_len)
-        self.conv_ch = nn.Conv1d(1, n_filters, kernel_size=(3,), padding='same')
-        self.conv_x = nn.Conv1d(n_filters, 1, kernel_size=kernel_len)
+        self.conv_ch = nn.Conv1d(1, n_filters, kernel_size=(3,))
+        self.conv_x = nn.Conv1d(n_filters, 1, kernel_size=(2,))
 
     def forward(self, ch_avail, seq, tasks):
         c, s, t = ch_avail, seq, tasks
-
         t = torch.cat((t.permute(0, 2, 1), s.unsqueeze(1)), dim=1)  # reshape task features, combine w/ sequence mask
 
         t = functional.pad(t, (0, self.conv_t.kernel_size[0] - 1))
         t = self.conv_t(t)
 
-        c = self.conv_ch(c.unsqueeze(1))
+        c = functional.pad(c.unsqueeze(1), (0, self.conv_ch.kernel_size[0] - 1), mode='circular')
+        c = self.conv_ch(c)
         c = functional.adaptive_max_pool1d(c, (1,))
 
         x = c + t

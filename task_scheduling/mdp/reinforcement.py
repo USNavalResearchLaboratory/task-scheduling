@@ -205,47 +205,6 @@ class StableBaselinesScheduler(BaseLearningScheduler):
     #     return scheduler
 
 
-# FIXME
-# class CustomNetwork(nn.Module):
-#     """
-#     Custom network for policy and value function.
-#     It receives as input the features extracted by the feature extractor.
-#
-#     :param feature_dim: dimension of the features extracted with the features_extractor (e.g. features from a CNN)
-#     :param last_layer_dim_pi: (int) number of units for the last layer of the policy network
-#     :param last_layer_dim_vf: (int) number of units for the last layer of the value network
-#     """
-#
-#     def __init__(
-#         self,
-#         feature_dim: int,
-#         last_layer_dim_pi: int = 64,
-#         last_layer_dim_vf: int = 64,
-#     ):
-#         super(CustomNetwork, self).__init__()
-#
-#         # IMPORTANT:
-#         # Save output dimensions, used to create the distributions
-#         self.latent_dim_pi = last_layer_dim_pi
-#         self.latent_dim_vf = last_layer_dim_vf
-#
-#         # Policy network
-#         self.policy_net = nn.Sequential(
-#             nn.Linear(feature_dim, last_layer_dim_pi), nn.ReLU()
-#         )
-#         # Value network
-#         self.value_net = nn.Sequential(
-#             nn.Linear(feature_dim, last_layer_dim_vf), nn.ReLU()
-#         )
-#
-#     def forward(self, features):
-#         """
-#         :return: (th.Tensor, th.Tensor) latent_policy, latent_value of the specified network.
-#             If all layers are shared, then ``latent_policy == latent_value``
-#         """
-#         return self.policy_net(features), self.value_net(features)
-
-
 class MultiExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space: spaces.Dict, net_ch, net_tasks):
         super().__init__(observation_space, features_dim=1)  # `features_dim` must be overridden
@@ -274,8 +233,6 @@ class MultiExtractor(BaseFeaturesExtractor):
     def mlp(cls, observation_space, hidden_sizes_ch=(), hidden_sizes_tasks=()):
         n_ch = observation_space['ch_avail'].shape[-1]
         n_tasks, n_features = observation_space['tasks'].shape[-2:]
-
-        # TODO: DRY from `modules`?
 
         layer_sizes_ch = [n_ch, *hidden_sizes_ch]
         net_ch = build_mlp(layer_sizes_ch, end=False)
@@ -308,9 +265,6 @@ class ValidActorCriticPolicy(ActorCriticPolicy):
             self.infer_valid_mask = infer_valid_mask
         else:
             self.infer_valid_mask = lambda obs: np.ones(self.observation_space.shape)
-
-    # def _build_mlp_extractor(self) -> None:
-    #     self.mlp_extractor = CustomNetwork(self.features_dim)
 
     def _get_action_dist_from_latent_valid(self, obs, latent_pi, _latent_sde=None):
         mean_actions = self.action_net(latent_pi)

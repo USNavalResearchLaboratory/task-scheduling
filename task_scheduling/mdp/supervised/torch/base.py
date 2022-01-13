@@ -353,9 +353,6 @@ class LitModel(pl.LightningModule):
         else:
             raise ValueError
 
-        # x, y = batch[:-1], batch[-1]
-        # y_hat = self(*x)
-        # loss = self.loss_func(y_hat, y)
         return loss
 
     def training_step(self, batch, batch_idx):
