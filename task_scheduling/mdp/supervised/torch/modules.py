@@ -101,7 +101,7 @@ class MultiNet(nn.Module):
         x = torch.cat((c, t), dim=-1)
         x = self.net_joint(x)
 
-        x = valid_logits(x, seq)
+        x = valid_logits(x, s)
         return x
 
     # TODO: constructors DRY from one another and from SB3 extractors?
@@ -170,5 +170,5 @@ class VaryCNN(nn.Module):
         x = x.squeeze(dim=1)
         x = functional.relu(x)
 
-        x = valid_logits(x, seq)
+        x = valid_logits(x, s)
         return x

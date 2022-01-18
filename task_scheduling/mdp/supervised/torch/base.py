@@ -443,3 +443,6 @@ class LitScheduler(Base):
                 cb._refresh_rate = int(verbose >= 1)
 
         self.trainer.fit(self.model, dl_train, dl_val)
+
+    def _print_model(self):
+        return super()._print_model() + f"\n- TB dir: `{self.trainer.logger.log_dir}`"

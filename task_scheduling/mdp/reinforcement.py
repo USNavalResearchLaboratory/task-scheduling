@@ -19,7 +19,7 @@ from stable_baselines3.common.torch_layers import (
 from stable_baselines3.dqn.policies import QNetwork, DQNPolicy
 from torch import nn
 
-
+from task_scheduling.base import get_now
 # from task_scheduling.mdp import environments as envs
 from task_scheduling.mdp.base import BaseLearning as BaseLearningScheduler
 from task_scheduling.mdp.supervised.torch import reset_weights, valid_logits
@@ -93,7 +93,8 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         # TODO: consider using `eval_env` argument to pass original env for `model.learn` call
 
         total_timesteps = self.learn_params['max_epochs'] * n_gen_learn * self.env.steps_per_episode
-        self.model.learn(total_timesteps)
+        log_name = get_now() + '_' + self.model.__class__.__name__
+        self.model.learn(total_timesteps, tb_log_name=log_name)
 
         # if self.do_monitor:
         #     plot_results([str(self.log_dir)], num_timesteps=None, x_axis='timesteps', task_name='Training history')
@@ -102,7 +103,11 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         self.model.policy.apply(reset_weights)
 
     def _print_model(self):
-        return f"{self.model}\n\n{self.model.policy}"
+        return f"{self.model.__class__.__name__}\n" \
+               f"```\n" \
+               f"{str(self.model.policy)}\n" \
+               f"```\n" \
+               f"- TB dir: `{self.model.logger.dir}`"
 
     # def save(self, save_path=None):
     #     if save_path is None:

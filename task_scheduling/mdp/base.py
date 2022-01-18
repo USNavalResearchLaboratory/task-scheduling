@@ -120,20 +120,12 @@ class BaseLearning(Base):
         raise NotImplementedError
 
     def summary(self):
-        str_model = f"\n\nModel:" \
-              f"\n```" \
-              f"\n{self._print_model()}" \
-              f"\n```"
+        str_model = f"\n\n" \
+                    f"Model:\n" \
+                    f"{self._print_model()}"
         return super().summary() + '\n\n' + str_model
 
     def _print_model(self):
-        return str(self.model)
-
-    # def _print_env(self, file=None):
-    #     if isinstance(self.env, BaseEnv):
-    #         self.env.summary(file)
-    #     else:
-    #         print(self.env, file=file)
-    #
-    # def _print_model(self, file=None):
-    #     print(self.model, file=file)
+        return f"```\n" \
+               f"{str(self.model)}\n" \
+               f"```"
