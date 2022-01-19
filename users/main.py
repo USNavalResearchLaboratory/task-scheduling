@@ -45,7 +45,6 @@ if seed is not None:
 # TODO: document instantiation parameters under init or under the class def?
 # TODO: rework docstring parameter typing?
 
-# TODO: generate new, larger datasets
 # TODO: try making new features
 
 # %% Define scheduling problem and algorithms
@@ -59,8 +58,8 @@ if seed is not None:
 
 data_path = Path('../data/')
 
-# dataset = 'continuous_relu_drop_c1t8'
-dataset = 'continuous_relu_drop_c1t16'
+dataset = 'continuous_relu_drop_c1t8'
+# dataset = 'continuous_relu_drop_c1t16'
 # dataset = 'continuous_relu_drop_c2t8'
 # dataset = 'discrete_relu_drop_c1t8'
 # dataset = 'discrete_relu_drop_c2t8'
@@ -72,14 +71,14 @@ problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 env_params = dict(
     features=None,  # defaults to task parameters
     # features=encode_discrete_features(problem_gen),
-    # normalize=True,
-    normalize=False,
-    sort_func=None,
-    # sort_func='t_release',
-    time_shift=False,
-    # time_shift=True,
-    masking=False,
-    # masking=True,
+    normalize=True,
+    # normalize=False,
+    # sort_func=None,
+    sort_func='t_release',
+    # time_shift=False,
+    time_shift=True,
+    # masking=False,
+    masking=True,
 )
 
 env = Index(problem_gen, **env_params)
@@ -97,25 +96,25 @@ learn_params_torch = {
     'weight_func': None,  # TODO: use reward!?
     # 'weight_func': lambda o, a, r: r,
     # 'weight_func': lambda o, a, r: 1 - o['seq'].sum() / o['seq'].size,
-    'max_epochs': 1000,
+    'max_epochs': 10000,
     'shuffle': True,
 }
 
 model_kwargs = dict(optim_cls=optim.Adam, optim_params={'lr': 1e-4})
 
-# torch_model = MultiNet.mlp(env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_sizes_joint=[400])
-# torch_model = MultiNet.cnn(env, hidden_sizes_ch=[], hidden_sizes_tasks=[400], kernel_sizes=2,
-#                            cnn_kwargs=dict(pooling_layers=[nn.AdaptiveMaxPool1d(1)]), hidden_sizes_joint=[])
-torch_model = VaryCNN(env, kernel_len=2)
+module = MultiNet.mlp(env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_sizes_joint=[400])
+# module = MultiNet.cnn(env, hidden_sizes_ch=[], hidden_sizes_tasks=[400], kernel_sizes=2,
+#                       cnn_kwargs=dict(pooling_layers=[nn.AdaptiveMaxPool1d(1)]), hidden_sizes_joint=[])
+# module = VaryCNN(env, kernel_len=2)
 
-# torch_scheduler = TorchScheduler(env, torch_model, **model_kwargs, learn_params=learn_params_torch)
+# torch_scheduler = TorchScheduler(env, module, **model_kwargs, learn_params=learn_params_torch)
 # # torch_scheduler = TorchScheduler.mlp(env, hidden_sizes_joint=[400], **model_kwargs, learn_params=learn_params_torch)
 
 
 trainer_kwargs = dict(
     logger=TensorBoardLogger('main_temp/logs/lit/', name=now),
     checkpoint_callback=False,
-    callbacks=EarlyStopping('val_loss', min_delta=1e-3, patience=100),
+    callbacks=EarlyStopping('val_loss', min_delta=1e-3, patience=1000),
     default_root_dir='main_temp/logs/lit/',
     gpus=min(1, torch.cuda.device_count()),
     # 'distributed_backend': 'ddp',
@@ -123,10 +122,8 @@ trainer_kwargs = dict(
     # 'progress_bar_refresh_rate': 0,
 )
 
-lit_scheduler = LitScheduler.from_module(env, torch_model, model_kwargs, trainer_kwargs=trainer_kwargs,
+lit_scheduler = LitScheduler.from_module(env, module, model_kwargs, trainer_kwargs=trainer_kwargs,
                                          learn_params=learn_params_torch)
-# lit_scheduler = LitScheduler.mlp(env, hidden_sizes_joint=[400], model_kwargs=model_kwargs,
-#                                  trainer_kwargs=trainer_kwargs, learn_params=learn_params_torch)
 
 # lit_scheduler = LitScheduler.load('../models/c1t8.pth', env=env)
 # lit_scheduler = LitScheduler.load('../models/c1t8.pth', trainer_kwargs={'logger': False})  # FIXME
@@ -135,50 +132,48 @@ lit_scheduler = LitScheduler.from_module(env, torch_model, model_kwargs, trainer
 random_agent = RandomAgent(env)
 
 # FIXME: imitation learning
-
 # TODO: stopping callbacks
-# TODO: more tensorboard, add path to my log
 
-check_env(env)
+# check_env(env)
 
 learn_params_sb = {
     'max_epochs': 10000,  # TODO: check
 }
 
-# model_params = dict(
-#     policy=ValidActorCriticPolicy,
-#     policy_kwargs=dict(
-#         # features_extractor_class=MultiExtractor.mlp,
-#         # features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[]),
-#         # net_arch=[400],
-#         features_extractor_class=MultiExtractor.cnn,
-#         features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[400]),
-#         net_arch=[],
-#         activation_fn=nn.ReLU,
-#         normalize_images=False,
-#         infer_valid_mask=env.infer_valid_mask,
-#     ),
-#     n_steps=2048,  # TODO: investigate problem reuse
-#     tensorboard_log='main_temp/logs/sb/',
-#     verbose=1,
-# )
-# sb_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', model_params, learn_params_sb)
-
 model_params = dict(
-    policy=ValidDQNPolicy,
+    policy=ValidActorCriticPolicy,
     policy_kwargs=dict(
-        features_extractor_class=MultiExtractor.mlp,
-        features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[]),
-        net_arch=[400],
+        # features_extractor_class=MultiExtractor.mlp,
+        # features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[]),
+        # net_arch=[400],
+        features_extractor_class=MultiExtractor.cnn,
+        features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[400]),
+        net_arch=[],
         activation_fn=nn.ReLU,
         normalize_images=False,
         infer_valid_mask=env.infer_valid_mask,
     ),
-    learning_starts=1000,
+    n_steps=2048,  # TODO: investigate problem reuse
     tensorboard_log='main_temp/logs/sb/',
     verbose=1,
 )
-sb_scheduler = StableBaselinesScheduler.make_model(env, 'DQN_MLP', model_params, learn_params_sb)
+sb_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', model_params, learn_params_sb)
+
+# model_params = dict(
+#     policy=ValidDQNPolicy,
+#     policy_kwargs=dict(
+#         features_extractor_class=MultiExtractor.mlp,
+#         features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[]),
+#         net_arch=[400],
+#         activation_fn=nn.ReLU,
+#         normalize_images=False,
+#         infer_valid_mask=env.infer_valid_mask,
+#     ),
+#     learning_starts=1000,
+#     tensorboard_log='main_temp/logs/sb/',
+#     verbose=1,
+# )
+# sb_scheduler = StableBaselinesScheduler.make_model(env, 'DQN_MLP', model_params, learn_params_sb)
 
 
 #
@@ -192,15 +187,16 @@ algorithms = np.array([
     #   for c, t in product([0], [5, 10])),
     ('Random Agent', random_agent, 10),
     # ('Torch Policy', torch_scheduler, 10),
-    # ('Lit Policy', lit_scheduler, 10),
-    ('SB Agent', sb_scheduler, 10),
+    ('Lit Policy', lit_scheduler, 10),
+    # ('SB Agent', sb_scheduler, 10),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
 
 # %% Evaluate and record results
-# n_gen_learn = 250000
-n_gen_learn = 900  # the number of problems generated for learning, per iteration
-n_gen = 100  # the number of problems generated for testing, per iteration
+# n_gen_learn = 1
+n_gen_learn, n_gen = 9000, 1000
+# n_gen_learn = 900  # the number of problems generated for learning, per iteration
+# n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
 
 

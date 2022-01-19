@@ -15,7 +15,8 @@ from task_scheduling.base import get_now
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
 from task_scheduling.generators import problems as problem_gens
 from task_scheduling.results import evaluate_algorithms_train, evaluate_algorithms_gen
-from task_scheduling.mdp.supervised.torch import LitScheduler
+from task_scheduling.mdp.environments import Index
+from task_scheduling.mdp.supervised.torch import LitScheduler, MultiNet, VaryCNN
 
 
 np.set_printoptions(precision=3)
@@ -43,12 +44,12 @@ algorithms_base = np.array([
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
 
-trainer_kwargs = {
-    'logger': TensorBoardLogger('auto_temp/logs/', name=now),
-    'checkpoint_callback': False,
-    'default_root_dir': 'auto_temp/logs/',
-    'gpus': min(1, torch.cuda.device_count()),
-}
+trainer_kwargs = dict(
+    logger=TensorBoardLogger('auto_temp/logs/', name=now),
+    checkpoint_callback=False,
+    default_root_dir='auto_temp/logs/',
+    gpus=min(1, torch.cuda.device_count()),
+)
 
 learn_params = {
     'batch_size_train': 20,
@@ -59,7 +60,7 @@ learn_params = {
     'callbacks': EarlyStopping('val_loss', min_delta=0., patience=50),
 }
 
-model_kwargs = {'optim_params': {'lr': 1e-3}}
+model_kwargs = dict(optim_params={'lr': 1e-3})
 
 # TODO: generalize for arbitrary models
 layer_sizes_set = [
@@ -73,28 +74,28 @@ layer_sizes_set = [
     # [400, 400],
 ]
 
-env_params_base = {
-    'masking': True,
-    'normalize': True,
-}
+env_params_base = dict(
+    masking=True,
+    normalize=True,
+)
 
 env_params_set = [
-    {
-        'sort_func': None,
-        'time_shift': False,
-    },
-    # {
-    #     'sort_func': None,
-    #     'time_shift': True,
-    # },
-    # {
-    #     'sort_func': 't_release',
-    #     'time_shift': False,
-    # },
-    {
-        'sort_func': 't_release',
-        'time_shift': True,
-    },
+    dict(
+        sort_func=None,
+        time_shift=False,
+    ),
+    # dict(
+    #     sort_func=None,
+    #     time_shift=True,
+    # ),
+    # dict(
+    #     sort_func='t_release',
+    #     time_shift=False,
+    # ),
+    dict(
+        sort_func='t_release',
+        time_shift=True,
+    ),
 ]
 
 
@@ -125,15 +126,19 @@ for dataset in datasets:
         if seed is not None:
             seed_everything(seed)
 
-        lit_scheduler = LitScheduler.from_gen_mlp(problem_gen, env_params=env_params, hidden_sizes_joint=layer_sizes,
-                                                  model_kwargs=model_kwargs, trainer_kwargs=trainer_kwargs,
-                                                  learn_params=learn_params)
+        if env_params is None:
+            env_params = {}
+        env = Index(problem_gen, **env_params)
 
-        net_str = str(i_net)
-        # net_str = '-'.join(map(str, layer_sizes))
+        module = MultiNet.mlp(env, hidden_sizes_joint=layer_sizes)
+        lit_scheduler = LitScheduler.from_module(env, module, model_kwargs, trainer_kwargs=trainer_kwargs,
+                                                 learn_params=learn_params)
 
-        algorithms_data.append((f"Policy: Env {i_env}", lit_scheduler, 10))
-        algorithms_data.append((f"Policy: Env {i_env}, MLP {net_str}", lit_scheduler, 10))
+        name = f"Policy: Env {i_env}"
+        # name = f"Policy: Env {i_env}, MLP {i_net}"
+        # name = f"Policy: Env {i_env}, MLP {'-'.join(map(str, layer_sizes))}"
+
+        algorithms_data.append((name, lit_scheduler, 10))
 
     algorithms_learn = np.array(algorithms_data, dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
     algorithms = np.concatenate((algorithms_base, algorithms_learn))

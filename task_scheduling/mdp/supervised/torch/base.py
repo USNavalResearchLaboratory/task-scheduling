@@ -237,7 +237,7 @@ class Base(BaseSupervisedScheduler):
 
 
 class TorchScheduler(Base):
-    def __init__(self, env, model, loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None,
+    def __init__(self, env, module, loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None,
                  learn_params=None):
         """
         Base class for pure PyTorch-based schedulers.
@@ -246,7 +246,7 @@ class TorchScheduler(Base):
         ----------
         env : BaseEnv
             OpenAi gym environment.
-        model : torch.nn.Module
+        module : torch.nn.Module
             The PyTorch network.
         loss_func : callable, optional
         optim_cls : class, optional
@@ -257,7 +257,7 @@ class TorchScheduler(Base):
             Parameters used by the `learn` method.
 
         """
-        super().__init__(env, model, learn_params)
+        super().__init__(env, module, learn_params)
 
         # self.model = model.to(device)
         self.loss_func = loss_func
@@ -268,8 +268,8 @@ class TorchScheduler(Base):
     @classmethod
     def mlp(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=(),
             loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None, learn_params=None):
-        model = MultiNet.mlp(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint)
-        return cls(env, model, loss_func, optim_cls, optim_params, learn_params)
+        module = MultiNet.mlp(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint)
+        return cls(env, module, loss_func, optim_cls, optim_params, learn_params)
 
     @classmethod
     def from_gen_mlp(cls, problem_gen, env_cls=Index, env_params=None, hidden_sizes_ch=(), hidden_sizes_tasks=(),

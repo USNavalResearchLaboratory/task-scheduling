@@ -39,9 +39,10 @@ def build_cnn(layer_sizes, kernel_sizes, pooling_layers=None, activation=nn.ReLU
     layer_sizes : Collection of int
         Hidden layer sizes.
     kernel_sizes : int or tuple or Collection of tuple
-        Kernel sizes for convolutional layers.
+        Kernel sizes for convolutional layers. If only one value is provided, the same is used for all convolutional
+        layers.
     pooling_layers : nn.Module or Collection of nn.Module, optional
-        Pooling modules.
+        Pooling modules. If only one value is provided, the same is used after each convolutional layer.
     activation : nn.Module, optional
     last_act : bool, optional
         Include final activation function.
