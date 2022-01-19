@@ -107,7 +107,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
                f"```\n" \
                f"{str(self.model.policy)}\n" \
                f"```\n" \
-               f"- TB dir: `{self.model.logger.dir}`"
+               f"- TB log: `{self.model.logger.dir}`"
 
     # def save(self, save_path=None):
     #     if save_path is None:

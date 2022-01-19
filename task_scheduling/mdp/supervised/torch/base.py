@@ -166,7 +166,6 @@ class Base(BaseSupervisedScheduler):
         n_gen_val = self.learn_params['n_gen_val']
         if isinstance(n_gen_val, float) and n_gen_val < 1:  # convert fraction to number of problems
             n_gen_val = math.floor(n_gen_learn * n_gen_val)
-
         n_gen_train = n_gen_learn - n_gen_val
 
         if verbose >= 1:
@@ -192,7 +191,9 @@ class Base(BaseSupervisedScheduler):
             tensors_train.append(w_train)
             tensors_val.append(w_val)
 
-        # ds_train = TensorDataset(*x_train, y_train)
+        # tensors_train = [t.to(device) for t in tensors_train]
+        # tensors_val = [t.to(device) for t in tensors_val]
+
         ds_train = TensorDataset(*tensors_train)
         dl_train = DataLoader(ds_train, batch_size=self.learn_params['batch_size_train'] * self.env.steps_per_episode,
                               shuffle=self.learn_params['shuffle'], pin_memory=pin_memory, num_workers=num_workers)
@@ -434,4 +435,9 @@ class LitScheduler(Base):
         self.trainer.fit(self.model, dl_train, dl_val)
 
     def _print_model(self):
-        return super()._print_model() + f"\n- TB dir: `{self.trainer.logger.log_dir}`"
+        return f"{super()._print_model()}\n" \
+               f"- Loader:\n" \
+               f"  - Batch size: train={self.learn_params['batch_size_train']}, " \
+               f"val={self.learn_params['batch_size_val']}\n" \
+               f"- Optimizer: {self.model.optim_cls.__name__}{self.model.optim_params}\n" \
+               f"- TB log: `{self.trainer.log_dir}`"
