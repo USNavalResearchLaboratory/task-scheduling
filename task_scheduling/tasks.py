@@ -166,7 +166,7 @@ class ReluDrop(Shift):
 
     """
 
-    param_names = super().param_names + ('slope', 't_drop', 'l_drop')
+    param_names = Base.param_names + ('slope', 't_drop', 'l_drop')
     shift_params = ('t_release', 't_drop', 'l_drop')
 
     def __init__(self, duration, t_release, slope, t_drop, l_drop):
@@ -267,7 +267,7 @@ class ReluDrop(Shift):
 
 # Radar tasks
 class ReluDropRadar(ReluDrop):
-    # param_names = super().param_names + ('t_dwell', 't_revisit')
+    # param_names = ReluDrop.param_names + ('t_dwell', 't_revisit')
 
     def __init__(self, t_dwell, t_revisit, dwell_type=None, revisit_times=None):
         self.t_revisit = t_revisit
