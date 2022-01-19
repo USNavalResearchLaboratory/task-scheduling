@@ -132,17 +132,6 @@ class Base(BaseSupervisedScheduler):
         """
         return self._process_obs(obs).argmax()
 
-        # # TODO: deprecate?
-        # if not hasattr(self.model, 'valid_fwd') or self.model.valid_fwd:
-        #     return self._process_obs(obs).argmax()
-        # else:
-        #     p = self.predict_prob(obs)
-        #     action = p.argmax()
-        #     if action not in self.env.action_space:  # mask out invalid actions
-        #         p = self.env.mask_probability(p)
-        #         action = p.argmax()
-        #     return action
-
     def reset(self):
         """Reset the learner."""
         self.model.apply(reset_weights)

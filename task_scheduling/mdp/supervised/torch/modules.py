@@ -73,16 +73,7 @@ def build_cnn(layer_sizes, kernel_sizes, pooling_layers=None, activation=nn.ReLU
 
 
 def valid_logits(x, seq):
-    return x - 1e8 * seq  # TODO: try different masking operations?
-
-
-# def valid_wrapper(func):  # TODO: make `wraps` work
-#     # @wraps(func)
-#     def valid_fwd(self, ch_avail, seq, tasks):
-#         y = func(self, ch_avail, tasks)
-#         y = valid_logits(y, seq)
-#         return y
-#     return valid_fwd
+    return x - 1e8 * seq
 
 
 class MultiNet(nn.Module):

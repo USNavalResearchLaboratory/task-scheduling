@@ -400,10 +400,6 @@ class Base(Env, ABC):
         data, = self.data_gen(n_batch=1, batch_size=n_gen, weight_func=weight_func, verbose=verbose)
         return data
 
-    # def mask_probability(self, p):  # TODO: deprecate?
-    #     """Returns masked action probabilities."""
-    #     return np.array(p)
-
 
 class Index(Base):
     def __init__(self, problem_gen, features=None, normalize=True, sort_func=None, time_shift=False, masking=False):
@@ -457,10 +453,6 @@ class Index(Base):
     #
     #     mask = self.infer_valid_mask(obs).astype(bool)
     #     return spaces_tasking.DiscreteMasked(self.n_tasks, mask)
-
-    # def mask_probability(self, p):
-    #     """Returns masked action probabilities based on unscheduled task indices."""
-    #     return np.ma.masked_array(p, self.action_space.mask)
 
 
 def seq_to_int(seq, check_input=True):
