@@ -265,48 +265,40 @@ class ReluDrop(Shift):
         return self.t_release, self.t_release + self.t_drop + 1
 
 
-class ReluDropRadar(ReluDrop):
+class Radar(ReluDrop):
     # param_names = ReluDrop.param_names + ('t_dwell', 't_revisit')
 
-    def __init__(self, t_dwell, t_revisit, dwell_type=None, revisit_times=None):
+    def __init__(self, duration, t_release, t_revisit, dwell_type=None):
         self.t_revisit = t_revisit
         self.dwell_type = dwell_type
 
-        relu_drop_params = {'duration': t_dwell, 't_release': 0, 'slope': 1 / self.t_revisit,
-                            't_drop': self.t_revisit + 0.1, 'l_drop': 300}
-        super().__init__(**relu_drop_params)
-
-        self.revisit_times = [] if revisit_times is None else list(revisit_times)
-
-    @property
-    def count_revisit(self):
-        return len(self.revisit_times)
+        relu_drop_params = dict(
+            slope=1 / self.t_revisit,
+            t_drop=self.t_revisit + 0.1,
+            l_drop=300,
+        )
+        super().__init__(duration, t_release, **relu_drop_params)
 
     @classmethod
-    def search(cls, t_dwell, dwell_type):
-        if dwell_type == 'HS':
-            return cls(t_dwell, t_revisit=2.5, dwell_type=dwell_type)
-        elif dwell_type == 'AHS':
-            return cls(t_dwell, t_revisit=5, dwell_type=dwell_type)
-        else:
-            raise ValueError
+    def search(cls, t_release, dwell_type):
+        t_dwell = 0.36
+        # t_revisit = dict(HS=2.5, AHS=5)[dwell_type]
+        t_revisit = dict(HS=5.88, AHS=11.76)[dwell_type]
+        return cls(t_dwell, t_release, t_revisit, dwell_type)
 
     @classmethod
-    def track(cls, dwell_type):
-        if dwell_type == 'low':
-            return cls(t_dwell=0.018, t_revisit=4, dwell_type='track_low')
-        elif dwell_type == 'med':
-            return cls(t_dwell=0.018, t_revisit=2, dwell_type='track_med')
-        elif dwell_type == 'high':
-            return cls(t_dwell=0.018, t_revisit=1, dwell_type='track_high')
-        else:
-            raise ValueError
+    def track(cls, t_release, dwell_type):
+        # t_dwell = 0.18
+        # t_revisit = dict(low=4, med=2, high=1)[dwell_type]
+        t_dwell = 0.36
+        t_revisit = dict(low=1, high=.5)[dwell_type]
+        return cls(t_dwell, t_release, t_revisit, 'track_' + dwell_type)
 
-    @classmethod
-    def from_kinematics(cls, slant_range, rate_range):
-        if slant_range <= 50:
-            return cls.track('high')
-        elif slant_range > 50 and abs(rate_range) >= 100:
-            return cls.track('med')
-        else:
-            return cls.track('low')
+    # @classmethod
+    # def from_kinematics(cls, slant_range, rate_range):
+    #     if slant_range <= 50:
+    #         return cls.track('high')
+    #     elif slant_range > 50 and abs(rate_range) >= 100:
+    #         return cls.track('med')
+    #     else:
+    #         return cls.track('low')
