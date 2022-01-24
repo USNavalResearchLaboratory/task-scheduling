@@ -95,7 +95,7 @@ class Base(ABC):
             ax.set(xlabel='t', ylabel='Loss')
             plt.title(str(self))
 
-        plot_data = ax.plot(t_plot, self(t_plot), label=str(self))
+        plot_data = ax.plot(t_plot, self(t_plot), label=self)
 
         return plot_data
 
@@ -178,6 +178,7 @@ class ReluDrop(Shift):
     def __call__(self, t):
         """Loss function versus time."""
 
+        t = np.array(t, dtype=float)
         t -= self.t_release  # relative time
 
         loss = np.array(self.slope * t)
