@@ -128,7 +128,7 @@ class Generic(Base):
     param_names = Base.param_names + ('loss_func',)
 
     def __init__(self, duration, t_release, loss_func=None, name=None):
-        super().__init__(duration, t_release)
+        super().__init__(duration, t_release, name)
 
         if callable(loss_func):
             self.loss_func = loss_func
@@ -180,7 +180,7 @@ class ReluDrop(Shift):
     shift_params = ('t_release', 't_drop', 'l_drop')
 
     def __init__(self, duration, t_release, slope, t_drop, l_drop, name=None):
-        super().__init__(duration, t_release)
+        super().__init__(duration, t_release, name)
         self._slope = float(slope)
         self._t_drop = float(t_drop)
         self._l_drop = float(l_drop)
