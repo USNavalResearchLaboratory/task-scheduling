@@ -8,14 +8,24 @@ from task_scheduling.util import evaluate_schedule
 from task_scheduling.generators import problems as problem_gens
 
 
+n_ch = 1
+n_tasks = 8
+
+ch_avail_lim = (-1, 1)
+
+# relu_lims = dict(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
+#                  t_drop_lim=(6, 12), l_drop_lim=(35, 50))
+relu_lims = dict(duration_lim=(.03, .06), t_release_lim=(-4, 4), slope_lim=(0.5, 2),
+                 t_drop_lim=(6, 12), l_drop_lim=(35, 50))
+
+
 def test_argsort():
     """Check that seq=np.argsort(sch['t']) maps to an optimal schedule."""
 
-    problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1)
-    for i in range(10):
+    problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks, n_ch, ch_avail_lim, **relu_lims)
+    for i, (tasks, ch_avail) in enumerate(problem_gen(10)):
         print(f"{i}", end='\n')
 
-        (tasks, ch_avail), = problem_gen(1)
         sch = branch_bound(tasks, ch_avail, verbose=True, rng=None)
         loss = evaluate_schedule(tasks, sch)
 
@@ -28,11 +38,10 @@ def test_argsort():
 def test_shift():
     """Check accuracy of ScheduleNodeShift solution."""
 
-    problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks=8, n_ch=1)
-    for i in range(10):
+    problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks, n_ch, ch_avail_lim, **relu_lims)
+    for i, (tasks, ch_avail) in enumerate(problem_gen(1000)):
         print(f"{i}", end='\n')
 
-        (tasks, ch_avail), = problem_gen(1)
         seq = np.random.permutation(problem_gen.n_tasks)
         node = ScheduleNode(tasks, ch_avail, seq)
         node_s = ScheduleNodeShift(tasks, ch_avail, seq)
@@ -42,7 +51,7 @@ def test_shift():
 
 
 def main():
-    test_argsort()
+    # test_argsort()
     test_shift()
 
 

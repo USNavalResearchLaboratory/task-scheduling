@@ -177,17 +177,17 @@ class ReluDrop(Shift):
 
     def __call__(self, t):
         """Loss function versus time."""
-        t = np.asarray(t)[np.newaxis] - self.t_release  # relative time
 
-        eps = 1e-9
+        t -= self.t_release  # relative time
 
-        loss = self.slope * t
-        loss[t < -eps] = np.nan
+        loss = np.array(self.slope * t)
+        loss[t < -1e-9] = np.nan
         loss[t >= self.t_drop] = self.l_drop
-        if loss.size == 1:
-            return loss.item()
-        else:
-            return loss.squeeze(axis=0)
+
+        if loss.ndim == 0:
+            loss = loss.item()
+
+        return loss
 
     # def __eq__(self, other):
     #     if isinstance(other, ReluDrop):
@@ -243,11 +243,6 @@ class ReluDrop(Shift):
 
         """
 
-        if t < 0.:
-            raise ValueError("Shift time must be positive.")
-        elif t == 0.:
-            return 0.
-
         t_excess = t - self.t_release
         self.t_release = max(0., -t_excess)
         if self.t_release == 0.:
@@ -266,8 +261,6 @@ class ReluDrop(Shift):
 
 
 class Radar(ReluDrop):
-    # param_names = ReluDrop.param_names + ('t_dwell', 't_revisit')
-
     def __init__(self, duration, t_release, t_revisit, dwell_type=None):
         self.t_revisit = t_revisit
         self.dwell_type = dwell_type

@@ -39,9 +39,6 @@ class ScheduleNode(RandomGeneratorMixin):
         self._tasks = list(tasks)
         self._ch_avail = np.array(ch_avail, dtype=float)
 
-        if min(self._ch_avail) < 0.:
-            raise ValueError("Initial channel availabilities must be non-negative.")
-
         self._seq = []
         self._seq_rem = set(range(self.n_tasks))
 
@@ -502,8 +499,6 @@ class ScheduleNodeShift(ScheduleNode):
         adding each incurred loss to the total."""
 
         ch_avail_min = min(self._ch_avail)
-        if ch_avail_min == 0.:
-            return
 
         self.t_origin += ch_avail_min
         self._ch_avail -= ch_avail_min
