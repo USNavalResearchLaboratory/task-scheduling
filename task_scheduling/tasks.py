@@ -22,15 +22,25 @@ class Base(ABC):
 
     param_names = ('duration', 't_release')
 
-    def __init__(self, duration, t_release):
+    def __init__(self, duration, t_release, name=None):
         self.duration = float(duration)
         self.t_release = float(t_release)
+
+        if name is None:
+            self._name = None
+        else:
+            self._name = str(name)
+
+    @property  # TODO: cache?
+    def name(self):
+        if self._name is None:
+            self._name = str(self)  # TODO: use `repr` for uniqueness?
+        return self._name
 
     def __str__(self):
         params_str = ", ".join([f"{name}: {getattr(self, name):.3f}" for name in ("duration", "t_release")])
         # params_str = ", ".join([f"{name}: {getattr(self, name):.3f}" for name in self.param_names])
         return f"{self.__class__.__name__}({params_str})"
-        # return f"{self.__class__.__name__}(duration: {self.duration:.3f}, release time: {self.t_release:.3f})"
 
     @abstractmethod
     def __call__(self, t):
@@ -93,9 +103,9 @@ class Base(ABC):
             _, ax = plt.subplots()
 
             ax.set(xlabel='t', ylabel='Loss')
-            plt.title(str(self))
+            plt.title(self)
 
-        plot_data = ax.plot(t_plot, self(t_plot), label=self)
+        plot_data = ax.plot(t_plot, self(t_plot), label=self.name)
 
         return plot_data
 
@@ -117,7 +127,7 @@ class Generic(Base):
 
     param_names = Base.param_names + ('loss_func',)
 
-    def __init__(self, duration, t_release, loss_func=None):
+    def __init__(self, duration, t_release, loss_func=None, name=None):
         super().__init__(duration, t_release)
 
         if callable(loss_func):
@@ -169,7 +179,7 @@ class ReluDrop(Shift):
     param_names = Base.param_names + ('slope', 't_drop', 'l_drop')
     shift_params = ('t_release', 't_drop', 'l_drop')
 
-    def __init__(self, duration, t_release, slope, t_drop, l_drop):
+    def __init__(self, duration, t_release, slope, t_drop, l_drop, name=None):
         super().__init__(duration, t_release)
         self._slope = float(slope)
         self._t_drop = float(t_drop)
@@ -246,14 +256,13 @@ class ReluDrop(Shift):
 
         t_excess = t - self.t_release
         self.t_release = max(0., -t_excess)
-        if self.t_release == 0.:
-            # Loss is incurred, drop time and loss are updated
+        if self.t_release == 0.:  # loss is incurred, drop time and loss are updated
             loss_inc = self(t_excess)
             self.t_drop = max(0., self.t_drop - t_excess)
             self.l_drop = self.l_drop - loss_inc
             return loss_inc
         else:
-            return 0.  # No loss incurred
+            return 0.  # no loss incurred
 
     @property
     def plot_lim(self):
@@ -261,38 +270,38 @@ class ReluDrop(Shift):
         return self.t_release, self.t_release + self.t_drop + 1
 
 
-class Radar(ReluDrop):
-    def __init__(self, duration, t_release, t_revisit, dwell_type=None):
-        self.t_revisit = t_revisit
-        self.dwell_type = dwell_type
-
-        relu_drop_params = dict(
-            slope=1 / self.t_revisit,
-            t_drop=self.t_revisit + 0.1,
-            l_drop=300,
-        )
-        super().__init__(duration, t_release, **relu_drop_params)
-
-    @classmethod
-    def search(cls, t_release, dwell_type):
-        t_dwell = 0.36
-        # t_revisit = dict(HS=2.5, AHS=5)[dwell_type]
-        t_revisit = dict(HS=5.88, AHS=11.76)[dwell_type]
-        return cls(t_dwell, t_release, t_revisit, dwell_type)
-
-    @classmethod
-    def track(cls, t_release, dwell_type):
-        # t_dwell = 0.18
-        # t_revisit = dict(low=4, med=2, high=1)[dwell_type]
-        t_dwell = 0.36
-        t_revisit = dict(low=1, high=.5)[dwell_type]
-        return cls(t_dwell, t_release, t_revisit, 'track_' + dwell_type)
-
-    # @classmethod
-    # def from_kinematics(cls, slant_range, rate_range):
-    #     if slant_range <= 50:
-    #         return cls.track('high')
-    #     elif slant_range > 50 and abs(rate_range) >= 100:
-    #         return cls.track('med')
-    #     else:
-    #         return cls.track('low')
+# class Radar(ReluDrop):
+#     def __init__(self, duration, t_release, t_revisit, dwell_type=None):
+#         self.t_revisit = t_revisit
+#         self.dwell_type = dwell_type
+#
+#         relu_drop_params = dict(
+#             slope=1 / self.t_revisit,
+#             t_drop=self.t_revisit + 0.1,
+#             l_drop=300,
+#         )
+#         super().__init__(duration, t_release, **relu_drop_params)
+#
+#     @classmethod
+#     def search(cls, t_release, dwell_type):
+#         t_dwell = 0.36
+#         # t_revisit = dict(HS=2.5, AHS=5)[dwell_type]
+#         t_revisit = dict(HS=5.88, AHS=11.76)[dwell_type]
+#         return cls(t_dwell, t_release, t_revisit, dwell_type)
+#
+#     @classmethod
+#     def track(cls, t_release, dwell_type):
+#         # t_dwell = 0.18
+#         # t_revisit = dict(low=4, med=2, high=1)[dwell_type]
+#         t_dwell = 0.36
+#         t_revisit = dict(low=1, high=.5)[dwell_type]
+#         return cls(t_dwell, t_release, t_revisit, 'track_' + dwell_type)
+#
+#     # @classmethod
+#     # def from_kinematics(cls, slant_range, rate_range):
+#     #     if slant_range <= 50:
+#     #         return cls.track('high')
+#     #     elif slant_range > 50 and abs(rate_range) >= 100:
+#     #         return cls.track('med')
+#     #     else:
+#     #         return cls.track('low')
