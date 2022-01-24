@@ -43,7 +43,6 @@ class ScheduleNode(RandomGeneratorMixin):
         self._seq_rem = set(range(self.n_tasks))
 
         self._sch = np.array([(np.nan, -1) for __ in range(self.n_tasks)], dtype=[('t', float), ('c', int)])
-
         self._loss = 0.  # incurred loss
 
         self.seq = seq  # triggers setter

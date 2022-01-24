@@ -13,8 +13,6 @@ n_tasks = 8
 
 ch_avail_lim = (-1, 1)
 
-# relu_lims = dict(duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2),
-#                  t_drop_lim=(6, 12), l_drop_lim=(35, 50))
 relu_lims = dict(duration_lim=(.03, .06), t_release_lim=(-4, 4), slope_lim=(0.5, 2),
                  t_drop_lim=(6, 12), l_drop_lim=(35, 50))
 

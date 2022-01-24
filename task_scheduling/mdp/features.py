@@ -1,4 +1,5 @@
 from operator import attrgetter
+from warnings import warn
 
 import numpy as np
 from gym.spaces import Discrete, MultiDiscrete, Box
@@ -100,6 +101,9 @@ def encode_discrete_features(problem_gen):
 
 def _make_norm_func(func, space):
     low, high = get_space_lims(space)
+    if np.isinf([low, high]).any():
+        warn("Cannot make a normalizing `func` due to unbounded `space`.")
+        return func
 
     def norm_func(task):
         return (func(task) - low) / (high - low)
