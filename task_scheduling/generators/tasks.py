@@ -9,6 +9,7 @@ Assumes all tasks are instances of the same class. Heterogeneous task types will
 
 from abc import ABC, abstractmethod
 from collections import deque
+from functools import cached_property
 from types import MethodType
 from typing import Collection
 
@@ -62,7 +63,7 @@ class BaseIID(Base, ABC):
     def __call__(self, n_tasks, rng=None):
         """Randomly generate tasks."""
         rng = self._get_rng(rng)
-        for _ in range(n_tasks):
+        for __ in range(n_tasks):
             yield self.cls_task(**self._param_gen(rng))
 
     @abstractmethod
@@ -378,3 +379,83 @@ class Dataset(Fixed):
                 self.tasks.appendleft(task)
 
             yield task
+
+
+class Radar(BaseIID):
+    types = dict(
+        HS=dict(
+            pr=.269,
+            t_release_mean=-7.14,
+            t_release_std=.092,
+            duration=.036,
+            slope=.17,
+            t_drop=5.98,
+            l_drop=300,
+        ),
+        AHS=dict(
+            pr=.696,
+            t_release_mean=-14.25,
+            t_release_std=.132,
+            duration=.036,
+            slope=.085,
+            t_drop=11.86,
+            l_drop=300,
+        ),
+        track_low=dict(
+            pr=.012,
+            t_release_mean=-1.044,
+            t_release_std=0,
+            duration=.036,
+            slope=1.,
+            t_drop=1.1,
+            l_drop=500,
+        ),
+        track_high=dict(
+            pr=.023,
+            t_release_mean=-0.53,
+            t_release_std=.012,
+            duration=.036,
+            slope=2.,
+            t_drop=.6,
+            l_drop=500,
+        ),
+    )
+
+    def __init__(self, rng=None):
+        param_spaces = {}
+        for name in task_types.ReluDrop.param_names:
+            if name == 't_release':
+                param_spaces[name] = spaces.Box(-np.inf, np.inf, shape=(), dtype=float)
+            else:
+                param_spaces[name] = DiscreteSet(np.unique([params[name] for params in self.types.values()]))
+
+        super().__init__(task_types.ReluDrop, param_spaces, rng)
+
+    @cached_property
+    def p(self):
+        return np.array([params['pr'] for params in self.types.values()])
+
+    def __call__(self, n_tasks, rng=None):
+        """Randomly generate tasks."""
+        rng = self._get_rng(rng)
+        for i in range(n_tasks):
+            yield self.cls_task(**self._param_gen(rng))
+
+    def _param_gen(self, rng):
+        """Randomly generate task parameters."""
+        type_ = rng.choice(list(self.types.keys()), p=self.p)
+        params = self.types[type_].copy()
+        del params['pr']
+        params['t_release'] = rng.normal(params['t_release_mean'], params['t_release_std'])
+        del params['t_release_mean']
+        del params['t_release_std']
+        params['name'] = type_
+
+        return params
+
+        # params = {}
+        # for name in task_types.ReluDrop.param_names:
+        #     if name == 't_release':
+        #         params[name] = rng.normal()
+        #     else:
+        #         params[name] = DiscreteSet(np.unique([params[name] for params in self.types.values()]))
