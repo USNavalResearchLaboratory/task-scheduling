@@ -382,7 +382,28 @@ class Dataset(Fixed):
 
 
 class Radar(BaseIID):
-    types = dict(
+    types_search = dict(
+        HS=dict(
+            pr=.26,
+            t_release_mean=-5.7,
+            t_release_std=.058,
+            duration=.036,
+            slope=.17,
+            t_drop=5.98,
+            l_drop=300,
+        ),
+        AHS=dict(
+            pr=.74,
+            t_release_mean=-11.5,
+            t_release_std=.087,
+            duration=.036,
+            slope=.085,
+            t_drop=11.86,
+            l_drop=300,
+        ),
+    )
+
+    types_track = dict(
         HS=dict(
             pr=.269,
             t_release_mean=-7.14,
@@ -421,7 +442,12 @@ class Radar(BaseIID):
         ),
     )
 
-    def __init__(self, rng=None):
+    def __init__(self, mode, rng=None):
+        if mode == 'search':
+            self.types = self.types_search
+        elif mode == 'track':
+            self.types = self.types_track
+
         param_spaces = {}
         for name in task_types.ReluDrop.param_names:
             if name == 't_release':
@@ -452,10 +478,3 @@ class Radar(BaseIID):
         params['name'] = type_
 
         return params
-
-        # params = {}
-        # for name in task_types.ReluDrop.param_names:
-        #     if name == 't_release':
-        #         params[name] = rng.normal()
-        #     else:
-        #         params[name] = DiscreteSet(np.unique([params[name] for params in self.types.values()]))
