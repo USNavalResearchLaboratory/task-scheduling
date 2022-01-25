@@ -1,3 +1,4 @@
+from functools import partial
 from pathlib import Path
 
 from task_scheduling.generators import problems as problem_gens
@@ -5,18 +6,22 @@ from task_scheduling.generators import problems as problem_gens
 # seed = None
 seed = 12345
 
-ct_set = [(1, 4), (1, 8), (1, 12), (1, 16), (2, 4), (2, 8)]
+# ct_set = [(1, 4), (1, 8), (1, 12), (1, 16), (2, 4), (2, 8)]
+ct_set = [(1, 6)]
 
-gen_set = [
-    problem_gens.Random.continuous_relu_drop,
-    problem_gens.Random.discrete_relu_drop,
-]
+
+gen_set = dict(
+    # continuous_relu_drop=problem_gens.Random.continuous_relu_drop,
+    # discrete_relu_drop=problem_gens.Random.discrete_relu_drop,
+    radar_search=partial(problem_gens.Random.radar, mode='search'),
+    radar_track=partial(problem_gens.Random.radar, mode='track'),
+)
 
 n_gen = 1000
 
-for gen in gen_set:
+for name, gen in gen_set.items():
     for c, t in ct_set:
-        file_str = f"{gen.__name__}_c{c}t{t}"
+        file_str = f"{name}_c{c}t{t}"
         print(file_str)
 
         save_path = Path(f'../data/' + file_str)

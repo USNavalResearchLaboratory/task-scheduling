@@ -211,64 +211,6 @@ class DiscreteIID(BaseIID):
         return cls(task_types.ReluDrop, param_probs, rng)
 
 
-class SearchTrackIID(BaseIID):
-    """Search and Track tasks based on 2020 TSRS paper."""
-
-    targets = {'HS': {'duration': .036, 't_revisit': 2.5},
-               'AHS': {'duration': .036, 't_revisit': 5.0},
-               'AHS_short': {'duration': .018, 't_revisit': 5.0},
-               'Trk_hi': {'duration': .018, 't_revisit': 1.0},
-               'Trk_med': {'duration': .018, 't_revisit': 2.0},
-               'Trk_low': {'duration': .018, 't_revisit': 4.0},
-               }
-
-    def __init__(self, probs=None, t_release_lim=(0., .018), rng=None):
-        durations, t_revisits = map(np.array, zip(*[target.values() for target in self.targets.values()]))
-        param_spaces = {'duration': DiscreteSet(durations),
-                        't_release': spaces.Box(*t_release_lim, shape=(), dtype=float),
-                        'slope': DiscreteSet(1 / t_revisits),
-                        't_drop': DiscreteSet(t_revisits + 0.1),
-                        'l_drop': DiscreteSet([300.])
-                        }
-
-        super().__init__(task_types.ReluDrop, param_spaces, rng)
-
-        if probs is None:
-            # n = np.array([28, 43, 49,  1,  1,  1])
-            # t_r = np.array([2.5, 5., 5., 1., 2., 4.])
-            # self.probs = np.array([0.36, 0.27, 0.31, 0.03, 0.02, 0.01])  # proportionate to (# beams) / (revisit rate)
-            self.probs = [0.36, 0.27, 0.31, 0.03, 0.02, 0.01]
-        else:
-            self.probs = list(probs)
-
-        self.t_release_lim = tuple(t_release_lim)
-
-    def _param_gen(self, rng):
-        """Randomly generate task parameters."""
-        duration, t_revisit = rng.choice(list(self.targets.values()), p=self.probs).values()
-        params = {'duration': duration,
-                  't_release': rng.uniform(*self.t_release_lim),
-                  'slope': 1 / t_revisit,
-                  't_drop': t_revisit + 0.1,
-                  'l_drop': 300.
-                  }
-        return params
-
-    def __eq__(self, other):
-        if isinstance(other, SearchTrackIID):
-            return self.probs == other.probs and self.t_release_lim == other.t_release_lim
-        else:
-            return NotImplemented
-
-    def summary(self):
-        str_ = super().summary()
-        str_ += f'\nRelease time limits: {self.t_release_lim}'
-        df = pd.Series(dict(zip(self.targets.keys(), self.probs)), name='Pr')
-        df_str = df.to_markdown(tablefmt='github', floatfmt='.3f')
-        str_ += f"\n\n{df_str}"
-        return str_
-
-
 class Fixed(Base, ABC):
     def __init__(self, tasks, param_spaces=None, rng=None):
         """
@@ -321,8 +263,8 @@ class Fixed(Base, ABC):
         return cls._task_gen_to_fixed(n_tasks, task_gen, rng)
 
     @classmethod
-    def search_track(cls, n_tasks, probs=None, t_release_lim=(0., .018), rng=None):
-        task_gen = SearchTrackIID(probs, t_release_lim)
+    def search_track(cls, n_tasks, p=None, t_release_lim=(0., .018), rng=None):
+        task_gen = SearchTrackIID(p, t_release_lim)
         return cls._task_gen_to_fixed(n_tasks, task_gen, rng)
 
 
@@ -379,6 +321,66 @@ class Dataset(Fixed):
                 self.tasks.appendleft(task)
 
             yield task
+
+
+# Radar
+class SearchTrackIID(BaseIID):  # TODO: integrate or deprecate (and `search_track` methods)
+    """Search and Track tasks based on 2020 TSRS paper."""
+
+    targets = {'HS': {'duration': .036, 't_revisit': 2.5},
+               'AHS': {'duration': .036, 't_revisit': 5.0},
+               'AHS_short': {'duration': .018, 't_revisit': 5.0},
+               'Trk_hi': {'duration': .018, 't_revisit': 1.0},
+               'Trk_med': {'duration': .018, 't_revisit': 2.0},
+               'Trk_low': {'duration': .018, 't_revisit': 4.0},
+               }
+
+    def __init__(self, p=None, t_release_lim=(0., .018), rng=None):
+        durations, t_revisits = map(np.array, zip(*[target.values() for target in self.targets.values()]))
+        param_spaces = {
+            'duration': DiscreteSet(durations),
+            't_release': spaces.Box(*t_release_lim, shape=(), dtype=float),
+            'slope': DiscreteSet(1 / t_revisits),
+            't_drop': DiscreteSet(t_revisits + 0.1),
+            'l_drop': DiscreteSet([300.])
+            }
+
+        super().__init__(task_types.ReluDrop, param_spaces, rng)
+
+        if p is None:
+            # n = np.array([28, 43, 49,  1,  1,  1])
+            # t_r = np.array([2.5, 5., 5., 1., 2., 4.])
+            # self.probs = np.array([0.36, 0.27, 0.31, 0.03, 0.02, 0.01])  # proportionate to (# beams) / (revisit rate)
+            self.p = [0.36, 0.27, 0.31, 0.03, 0.02, 0.01]
+        else:
+            self.p = list(p)
+
+        self.t_release_lim = tuple(t_release_lim)
+
+    def _param_gen(self, rng):
+        """Randomly generate task parameters."""
+        duration, t_revisit = rng.choice(list(self.targets.values()), p=self.p).values()
+        params = {'duration': duration,
+                  't_release': rng.uniform(*self.t_release_lim),
+                  'slope': 1 / t_revisit,
+                  't_drop': t_revisit + 0.1,
+                  'l_drop': 300.
+                  }
+        return params
+
+    def __eq__(self, other):
+        if isinstance(other, SearchTrackIID):
+            return self.p == other.p and self.t_release_lim == other.t_release_lim
+        else:
+            return NotImplemented
+
+    def summary(self):
+        str_ = super().summary()
+        str_ += f'\nRelease time limits: {self.t_release_lim}'
+        df = pd.Series(dict(zip(self.targets.keys(), self.p)), name='Pr')
+        df_str = df.to_markdown(tablefmt='github', floatfmt='.3f')
+        str_ += f"\n\n{df_str}"
+        return str_
 
 
 class Radar(BaseIID):
@@ -447,6 +449,8 @@ class Radar(BaseIID):
             self.types = self.types_search
         elif mode == 'track':
             self.types = self.types_track
+        else:
+            raise ValueError
 
         param_spaces = {}
         for name in task_types.ReluDrop.param_names:
