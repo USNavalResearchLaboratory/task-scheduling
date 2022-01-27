@@ -118,6 +118,33 @@ def random_sequencer(tasks, ch_avail, rng=None):
     return node.sch
 
 
+def priority_sorter(tasks, ch_avail, func, reverse=True):
+    """
+    Sort tasks based on function value.
+
+    Parameters
+    ----------
+    tasks : Collection of task_scheduling.tasks.Base
+    ch_avail : Collection of float
+        Channel availability times.
+    func : callable
+        Returns scalar value for task priority.
+    reverse : bool, optional
+        If `True`, tasks are scheduled in order of decreasing priority value.
+
+    Returns
+    -------
+    numpy.ndarray
+        Task schedule.
+
+    """
+
+    node = ScheduleNode(tasks, ch_avail)
+    node.priority_sorter(func, reverse)
+
+    return node.sch
+
+
 def earliest_release(tasks, ch_avail):
     """
     Earliest Start Times Algorithm.

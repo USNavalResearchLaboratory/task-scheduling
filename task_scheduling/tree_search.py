@@ -2,7 +2,7 @@ from collections import deque
 from copy import deepcopy
 from itertools import permutations
 from math import factorial
-from operator import methodcaller
+from operator import methodcaller, attrgetter
 from time import perf_counter
 from typing import Collection
 
@@ -198,17 +198,17 @@ class ScheduleNode(RandomGeneratorMixin):
 
         return self._extend_util(seq_ext, inplace)
 
-    def _earliest_sorter(self, name, inplace=True):
-        _dict = {n: getattr(self._tasks[n], name) for n in self.seq_rem}
-        seq_ext = sorted(self.seq_rem, key=_dict.__getitem__)
+    def priority_sorter(self, func, reverse=True, inplace=True):
+        values = [func(self._tasks[n]) for n in self.seq_rem]
+        seq_ext = sorted(self.seq_rem, key=values.__getitem__, reverse=reverse)
 
         return self._extend_util(seq_ext, inplace)
 
     def earliest_release(self, inplace=True):
-        return self._earliest_sorter('t_release', inplace)
+        return self.priority_sorter(attrgetter('t_release'), reverse=False, inplace=inplace)
 
     def earliest_drop(self, inplace=True):
-        return self._earliest_sorter('t_drop', inplace)
+        return self.priority_sorter(attrgetter('t_drop'), reverse=False, inplace=inplace)
 
     def mcts(self, max_runtime=np.inf, max_rollouts=None, c_explore=0., th_visit=0, inplace=True, verbose=False,
              rng=None):
