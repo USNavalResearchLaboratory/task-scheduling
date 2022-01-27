@@ -157,7 +157,7 @@ def _scatter_loss_runtime(t_run, loss, ax=None, ax_kwargs=None):
 
         ax.scatter(1e3 * t_run[name], loss[name], label=name, **kwargs)
 
-    ax.set(xlabel='Runtime (ms)', ylabel='Loss')
+    ax.set(xlabel='Runtime (ms)', ylabel='Loss', xscale='log')
     ax.legend()
     ax.set(**ax_kwargs)
 

@@ -327,13 +327,14 @@ class Dataset(Fixed):
 class SearchTrackIID(BaseIID):  # TODO: integrate or deprecate (and `search_track` methods)
     """Search and Track tasks based on 2020 TSRS paper."""
 
-    targets = {'HS': {'duration': .036, 't_revisit': 2.5},
-               'AHS': {'duration': .036, 't_revisit': 5.0},
-               'AHS_short': {'duration': .018, 't_revisit': 5.0},
-               'Trk_hi': {'duration': .018, 't_revisit': 1.0},
-               'Trk_med': {'duration': .018, 't_revisit': 2.0},
-               'Trk_low': {'duration': .018, 't_revisit': 4.0},
-               }
+    targets = dict(
+        HS={'duration': .036, 't_revisit': 2.5},
+        AHS={'duration': .036, 't_revisit': 5.0},
+        AHS_short={'duration': .018, 't_revisit': 5.0},
+        Trk_hi={'duration': .018, 't_revisit': 1.0},
+        Trk_med={'duration': .018, 't_revisit': 2.0},
+        Trk_low={'duration': .018, 't_revisit': 4.0},
+    )
 
     def __init__(self, p=None, t_release_lim=(0., .018), rng=None):
         durations, t_revisits = map(np.array, zip(*[target.values() for target in self.targets.values()]))
@@ -342,7 +343,7 @@ class SearchTrackIID(BaseIID):  # TODO: integrate or deprecate (and `search_trac
             't_release': spaces.Box(*t_release_lim, shape=(), dtype=float),
             'slope': DiscreteSet(1 / t_revisits),
             't_drop': DiscreteSet(t_revisits + 0.1),
-            'l_drop': DiscreteSet([300.])
+            'l_drop': DiscreteSet([300.]),
             }
 
         super().__init__(task_types.ReluDrop, param_spaces, rng)
