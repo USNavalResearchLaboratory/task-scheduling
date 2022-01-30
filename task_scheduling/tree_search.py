@@ -249,7 +249,11 @@ class ScheduleNode(RandomGeneratorMixin):
             max_rollouts = np.inf
 
         rng = self._get_rng(rng)
+
         bounds = ScheduleNodeBound(self.tasks, self.ch_avail).bounds
+        if bounds[0] == bounds[1]:  # trivial problem, any roll-out is optimal
+            return self.roll_out(inplace, rng)
+
         root = MCTSNode(self.n_tasks, bounds, self.seq, c_explore, th_visit, rng=rng)
 
         node_best, loss_best = None, np.inf
@@ -384,6 +388,9 @@ class ScheduleNodeBound(ScheduleNode):
 
         rng = self._get_rng(rng)
 
+        if self.bounds[0] == self.bounds[1]:  # trivial problem, any roll-out is optimal
+            return self.roll_out(inplace, rng)
+
         node_best = self.roll_out(inplace=False, rng=rng)  # roll-out initial solution
         stack = deque([self])  # initialize stack
 
@@ -435,6 +442,9 @@ class ScheduleNodeBound(ScheduleNode):
             Only if `inplace` is False.
 
         """
+
+        if self.bounds[0] == self.bounds[1]:  # trivial problem, any roll-out is optimal
+            return self.roll_out(inplace)
 
         if priority_func is None:
             def priority_func(node_):
