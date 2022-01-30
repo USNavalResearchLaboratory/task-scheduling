@@ -16,10 +16,11 @@ from typing import Collection
 import numpy as np
 import pandas as pd
 from gym import spaces
+from scipy import stats
 
 from task_scheduling import tasks as task_types
 from task_scheduling.base import RandomGeneratorMixin
-from task_scheduling.spaces import DiscreteSet
+from task_scheduling.spaces import DiscreteSet, get_space_lims
 
 
 class Base(RandomGeneratorMixin, ABC):
@@ -384,12 +385,17 @@ class SearchTrackIID(BaseIID):  # TODO: integrate or deprecate (and `search_trac
         return str_
 
 
+def make_truncnorm(myclip_a, myclip_b, my_mean, my_std):
+    a, b = (myclip_a - my_mean) / my_std, (myclip_b - my_mean) / my_std
+    return stats.truncnorm(a, b, loc=my_mean, scale=my_std)
+
+
 class Radar(BaseIID):
     types_search = dict(
         HS=dict(
             pr=.26,
-            t_release_mean=-5.7,
-            t_release_std=.058,
+            t_release_rng=make_truncnorm(-5.9, -5.5, -5.7, .058).rvs,
+            t_release_space=spaces.Box(-5.9, -5.5, shape=(), dtype=float),
             duration=.036,
             slope=.17,
             t_drop=5.98,
@@ -397,8 +403,8 @@ class Radar(BaseIID):
         ),
         AHS=dict(
             pr=.74,
-            t_release_mean=-11.5,
-            t_release_std=.087,
+            t_release_rng=make_truncnorm(-11.8, -11.2, -11.5, .087).rvs,
+            t_release_space=spaces.Box(-11.8, -11.2, shape=(), dtype=float),
             duration=.036,
             slope=.085,
             t_drop=11.86,
@@ -409,8 +415,8 @@ class Radar(BaseIID):
     types_track = dict(
         HS=dict(
             pr=.269,
-            t_release_mean=-7.14,
-            t_release_std=.092,
+            t_release_rng=make_truncnorm(-7.5, -6.8, -7.14, .092).rvs,
+            t_release_space=spaces.Box(-7.5, -6.8, shape=(), dtype=float),
             duration=.036,
             slope=.17,
             t_drop=5.98,
@@ -418,8 +424,8 @@ class Radar(BaseIID):
         ),
         AHS=dict(
             pr=.696,
-            t_release_mean=-14.25,
-            t_release_std=.132,
+            t_release_rng=make_truncnorm(-14.75, -13.75, -14.25, .132).rvs,
+            t_release_space=spaces.Box(-14.75, -13.75, shape=(), dtype=float),
             duration=.036,
             slope=.085,
             t_drop=11.86,
@@ -427,8 +433,8 @@ class Radar(BaseIID):
         ),
         track_low=dict(
             pr=.012,
-            t_release_mean=-1.044,
-            t_release_std=0,
+            t_release_rng=lambda: -1.044,
+            t_release_space=DiscreteSet([-1.044]),
             duration=.036,
             slope=1.,
             t_drop=1.1,
@@ -436,8 +442,8 @@ class Radar(BaseIID):
         ),
         track_high=dict(
             pr=.023,
-            t_release_mean=-0.53,
-            t_release_std=.012,
+            t_release_rng=lambda: -0.53,
+            t_release_space=DiscreteSet([-0.53]),
             duration=.036,
             slope=2.,
             t_drop=.6,
@@ -456,7 +462,9 @@ class Radar(BaseIID):
         param_spaces = {}
         for name in task_types.ReluDrop.param_names:
             if name == 't_release':
-                param_spaces[name] = spaces.Box(-np.inf, np.inf, shape=(), dtype=float)
+                # param_spaces[name] = spaces.Box(-np.inf, np.inf, shape=(), dtype=float)
+                lows, highs = zip(*(get_space_lims(params['t_release_space']) for params in self.types.values()))
+                param_spaces[name] = spaces.Box(min(lows), max(highs), shape=(), dtype=float)
             else:
                 param_spaces[name] = DiscreteSet(np.unique([params[name] for params in self.types.values()]))
 
@@ -469,17 +477,18 @@ class Radar(BaseIID):
     def __call__(self, n_tasks, rng=None):
         """Randomly generate tasks."""
         rng = self._get_rng(rng)
-        for i in range(n_tasks):
+        for __ in range(n_tasks):
             yield self.cls_task(**self._param_gen(rng))
 
     def _param_gen(self, rng):
         """Randomly generate task parameters."""
         type_ = rng.choice(list(self.types.keys()), p=self.p)
         params = self.types[type_].copy()
-        del params['pr']
-        params['t_release'] = rng.normal(params['t_release_mean'], params['t_release_std'])
-        del params['t_release_mean']
-        del params['t_release_std']
         params['name'] = type_
+        params['t_release'] = params['t_release_rng']()
+        del params['pr'], params['t_release_rng'], params['t_release_space']
+        # params['t_release'] = rng.normal(params['t_release_mean'], params['t_release_std'])
+        # del params['t_release_mean']
+        # del params['t_release_std']
 
         return params
