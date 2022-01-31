@@ -21,7 +21,7 @@ function that increases linearly from zero according to a positive parameter `sl
 function popularized by neural networks. After a "drop" time `t_drop`, a large constant loss `l_drop` is incurred. 
 Example loss functions are shown below.
 
-![Task loss functions](images/ex_relu_drop.png)
+![Task loss functions](images/ex_tasks.png)
 
 
 ## Algorithms
