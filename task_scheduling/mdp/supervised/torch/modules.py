@@ -85,7 +85,8 @@ class MultiNet(nn.Module):
 
     def forward(self, ch_avail, seq, tasks):
         c, s, t = ch_avail, seq, tasks
-        t = torch.cat((t.permute(0, 2, 1), s.unsqueeze(1)), dim=1)  # reshape task features, combine w/ sequence mask
+        t = t.permute(0, 2, 1)
+        # t = torch.cat((t.permute(0, 2, 1), s.unsqueeze(1)), dim=1)  # reshape task features, combine w/ sequence mask
 
         c = self.net_ch(c)
         t = self.net_tasks(t)
@@ -103,7 +104,8 @@ class MultiNet(nn.Module):
         layer_sizes_ch = [env.n_ch, *hidden_sizes_ch]
         net_ch = build_mlp(layer_sizes_ch, last_act=True)
 
-        layer_sizes_tasks = [env.n_tasks * (1 + env.n_features), *hidden_sizes_tasks]
+        layer_sizes_tasks = [env.n_tasks * env.n_features, *hidden_sizes_tasks]
+        # layer_sizes_tasks = [env.n_tasks * (1 + env.n_features), *hidden_sizes_tasks]
         net_tasks = nn.Sequential(nn.Flatten(), *build_mlp(layer_sizes_tasks, last_act=True))
 
         size_in_joint = layer_sizes_ch[-1] + layer_sizes_tasks[-1]
@@ -118,7 +120,8 @@ class MultiNet(nn.Module):
         layer_sizes_ch = [env.n_ch, *hidden_sizes_ch]
         net_ch = build_mlp(layer_sizes_ch, last_act=True)
 
-        layer_sizes_tasks = [1 + env.n_features, *hidden_sizes_tasks]
+        layer_sizes_tasks = [env.n_features, *hidden_sizes_tasks]
+        # layer_sizes_tasks = [1 + env.n_features, *hidden_sizes_tasks]
         if cnn_kwargs is None:
             cnn_kwargs = {}
         net_tasks = nn.Sequential(
@@ -139,7 +142,8 @@ class VaryCNN(nn.Module):
 
         n_filters = 400
 
-        self.conv_t = nn.Conv1d(1 + env.n_features, n_filters, kernel_size=kernel_len)
+        self.conv_t = nn.Conv1d(env.n_features, n_filters, kernel_size=kernel_len)
+        # self.conv_t = nn.Conv1d(1 + env.n_features, n_filters, kernel_size=kernel_len)
         self.conv_ch = nn.Conv1d(1, n_filters, kernel_size=(3,))
         self.conv_x = nn.Conv1d(n_filters, 1, kernel_size=(2,))
 
