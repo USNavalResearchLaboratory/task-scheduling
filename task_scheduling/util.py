@@ -60,7 +60,7 @@ def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
 
     if ax_kwargs is None:
         ax_kwargs = {}
-    ax_kwargs = dict(xlabel='t', ylabel='Loss', xlim=x_lim, ylim=y_lim) | ax_kwargs
+    ax_kwargs = dict(xlabel='$t$', ylabel='$l$', xlim=x_lim, ylim=y_lim) | ax_kwargs
     ax.set(**ax_kwargs)
 
     ax.legend()
@@ -163,7 +163,7 @@ def plot_schedule(tasks, sch, n_ch=None, loss=None, name=None, ax=None, ax_kwarg
     if isinstance(name, str):
         _temp.append(name)
     if loss is not None:
-        _temp.append(f'Loss = {loss:.3f}')
+        _temp.append(f'$L = {loss:.3f}$')
     title = ', '.join(_temp)
 
     if n_ch is None:  # infer from `sch`
@@ -171,7 +171,7 @@ def plot_schedule(tasks, sch, n_ch=None, loss=None, name=None, ax=None, ax_kwarg
 
     if ax_kwargs is None:
         ax_kwargs = {}
-    ax_kwargs = dict(xlim=x_lim, ylim=(-.5, n_ch - 1 + .5), xlabel='t', yticks=list(range(n_ch)), ylabel='Channel',
+    ax_kwargs = dict(xlim=x_lim, ylim=(-.5, n_ch - 1 + .5), xlabel='$t$', yticks=list(range(n_ch)), ylabel='$c$',
                      title=title) | ax_kwargs
     ax.set(**ax_kwargs)
 
