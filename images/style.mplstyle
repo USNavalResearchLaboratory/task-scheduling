@@ -1,0 +1,23 @@
+figure.figsize : 5.2, 3.9
+# figure.figsize : 4.8, 3.6
+# figure.autolayout : True
+
+xtick.direction : in
+xtick.top : True
+xtick.minor.visible : True
+
+ytick.direction : in
+ytick.right : True
+ytick.minor.visible : True
+
+axes.xmargin : 0
+# axes.grid : True
+
+# legend.frameon : False
+
+savefig.bbox : tight
+savefig.pad_inches : 0.02
+savefig.format : pdf
+
+text.usetex : True
+text.latex.preamble : \usepackage{amsmath,amssymb,upgreek,bm}

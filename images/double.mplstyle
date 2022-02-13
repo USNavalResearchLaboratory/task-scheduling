@@ -1,0 +1,19 @@
+# figure.figsize : 3.5, 2.625
+figure.figsize : 3.8, 2.85
+
+font.size: 7
+
+axes.linewidth : 0.5
+grid.linewidth : 0.5
+lines.linewidth : 1.
+lines.markersize: 4
+
+xtick.major.size : 3
+xtick.minor.size : 1.5
+xtick.major.width : 0.5
+xtick.minor.width : 0.5
+
+ytick.major.size : 3
+ytick.minor.size : 1.5
+ytick.major.width : 0.5
+ytick.minor.width : 0.5
