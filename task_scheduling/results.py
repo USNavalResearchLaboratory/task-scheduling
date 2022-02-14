@@ -45,19 +45,26 @@ def _file_logger(file, file_format):
 
 
 def _log_and_fig(message, log_path, ax, img_path):
+    """Save figure, add figure to message format and log."""
+
+    log_path = Path(log_path)
     file_format = '\n# %(asctime)s\n%(message)s\n'
     if img_path is not None:
         img_path = Path(img_path)
         img_path.parent.mkdir(parents=True, exist_ok=True)
 
-        file_format += f"\n![]({img_path.absolute().as_posix()})\n"
-
         fig = ax.figure
         fig.savefig(img_path)
+        fig.savefig(img_path.parent / f"{img_path.stem}.png")  # save PNG for Markdown log
         if pickle_figs:
             mpl_file = img_path.parent / f"{img_path.stem}.mpl"
-            with open(mpl_file, 'wb') as fid:
-                pickle.dump(fig, fid)
+            with open(mpl_file, 'wb') as f:
+                pickle.dump(fig, f)
+
+        img_path_rel = img_path.relative_to(log_path.parent)
+        img_path_png = img_path_rel.parent / f"{img_path_rel.stem}.png"
+        file_format += f"\n![]({img_path_png.as_posix()})\n"
+        # file_format += f"\n![]({img_path.absolute().as_posix()})\n"
 
     with _file_logger(log_path, file_format) as logger_:
         logger_.info(message)
@@ -141,7 +148,7 @@ def _scatter_loss_runtime(t_run, loss, ax=None, ax_kwargs=None):
     ax : Axes or None
         Matplotlib axes target object.
     ax_kwargs : dict
-        Additional Axes keyword parameters.
+        Additional Axes keyword arguments.
 
     """
     if ax is None:
@@ -155,7 +162,8 @@ def _scatter_loss_runtime(t_run, loss, ax=None, ax_kwargs=None):
         if name == opt_name:
             kwargs.update(c='k')
 
-        ax.scatter(1e3 * t_run[name], loss[name], label=name, **kwargs)
+        ax.plot(1e3 * t_run[name], loss[name], '.', label=name, **kwargs)
+        # ax.scatter(1e3 * t_run[name], loss[name], label=name, **kwargs)
 
     ax.set(xlabel='Runtime (ms)', ylabel='Loss', xscale='log')
     ax.legend()
@@ -163,9 +171,9 @@ def _scatter_loss_runtime(t_run, loss, ax=None, ax_kwargs=None):
 
 
 def _scatter_results(t_run, loss, label='Results', do_relative=False):
-    __, ax_results = plt.subplots(num=label, clear=True)
+    __, ax = plt.subplots(num=label, clear=True)
     _scatter_loss_runtime(t_run, loss,
-                          ax=ax_results,
+                          ax=ax,
                           # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
                           )
 
@@ -177,13 +185,15 @@ def _scatter_results(t_run, loss, label='Results', do_relative=False):
 
         names = list(loss.dtype.names)
         names.remove(opt_name)
-        __, ax_results_rel = plt.subplots(num=f'{label} (Relative)', clear=True)
+        __, ax_rel = plt.subplots(num=f'{label} (Relative)', clear=True)
         _scatter_loss_runtime(t_run[names], loss_rel[names],
-                              ax=ax_results_rel,
+                              ax=ax_rel,
                               ax_kwargs={'ylabel': 'Excess Loss' + r' (\%)' if normalize else '',
                                          # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
                                          }
                               )
+
+    return ax
 
 
 def _print_averages(loss, t_run, do_relative=False):
@@ -311,8 +321,7 @@ def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0
 
     # Results
     if plotting >= 1:
-        _scatter_results(t_run_iter, loss_iter, label='Problem', do_relative=solve)
-        ax = plt.gca()
+        ax = _scatter_results(t_run_iter, loss_iter, label='Problem', do_relative=solve)
     else:
         ax, img_path = None, None
 
@@ -419,8 +428,7 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, n_gen_learn=0, sol
 
     # Results
     if plotting >= 1:
-        _scatter_results(t_run_mean, loss_mean, label='Gen', do_relative=solve)
-        ax = plt.gca()
+        ax = _scatter_results(t_run_mean, loss_mean, label='Gen', do_relative=solve)
     else:
         ax, img_path = None, None
 
@@ -514,8 +522,7 @@ def evaluate_algorithms_train(algorithms, problem_gen, n_gen=1, n_gen_learn=0, n
 
     # Results
     if plotting >= 1:
-        _scatter_results(t_run_mc, loss_mc, label='Train', do_relative=solve)
-        ax = plt.gca()
+        ax = _scatter_results(t_run_mc, loss_mc, label='Train', do_relative=solve)
     else:
         ax, img_path = None, None
 
