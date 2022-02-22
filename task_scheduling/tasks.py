@@ -1,6 +1,7 @@
 """Task objects."""
 
 from abc import ABC, abstractmethod
+from operator import itemgetter
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -31,27 +32,28 @@ class Base(ABC):
         else:
             self._name = str(name)
 
-    @property  # TODO: cache?
-    def name(self):
-        if self._name is None:
-            self._name = str(self)  # TODO: use `repr` for uniqueness?
-        return self._name
-
-    def __str__(self):
-        params_str = ", ".join([f"{name}: {getattr(self, name):.3f}" for name in ("duration", "t_release")])
-        # params_str = ", ".join([f"{name}: {getattr(self, name):.3f}" for name in self.param_names])
-        return f"{self.__class__.__name__}({params_str})"
-
     @abstractmethod
     def __call__(self, t):
         """Loss function versus time."""
         raise NotImplementedError
+
+    def __str__(self):
+        params_str = rf"$d={self.duration:.3f}$, $\rho={self.t_release:.3f}$"
+        # params_str = ", ".join([f"{name}: {getattr(self, name):.3f}" for name in ("duration", "t_release")])
+        # params_str = ", ".join([f"{name}: {getattr(self, name):.3f}" for name in self.param_names])
+        return f"{self.__class__.__name__}({params_str})"
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             return self.params == other.params
         else:
             return NotImplemented
+
+    @property  # TODO: cache?
+    def name(self):
+        if self._name is None:
+            self._name = str(self)  # TODO: use `repr` for uniqueness?
+        return self._name
 
     @property
     def params(self):
@@ -76,7 +78,7 @@ class Base(ABC):
     @property
     def plot_lim(self):
         """2-tuple of limits for automatic plotting."""
-        return self.t_release, self.t_release + self.duration
+        return self.t_release, self.t_release + 1.
 
     def plot_loss(self, t_plot=None, ax=None):
         """
@@ -157,33 +159,139 @@ class Shift(Base):
         raise NotImplementedError
 
 
-class ReluDrop(Shift):
-    """
-    Tasks with a rectified linear loss function task and a constant drop penalty.
+# class ReLUDrop(Shift):
+#     """
+#     Tasks with a rectified linear loss function and a constant drop penalty.
+#
+#     Parameters
+#     ----------
+#     duration : float
+#         Time duration of the task.
+#     t_release : float
+#         Earliest time the task may be scheduled.
+#     slope : float
+#         Function slope between release and drop times. Loss at release time is zero.
+#     t_drop : float
+#         Drop time relative to release time.
+#     l_drop : float
+#         Constant loss after drop time.
+#
+#     """
+#
+#     param_names = Base.param_names + ('slope', 't_drop', 'l_drop')
+#     shift_params = ('t_release', 't_drop', 'l_drop')
+#
+#     def __init__(self, duration, t_release, slope, t_drop, l_drop, name=None):
+#         super().__init__(duration, t_release, name)
+#         self._slope = float(slope)
+#         self._t_drop = float(t_drop)
+#         self._l_drop = float(l_drop)
+#
+#         self._check_params()
+#
+#     def __call__(self, t):
+#         """Loss function versus time."""
+#
+#         t = np.array(t, dtype=float)
+#         t -= self.t_release  # relative time
+#
+#         loss = np.full(t.shape, np.nan)
+#         loss[t >= 0] = self.slope * t[t >= 0]
+#         loss[t >= self.t_drop] = self.l_drop
+#
+#         if loss.ndim == 0:
+#             loss = loss.item()
+#
+#         return loss
+#
+#     @property
+#     def slope(self):
+#         return self._slope
+#
+#     @slope.setter
+#     def slope(self, slope):
+#         # self._check_non_decreasing(slope, self.t_drop, self.l_drop)
+#         self._slope = slope
+#         self._check_params()
+#
+#     @property
+#     def t_drop(self):
+#         return self._t_drop
+#
+#     @t_drop.setter
+#     def t_drop(self, t_drop):
+#         # self._check_non_decreasing(self.slope, t_drop, self.l_drop)
+#         self._t_drop = t_drop
+#         self._check_params()
+#
+#     @property
+#     def l_drop(self):
+#         return self._l_drop
+#
+#     @l_drop.setter
+#     def l_drop(self, l_drop):
+#         # self._check_non_decreasing(self.slope, self.t_drop, l_drop)
+#         self._l_drop = l_drop
+#         self._check_params()
+#
+#     # @staticmethod
+#     # def _check_non_decreasing(slope, t_drop, l_drop):
+#     #     if l_drop < slope * t_drop:
+#     #         raise ValueError("Loss function must be monotonically non-decreasing.")
+#
+#     def _check_params(self):
+#         if self.slope < 0:
+#             raise ValueError("Slope must be non-negative.")
+#         if self.t_drop < 0:
+#             raise ValueError("Drop time must be non-negative.")
+#         if self.slope * self.t_drop > self.l_drop:
+#             raise ValueError("Loss function must be monotonically non-decreasing.")
+#
+#     def shift_origin(self, t):
+#         """
+#         Shift the time origin, return any incurred loss, and re-parameterize the task.
+#
+#         Parameters
+#         ----------
+#         t : float
+#             Positive value to shift the time origin by.
+#
+#         Returns
+#         -------
+#         float
+#             Loss value of the task at the new time origin, before it is re-parameterized.
+#
+#         """
+#
+#         t_excess = t - self.t_release
+#         self.t_release = max(0., -t_excess)
+#         if self.t_release == 0.:  # loss is incurred, drop time and loss are updated
+#             loss_inc = self(t_excess)
+#             self._t_drop = max(0., self._t_drop - t_excess)
+#             self._l_drop = self._l_drop - loss_inc
+#             return loss_inc
+#         else:
+#             return 0.  # no loss incurred
+#
+#     @property
+#     def plot_lim(self):
+#         """2-tuple of limits for automatic plotting."""
+#         return self.t_release, self.t_release + self.t_drop + 1.
 
-    Parameters
-    ----------
-    duration : float
-        Time duration of the task.
-    t_release : float
-        Earliest time the task may be scheduled.
-    slope : float
-        Function slope between release and drop times. Loss at release time is zero.
-    t_drop : float
-        Drop time relative to release time.
-    l_drop : float
-        Constant loss after drop time.
 
-    """
+class PiecewiseLinear(Shift):
+    param_names = Base.param_names + ('l_release', 'slope', 'corners')
+    shift_params = ('t_release',)  # TODO: handle `list` parameters for `space` shifts?!?
 
-    param_names = Base.param_names + ('slope', 't_drop', 'l_drop')
-    shift_params = ('t_release', 't_drop', 'l_drop')
-
-    def __init__(self, duration, t_release, slope, t_drop, l_drop, name=None):
+    def __init__(self, duration, t_release=0., l_release=0., slope=1., corners=(), keep=False, name=None):
         super().__init__(duration, t_release, name)
-        self._slope = float(slope)
-        self._t_drop = float(t_drop)
-        self._l_drop = float(l_drop)
+        self.l_release = float(l_release)
+        self.slope = float(slope)
+        self.corners = corners
+
+        self.keep = keep
+
+        self._check_non_decreasing()
 
     def __call__(self, t):
         """Loss function versus time."""
@@ -191,86 +299,130 @@ class ReluDrop(Shift):
         t = np.array(t, dtype=float)
         t -= self.t_release  # relative time
 
-        loss = np.array(self.slope * t)
-        loss[t < -1e-9] = np.nan
-        loss[t >= self.t_drop] = self.l_drop
+        loss = np.full(t.shape, np.nan)
+        loss[t >= 0] = self.l_release + self.slope * t[t >= 0]
+        for t_c, l_c, s_c in self.corners:
+            loss[t >= t_c] = l_c + s_c * (t[t >= t_c] - t_c)
 
         if loss.ndim == 0:
             loss = loss.item()
 
         return loss
 
-    # def __eq__(self, other):
-    #     if isinstance(other, ReluDrop):
-    #         return self.params == other.params
-    #     else:
-    #         return NotImplemented
-
     @property
-    def slope(self):
-        return self._slope
+    def corners(self):
+        return self._corners
 
-    @slope.setter
-    def slope(self, slope):
-        self._check_non_decreasing(slope, self.t_drop, self.l_drop)
-        self._slope = slope
+    @corners.setter
+    def corners(self, val):
+        val = list(map(list, val))
+        val = sorted(val, key=itemgetter(0))  # sort by time
+        for i, c in enumerate(val):
+            if len(c) == 2:
+                t = c[0]
+                if i == 0:
+                    c.insert(1, self.l_release + self.slope * t)
+                else:
+                    t_prev, s_prev, l_prev = val[i-1]
+                    c.insert(1, l_prev + s_prev * (t - t_prev))
 
-    @property
-    def t_drop(self):
-        return self._t_drop
+        self._corners = val
 
-    @t_drop.setter
-    def t_drop(self, t_drop):
-        self._check_non_decreasing(self.slope, t_drop, self.l_drop)
-        self._t_drop = t_drop
+    def _check_non_decreasing(self):  # TODO: integrate with param setters?
+        if self.slope < 0.:
+            raise ValueError("Slope must be non-negative.")
+        if self.l_release < 0.:
+            raise ValueError("Release loss must be non-negative.")
 
-    @property
-    def l_drop(self):
-        return self._l_drop
+        for i, c in enumerate(self.corners):
+            t_c, l_c, s_c = c
+            if self.keep:
+                if t_c < 0.:
+                    raise ValueError("Relative corner times must be non-negative.")
+            else:
+                if t_c <= 0.:
+                    raise ValueError("Relative corner times must be positive.")
+            if s_c < 0.:
+                raise ValueError("Corner slopes must be non-negative.")
+            if l_c < 0.:
+                raise ValueError("Corner losses must be non-negative.")
 
-    @l_drop.setter
-    def l_drop(self, l_drop):
-        self._check_non_decreasing(self.slope, self.t_drop, l_drop)
-        self._l_drop = l_drop
-
-    @staticmethod
-    def _check_non_decreasing(slope, t_drop, l_drop):
-        if l_drop < slope * t_drop:
-            raise ValueError("Loss function must be monotonically non-decreasing.")
+            if i == 0:
+                l_d = self.l_release + self.slope * t_c
+            else:
+                t_prev, l_prev, s_prev = self.corners[i - 1]
+                l_d = l_prev + s_prev * (t_c - t_prev)
+            if l_c < l_d:
+                raise ValueError(f"Loss decreases from {l_d} to {l_c} at discontinuity.")
 
     def shift_origin(self, t):
-        """
-        Shift the time origin, return any incurred loss, and re-parameterize the task.
-
-        Parameters
-        ----------
-        t : float
-            Positive value to shift the time origin by.
-
-        Returns
-        -------
-        float
-            Loss value of the task at the new time origin, before it is re-parameterized.
-
-        """
-
         t_excess = t - self.t_release
         self.t_release = max(0., -t_excess)
         if self.t_release == 0.:  # loss is incurred, drop time and loss are updated
             loss_inc = self(t_excess)
-            self.t_drop = max(0., self.t_drop - t_excess)
-            self.l_drop = self.l_drop - loss_inc
+            self.l_release = max(0., self.l_release - loss_inc)
+            for i, c in enumerate(self.corners):
+                c[0] = max(0., c[0] - t_excess)
+                c[1] = max(0., c[1] - loss_inc)
+
+                if c[0] == 0.:  # zero out useless slope
+                    if i == 0:
+                        self.slope = 0.
+                    else:
+                        self.corners[i - 1][2] = 0.
+
+            if not self.keep:
+                self.prune_corners()
+
             return loss_inc
         else:
             return 0.  # no loss incurred
 
+    def prune_corners(self):
+        i_keep = 0
+        for i, c in enumerate(reversed(self.corners)):
+            if c[0] == 0.:
+                i_keep = len(self.corners) - i
+                self.l_release, self.slope = c[1:]
+                break
+        self.corners = self.corners[i_keep:]
+
     @property
     def plot_lim(self):
         """2-tuple of limits for automatic plotting."""
-        return self.t_release, self.t_release + self.t_drop + 1
+        t_1 = self.t_release
+        if bool(self.corners) and self.corners[-1][0] > 0.:
+            t_1 += self.corners[-1][0] * (1 + plt.rcParams['axes.xmargin'])
+        else:
+            t_1 += 1.
+        return self.t_release, t_1
 
 
-# class Radar(ReluDrop):
+class ReLUDrop(PiecewiseLinear):
+    param_names = Base.param_names + ('slope', 't_drop', 'l_drop')
+    shift_params = ('t_release', 't_drop', 'l_drop')
+
+    def __init__(self, duration, t_release, slope, t_drop, l_drop, name=None):
+        super().__init__(duration, t_release, 0., slope, [[t_drop, l_drop, 0.]], True, name)
+
+    @property
+    def t_drop(self):
+        return self.corners[0][0]
+
+    @t_drop.setter
+    def t_drop(self, val):
+        self.corners[0][0] = val
+
+    @property
+    def l_drop(self):
+        return self.corners[0][1]
+
+    @l_drop.setter
+    def l_drop(self, val):
+        self.corners[0][1] = val
+
+
+# class Radar(ReLUDrop):
 #     def __init__(self, duration, t_release, t_revisit, dwell_type=None):
 #         self.t_revisit = t_revisit
 #         self.dwell_type = dwell_type
