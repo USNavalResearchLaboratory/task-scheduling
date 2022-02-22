@@ -10,7 +10,6 @@ ytick.direction : in
 ytick.right : True
 ytick.minor.visible : True
 
-# axes.xmargin : 0
 # axes.grid : True
 
 # legend.frameon : False

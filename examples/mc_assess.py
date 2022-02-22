@@ -15,7 +15,6 @@ from task_scheduling.results import evaluate_algorithms_train, evaluate_algorith
 np.set_printoptions(precision=3)
 pd.options.display.float_format = '{:,.3f}'.format
 plt.style.use('../images/style.mplstyle')
-# plt.style.use('seaborn')
 
 seed = 12345
 

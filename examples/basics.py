@@ -5,7 +5,6 @@ from task_scheduling.generators import tasks as task_gens
 from task_scheduling.util import summarize_tasks, plot_task_losses, plot_schedule, check_schedule, evaluate_schedule
 
 plt.style.use('../images/style.mplstyle')
-# plt.style.use('seaborn')
 
 seed = 12345
 

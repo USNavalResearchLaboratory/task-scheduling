@@ -41,27 +41,18 @@ def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
     if t_plot is None:
         x_lim = min(task.plot_lim[0] for task in tasks), max(task.plot_lim[1] for task in tasks)
         t_plot = np.arange(*x_lim, 0.01)
-    else:
-        x_lim = t_plot[0], t_plot[-1]
 
-    _temp = np.array([task(x_lim) for task in tasks])
-    _temp[np.isnan(_temp)] = 0.
-    y_lim = _temp[:, 0].min(), _temp[:, 1].max()
-
-    if ax is None:
-        _, ax = plt.subplots()
-    else:
-        x_lim_gca, y_lim_gca = ax.get_xlim(), ax.get_ylim()
-        x_lim = min(x_lim[0], x_lim_gca[0]), max(x_lim[1], x_lim_gca[1])
-        y_lim = min(y_lim[0], y_lim_gca[0]), max(y_lim[1], y_lim_gca[1])
-
-    for task in tasks:
-        task.plot_loss(t_plot, ax)
+    with plt.rc_context({'axes.xmargin': 0}):
+        if ax is None:
+            _, ax = plt.subplots()
+        for task in tasks:
+            task.plot_loss(t_plot, ax)
 
     if ax_kwargs is None:
         ax_kwargs = {}
-    ax_kwargs = dict(xlabel='$t$', ylabel='$l$', xlim=x_lim, ylim=y_lim) | ax_kwargs
+    ax_kwargs = dict(xlabel='$t$', ylabel='$l$') | ax_kwargs
     ax.set(**ax_kwargs)
+    ax.set_ylim(bottom=0.)
 
     ax.legend()
 
