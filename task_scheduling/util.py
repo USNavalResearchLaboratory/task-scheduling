@@ -142,7 +142,7 @@ def plot_schedule(tasks, sch, n_ch=None, loss=None, name=None, ax=None, ax_kwarg
     cycle = plt.rcParams['axes.prop_cycle']()
     for n, task in enumerate(tasks):
         ax.broken_barh([(sch['t'][n], task.duration)], (sch['c'][n] - 0.5, 1),
-                       facecolors=next(cycle)['color'], edgecolor='black', label=task.name)
+                       facecolors=next(cycle)['color'], edgecolor='black', label=str(task))
 
     # x_lim = min(sch['t']), max(task.duration + t for task, t in zip(tasks, sch['t']))
     if np.isnan(sch['t']).all():

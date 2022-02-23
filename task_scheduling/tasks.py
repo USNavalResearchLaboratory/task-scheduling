@@ -27,10 +27,10 @@ class Base(ABC):
         self.duration = float(duration)
         self.t_release = float(t_release)
 
-        if name is None:
-            self._name = None
+        if name is not None:
+            self.name = str(name)
         else:
-            self._name = str(name)
+            self.name = rf"{self.__class__.__name__}($d={self.duration:.3f}$, $\rho={self.t_release:.3f}$)"
 
     @abstractmethod
     def __call__(self, t):
@@ -38,22 +38,17 @@ class Base(ABC):
         raise NotImplementedError
 
     def __str__(self):
-        params_str = rf"$d={self.duration:.3f}$, $\rho={self.t_release:.3f}$"
-        # params_str = ", ".join([f"{name}: {getattr(self, name):.3f}" for name in ("duration", "t_release")])
-        # params_str = ", ".join([f"{name}: {getattr(self, name):.3f}" for name in self.param_names])
-        return f"{self.__class__.__name__}({params_str})"
+        # params_str = rf"$d={self.duration:.3f}$, $\rho={self.t_release:.3f}$"
+        # # params_str = ", ".join([f"{name}: {getattr(self, name):.3f}" for name in ("duration", "t_release")])
+        # # params_str = ", ".join([f"{name}: {getattr(self, name):.3f}" for name in self.param_names])
+        # return f"{self.__class__.__name__}({params_str})"
+        return self.name
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             return self.params == other.params
         else:
             return NotImplemented
-
-    @property  # TODO: cache?
-    def name(self):
-        if self._name is None:
-            self._name = str(self)  # TODO: use `repr` for uniqueness?
-        return self._name
 
     @property
     def params(self):
@@ -107,7 +102,7 @@ class Base(ABC):
             ax.set(xlabel='t', ylabel='Loss')
             plt.title(self)
 
-        plot_data = ax.plot(t_plot, self(t_plot), label=self.name)
+        plot_data = ax.plot(t_plot, self(t_plot), label=str(self))
 
         return plot_data
 
