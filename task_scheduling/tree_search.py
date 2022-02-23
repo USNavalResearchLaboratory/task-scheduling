@@ -210,7 +210,7 @@ class ScheduleNode(RandomGeneratorMixin):
     def earliest_drop(self, inplace=True):
         return self.priority_sorter(attrgetter('t_drop'), reverse=False, inplace=inplace)
 
-    def mcts(self, max_runtime=np.inf, max_rollouts=None, c_explore=0., th_visit=0, inplace=True, verbose=False,
+    def mcts(self, max_runtime=None, max_rollouts=None, c_explore=0., th_visit=0, inplace=True, verbose=False,
              rng=None):
         """
         Monte Carlo tree search.
@@ -245,6 +245,10 @@ class ScheduleNode(RandomGeneratorMixin):
 
         t_run = perf_counter()
 
+        if max_runtime is None and max_rollouts is None:
+            raise ValueError("Either `max_runtime` or `max_rollouts` must be specified.")
+        if max_runtime is None:
+            max_runtime = np.inf
         if max_rollouts is None:
             max_rollouts = np.inf
 

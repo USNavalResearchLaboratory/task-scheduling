@@ -64,7 +64,6 @@ def _log_and_fig(message, log_path, ax, img_path):
         img_path_rel = img_path.relative_to(log_path.parent)
         img_path_png = img_path_rel.parent / f"{img_path_rel.stem}.png"
         file_format += f"\n![]({img_path_png.as_posix()})\n"
-        # file_format += f"\n![]({img_path.absolute().as_posix()})\n"
 
     with _file_logger(log_path, file_format) as logger_:
         logger_.info(message)
