@@ -142,7 +142,7 @@ class Generic(Base):
 
 
 class Shift(Base):
-    shift_params = ()
+    shift_params = ('t_release',)
 
     @abstractmethod
     def __call__(self, t):
@@ -276,15 +276,15 @@ class Shift(Base):
 
 class PiecewiseLinear(Shift):
     param_names = Base.param_names + ('l_release', 'slope', 'corners')
-    shift_params = ('t_release',)  # TODO: handle `list` parameters for `space` shifts?!?
+    shift_params = Shift.shift_params  # TODO: Add shift params. Handle `list` parameters for `space` shifts?!?
 
-    def __init__(self, duration, t_release=0., l_release=0., slope=1., corners=(), keep=False, name=None):
+    prune = True
+
+    def __init__(self, duration, t_release=0., l_release=0., slope=1., corners=(), name=None):
         super().__init__(duration, t_release, name)
         self.l_release = float(l_release)
         self.slope = float(slope)
         self.corners = corners
-
-        self.keep = keep
 
         self._check_non_decreasing()
 
@@ -324,23 +324,23 @@ class PiecewiseLinear(Shift):
         self._corners = val
 
     def _check_non_decreasing(self):  # TODO: integrate with param setters?
-        if self.slope < 0.:
-            raise ValueError("Slope must be non-negative.")
         if self.l_release < 0.:
             raise ValueError("Release loss must be non-negative.")
+        if self.slope < 0.:
+            raise ValueError("Slope must be non-negative.")
 
         for i, c in enumerate(self.corners):
             t_c, l_c, s_c = c
-            if self.keep:
-                if t_c < 0.:
-                    raise ValueError("Relative corner times must be non-negative.")
-            else:
+            if self.prune:
                 if t_c <= 0.:
                     raise ValueError("Relative corner times must be positive.")
-            if s_c < 0.:
-                raise ValueError("Corner slopes must be non-negative.")
+            else:
+                if t_c < 0.:
+                    raise ValueError("Relative corner times must be non-negative.")
             if l_c < 0.:
                 raise ValueError("Corner losses must be non-negative.")
+            if s_c < 0.:
+                raise ValueError("Corner slopes must be non-negative.")
 
             if i == 0:
                 l_d = self.l_release + self.slope * t_c
@@ -360,13 +360,13 @@ class PiecewiseLinear(Shift):
                 c[0] = max(0., c[0] - t_excess)
                 c[1] = max(0., c[1] - loss_inc)
 
-                if c[0] == 0.:  # zero out useless slope
+                if c[0] == 0.:  # zero out unused slope
                     if i == 0:
                         self.slope = 0.
                     else:
                         self.corners[i - 1][2] = 0.
 
-            if not self.keep:
+            if self.prune:
                 self.prune_corners()
 
             return loss_inc
@@ -393,12 +393,22 @@ class PiecewiseLinear(Shift):
         return self.t_release, t_1
 
 
+class ReLU(PiecewiseLinear):
+    param_names = Base.param_names + ('slope',)
+    shift_params = Shift.shift_params
+
+    def __init__(self, duration, t_release, slope, name=None):
+        super().__init__(duration, t_release, 0., slope, [], name)
+
+
 class ReLUDrop(PiecewiseLinear):
     param_names = Base.param_names + ('slope', 't_drop', 'l_drop')
-    shift_params = ('t_release', 't_drop', 'l_drop')
+    shift_params = Shift.shift_params + ('t_drop', 'l_drop')
+
+    prune = False
 
     def __init__(self, duration, t_release, slope, t_drop, l_drop, name=None):
-        super().__init__(duration, t_release, 0., slope, [[t_drop, l_drop, 0.]], True, name)
+        super().__init__(duration, t_release, 0., slope, [[t_drop, l_drop, 0.]], name)
 
     @property
     def t_drop(self):

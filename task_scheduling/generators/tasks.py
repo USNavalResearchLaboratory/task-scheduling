@@ -145,13 +145,19 @@ class ContinuousUniformIID(BaseIID):
         return str_
 
     @classmethod
+    def relu(cls, duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2), rng=None):
+        """Factory constructor for `ReLU` task objects."""
+
+        param_lims = dict(duration=duration_lim, t_release=t_release_lim, slope=slope_lim)
+        return cls(task_types.ReLU, param_lims, rng)
+
+    @classmethod
     def relu_drop(cls, duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2), t_drop_lim=(6, 12),
                   l_drop_lim=(35, 50), rng=None):
         """Factory constructor for `ReLUDrop` task objects."""
 
         param_lims = dict(duration=duration_lim, t_release=t_release_lim, slope=slope_lim, t_drop=t_drop_lim,
                           l_drop=l_drop_lim)
-
         return cls(task_types.ReLUDrop, param_lims, rng)
 
 
@@ -199,16 +205,28 @@ class DiscreteIID(BaseIID):
         return str_
 
     @classmethod
+    def relu_uniform(cls, duration_vals=(3, 6), t_release_vals=(0, 4), slope_vals=(0.5, 2), rng=None):
+        """Factory constructor for `ReLU` task objects."""
+
+        param_probs = {
+            'duration': dict(zip(duration_vals, np.ones(len(duration_vals)) / len(duration_vals))),
+            't_release': dict(zip(t_release_vals, np.ones(len(t_release_vals)) / len(t_release_vals))),
+            'slope': dict(zip(slope_vals, np.ones(len(slope_vals)) / len(slope_vals))),
+        }
+        return cls(task_types.ReLU, param_probs, rng)
+
+    @classmethod
     def relu_drop_uniform(cls, duration_vals=(3, 6), t_release_vals=(0, 4), slope_vals=(0.5, 2), t_drop_vals=(6, 12),
                           l_drop_vals=(35, 50), rng=None):
-        """Factory constructor for ReLUDrop task objects."""
+        """Factory constructor for `ReLUDrop` task objects."""
 
-        param_probs = {'duration': dict(zip(duration_vals, np.ones(len(duration_vals)) / len(duration_vals))),
-                       't_release': dict(zip(t_release_vals, np.ones(len(t_release_vals)) / len(t_release_vals))),
-                       'slope': dict(zip(slope_vals, np.ones(len(slope_vals)) / len(slope_vals))),
-                       't_drop': dict(zip(t_drop_vals, np.ones(len(t_drop_vals)) / len(t_drop_vals))),
-                       'l_drop': dict(zip(l_drop_vals, np.ones(len(l_drop_vals)) / len(l_drop_vals))),
-                       }
+        param_probs = {
+            'duration': dict(zip(duration_vals, np.ones(len(duration_vals)) / len(duration_vals))),
+            't_release': dict(zip(t_release_vals, np.ones(len(t_release_vals)) / len(t_release_vals))),
+            'slope': dict(zip(slope_vals, np.ones(len(slope_vals)) / len(slope_vals))),
+            't_drop': dict(zip(t_drop_vals, np.ones(len(t_drop_vals)) / len(t_drop_vals))),
+            'l_drop': dict(zip(l_drop_vals, np.ones(len(l_drop_vals)) / len(l_drop_vals))),
+        }
         return cls(task_types.ReLUDrop, param_probs, rng)
 
 
