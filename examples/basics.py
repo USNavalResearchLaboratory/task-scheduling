@@ -20,15 +20,15 @@ plot_task_losses(tasks)
 
 
 # Define and assess algorithms
-algorithms = [
-    algorithms.branch_bound_priority,
-    algorithms.random_sequencer,
-]
+algorithms = dict(
+    opt=algorithms.branch_bound_priority,
+    rand=algorithms.random_sequencer,
+)
 
 __, axes = plt.subplots(len(algorithms))
-for algorithm, ax in zip(algorithms, axes):
+for (name, algorithm), ax in zip(algorithms.items(), axes):
     sch = algorithm(tasks, ch_avail)
 
     check_schedule(tasks, sch)
     loss = evaluate_schedule(tasks, sch)
-    plot_schedule(tasks, sch, loss=loss, ax=ax)
+    plot_schedule(tasks, sch, loss=loss, name=name, ax=ax)

@@ -397,7 +397,7 @@ class ReLU(PiecewiseLinear):
     param_names = Base.param_names + ('slope',)
     shift_params = Shift.shift_params
 
-    def __init__(self, duration, t_release, slope, name=None):
+    def __init__(self, duration, t_release=0., slope=1., name=None):
         super().__init__(duration, t_release, 0., slope, [], name)
 
 
