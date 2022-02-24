@@ -16,10 +16,10 @@ Task objects must expose two attributes:
 The tasks must implement a `__call__` method that provides a monotonic non-decreasing loss function quantifying the
 penalty for delayed execution. 
 
-One built-in task type is provided: `task_scheduling.tasks.ReLUDrop`. It is so-named because it implements a loss 
-function that increases linearly from zero according to a positive parameter `slope`, like the rectified linear 
-function popularized by neural networks. After a "drop" time `t_drop`, a large constant loss `l_drop` is incurred. 
-Example loss functions are shown below.
+One generic built-in task type is provided: `task_scheduling.tasks.PiecewiseLinear`; also included are special 
+subclasses `Linear` and `LinearDrop`. The latter type is so-named because it implements a loss 
+function that increases linearly from zero according to a positive parameter `slope` and then after a "drop" time 
+`t_drop`, a large constant loss `l_drop` is incurred. Example loss functions are shown below.
 
 ![Task loss functions](images/ex_tasks.png)
 
@@ -61,13 +61,12 @@ Traditional schedulers typically suffer from one of two drawbacks: high computat
 algorithms that learn from related problems may generalize well, finding near-optimal schedules in a 
 shorter, more practical amount of runtime. 
 
-The `learning.supervised` subpackage provides scheduler objects that combine policy networks (implemented with either 
-[PyTorch](https://pytorch.org/) or [Tensorflow](https://www.tensorflow.org/)) with state-action
-environments following the API of [OpenAI Gym](https://gym.openai.com/). Scheduling environments are provided in
-`learning.environments`, with the primary class `StepTasking`; this environment uses single task assignments as actions
-and converts the scheduling problem (tasks and channel availabilities) into observed states, including the status of 
-each task.
-
+The `mdp` subpackage implements the scheduling problem as a Markov decision process for supervised and reinforcement 
+learning. Scheduling environments are provided in `mdp.environments`, following the 
+[OpenAI Gym](https://gym.openai.com/) API. The primary `Env` class is `Index`; this environment uses single task 
+assignments as actions and converts the scheduling problem (tasks and channel availabilities) into observed states, 
+including the status of each task. The `mdp.supervised` subpackage provides scheduler objects that combine policy 
+networks (implemented with [PyTorch](https://pytorch.org/)) with learn from these environments.
 
 ## Evaluation
 The primary metrics used to evaluate a scheduling algorithm are its achieved loss and its runtime. The 
@@ -88,13 +87,13 @@ format table provides the average values.
 ![Loss-runtime results](./images/ex_scatter_relative.png)
 
 ```markdown
-|                     |   Excess Loss (%) |    Loss |   Runtime |
-|---------------------|-------------------|---------|-----------|
-| BB Optimal          |             0.000 | 147.965 |     0.380 |
-| Random              |             0.679 | 248.475 |     0.000 |
-| ERT                 |             0.678 | 248.245 |     0.000 |
-| MCTS: c=0.035, t=15 |             0.388 | 205.359 |     0.003 |
-| Lit Policy          |             0.108 | 163.940 |     0.003 |
+|            |   Excess Loss (%) |    Loss |   Runtime (ms) |
+|------------|-------------------|---------|----------------|
+| BB Optimal |             0.000 | 182.440 |        207.535 |
+| Random     |            33.041 | 242.720 |          0.274 |
+| ERT        |            28.525 | 234.481 |          0.260 |
+| MCTS       |            13.284 | 206.675 |          6.340 |
+| Lit Policy |             4.188 | 190.079 |          4.438 |
 ```
 
 ## Examples
@@ -111,8 +110,7 @@ from task_scheduling import algorithms
 from task_scheduling.generators import tasks as task_gens
 from task_scheduling.util import summarize_tasks, plot_task_losses, plot_schedule, check_schedule, evaluate_schedule
 
-plt.style.use('seaborn')
-
+plt.style.use('../images/style.mplstyle')
 seed = 12345
 
 # Define scheduling problem
@@ -124,19 +122,20 @@ ch_avail = [0., 0.5]
 print(summarize_tasks(tasks))
 plot_task_losses(tasks)
 
+
 # Define and assess algorithms
-algorithms = [
-  algorithms.branch_bound_priority,
-  algorithms.random_sequencer,
-]
+algorithms = dict(
+    Optimal=algorithms.branch_bound_priority,
+    Random=algorithms.random_sequencer,
+)
 
 __, axes = plt.subplots(len(algorithms))
-for algorithm, ax in zip(algorithms, axes):
-  sch = algorithm(tasks, ch_avail)
+for (name, algorithm), ax in zip(algorithms.items(), axes):
+    sch = algorithm(tasks, ch_avail)
 
-  check_schedule(tasks, sch)
-  loss = evaluate_schedule(tasks, sch)
-  plot_schedule(tasks, sch, loss=loss, ax=ax)
+    check_schedule(tasks, sch)
+    loss = evaluate_schedule(tasks, sch)
+    plot_schedule(tasks, sch, loss=loss, name=name, ax=ax)
 ```
 
 ### Policy learning and Monte Carlo assessment (`examples/mc_assess.py`)
@@ -161,12 +160,11 @@ from pytorch_lightning.utilities.seed import seed_everything
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
 from task_scheduling.generators import problems as problem_gens
 from task_scheduling.mdp.supervised.torch import LitScheduler
-from task_scheduling.results import evaluate_algorithms_train, evaluate_algorithms_gen
+from task_scheduling.results import evaluate_algorithms_train
 
 np.set_printoptions(precision=3)
 pd.options.display.float_format = '{:,.3f}'.format
-plt.style.use('seaborn')
-
+plt.style.use('../images/style.mplstyle')
 seed = 12345
 
 if seed is not None:
@@ -174,7 +172,7 @@ if seed is not None:
 
 
 # Define scheduling problem and algorithms
-problem_gen = problem_gens.Dataset.load('../data/continuous_relu_drop_c1t8', repeat=True)
+problem_gen = problem_gens.Dataset.load('../data/continuous_linear_drop_c1t8', repeat=True)
 # problem_gen = problem_gens.Random.discrete_linear_drop(n_tasks=8, n_ch=1, rng=seed)
 
 env_params = {
@@ -188,7 +186,7 @@ trainer_kwargs = {
     'logger': False,
     'checkpoint_callback': False,
     'callbacks': EarlyStopping('val_loss', min_delta=0., patience=50),
-    'gpus': min(1, torch.cuda.device_count()),
+    'gpus': torch.cuda.device_count(),
 }
 
 learn_params = {

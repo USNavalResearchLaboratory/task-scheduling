@@ -5,9 +5,7 @@ from task_scheduling.generators import tasks as task_gens
 from task_scheduling.util import summarize_tasks, plot_task_losses, plot_schedule, check_schedule, evaluate_schedule
 
 plt.style.use('../images/style.mplstyle')
-
 seed = 12345
-
 
 # Define scheduling problem
 task_gen = task_gens.ContinuousUniformIID.linear_drop(rng=seed)
@@ -21,8 +19,8 @@ plot_task_losses(tasks)
 
 # Define and assess algorithms
 algorithms = dict(
-    opt=algorithms.branch_bound_priority,
-    rand=algorithms.random_sequencer,
+    Optimal=algorithms.branch_bound_priority,
+    Random=algorithms.random_sequencer,
 )
 
 __, axes = plt.subplots(len(algorithms))
