@@ -154,7 +154,7 @@ class Shift(Base):
         raise NotImplementedError
 
 
-# class ReLUDrop(Shift):
+# class LinearDrop(Shift):
 #     """
 #     Tasks with a rectified linear loss function and a constant drop penalty.
 #
@@ -393,7 +393,7 @@ class PiecewiseLinear(Shift):
         return self.t_release, t_1
 
 
-class ReLU(PiecewiseLinear):
+class Linear(PiecewiseLinear):
     param_names = Base.param_names + ('slope',)
     shift_params = Shift.shift_params
 
@@ -401,7 +401,7 @@ class ReLU(PiecewiseLinear):
         super().__init__(duration, t_release, 0., slope, [], name)
 
 
-class ReLUDrop(PiecewiseLinear):
+class LinearDrop(PiecewiseLinear):
     param_names = Base.param_names + ('slope', 't_drop', 'l_drop')
     shift_params = Shift.shift_params + ('t_drop', 'l_drop')
 
@@ -427,17 +427,17 @@ class ReLUDrop(PiecewiseLinear):
         self.corners[0][1] = val
 
 
-# class Radar(ReLUDrop):
+# class Radar(LinearDrop):
 #     def __init__(self, duration, t_release, t_revisit, dwell_type=None):
 #         self.t_revisit = t_revisit
 #         self.dwell_type = dwell_type
 #
-#         relu_drop_params = dict(
+#         linear_drop_params = dict(
 #             slope=1 / self.t_revisit,
 #             t_drop=self.t_revisit + 0.1,
 #             l_drop=300,
 #         )
-#         super().__init__(duration, t_release, **relu_drop_params)
+#         super().__init__(duration, t_release, **linear_drop_params)
 #
 #     @classmethod
 #     def search(cls, t_release, dwell_type):

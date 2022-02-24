@@ -98,8 +98,8 @@ class GenericIID(BaseIID):
         return self._param_gen_init(rng)
 
     @classmethod
-    def relu_drop(cls, param_gen, param_spaces=None, rng=None):
-        return cls(task_types.ReLUDrop, param_gen, param_spaces, rng)
+    def linear_drop(cls, param_gen, param_spaces=None, rng=None):
+        return cls(task_types.LinearDrop, param_gen, param_spaces, rng)
 
 
 class ContinuousUniformIID(BaseIID):
@@ -145,20 +145,20 @@ class ContinuousUniformIID(BaseIID):
         return str_
 
     @classmethod
-    def relu(cls, duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2), rng=None):
-        """Factory constructor for `ReLU` task objects."""
+    def linear(cls, duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2), rng=None):
+        """Factory constructor for `Linear` task objects."""
 
         param_lims = dict(duration=duration_lim, t_release=t_release_lim, slope=slope_lim)
-        return cls(task_types.ReLU, param_lims, rng)
+        return cls(task_types.Linear, param_lims, rng)
 
     @classmethod
-    def relu_drop(cls, duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2), t_drop_lim=(6, 12),
-                  l_drop_lim=(35, 50), rng=None):
-        """Factory constructor for `ReLUDrop` task objects."""
+    def linear_drop(cls, duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2), t_drop_lim=(6, 12),
+                    l_drop_lim=(35, 50), rng=None):
+        """Factory constructor for `LinearDrop` task objects."""
 
         param_lims = dict(duration=duration_lim, t_release=t_release_lim, slope=slope_lim, t_drop=t_drop_lim,
                           l_drop=l_drop_lim)
-        return cls(task_types.ReLUDrop, param_lims, rng)
+        return cls(task_types.LinearDrop, param_lims, rng)
 
 
 class DiscreteIID(BaseIID):
@@ -205,20 +205,20 @@ class DiscreteIID(BaseIID):
         return str_
 
     @classmethod
-    def relu_uniform(cls, duration_vals=(3, 6), t_release_vals=(0, 4), slope_vals=(0.5, 2), rng=None):
-        """Factory constructor for `ReLU` task objects."""
+    def linear_uniform(cls, duration_vals=(3, 6), t_release_vals=(0, 4), slope_vals=(0.5, 2), rng=None):
+        """Factory constructor for `Linear` task objects."""
 
         param_probs = {
             'duration': dict(zip(duration_vals, np.ones(len(duration_vals)) / len(duration_vals))),
             't_release': dict(zip(t_release_vals, np.ones(len(t_release_vals)) / len(t_release_vals))),
             'slope': dict(zip(slope_vals, np.ones(len(slope_vals)) / len(slope_vals))),
         }
-        return cls(task_types.ReLU, param_probs, rng)
+        return cls(task_types.Linear, param_probs, rng)
 
     @classmethod
-    def relu_drop_uniform(cls, duration_vals=(3, 6), t_release_vals=(0, 4), slope_vals=(0.5, 2), t_drop_vals=(6, 12),
-                          l_drop_vals=(35, 50), rng=None):
-        """Factory constructor for `ReLUDrop` task objects."""
+    def linear_drop_uniform(cls, duration_vals=(3, 6), t_release_vals=(0, 4), slope_vals=(0.5, 2), t_drop_vals=(6, 12),
+                            l_drop_vals=(35, 50), rng=None):
+        """Factory constructor for `LinearDrop` task objects."""
 
         param_probs = {
             'duration': dict(zip(duration_vals, np.ones(len(duration_vals)) / len(duration_vals))),
@@ -227,7 +227,7 @@ class DiscreteIID(BaseIID):
             't_drop': dict(zip(t_drop_vals, np.ones(len(t_drop_vals)) / len(t_drop_vals))),
             'l_drop': dict(zip(l_drop_vals, np.ones(len(l_drop_vals)) / len(l_drop_vals))),
         }
-        return cls(task_types.ReLUDrop, param_probs, rng)
+        return cls(task_types.LinearDrop, param_probs, rng)
 
 
 class Fixed(Base, ABC):
@@ -272,13 +272,13 @@ class Fixed(Base, ABC):
         return cls(tasks, task_gen.param_spaces, rng)
 
     @classmethod
-    def continuous_relu_drop(cls, n_tasks, rng=None, **relu_lims):
-        task_gen = ContinuousUniformIID.relu_drop(**relu_lims)
+    def continuous_linear_drop(cls, n_tasks, rng=None, **task_gen_kwargs):
+        task_gen = ContinuousUniformIID.linear_drop(**task_gen_kwargs)
         return cls._task_gen_to_fixed(n_tasks, task_gen, rng)
 
     @classmethod
-    def discrete_relu_drop(cls, n_tasks, rng=None, **relu_vals):
-        task_gen = DiscreteIID.relu_drop_uniform(**relu_vals)
+    def discrete_linear_drop(cls, n_tasks, rng=None, **task_gen_kwargs):
+        task_gen = DiscreteIID.linear_drop_uniform(**task_gen_kwargs)
         return cls._task_gen_to_fixed(n_tasks, task_gen, rng)
 
     @classmethod
@@ -365,7 +365,7 @@ class SearchTrackIID(BaseIID):  # TODO: integrate or deprecate (and `search_trac
             'l_drop': DiscreteSet([300.]),
             }
 
-        super().__init__(task_types.ReLUDrop, param_spaces, rng)
+        super().__init__(task_types.LinearDrop, param_spaces, rng)
 
         if p is None:
             # n = np.array([28, 43, 49,  1,  1,  1])
@@ -478,7 +478,7 @@ class Radar(BaseIID):
             raise ValueError
 
         param_spaces = {}
-        for name in task_types.ReLUDrop.param_names:
+        for name in task_types.LinearDrop.param_names:
             if name == 't_release':
                 # param_spaces[name] = spaces.Box(-np.inf, np.inf, shape=(), dtype=float)
                 lows, highs = zip(*(get_space_lims(params['t_release_space']) for params in self.types.values()))
@@ -486,7 +486,7 @@ class Radar(BaseIID):
             else:
                 param_spaces[name] = DiscreteSet(np.unique([params[name] for params in self.types.values()]))
 
-        super().__init__(task_types.ReLUDrop, param_spaces, rng)
+        super().__init__(task_types.LinearDrop, param_spaces, rng)
 
     @cached_property
     def p(self):

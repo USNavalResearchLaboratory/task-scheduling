@@ -23,8 +23,8 @@ if seed is not None:
 
 
 # Define scheduling problem and algorithms
-problem_gen = problem_gens.Dataset.load('../data/continuous_relu_drop_c1t8', repeat=True)
-# problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=seed)
+problem_gen = problem_gens.Dataset.load('../data/continuous_linear_drop_c1t8', repeat=True)
+# problem_gen = problem_gens.Random.discrete_linear_drop(n_tasks=8, n_ch=1, rng=seed)
 
 env_params = {
     'features': None,  # defaults to task parameters
@@ -65,7 +65,7 @@ n_gen_learn = 900  # the number of problems generated for learning, per iteratio
 n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
 
-loss_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
-                                              verbose=1, plotting=1, rng=seed)
-# loss_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve=True,
-#                                                 verbose=1, plotting=1, rng=seed)
+# loss_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
+#                                               verbose=1, plotting=1, rng=seed)
+loss_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve=True,
+                                                verbose=1, plotting=1, rng=seed)

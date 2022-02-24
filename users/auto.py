@@ -106,7 +106,7 @@ n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
 
 datasets = [
-    'continuous_relu_drop_c1t8',
+    'continuous_linear_drop_c1t8',
 ]
 
 # %%

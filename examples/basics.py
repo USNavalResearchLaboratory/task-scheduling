@@ -10,7 +10,7 @@ seed = 12345
 
 
 # Define scheduling problem
-task_gen = task_gens.ContinuousUniformIID.relu_drop(rng=seed)
+task_gen = task_gens.ContinuousUniformIID.linear_drop(rng=seed)
 
 tasks = list(task_gen(8))
 ch_avail = [0., 0.5]

@@ -13,14 +13,14 @@ n_tasks = 8
 
 ch_avail_lim = (-1, 1)
 
-relu_lims = dict(duration_lim=(.03, .06), t_release_lim=(-4, 4), slope_lim=(0.5, 2),
-                 t_drop_lim=(6, 12), l_drop_lim=(35, 50))
+task_gen_kwargs = dict(duration_lim=(.03, .06), t_release_lim=(-4, 4), slope_lim=(0.5, 2),
+                       t_drop_lim=(6, 12), l_drop_lim=(35, 50))
 
 
 def test_argsort():
     """Check that seq=np.argsort(sch['t']) maps to an optimal schedule."""
 
-    problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks, n_ch, ch_avail_lim, **relu_lims)
+    problem_gen = problem_gens.Random.continuous_linear_drop(n_tasks, n_ch, ch_avail_lim, **task_gen_kwargs)
     for i, (tasks, ch_avail) in enumerate(problem_gen(10)):
         print(f"{i}", end='\n')
 
@@ -36,7 +36,7 @@ def test_argsort():
 def test_shift():
     """Check accuracy of ScheduleNodeShift solution."""
 
-    problem_gen = problem_gens.Random.continuous_relu_drop(n_tasks, n_ch, ch_avail_lim, **relu_lims)
+    problem_gen = problem_gens.Random.continuous_linear_drop(n_tasks, n_ch, ch_avail_lim, **task_gen_kwargs)
     for i, (tasks, ch_avail) in enumerate(problem_gen(1000)):
         print(f"{i}", end='\n')
 

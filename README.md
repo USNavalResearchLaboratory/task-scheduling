@@ -16,7 +16,7 @@ Task objects must expose two attributes:
 The tasks must implement a `__call__` method that provides a monotonic non-decreasing loss function quantifying the
 penalty for delayed execution. 
 
-One built-in task type is provided: `task_scheduling.tasks.ReluDrop`. It is so-named because it implements a loss 
+One built-in task type is provided: `task_scheduling.tasks.ReLUDrop`. It is so-named because it implements a loss 
 function that increases linearly from zero according to a positive parameter `slope`, like the rectified linear 
 function popularized by neural networks. After a "drop" time `t_drop`, a large constant loss `l_drop` is incurred. 
 Example loss functions are shown below.
@@ -116,7 +116,7 @@ plt.style.use('seaborn')
 seed = 12345
 
 # Define scheduling problem
-task_gen = task_gens.ContinuousUniformIID.relu_drop(rng=seed)
+task_gen = task_gens.ContinuousUniformIID.linear_drop(rng=seed)
 
 tasks = list(task_gen(8))
 ch_avail = [0., 0.5]
@@ -126,17 +126,17 @@ plot_task_losses(tasks)
 
 # Define and assess algorithms
 algorithms = [
-    algorithms.branch_bound_priority,
-    algorithms.random_sequencer,
+  algorithms.branch_bound_priority,
+  algorithms.random_sequencer,
 ]
 
 __, axes = plt.subplots(len(algorithms))
 for algorithm, ax in zip(algorithms, axes):
-    sch = algorithm(tasks, ch_avail)
+  sch = algorithm(tasks, ch_avail)
 
-    check_schedule(tasks, sch)
-    loss = evaluate_schedule(tasks, sch)
-    plot_schedule(tasks, sch, loss=loss, ax=ax)
+  check_schedule(tasks, sch)
+  loss = evaluate_schedule(tasks, sch)
+  plot_schedule(tasks, sch, loss=loss, ax=ax)
 ```
 
 ### Policy learning and Monte Carlo assessment (`examples/mc_assess.py`)
@@ -175,7 +175,7 @@ if seed is not None:
 
 # Define scheduling problem and algorithms
 problem_gen = problem_gens.Dataset.load('../data/continuous_relu_drop_c1t8', repeat=True)
-# problem_gen = problem_gens.Random.discrete_relu_drop(n_tasks=8, n_ch=1, rng=seed)
+# problem_gen = problem_gens.Random.discrete_linear_drop(n_tasks=8, n_ch=1, rng=seed)
 
 env_params = {
     'features': None,  # defaults to task parameters

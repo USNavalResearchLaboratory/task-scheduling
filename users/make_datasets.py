@@ -1,4 +1,4 @@
-from functools import partial
+# from functools import partial
 from pathlib import Path
 
 from task_scheduling.generators import problems as problem_gens
@@ -10,12 +10,12 @@ save_dir = Path(f'../data')
 # save_dir = Path(f'../data/temp')
 
 # ct_set = [(1, 4), (1, 8), (1, 12), (1, 16), (2, 4), (2, 8)]
-ct_set = [(1, 16)]
+ct_set = [(1, 8)]
 
 
 gen_set = dict(
-    continuous_relu_drop=problem_gens.Random.continuous_relu_drop,
-    # discrete_relu_drop=problem_gens.Random.discrete_relu_drop,
+    continuous_linear_drop=problem_gens.Random.continuous_linear_drop,
+    # discrete_linear_drop=problem_gens.Random.discrete_linear_drop,
     # radar_search=partial(problem_gens.Random.radar, mode='search'),
     # radar_track=partial(problem_gens.Random.radar, mode='track'),
 )
