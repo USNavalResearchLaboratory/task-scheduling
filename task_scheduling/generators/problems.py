@@ -233,15 +233,15 @@ class Random(Base):
         task_gen = task_gens.DiscreteIID.linear_drop_uniform(**task_gen_kwargs)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
-    @classmethod
-    def search_track(cls, n_tasks, n_ch, p=None, t_release_lim=(0., .018), ch_avail_lim=(0., 0.), rng=None):
-        task_gen = task_gens.SearchTrackIID(p, t_release_lim)
-        return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
-
-    @classmethod
-    def radar(cls, n_tasks, n_ch, mode, ch_avail_lim=(0., 0.), rng=None):
-        task_gen = task_gens.Radar(mode)
-        return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
+    # @classmethod
+    # def search_track(cls, n_tasks, n_ch, p=None, t_release_lim=(0., .018), ch_avail_lim=(0., 0.), rng=None):
+    #     task_gen = task_gens.SearchTrackIID(p, t_release_lim)
+    #     return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
+    #
+    # @classmethod
+    # def radar(cls, n_tasks, n_ch, mode, ch_avail_lim=(0., 0.), rng=None):
+    #     task_gen = task_gens.Radar(mode)
+    #     return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
 
 class FixedTasks(Base, ABC):

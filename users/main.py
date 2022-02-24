@@ -48,7 +48,7 @@ if seed is not None:
 
 # %% Define scheduling problem and algorithms
 
-problem_gen = problem_gens.Random.continuous_linear_drop(n_tasks=8, n_ch=1, rng=seed)
+# problem_gen = problem_gens.Random.continuous_linear_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.radar(n_tasks=8, n_ch=1, mode='track', rng=seed)
 # problem_gen = problem_gens.Random.discrete_linear_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
@@ -60,8 +60,7 @@ data_path = Path('../data/')
 
 
 dataset = 'continuous_linear_drop_c1t8'
-
-# problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
+problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
 temp_path = f'main_temp/'
 if isinstance(problem_gen, problem_gens.Dataset):
@@ -108,13 +107,13 @@ learn_params_torch = {
 
 model_kwargs = dict(
     optim_cls=optim.Adam,
-    # optim_params={'lr': 1e-3},
-    optim_params={'lr': 1e-4},
+    optim_params={'lr': 1e-3},
+    # optim_params={'lr': 1e-4},
 )
 
-# module = MultiNet.mlp(env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_sizes_joint=[400])
-module = MultiNet.cnn(env, hidden_sizes_ch=[], hidden_sizes_tasks=[400], kernel_sizes=2,
-                      cnn_kwargs=dict(pooling_layers=[nn.AdaptiveMaxPool1d(1)]), hidden_sizes_joint=[])
+module = MultiNet.mlp(env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_sizes_joint=[400])
+# module = MultiNet.cnn(env, hidden_sizes_ch=[], hidden_sizes_tasks=[400], kernel_sizes=2,
+#                       cnn_kwargs=dict(pooling_layers=[nn.AdaptiveMaxPool1d(1)]), hidden_sizes_joint=[])
 # module = VaryCNN(env, kernel_len=2)
 
 torch_scheduler = TorchScheduler(env, module, **model_kwargs, learn_params=learn_params_torch)
@@ -192,13 +191,14 @@ algorithms = np.array([
     # ('BB_p_ERT', partial(branch_bound_priority, heuristic=methodcaller('earliest_release', inplace=False)), 1),
     ('Random', random_sequencer, 10),
     ('ERT', earliest_release, 10),
-    ('Priority: drop loss', partial(priority_sorter, func=attrgetter('l_drop'), reverse=True), 10),
+    # ('Priority: drop loss', partial(priority_sorter, func=attrgetter('l_drop'), reverse=True), 10),
     # ('Priority', partial(priority_sorter, func=lambda task: task.slope - 1e-5 * task.t_release, reverse=True), 10),
-    *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=3e-3, max_rollouts=None, c_explore=c, th_visit=t), 10)
-      for c, t in product([0], [5, 10])),
+    # *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=3e-3, max_rollouts=None, c_explore=c, th_visit=t), 10)
+    #   for c, t in product([0], [5, 10])),
+    ('MCTS', partial(mcts, max_runtime=6e-3, max_rollouts=None, c_explore=0, th_visit=5), 10),
     # ('Random Agent', random_agent, 10),
     # ('Torch Policy', torch_scheduler, 10),
-    # ('Lit Policy', lit_scheduler, 10),
+    ('Lit Policy', lit_scheduler, 10),
     # ('SB Agent', sb_scheduler, 10),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
