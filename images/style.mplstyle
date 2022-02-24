@@ -18,5 +18,13 @@ savefig.bbox : tight
 savefig.pad_inches : 0.02
 savefig.format : pdf
 
+
+font.family : serif
+font.serif : DejaVu Serif
+mathtext.fontset : dejavuserif
+# font.serif : Computer Modern Roman
+# mathtext.fontset : cm
+
 text.usetex : True
 text.latex.preamble : \usepackage{amsmath,amssymb,upgreek,bm}
+
