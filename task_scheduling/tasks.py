@@ -94,7 +94,7 @@ class Base(ABC):
         """
 
         if t_plot is None:
-            t_plot = np.arange(*self.plot_lim, 0.01)
+            t_plot = np.arange(*self.plot_lim, 1e-3)
 
         if ax is None:
             _, ax = plt.subplots()
@@ -273,17 +273,14 @@ class Shift(Base):
 #         """2-tuple of limits for automatic plotting."""
 #         return self.t_release, self.t_release + self.t_drop + 1.
 
-
 class PiecewiseLinear(Shift):
-    param_names = Base.param_names + ('l_release', 'slope', 'corners')
+    param_names = Base.param_names + ('corners',)
     shift_params = Shift.shift_params  # TODO: Add shift params. Handle `list` parameters for `space` shifts?!?
 
     prune = True
 
-    def __init__(self, duration, t_release=0., l_release=0., slope=1., corners=(), name=None):
+    def __init__(self, duration, t_release=0., corners=(), name=None):
         super().__init__(duration, t_release, name)
-        self.l_release = float(l_release)
-        self.slope = float(slope)
         self.corners = corners
 
         self._check_non_decreasing()
@@ -295,7 +292,7 @@ class PiecewiseLinear(Shift):
         t -= self.t_release  # relative time
 
         loss = np.full(t.shape, np.nan)
-        loss[t >= 0] = self.l_release + self.slope * t[t >= 0]
+        loss[t >= 0] = 0.
         for t_c, l_c, s_c in self.corners:
             loss[t >= t_c] = l_c + s_c * (t[t >= t_c] - t_c)
 
@@ -313,37 +310,34 @@ class PiecewiseLinear(Shift):
         val = list(map(list, val))
         val = sorted(val, key=itemgetter(0))  # sort by time
         for i, c in enumerate(val):
-            if len(c) == 2:
+            if len(c) == 2:  # interpret as time and slope, calculate loss for continuity
                 t = c[0]
                 if i == 0:
-                    c.insert(1, self.l_release + self.slope * t)
+                    c.insert(1, 0.)
                 else:
-                    t_prev, s_prev, l_prev = val[i-1]
+                    t_prev, l_prev, s_prev = val[i-1]
                     c.insert(1, l_prev + s_prev * (t - t_prev))
 
         self._corners = val
 
     def _check_non_decreasing(self):  # TODO: integrate with param setters?
-        if self.l_release < 0.:
-            raise ValueError("Release loss must be non-negative.")
-        if self.slope < 0.:
-            raise ValueError("Slope must be non-negative.")
-
         for i, c in enumerate(self.corners):
             t_c, l_c, s_c = c
-            if self.prune:
-                if t_c <= 0.:
-                    raise ValueError("Relative corner times must be positive.")
-            else:
-                if t_c < 0.:
-                    raise ValueError("Relative corner times must be non-negative.")
+            if t_c < 0.:
+                raise ValueError("Relative corner times must be non-negative.")
+            # if self.prune:
+            #     if t_c <= 0.:
+            #         raise ValueError("Relative corner times must be positive.")
+            # else:
+            #     if t_c < 0.:
+            #         raise ValueError("Relative corner times must be non-negative.")
             if l_c < 0.:
                 raise ValueError("Corner losses must be non-negative.")
             if s_c < 0.:
                 raise ValueError("Corner slopes must be non-negative.")
 
             if i == 0:
-                l_d = self.l_release + self.slope * t_c
+                l_d = 0.
             else:
                 t_prev, l_prev, s_prev = self.corners[i - 1]
                 l_d = l_prev + s_prev * (t_c - t_prev)
@@ -355,32 +349,31 @@ class PiecewiseLinear(Shift):
         self.t_release = max(0., -t_excess)
         if self.t_release == 0.:  # loss is incurred, drop time and loss are updated
             loss_inc = self(t_excess)
-            self.l_release = max(0., self.l_release - loss_inc)
             for i, c in enumerate(self.corners):
                 c[0] = max(0., c[0] - t_excess)
                 c[1] = max(0., c[1] - loss_inc)
 
-                if c[0] == 0.:  # zero out unused slope
-                    if i == 0:
-                        self.slope = 0.
-                    else:
-                        self.corners[i - 1][2] = 0.
+                # if not self.prune and c[0] == 0. and i >= 1:  # zero out unused slope
+                #     self.corners[i - 1][2] = 0.
 
             if self.prune:
-                self.prune_corners()
+                self._prune_corners()
 
             return loss_inc
         else:
             return 0.  # no loss incurred
 
-    def prune_corners(self):
-        i_keep = 0
-        for i, c in enumerate(reversed(self.corners)):
-            if c[0] == 0.:
-                i_keep = len(self.corners) - i
-                self.l_release, self.slope = c[1:]
-                break
-        self.corners = self.corners[i_keep:]
+    def _prune_corners(self):
+        corners = np.array(self.corners)
+        times = corners[:, 0]
+        t_u = np.unique(times)
+        idx = []
+        if len(t_u) < len(self.corners):
+            for t in t_u:
+                idx.append(np.flatnonzero(times == t)[-1])
+            self._corners = corners[idx].tolist()
+        if self._corners == [[0., 0., 0.]]:  # remove uninformative corner
+            self._corners = []
 
     @property
     def plot_lim(self):
@@ -398,7 +391,7 @@ class Linear(PiecewiseLinear):
     shift_params = Shift.shift_params
 
     def __init__(self, duration, t_release=0., slope=1., name=None):
-        super().__init__(duration, t_release, 0., slope, [], name)
+        super().__init__(duration, t_release, [[0., 0., slope]], name)
 
 
 class LinearDrop(PiecewiseLinear):
@@ -407,24 +400,37 @@ class LinearDrop(PiecewiseLinear):
 
     prune = False
 
-    def __init__(self, duration, t_release, slope, t_drop, l_drop, name=None):
-        super().__init__(duration, t_release, 0., slope, [[t_drop, l_drop, 0.]], name)
+    def __init__(self, duration, t_release=0., slope=1., t_drop=1., l_drop=None, name=None):
+        corners = [[0., 0., slope]]
+        if l_drop is not None:
+            corners.append([t_drop, l_drop, 0.])
+        else:
+            corners.append([t_drop, 0.])
+        super().__init__(duration, t_release, corners, name)
+
+    @property
+    def slope(self):
+        return self.corners[0][2]
+
+    @slope.setter
+    def slope(self, val):
+        self.corners[0][2] = val
 
     @property
     def t_drop(self):
-        return self.corners[0][0]
+        return self.corners[1][0]
 
     @t_drop.setter
     def t_drop(self, val):
-        self.corners[0][0] = val
+        self.corners[1][0] = val
 
     @property
     def l_drop(self):
-        return self.corners[0][1]
+        return self.corners[1][1]
 
     @l_drop.setter
     def l_drop(self, val):
-        self.corners[0][1] = val
+        self.corners[1][1] = val
 
 
 # class Radar(LinearDrop):
