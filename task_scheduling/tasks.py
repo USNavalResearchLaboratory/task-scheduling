@@ -393,6 +393,14 @@ class Linear(PiecewiseLinear):
     def __init__(self, duration, t_release=0., slope=1., name=None):
         super().__init__(duration, t_release, [[0., 0., slope]], name)
 
+    @property
+    def slope(self):
+        return self.corners[0][2]
+
+    @slope.setter
+    def slope(self, val):
+        self.corners[0][2] = val
+
 
 class LinearDrop(PiecewiseLinear):
     param_names = Base.param_names + ('slope', 't_drop', 'l_drop')

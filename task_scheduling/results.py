@@ -282,7 +282,6 @@ def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0
 
     """
 
-    n_ch = len(problem.ch_avail)
     learners = algorithms[[isinstance(alg['func'], BaseLearningScheduler) for alg in algorithms]]
 
     # RNG control
@@ -316,7 +315,7 @@ def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0
             t_run_iter[name][iter_] = solution.t_run
 
             if plotting >= 2:
-                plot_schedule(problem.tasks, solution.sch, n_ch, loss=solution.loss, name=name, ax=None)
+                plot_schedule(problem.tasks, solution.sch, problem.ch_avail, solution.loss, name, ax=None)
 
     # Results
     if plotting >= 1:

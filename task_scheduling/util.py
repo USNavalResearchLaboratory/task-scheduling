@@ -11,7 +11,7 @@ from task_scheduling.base import SchedulingSolution
 def summarize_tasks(tasks, **tabulate_kwargs):
     """Create and print a Pandas DataFrame detailing tasks."""
     cls_task = tasks[0].__class__
-    if all(isinstance(task, cls_task) for task in tasks[1:]):
+    if all(isinstance(task, cls_task) for task in tasks[1:]):  # TODO: do grouping even if not all are same type
         df = pd.DataFrame([task.to_series() for task in tasks])
         tabulate_kwargs_ = {'tablefmt': 'github', 'floatfmt': '.3f'}
         tabulate_kwargs_.update(tabulate_kwargs)
@@ -40,7 +40,7 @@ def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
 
     if t_plot is None:
         x_lim = min(task.plot_lim[0] for task in tasks), max(task.plot_lim[1] for task in tasks)
-        t_plot = np.arange(*x_lim, 0.01)
+        t_plot = np.arange(*x_lim, 1e-3)
 
     with plt.rc_context({'axes.xmargin': 0}):
         if ax is None:
@@ -115,7 +115,7 @@ def evaluate_schedule(tasks, sch):
     return loss
 
 
-def plot_schedule(tasks, sch, n_ch=None, loss=None, name=None, ax=None, ax_kwargs=None):
+def plot_schedule(tasks, sch, ch_avail=None, loss=None, name=None, ax=None, ax_kwargs=None):
     """
     Plot task schedule.
 
@@ -124,8 +124,8 @@ def plot_schedule(tasks, sch, n_ch=None, loss=None, name=None, ax=None, ax_kwarg
     tasks : Collection of task_scheduling.tasks.Base
     sch : numpy.ndarray
         Task execution schedule.
-    n_ch : int, optional
-        Number of channels.
+    ch_avail : Collection of float, optional
+        Channel availability times.
     loss : float or None
         Total loss of scheduled tasks.
     name : str or None
@@ -144,7 +144,6 @@ def plot_schedule(tasks, sch, n_ch=None, loss=None, name=None, ax=None, ax_kwarg
         ax.broken_barh([(sch['t'][n], task.duration)], (sch['c'][n] - 0.5, 1),
                        facecolors=next(cycle)['color'], edgecolor='black', label=str(task))
 
-    # x_lim = min(sch['t']), max(task.duration + t for task, t in zip(tasks, sch['t']))
     if np.isnan(sch['t']).all():
         x_lim = (0, plt.rcParams['axes.xmargin'])
     else:
@@ -157,8 +156,10 @@ def plot_schedule(tasks, sch, n_ch=None, loss=None, name=None, ax=None, ax_kwarg
         _temp.append(f'$L = {loss:.3f}$')
     title = ', '.join(_temp)
 
-    if n_ch is None:  # infer from `sch`
-        n_ch = sch['c'].max() + 1
+    if ch_avail is not None:
+        n_ch = len(ch_avail)
+    else:
+        n_ch = sch['c'].max() + 1  # infer from `sch`
 
     if ax_kwargs is None:
         ax_kwargs = {}
@@ -184,3 +185,53 @@ def eval_wrapper(scheduler):
         return SchedulingSolution(sch, loss, t_run)
 
     return timed_scheduler
+
+
+def plot_losses_and_schedule(tasks, sch, ch_avail, loss=None, name=None):
+    """
+    Plot task loss functions with schedule, including partial losses.
+
+    Parameters
+    ----------
+    tasks : Collection of task_scheduling.tasks.Base
+    sch : numpy.ndarray
+        Task execution schedule.
+    ch_avail : Collection of float, optional
+        Channel availability times.
+    loss : float or None
+        Total loss of scheduled tasks.
+    name : str or None
+        Algorithm string representation
+
+    """
+
+    fig, axes = plt.subplots(2, num=name, clear=True,
+                             figsize=[12.8, 6.4], gridspec_kw={'left': .05, 'right': 0.7})
+
+    _temp = []
+    if isinstance(name, str):
+        _temp.append(name)
+    if loss is not None:
+        _temp.append(f'$L = {loss:.3f}$')
+    fig.suptitle(', '.join(_temp), y=0.95)
+
+    plot_schedule(tasks, sch, ch_avail, loss, name=None, ax=axes[1], ax_kwargs=dict(title=''))
+
+    lows, highs = zip(axes[1].get_xlim(), *(task.plot_lim for task in tasks))
+    t_plot = np.arange(min(*lows), max(*highs), 1e-3)
+    plot_task_losses(tasks, t_plot, ax=axes[0], ax_kwargs=dict(xlabel=''))
+
+    # Mark loss functions with execution times
+    for task, (t_ex, _c_ex), line in zip(tasks, sch, axes[0].get_lines()):
+        axes[0].plot([t_ex], [task(t_ex)], color=line.get_color(), marker='o', linestyle='', label=None)
+
+    lows, highs = zip(*(ax.get_xlim() for ax in axes))
+    x_lims = min(lows), max(highs)
+    for ax in axes:
+        ax.set(xlim=x_lims)
+
+    fig.legend(*axes[0].get_legend_handles_labels(), loc='center right', bbox_to_anchor=(1., .5))
+    axes[0].get_legend().remove()
+    axes[1].get_legend().remove()
+
+    return fig

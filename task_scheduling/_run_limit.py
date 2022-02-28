@@ -279,7 +279,7 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
                     loss_iter[name][i_time, i_gen, iter_] = loss
 
                     if plotting >= 3:
-                        plot_schedule(tasks, sch, n_ch=problem_gen.n_ch, loss=loss, name=name, ax=None)
+                        plot_schedule(tasks, sch, ch_avail, loss, name, ax=None)
 
             loss_mean[name][:, i_gen] = loss_iter[name][:, i_gen].mean(-1)
 

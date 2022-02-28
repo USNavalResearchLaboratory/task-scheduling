@@ -70,7 +70,8 @@ class Base(Env, ABC):
         self.masking = masking
 
         self.reward_range = (-np.inf, 0)
-        self._loss_agg = None
+        # self._loss_agg = None
+        self._loss_agg = 0.
 
         self.node = None  # MDP state
         self._tasks_init = None
@@ -276,19 +277,23 @@ class Base(Env, ABC):
         if mode != 'human':
             raise NotImplementedError("Render `mode` must be 'human'")
 
-        fig, axes = plt.subplots(2, num='render', clear=True,
+        fig, axes = plt.subplots(2, num=f'render_{id(self)}', clear=True,
                                  figsize=[12.8, 6.4], gridspec_kw={'left': .05, 'right': 0.7})
-        # fig.subplots_adjust(right=0.7)
-        # fig.set_size_inches(12.8, 6.4)
 
         fig.suptitle(", ".join((str(self), f"Loss = {self._loss_agg:.3f}")), y=0.95)
 
-        plot_schedule(self._tasks_init, self.node.sch, n_ch=self.n_ch, loss=self._loss_agg, ax=axes[1],
+        plot_schedule(self._tasks_init, self.node.sch, self._ch_avail_init, self._loss_agg, ax=axes[1],
                       ax_kwargs=dict(title=''))
 
+        axes[1].plot(self.ch_avail, np.arange(self.n_ch), 'ko')  # plot channel availabilities
+
         lows, highs = zip(axes[1].get_xlim(), *(task.plot_lim for task in self._tasks_init))
-        t_plot = np.arange(min(*lows), max(*highs), 0.01)
+        t_plot = np.arange(min(*lows), max(*highs), 1e-3)
         plot_task_losses(self._tasks_init, t_plot, ax=axes[0], ax_kwargs=dict(xlabel=''))
+
+        # Mark loss functions with execution times
+        for task, (t_ex, _c_ex), line in zip(self._tasks_init, self.node.sch, axes[0].get_lines()):
+            axes[0].plot([t_ex], [task(t_ex)], color=line.get_color(), marker='o', linestyle='', label=None)
 
         lows, highs = zip(*(ax.get_xlim() for ax in axes))
         x_lims = min(lows), max(highs)

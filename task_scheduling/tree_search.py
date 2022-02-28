@@ -26,7 +26,7 @@ class ScheduleNode(RandomGeneratorMixin):
         ----------
         tasks : Collection
         ch_avail : Collection of float
-            Channel availabilities
+            Channel availability times.
         seq : Collection of int
             Partial task index sequence.
         rng : int or RandomState or Generator, optional
