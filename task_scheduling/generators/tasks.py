@@ -160,6 +160,15 @@ class ContinuousUniformIID(BaseIID):
                           l_drop=l_drop_lim)
         return cls(task_types.LinearDrop, param_lims, rng)
 
+    @classmethod
+    def linear_linear(cls, duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2), t_drop_lim=(6, 12),
+                      l_drop_lim=(35, 50), slope_2_lim=(0.5, 2), rng=None):
+        """Factory constructor for `LinearLinear` task objects."""
+
+        param_lims = dict(duration=duration_lim, t_release=t_release_lim, slope=slope_lim, t_drop=t_drop_lim,
+                          l_drop=l_drop_lim, slope_2=slope_2_lim)
+        return cls(task_types.LinearLinear, param_lims, rng)
+
 
 class DiscreteIID(BaseIID):
     """
@@ -281,10 +290,10 @@ class Fixed(Base, ABC):
         task_gen = DiscreteIID.linear_drop_uniform(**task_gen_kwargs)
         return cls._task_gen_to_fixed(n_tasks, task_gen, rng)
 
-    @classmethod
-    def search_track(cls, n_tasks, p=None, t_release_lim=(0., .018), rng=None):
-        task_gen = SearchTrackIID(p, t_release_lim)
-        return cls._task_gen_to_fixed(n_tasks, task_gen, rng)
+    # @classmethod
+    # def search_track(cls, n_tasks, p=None, t_release_lim=(0., .018), rng=None):
+    #     task_gen = SearchTrackIID(p, t_release_lim)
+    #     return cls._task_gen_to_fixed(n_tasks, task_gen, rng)
 
 
 class Deterministic(Fixed):

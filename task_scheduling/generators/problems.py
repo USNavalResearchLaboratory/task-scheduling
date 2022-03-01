@@ -224,6 +224,11 @@ class Random(Base):
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
     @classmethod
+    def continuous_linear_linear(cls, n_tasks, n_ch, ch_avail_lim=(0., 0.), rng=None, **task_gen_kwargs):
+        task_gen = task_gens.ContinuousUniformIID.linear_linear(**task_gen_kwargs)
+        return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
+
+    @classmethod
     def discrete_linear(cls, n_tasks, n_ch, ch_avail_lim=(0., 0.), rng=None, **task_gen_kwargs):
         task_gen = task_gens.DiscreteIID.linear_uniform(**task_gen_kwargs)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)

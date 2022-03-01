@@ -73,7 +73,8 @@ class Base(ABC):
     @property
     def plot_lim(self):
         """2-tuple of limits for automatic plotting."""
-        return self.t_release, self.t_release + 1.
+        return self.t_release, self.t_release + self.duration
+        # return self.t_release, self.t_release + 1.
 
     def plot_loss(self, t_plot=None, ax=None):
         """
@@ -325,12 +326,6 @@ class PiecewiseLinear(Shift):
             t_c, l_c, s_c = c
             if t_c < 0.:
                 raise ValueError("Relative corner times must be non-negative.")
-            # if self.prune:
-            #     if t_c <= 0.:
-            #         raise ValueError("Relative corner times must be positive.")
-            # else:
-            #     if t_c < 0.:
-            #         raise ValueError("Relative corner times must be non-negative.")
             if l_c < 0.:
                 raise ValueError("Corner losses must be non-negative.")
             if s_c < 0.:
@@ -372,8 +367,9 @@ class PiecewiseLinear(Shift):
             for t in t_u:
                 idx.append(np.flatnonzero(times == t)[-1])
             self._corners = corners[idx].tolist()
-        if self._corners == [[0., 0., 0.]]:  # remove uninformative corner
-            self._corners = []
+
+            if self._corners == [[0., 0., 0.]]:  # remove uninformative corner
+                self._corners = []
 
     @property
     def plot_lim(self):
@@ -382,13 +378,16 @@ class PiecewiseLinear(Shift):
         if bool(self.corners) and self.corners[-1][0] > 0.:
             t_1 += self.corners[-1][0] * (1 + plt.rcParams['axes.xmargin'])
         else:
-            t_1 += 1.
+            t_1 += self.duration
+            # t_1 += 1.
         return self.t_release, t_1
 
 
 class Linear(PiecewiseLinear):
     param_names = Base.param_names + ('slope',)
     shift_params = Shift.shift_params
+
+    prune = False
 
     def __init__(self, duration, t_release=0., slope=1., name=None):
         super().__init__(duration, t_release, [[0., 0., slope]], name)
@@ -439,6 +438,53 @@ class LinearDrop(PiecewiseLinear):
     @l_drop.setter
     def l_drop(self, val):
         self.corners[1][1] = val
+
+
+class LinearLinear(PiecewiseLinear):  # TODO: delete, and generators
+    param_names = Base.param_names + ('slope', 't_drop', 'l_drop', 'slope_2')
+    shift_params = Shift.shift_params + ('t_drop', 'l_drop')
+
+    prune = False
+
+    def __init__(self, duration, t_release=0., slope=1., t_drop=1., l_drop=None, slope_2=1., name=None):
+        corners = [[0., 0., slope]]
+        if l_drop is not None:
+            corners.append([t_drop, l_drop, slope_2])
+        else:
+            corners.append([t_drop, slope_2])
+        super().__init__(duration, t_release, corners, name)
+
+    @property
+    def slope(self):
+        return self.corners[0][2]
+
+    @slope.setter
+    def slope(self, val):
+        self.corners[0][2] = val
+
+    @property
+    def t_drop(self):
+        return self.corners[1][0]
+
+    @t_drop.setter
+    def t_drop(self, val):
+        self.corners[1][0] = val
+
+    @property
+    def l_drop(self):
+        return self.corners[1][1]
+
+    @l_drop.setter
+    def l_drop(self, val):
+        self.corners[1][1] = val
+
+    @property
+    def slope_2(self):
+        return self.corners[1][2]
+
+    @slope_2.setter
+    def slope_2(self, val):
+        self.corners[1][2] = val
 
 
 # class Radar(LinearDrop):
