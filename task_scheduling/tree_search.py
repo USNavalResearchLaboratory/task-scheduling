@@ -476,9 +476,9 @@ class ScheduleNodeBound(ScheduleNode):
                         node_best = heuristic(node_new)
 
             if verbose:
-                progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(self.n_tasks)
-                print(f'Search progress: {progress:.3f}, Loss < {node_best.loss:.3f}', end='\r')
-                # print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}', end='\r')
+                # progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(self.n_tasks)
+                # print(f'Search progress: {progress:.3f}, Loss < {node_best.loss:.3f}', end='\r')
+                print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}', end='\r')
 
         if inplace:
             # self.seq = node_best.seq

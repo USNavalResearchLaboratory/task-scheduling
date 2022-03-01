@@ -295,14 +295,16 @@ class Base(Env, ABC):
         for task, (t_ex, _c_ex), line in zip(self._tasks_init, self.node.sch, axes[0].get_lines()):
             axes[0].plot([t_ex], [task(t_ex)], color=line.get_color(), marker='o', linestyle='', label=None)
 
+        # Match x-axis limits
         lows, highs = zip(*(ax.get_xlim() for ax in axes))
         x_lims = min(lows), max(highs)
         for ax in axes:
             ax.set(xlim=x_lims)
 
+        # Use single `Figure` legend
         fig.legend(*axes[0].get_legend_handles_labels(), loc='center right', bbox_to_anchor=(1., .5))
-        axes[0].get_legend().remove()
-        axes[1].get_legend().remove()
+        for ax in axes:
+            ax.get_legend().remove()
 
         return fig
 
