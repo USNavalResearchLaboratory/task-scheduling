@@ -74,7 +74,6 @@ class Base(ABC):
     def plot_lim(self):
         """2-tuple of limits for automatic plotting."""
         return self.t_release, self.t_release + self.duration
-        # return self.t_release, self.t_release + 1.
 
     def plot_loss(self, t_plot=None, ax=None):
         """
@@ -293,6 +292,7 @@ class PiecewiseLinear(Shift):
         t -= self.t_release  # relative time
 
         loss = np.full(t.shape, np.nan)
+
         loss[t >= 0] = 0.
         for t_c, l_c, s_c in self.corners:
             loss[t >= t_c] = l_c + s_c * (t[t >= t_c] - t_c)
@@ -379,7 +379,6 @@ class PiecewiseLinear(Shift):
             t_1 += self.corners[-1][0] * (1 + plt.rcParams['axes.xmargin'])
         else:
             t_1 += self.duration
-            # t_1 += 1.
         return self.t_release, t_1
 
 
@@ -522,3 +521,41 @@ class LinearLinear(PiecewiseLinear):  # TODO: delete, and generators
 #     #         return cls.track('med')
 #     #     else:
 #     #         return cls.track('low')
+
+
+class Exponential(Shift):
+    param_names = Base.param_names + ('a', 'b')
+    shift_params = Shift.shift_params + ('a',)
+
+    def __init__(self, duration, t_release=0., a=1., b=np.e, name=None):
+        super().__init__(duration, t_release, name)
+        self.a = float(a)
+        self.b = float(b)
+
+        # TODO: add positive param checks?
+
+    def __call__(self, t):
+        """Loss function versus time."""
+
+        t = np.array(t, dtype=float)
+        t -= self.t_release  # relative time
+
+        loss = np.full(t.shape, np.nan)
+
+        loss[t >= 0] = self.a * (self.b ** t[t >= 0] - 1)
+
+        if loss.ndim == 0:
+            loss = loss.item()
+
+        return loss
+
+    def shift_origin(self, t):  # TODO: D.R.Y. with `PiecewiseLinear`!?
+        t_excess = t - self.t_release
+        self.t_release = max(0., -t_excess)
+        if self.t_release == 0.:  # loss is incurred, drop time and loss are updated
+            loss_inc = self(t_excess)
+            self.a *= self.b ** t_excess
+
+            return loss_inc
+        else:
+            return 0.  # no loss incurred
