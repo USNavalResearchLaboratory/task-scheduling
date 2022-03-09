@@ -2,6 +2,20 @@ figure.figsize : 5.2, 3.9
 # figure.figsize : 4.8, 3.6
 # figure.autolayout : True
 
+savefig.bbox : tight
+savefig.pad_inches : 0.05
+savefig.format : pdf
+
+font.size : 10
+font.family : serif
+font.serif : DejaVu Serif
+mathtext.fontset : dejavuserif
+# font.serif : Computer Modern Roman
+# mathtext.fontset : cm
+
+text.usetex : True
+text.latex.preamble : \usepackage{amsmath,amssymb,upgreek,bm}
+
 xtick.direction : in
 xtick.top : True
 xtick.minor.visible : True
@@ -13,18 +27,3 @@ ytick.minor.visible : True
 # axes.grid : True
 
 # legend.frameon : False
-
-savefig.bbox : tight
-savefig.pad_inches : 0.05
-savefig.format : pdf
-
-
-font.family : serif
-font.serif : DejaVu Serif
-mathtext.fontset : dejavuserif
-# font.serif : Computer Modern Roman
-# mathtext.fontset : cm
-
-text.usetex : True
-text.latex.preamble : \usepackage{amsmath,amssymb,upgreek,bm}
-

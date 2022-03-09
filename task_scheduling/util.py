@@ -107,12 +107,7 @@ def evaluate_schedule(tasks, sch):
         Total loss of scheduled tasks.
 
     """
-
-    loss = 0.
-    for task, t in zip(tasks, sch['t']):
-        loss += task(t)
-
-    return loss
+    return sum(task(t) for task, t in zip(tasks, sch['t']))
 
 
 def plot_schedule(tasks, sch, ch_avail=None, loss=None, name=None, ax=None, ax_kwargs=None):
@@ -212,7 +207,7 @@ def plot_losses_and_schedule(tasks, sch, ch_avail, loss=None, name=None, fig_kwa
 
     gridspec_kwargs = dict(left=.1, right=0.85)
 
-    fig, axes = plt.subplots(2, num=name, clear=True, gridspec_kw=gridspec_kwargs, **fig_kwargs)
+    fig, axes = plt.subplots(2, clear=True, gridspec_kw=gridspec_kwargs, **fig_kwargs)
 
     _temp = []
     if isinstance(name, str):
