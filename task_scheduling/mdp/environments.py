@@ -9,7 +9,7 @@ from gym.spaces import MultiDiscrete, Box, Dict
 from matplotlib import pyplot as plt
 
 import task_scheduling.spaces as spaces_tasking
-from task_scheduling import tree_search
+from task_scheduling.nodes import ScheduleNode, ScheduleNodeShift
 from task_scheduling.mdp.features import param_features, normalize as normalize_features
 from task_scheduling.util import plot_task_losses, plot_schedule
 
@@ -229,9 +229,9 @@ class Base(Env, ABC):
         self._tasks_init, self._ch_avail_init = tasks, ch_avail  # store problem before any in-place operations
 
         if self.time_shift:
-            self.node = tree_search.ScheduleNodeShift(tasks, ch_avail)
+            self.node = ScheduleNodeShift(tasks, ch_avail)
         else:
-            self.node = tree_search.ScheduleNode(tasks, ch_avail)
+            self.node = ScheduleNode(tasks, ch_avail)
 
         self._loss_agg = self.node.loss  # Loss can be non-zero due to time origin shift during node initialization
 

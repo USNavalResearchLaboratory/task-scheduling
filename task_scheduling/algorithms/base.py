@@ -1,4 +1,4 @@
-from task_scheduling.tree_search import ScheduleNode, ScheduleNodeBound
+from task_scheduling.nodes import ScheduleNode, ScheduleNodeBound
 
 
 def branch_bound(tasks, ch_avail, verbose=False, rng=None):

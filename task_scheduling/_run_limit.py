@@ -4,7 +4,7 @@ from time import perf_counter
 import numpy as np
 from matplotlib import pyplot as plt
 
-from task_scheduling.tree_search import ScheduleNodeBound
+from task_scheduling.nodes import ScheduleNodeBound
 from task_scheduling.util import plot_task_losses, plot_schedule, check_schedule, evaluate_schedule
 
 

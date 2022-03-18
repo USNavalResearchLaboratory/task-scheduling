@@ -3,7 +3,7 @@ from math import isclose
 import numpy as np
 
 from task_scheduling.algorithms import branch_bound
-from task_scheduling.tree_search import ScheduleNode, ScheduleNodeShift
+from task_scheduling.nodes import ScheduleNode, ScheduleNodeShift
 from task_scheduling.util import evaluate_schedule
 from task_scheduling.generators import problems as problem_gens
 

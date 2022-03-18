@@ -31,6 +31,7 @@ from task_scheduling.mdp.reinforcement import StableBaselinesScheduler, ValidAct
 np.set_printoptions(precision=3)
 pd.options.display.float_format = '{:,.3f}'.format
 plt.style.use('../images/style.mplstyle')
+plt.rc('text', usetex=False)
 
 now = get_now()
 
@@ -48,7 +49,7 @@ if seed is not None:
 
 # %% Define scheduling problem and algorithms
 
-# problem_gen = problem_gens.Random.continuous_linear_drop(n_tasks=8, n_ch=1, rng=seed)
+problem_gen = problem_gens.Random.continuous_linear_drop(n_tasks=8, n_ch=2, ch_avail_lim=(0., 10.), rng=seed)
 # problem_gen = problem_gens.Random.radar(n_tasks=8, n_ch=1, mode='track', rng=seed)
 # problem_gen = problem_gens.Random.discrete_linear_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
@@ -60,7 +61,7 @@ data_path = Path('../data/')
 
 
 dataset = 'continuous_linear_drop_c1t8'
-problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
+# problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
 temp_path = f'main_temp/'
 if isinstance(problem_gen, problem_gens.Dataset):
@@ -69,8 +70,8 @@ if isinstance(problem_gen, problem_gens.Dataset):
 
 # Algorithms
 
-time_shift = True
-# time_shift = False
+# time_shift = True
+time_shift = False
 masking = True
 # masking = False
 
@@ -93,6 +94,7 @@ env_params = dict(
 )
 
 env = Index(problem_gen, **env_params)
+
 
 learn_params_torch = {
     'batch_size_train': 20,
