@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from gym import spaces
 from stable_baselines3 import DQN, A2C, PPO
+from stable_baselines3.common.callbacks import BaseCallback
 # from stable_baselines3.common.monitor import Monitor
 # from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines3.common.policies import ActorCriticPolicy
@@ -39,6 +40,7 @@ _default_tuple = namedtuple('ModelDefault', ['cls', 'params'], defaults={})
 class StableBaselinesScheduler(BaseLearningScheduler):
     _learn_params_default = {
         'max_epochs': 1,
+        'callback': None,
     }
 
     model_defaults = {
@@ -59,14 +61,14 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         # self.env = env  # invokes setter
 
     @classmethod
-    def make_model(cls, env, model_cls, model_params=None, learn_params=None):
-        if model_params is None:
-            model_params = {}
+    def make_model(cls, env, model_cls, model_kwargs=None, learn_params=None):
+        if model_kwargs is None:
+            model_kwargs = {}
         if isinstance(model_cls, str):
-            model_cls, _params = cls.model_defaults[model_cls]
-            model_params = _params | model_params
+            model_cls, _kwargs = cls.model_defaults[model_cls]
+            model_kwargs = _kwargs | model_kwargs
 
-        model = model_cls(env=env, **model_params)
+        model = model_cls(env=env, **model_kwargs)
         return cls(env, model, learn_params)
 
     # @property
@@ -94,7 +96,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
 
         total_timesteps = self.learn_params['max_epochs'] * n_gen_learn * self.env.steps_per_episode
         log_name = get_now() + '_' + self.model.__class__.__name__
-        self.model.learn(total_timesteps, tb_log_name=log_name)
+        self.model.learn(total_timesteps, callback=self.learn_params['callback'], tb_log_name=log_name)
 
         # if self.do_monitor:
         #     plot_results([str(self.log_dir)], num_timesteps=None, x_axis='timesteps', task_name='Training history')
@@ -209,6 +211,37 @@ class StableBaselinesScheduler(BaseLearningScheduler):
     #         scheduler.save(save_path)
     #
     #     return scheduler
+
+
+class StopTrainingOnNoModelImprovement(BaseCallback):  # FIXME: copied from v1.15.0
+    def __init__(self, max_no_improvement_evals, min_evals=0, verbose=0):
+        super(StopTrainingOnNoModelImprovement, self).__init__(verbose=verbose)
+        self.max_no_improvement_evals = max_no_improvement_evals
+        self.min_evals = min_evals
+        self.last_best_mean_reward = -np.inf
+        self.no_improvement_evals = 0
+
+    def _on_step(self) -> bool:
+        assert self.parent is not None, "``StopTrainingOnNoModelImprovement`` callback must be used with an ``EvalCallback``"
+
+        continue_training = True
+
+        if self.n_calls > self.min_evals:
+            if self.parent.best_mean_reward > self.last_best_mean_reward:
+                self.no_improvement_evals = 0
+            else:
+                self.no_improvement_evals += 1
+                if self.no_improvement_evals > self.max_no_improvement_evals:
+                    continue_training = False
+
+        self.last_best_mean_reward = self.parent.best_mean_reward
+
+        if self.verbose > 0 and not continue_training:
+            print(
+                f"Stopping training because there was no new best model in the last {self.no_improvement_evals:d} evaluations"
+            )
+
+        return continue_training
 
 
 class MultiExtractor(BaseFeaturesExtractor):
