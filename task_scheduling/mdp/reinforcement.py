@@ -278,30 +278,32 @@ class ValidActorCriticPolicy(ActorCriticPolicy):
         else:
             self.infer_valid_mask = lambda obs: np.ones(self.observation_space.shape)
 
-    def _get_action_dist_from_latent_valid(self, obs, latent_pi, _latent_sde=None):  # added `obs` to signature
+    def _get_action_dist_from_latent_valid(self, obs, latent_pi):  # added `obs` to signature
         mean_actions = self.action_net(latent_pi)
         mean_actions = valid_logits(mean_actions, self.infer_valid_mask(obs))  # mask out invalid actions
         return self.action_dist.proba_distribution(action_logits=mean_actions)
 
     def forward(self, obs, deterministic=False):
-        latent_pi, latent_vf, latent_sde = self._get_latent(obs)
+        features = self.extract_features(obs)
+        latent_pi, latent_vf = self.mlp_extractor(features)
         values = self.value_net(latent_vf)
-        distribution = self._get_action_dist_from_latent_valid(obs, latent_pi, latent_sde)
+        distribution = self._get_action_dist_from_latent_valid(obs, latent_pi)
         actions = distribution.get_actions(deterministic=deterministic)
         log_prob = distribution.log_prob(actions)
         return actions, values, log_prob
 
-    def _predict(self, obs, deterministic=False):
-        latent_pi, _, latent_sde = self._get_latent(obs)
-        distribution = self._get_action_dist_from_latent_valid(obs, latent_pi, latent_sde)
-        return distribution.get_actions(deterministic=deterministic)
-
     def evaluate_actions(self, obs, actions):
-        latent_pi, latent_vf, latent_sde = self._get_latent(obs)
-        distribution = self._get_action_dist_from_latent_valid(obs, latent_pi, latent_sde)
+        features = self.extract_features(obs)
+        latent_pi, latent_vf = self.mlp_extractor(features)
+        distribution = self._get_action_dist_from_latent_valid(obs, latent_pi)
         log_prob = distribution.log_prob(actions)
         values = self.value_net(latent_vf)
         return values, log_prob, distribution.entropy()
+
+    def get_distribution(self, obs):
+        features = self.extract_features(obs)
+        latent_pi = self.mlp_extractor.forward_actor(features)
+        return self._get_action_dist_from_latent_valid(obs, latent_pi)
 
 
 class ValidQNetwork(QNetwork):
