@@ -1,5 +1,8 @@
-from collections import namedtuple
 
+from collections import namedtuple
+from pathlib import Path
+
+import dill
 import numpy as np
 import torch
 from gym import spaces
@@ -8,15 +11,7 @@ from stable_baselines3.common.callbacks import BaseCallback
 # from stable_baselines3.common.monitor import Monitor
 # from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines3.common.policies import ActorCriticPolicy
-# from stable_baselines3.common.preprocessing import get_flattened_obs_dim
-from stable_baselines3.common.torch_layers import (
-    BaseFeaturesExtractor,
-    # CombinedExtractor,
-    # FlattenExtractor,
-    # MlpExtractor,
-    # NatureCNN,
-    # create_mlp,
-)
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.dqn.policies import QNetwork, DQNPolicy
 from torch import nn
 
@@ -52,14 +47,6 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         'PPO': _default_tuple(PPO, {'policy': 'MlpPolicy', 'verbose': 1})
     }
 
-    do_monitor = False
-
-    def __init__(self, env, model, learn_params=None):  # TODO: remove `env` arg? Change inheritance?
-        super().__init__(env, model, learn_params)
-
-        # self.model = model
-        # self.env = env  # invokes setter
-
     @classmethod
     def make_model(cls, env, model_cls, model_kwargs=None, learn_params=None):
         if model_kwargs is None:
@@ -71,18 +58,13 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         model = model_cls(env=env, **model_kwargs)
         return cls(env, model, learn_params)
 
-    # @property
-    # def env(self):
-    #     return self.model.get_env()
-    #
-    # @env.setter
-    # def env(self, env):
-    #     if isinstance(env, envs.BaseEnv):
-    #         if self.do_monitor:
-    #             env = Monitor(env, str(self.log_dir))
-    #         self.model.set_env(env)
-    #     elif env is not None:
-    #         raise TypeError("Environment must be an instance of BaseEnv.")
+    @property
+    def env(self):
+        return self.model.get_env()
+
+    @env.setter
+    def env(self, env):
+        self.model.set_env(env)
 
     # def predict_prob(self, obs):
     #     return self.model.action_probability(obs)  # TODO: need `env.env_method` to access my reset?
@@ -94,12 +76,9 @@ class StableBaselinesScheduler(BaseLearningScheduler):
     def learn(self, n_gen_learn, verbose=0):
         # TODO: consider using `eval_env` argument to pass original env for `model.learn` call
 
-        total_timesteps = self.learn_params['max_epochs'] * n_gen_learn * self.env.steps_per_episode
+        total_timesteps = self.learn_params['max_epochs'] * n_gen_learn * self.env.action_space.n
         log_name = get_now() + '_' + self.model.__class__.__name__
         self.model.learn(total_timesteps, callback=self.learn_params['callback'], tb_log_name=log_name)
-
-        # if self.do_monitor:
-        #     plot_results([str(self.log_dir)], num_timesteps=None, x_axis='timesteps', task_name='Training history')
 
     def reset(self):
         self.model.policy.apply(reset_weights)
@@ -111,106 +90,32 @@ class StableBaselinesScheduler(BaseLearningScheduler):
                f"```\n" \
                f"- TB log: `{self.model.logger.dir}`"
 
-    # def save(self, save_path=None):
-    #     if save_path is None:
-    #         cls_str = self.model.__class__.__name__
-    #         save_path = f"temp/{cls_str}_{NOW_STR}"
-    #
-    #     save_path = Path.cwd() / 'agents' / save_path
-    #     save_path.parent.mkdir(parents=True, exist_ok=True)
-    #
-    #     self.model.save(str(save_path))
-    #
-    #     with save_path.parent.joinpath(save_path.stem + '_env').open(mode='wb') as fid:
-    #         env_ = self.env.env  # extract base env from Monitor
-    #         dill.dump(env_, fid)  # save environment
-    #
-    # @classmethod
-    # def load(cls, load_path, env=None, model_cls=None):
-    #     if model_cls is None:
-    #         cls_str = load_path.split('/')[-1].split('_')[0]
-    #         model_cls = cls.model_defaults[cls_str].cls
-    #     elif isinstance(model_cls, str):
-    #         model_cls = cls.model_defaults[model_cls].cls
-    #
-    #     load_path = Path.cwd() / 'agents' / load_path
-    #     model = model_cls.load(str(load_path))
-    #
-    #     try:
-    #         with load_path.parent.joinpath(load_path.stem + '_env').open(mode='rb') as fid:
-    #             env = dill.load(fid)
-    #     except FileNotFoundError:
-    #         pass
-    #
-    #     return cls(model, env)
+    def save(self, save_path):
+        save_path = Path(save_path)
 
-    # @classmethod
-    # def load_from_gen(cls, load_path, problem_gen, env_cls=Index, env_params=None, model_cls=None):
-    #     env = env_cls.from_problem_gen(problem_gen, env_params)
-    #     return cls.load(load_path, env, model_cls)
+        self.model.save(save_path)
 
-    # @classmethod
-    # def from_gen(cls, model, problem_gen, env_cls=Index, env_params=None):
-    #     env = env_cls.from_problem_gen(problem_gen, env_params)
-    #     return cls(model, env)
+        env_path = save_path.parent / f'{save_path.stem}.env'
+        with env_path.open(mode='wb') as fid:
+            dill.dump(self.env, fid)
 
-    # @classmethod
-    # def train_from_gen(cls, problem_gen, env_cls=envs.Seq, env_params=None, model_cls=None, model_params=None,
-    #                    n_episodes=0, save=False, save_path=None):
-    #     """
-    #     Create and train a reinforcement learning scheduler.
-    #
-    #     Parameters
-    #     ----------
-    #     problem_gen : generators.scheduling_problems.Base
-    #         Scheduling problem generation object.
-    #     env_cls : class, optional
-    #         Gym environment class.
-    #     env_params : dict, optional
-    #         Parameters for environment initialization.
-    #     model_cls : class, optional
-    #         RL model class.
-    #     model_params : dict, optional
-    #         RL model parameters.
-    #     n_episodes : int
-    #         Number of complete environment episodes used for training.
-    #     save : bool, optional
-    #         If True, the agent and environment are serialized.
-    #     save_path : str, optional
-    #         String representation of sub-directory to save to.
-    #
-    #     Returns
-    #     -------
-    #     StableBaselinesScheduler
-    #
-    #     """
-    #
-    #     # Create environment
-    #     if env_params is None:
-    #         env = env_cls(problem_gen)
-    #     else:
-    #         env = env_cls(problem_gen, **env_params)
-    #
-    #     # Create model
-    #     if model_params is None:
-    #         model_params = {}
-    #
-    #     if model_cls is None:
-    #         model_cls, model_params = cls.model_defaults['Random']
-    #     elif isinstance(model_cls, str):
-    #         model_cls, model_params_ = cls.model_defaults[model_cls]
-    #         model_params_.update(model_params)
-    #         model_params = model_params_
-    #
-    #     model = model_cls(env=env, **model_params)
-    #
-    #     # Create and train scheduler
-    #     scheduler = cls(model, env)
-    #     scheduler.learn(n_episodes)
-    #     if save:
-    #         scheduler.save(save_path)
-    #
-    #     return scheduler
+    @classmethod
+    def load(cls, load_path, model_cls=None, env=None, **kwargs):
+        load_path = Path(load_path)
+
+        if model_cls is None:
+            cls_str = load_path.stem.split('_')[0]
+            model_cls = cls.model_defaults[cls_str].cls
+        elif isinstance(model_cls, str):
+            model_cls = cls.model_defaults[model_cls].cls
+        model = model_cls.load(load_path)
+
+        if env is None:
+            env_path = load_path.parent / f'{load_path.stem}.env'
+            with env_path.open(mode='rb') as fid:
+                env = dill.load(fid)
+
+        return cls(env, model, **kwargs)
 
 
 class StopTrainingOnNoModelImprovement(BaseCallback):  # FIXME: copied from v1.15.0
