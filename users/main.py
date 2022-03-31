@@ -25,7 +25,7 @@ from task_scheduling.mdp.features import encode_discrete_features, param_feature
 from task_scheduling.mdp.supervised.torch import TorchScheduler, LitScheduler, MultiNet, VaryCNN
 from task_scheduling.mdp.supervised.torch.modules import build_mlp
 from task_scheduling.mdp.reinforcement import StableBaselinesScheduler, ValidActorCriticPolicy, MultiExtractor, \
-    ValidDQNPolicy
+    ValidDQNPolicy, StopTrainingOnNoModelImprovement
 
 
 np.set_printoptions(precision=3)
@@ -49,7 +49,7 @@ if seed is not None:
 
 # %% Define scheduling problem and algorithms
 
-problem_gen = problem_gens.Random.continuous_linear_drop(n_tasks=8, n_ch=2, ch_avail_lim=(0., 10.), rng=seed)
+# problem_gen = problem_gens.Random.continuous_linear_drop(n_tasks=8, n_ch=2, ch_avail_lim=(0., 10.), rng=seed)
 # problem_gen = problem_gens.Random.radar(n_tasks=8, n_ch=1, mode='track', rng=seed)
 # problem_gen = problem_gens.Random.discrete_linear_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
@@ -61,7 +61,7 @@ data_path = Path('../data/')
 
 
 dataset = 'continuous_linear_drop_c1t8'
-# problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
+problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
 temp_path = f'main_temp/'
 if isinstance(problem_gen, problem_gens.Dataset):
@@ -70,13 +70,11 @@ if isinstance(problem_gen, problem_gens.Dataset):
 
 # Algorithms
 
-# time_shift = True
-time_shift = False
+time_shift = True
+# time_shift = False
 masking = True
 # masking = False
 
-# TODO: try excluding slope feature for radar tasks!
-# TODO: target type categorical feature?
 
 features = param_features(problem_gen.task_gen, time_shift, masking)
 # features = features[1:]  # remove duration from `param_features` for radar
@@ -103,14 +101,14 @@ learn_params_torch = {
     'weight_func': None,  # TODO: use reward!?
     # 'weight_func': lambda o, a, r: r,
     # 'weight_func': lambda o, a, r: 1 - o['seq'].sum() / o['seq'].size,
-    'max_epochs': 1000,
+    'max_epochs': 2000,
     'shuffle': True,
 }
 
 model_kwargs = dict(
     optim_cls=optim.Adam,
-    optim_params={'lr': 1e-3},
-    # optim_params={'lr': 1e-4},
+    # optim_params={'lr': 1e-3},
+    optim_params={'lr': 1e-4},
 )
 
 module = MultiNet.mlp(env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_sizes_joint=[400])
@@ -124,7 +122,7 @@ torch_scheduler = TorchScheduler(env, module, **model_kwargs, learn_params=learn
 trainer_kwargs = dict(
     logger=TensorBoardLogger(temp_path + 'logs/lit/', name=now),
     checkpoint_callback=False,
-    callbacks=EarlyStopping('val_loss', min_delta=1e-3, patience=50),
+    callbacks=EarlyStopping('val_loss', min_delta=1e-3, patience=100),
     default_root_dir=temp_path + 'logs/lit/',
     gpus=torch.cuda.device_count(),
     # 'distributed_backend': 'ddp',
@@ -142,23 +140,23 @@ lit_scheduler = LitScheduler.from_module(env, module, model_kwargs, trainer_kwar
 random_agent = RandomAgent(env)
 
 # FIXME: imitation learning
-# TODO: stopping callbacks
 
 # check_env(env)
 
 learn_params_sb = {
     'max_epochs': 10000,  # TODO: check
+    # 'callback': StopTrainingOnNoModelImprovement(1000, verbose=1),
 }
 
-model_params = dict(
+model_kwargs = dict(
     policy=ValidActorCriticPolicy,
     policy_kwargs=dict(
-        # features_extractor_class=MultiExtractor.mlp,
-        # features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[]),
-        # net_arch=[400],
-        features_extractor_class=MultiExtractor.cnn,
-        features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[400]),
-        net_arch=[],
+        features_extractor_class=MultiExtractor.mlp,
+        features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[]),
+        net_arch=[400],
+        # features_extractor_class=MultiExtractor.cnn,
+        # features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[400]),
+        # net_arch=[],
         activation_fn=nn.ReLU,
         normalize_images=False,
         infer_valid_mask=env.infer_valid_mask,
@@ -167,9 +165,9 @@ model_params = dict(
     tensorboard_log=temp_path + 'logs/sb/',
     verbose=1,
 )
-# sb_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', model_params, learn_params_sb)
+sb_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', model_kwargs, learn_params_sb)
 
-# model_params = dict(
+# model_kwargs = dict(
 #     policy=ValidDQNPolicy,
 #     policy_kwargs=dict(
 #         features_extractor_class=MultiExtractor.mlp,
@@ -183,7 +181,7 @@ model_params = dict(
 #     tensorboard_log=temp_path + 'logs/sb/',
 #     verbose=1,
 # )
-# sb_scheduler = StableBaselinesScheduler.make_model(env, 'DQN_MLP', model_params, learn_params_sb)
+# sb_scheduler = StableBaselinesScheduler.make_model(env, 'DQN_MLP', model_kwargs, learn_params_sb)
 
 
 #
@@ -192,16 +190,16 @@ algorithms = np.array([
     # ('BB_p', partial(branch_bound_priority, heuristic=methodcaller('roll_out', inplace=False)), 1),
     # ('BB_p_ERT', partial(branch_bound_priority, heuristic=methodcaller('earliest_release', inplace=False)), 1),
     ('Random', random_sequencer, 10),
-    ('ERT', earliest_release, 10),
+    # ('ERT', earliest_release, 10),
     # ('Priority: drop loss', partial(priority_sorter, func=attrgetter('l_drop'), reverse=True), 10),
     # ('Priority', partial(priority_sorter, func=lambda task: task.slope - 1e-5 * task.t_release, reverse=True), 10),
     # *((f'MCTS: c={c}, t={t}', partial(mcts, max_runtime=3e-3, max_rollouts=None, c_explore=c, th_visit=t), 10)
     #   for c, t in product([0], [5, 10])),
-    ('MCTS', partial(mcts, max_runtime=6e-3, max_rollouts=None, c_explore=0, th_visit=5), 10),
+    # ('MCTS', partial(mcts, max_runtime=6e-3, max_rollouts=None, c_explore=0, th_visit=5), 10),
     # ('Random Agent', random_agent, 10),
     # ('Torch Policy', torch_scheduler, 10),
-    ('Lit Policy', lit_scheduler, 10),
-    # ('SB Agent', sb_scheduler, 10),
+    # ('Lit Policy', lit_scheduler, 10),
+    ('SB Agent', sb_scheduler, 10),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
 

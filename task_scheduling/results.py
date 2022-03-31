@@ -187,7 +187,7 @@ def _scatter_results(t_run, loss, label='Results', do_relative=False):
         __, ax_rel = plt.subplots(num=f'{label} (Relative)', clear=True)
         _scatter_loss_runtime(t_run[names], loss_rel[names],
                               ax=ax_rel,
-                              ax_kwargs={'ylabel': 'Excess Loss' + r' (\%)' if normalize else '',
+                              ax_kwargs={'ylabel': 'Excess Loss' + r' (%)' if normalize else '',
                                          # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
                                          }
                               )

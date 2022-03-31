@@ -222,7 +222,8 @@ class StopTrainingOnNoModelImprovement(BaseCallback):  # FIXME: copied from v1.1
         self.no_improvement_evals = 0
 
     def _on_step(self) -> bool:
-        assert self.parent is not None, "``StopTrainingOnNoModelImprovement`` callback must be used with an ``EvalCallback``"
+        assert self.parent is not None, "``StopTrainingOnNoModelImprovement`` callback must be used with an" \
+                                        " ``EvalCallback``"
 
         continue_training = True
 
@@ -238,7 +239,8 @@ class StopTrainingOnNoModelImprovement(BaseCallback):  # FIXME: copied from v1.1
 
         if self.verbose > 0 and not continue_training:
             print(
-                f"Stopping training because there was no new best model in the last {self.no_improvement_evals:d} evaluations"
+                f"Stopping training because there was no new best model in the last {self.no_improvement_evals:d}"
+                f" evaluations"
             )
 
         return continue_training
