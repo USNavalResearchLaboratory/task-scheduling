@@ -144,7 +144,7 @@ random_agent = RandomAgent(env)
 # check_env(env)
 
 learn_params_sb = {
-    'max_epochs': 10000,  # TODO: check
+    'max_epochs': 2000,  # TODO: check
     # 'callback': StopTrainingOnNoModelImprovement(1000, verbose=1),
 }
 
@@ -166,6 +166,12 @@ model_kwargs = dict(
     verbose=1,
 )
 sb_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', model_kwargs, learn_params_sb)
+
+# sb_name = 'models/PPO_temp.pkl'
+# sb_scheduler.save(sb_name)
+# del sb_scheduler
+# sb_scheduler = StableBaselinesScheduler.load(sb_name)
+
 
 # model_kwargs = dict(
 #     policy=ValidDQNPolicy,
@@ -204,7 +210,6 @@ algorithms = np.array([
 
 
 # %% Evaluate and record results
-# n_gen_learn = 1
 # n_gen_learn, n_gen = 9000, 1000
 n_gen_learn, n_gen = 900, 100
 # n_gen_learn = 900  # the number of problems generated for learning, per iteration

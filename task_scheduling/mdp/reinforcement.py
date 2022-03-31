@@ -1,4 +1,3 @@
-
 from collections import namedtuple
 from pathlib import Path
 
@@ -8,26 +7,16 @@ import torch
 from gym import spaces
 from stable_baselines3 import DQN, A2C, PPO
 from stable_baselines3.common.callbacks import BaseCallback
-# from stable_baselines3.common.monitor import Monitor
-# from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.dqn.policies import QNetwork, DQNPolicy
 from torch import nn
 
 from task_scheduling.base import get_now
-# from task_scheduling.mdp import environments as envs
 from task_scheduling.mdp.base import BaseLearning as BaseLearningScheduler
 from task_scheduling.mdp.supervised.torch import reset_weights, valid_logits
 from task_scheduling.mdp.supervised.torch.modules import build_mlp, build_cnn
 
-
-# class DummyVecTaskingEnv(DummyVecEnv):
-#     def reset(self, *args, **kwargs):
-#         for env_idx in range(self.num_envs):
-#             obs = self.envs[env_idx].reset(*args, **kwargs)
-#             self._save_obs(env_idx, obs)
-#         return self._obs_from_buf()
 
 _default_tuple = namedtuple('ModelDefault', ['cls', 'params'], defaults={})
 
@@ -66,16 +55,11 @@ class StableBaselinesScheduler(BaseLearningScheduler):
     def env(self, env):
         self.model.set_env(env)
 
-    # def predict_prob(self, obs):
-    #     return self.model.action_probability(obs)  # TODO: need `env.env_method` to access my reset?
-
     def predict(self, obs):
         action, _state = self.model.predict(obs, deterministic=True)
         return action
 
     def learn(self, n_gen_learn, verbose=0):
-        # TODO: consider using `eval_env` argument to pass original env for `model.learn` call
-
         total_timesteps = self.learn_params['max_epochs'] * n_gen_learn * self.env.action_space.n
         log_name = get_now() + '_' + self.model.__class__.__name__
         self.model.learn(total_timesteps, callback=self.learn_params['callback'], tb_log_name=log_name)

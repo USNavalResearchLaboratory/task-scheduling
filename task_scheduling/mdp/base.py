@@ -102,14 +102,6 @@ class BaseLearning(Base):
     def learn_params(self, params):
         self._learn_params.update(params)
 
-    # @abstractmethod
-    # def predict_prob(self, obs):
-    #     raise NotImplementedError
-
-    # @abstractmethod
-    # def predict(self, obs):
-    #     raise NotImplementedError
-
     @abstractmethod
     def learn(self, n_gen_learn, verbose=0):
         raise NotImplementedError
