@@ -111,8 +111,8 @@ class Scheduler(Base):
         do_tensorboard = self.learn_params['do_tensorboard']
         plot_history = self.learn_params['plot_history']
 
-        fit_params = {'batch_size': self.learn_params['batch_size_train'] * self.env.steps_per_episode,
-                      'validation_batch_size': self.learn_params['batch_size_val'] * self.env.steps_per_episode,
+        fit_params = {'batch_size': self.learn_params['batch_size_train'] * self.env.n_tasks,
+                      'validation_batch_size': self.learn_params['batch_size_val'] * self.env.n_tasks,
                       'epochs': self.learn_params['epochs'],
                       'shuffle': self.learn_params['shuffle'],
                       'callbacks': self.learn_params['callbacks'],

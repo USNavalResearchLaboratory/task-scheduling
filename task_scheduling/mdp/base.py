@@ -86,9 +86,8 @@ class BaseLearning(Base):
             Parameters used by the `learn` method.
 
         """
-        super().__init__(env)
-
         self.model = model
+        super().__init__(env)
 
         self._learn_params = self._learn_params_default.copy()
         if learn_params is None:

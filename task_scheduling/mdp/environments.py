@@ -49,7 +49,7 @@ class Base(Env, ABC):
             self.features = param_features(self.problem_gen.task_gen, time_shift, masking)
 
         if any(space.shape != () for space in self.features['space']):
-            raise ValueError("Features must be scalar valued")
+            raise NotImplementedError("Features must be scalar valued")
 
         self.normalize = normalize
         if self.normalize:
@@ -98,7 +98,6 @@ class Base(Env, ABC):
         )
 
         # Action space
-        self.steps_per_episode = None  # TODO: deprecate?
         self.action_space = None
 
     n_tasks = property(lambda self: self.problem_gen.n_tasks)
@@ -353,7 +352,7 @@ class Base(Env, ABC):
             # if verbose >= 1:
             #     print(f'Batch: {i_batch + 1}/{n_batch}', end='\n')
 
-            steps_total = batch_size * self.steps_per_episode
+            steps_total = batch_size * self.n_tasks
 
             if isinstance(self.observation_space, Dict):
                 # data = list(zip(*(np.empty((steps_total, *space.shape), dtype=space.dtype)
@@ -382,7 +381,7 @@ class Base(Env, ABC):
                 done = False
                 i_step = 0
                 while not done:
-                    i = i_gen * self.steps_per_episode + i_step
+                    i = i_gen * self.n_tasks + i_step
 
                     action = self.opt_action()
 
@@ -431,7 +430,6 @@ class Index(Base):
         super().__init__(problem_gen, features, normalize, sort_func, time_shift, masking)
 
         # Action space
-        self.steps_per_episode = self.n_tasks
         self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)  # TODO: necessary with valid models?
 
     def _update_spaces(self):

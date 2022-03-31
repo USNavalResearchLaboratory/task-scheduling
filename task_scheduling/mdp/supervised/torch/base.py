@@ -195,11 +195,11 @@ class Base(BaseSupervisedScheduler):
         # tensors_val = [t.to(device) for t in tensors_val]
 
         ds_train = TensorDataset(*tensors_train)
-        dl_train = DataLoader(ds_train, batch_size=self.learn_params['batch_size_train'] * self.env.steps_per_episode,
+        dl_train = DataLoader(ds_train, batch_size=self.learn_params['batch_size_train'] * self.env.n_tasks,
                               shuffle=self.learn_params['shuffle'], pin_memory=pin_memory, num_workers=num_workers)
 
         ds_val = TensorDataset(*tensors_val)
-        dl_val = DataLoader(ds_val, batch_size=self.learn_params['batch_size_val'] * self.env.steps_per_episode,
+        dl_val = DataLoader(ds_val, batch_size=self.learn_params['batch_size_val'] * self.env.n_tasks,
                             shuffle=False, pin_memory=pin_memory, num_workers=num_workers)
 
         self._fit(dl_train, dl_val, verbose)
@@ -209,9 +209,8 @@ class Base(BaseSupervisedScheduler):
 
         save_path = Path(save_path)
         env_path = save_path.parent / f'{save_path.stem}.env'
-
         with env_path.open(mode='wb') as fid:
-            dill.dump(self.env, fid)  # save environment
+            dill.dump(self.env, fid)
 
     @classmethod
     def load(cls, load_path, env=None, **kwargs):
