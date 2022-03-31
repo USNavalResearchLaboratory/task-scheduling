@@ -205,4 +205,4 @@ class DiscreteMasked(Discrete):
         return f"DiscreteMasked({self.n}, mask={self.mask})"
 
     def __eq__(self, other):
-        return isinstance(other, DiscreteMasked) and self._ma == other._ma
+        return isinstance(other, DiscreteMasked) and (self._ma == other._ma).all()
