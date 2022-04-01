@@ -28,10 +28,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
     }
 
     model_defaults = {
-        # 'Random': _default_tuple(RandomAgent, {}),
-        'DQN_MLP': _default_tuple(DQN, {'policy': 'MlpPolicy', 'verbose': 1}),
-        'DQN_LN': _default_tuple(DQN, {'policy': 'LnMlpPolicy', 'verbose': 1}),
-        'DQN_CNN': _default_tuple(DQN, {'policy': 'CnnPolicy', 'verbose': 1}),
+        'DQN': _default_tuple(DQN, {'policy': 'MlpPolicy', 'verbose': 1}),
         'A2C': _default_tuple(A2C, {'policy': 'MlpPolicy', 'verbose': 1}),
         'PPO': _default_tuple(PPO, {'policy': 'MlpPolicy', 'verbose': 1})
     }
@@ -46,14 +43,17 @@ class StableBaselinesScheduler(BaseLearningScheduler):
 
         model = model_cls(env=env, **model_kwargs)
         return cls(env, model, learn_params)
+        # return cls(model.env, model, learn_params)
 
     @property
     def env(self):
-        return self.model.get_env()
+        # return self.model.get_env()
+        return self.model.get_env().envs[0].env  # unwrap vectorized, monitored environment
 
     @env.setter
     def env(self, env):
-        self.model.set_env(env)
+        # self.model.set_env(env)
+        self.model.get_env().envs[0].env = env
 
     def predict(self, obs):
         action, _state = self.model.predict(obs, deterministic=True)
