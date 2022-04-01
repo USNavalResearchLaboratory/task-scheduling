@@ -14,6 +14,8 @@ class Base(ABC):
             OpenAi gym environment.
 
         """
+        if not isinstance(env, BaseEnv):
+            raise TypeError(f"`env` must be of type BaseEnv, got {type(env)}")
         self.env = env
 
     def __call__(self, tasks, ch_avail):
