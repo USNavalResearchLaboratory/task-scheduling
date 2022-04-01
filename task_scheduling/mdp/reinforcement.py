@@ -102,39 +102,6 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         return cls(env, model, **kwargs)
 
 
-class StopTrainingOnNoModelImprovement(BaseCallback):  # FIXME: copied from v1.15.0
-    def __init__(self, max_no_improvement_evals, min_evals=0, verbose=0):
-        super(StopTrainingOnNoModelImprovement, self).__init__(verbose=verbose)
-        self.max_no_improvement_evals = max_no_improvement_evals
-        self.min_evals = min_evals
-        self.last_best_mean_reward = -np.inf
-        self.no_improvement_evals = 0
-
-    def _on_step(self) -> bool:
-        assert self.parent is not None, "``StopTrainingOnNoModelImprovement`` callback must be used with an" \
-                                        " ``EvalCallback``"
-
-        continue_training = True
-
-        if self.n_calls > self.min_evals:
-            if self.parent.best_mean_reward > self.last_best_mean_reward:
-                self.no_improvement_evals = 0
-            else:
-                self.no_improvement_evals += 1
-                if self.no_improvement_evals > self.max_no_improvement_evals:
-                    continue_training = False
-
-        self.last_best_mean_reward = self.parent.best_mean_reward
-
-        if self.verbose > 0 and not continue_training:
-            print(
-                f"Stopping training because there was no new best model in the last {self.no_improvement_evals:d}"
-                f" evaluations"
-            )
-
-        return continue_training
-
-
 class MultiExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space: spaces.Dict, net_ch, net_tasks):
         super().__init__(observation_space, features_dim=1)  # `features_dim` must be overridden
