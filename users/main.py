@@ -14,6 +14,9 @@ from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import EarlyStopping
 from stable_baselines3.common.env_checker import check_env
+from stable_baselines3 import PPO
+from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnNoModelImprovement
 
 from task_scheduling.base import get_now
 from task_scheduling.algorithms import mcts, random_sequencer, earliest_release, priority_sorter
@@ -25,7 +28,7 @@ from task_scheduling.mdp.features import encode_discrete_features, param_feature
 from task_scheduling.mdp.supervised.torch import TorchScheduler, LitScheduler, MultiNet, VaryCNN
 from task_scheduling.mdp.supervised.torch.modules import build_mlp
 from task_scheduling.mdp.reinforcement import StableBaselinesScheduler, ValidActorCriticPolicy, MultiExtractor, \
-    ValidDQNPolicy, StopTrainingOnNoModelImprovement
+    ValidDQNPolicy
 
 
 np.set_printoptions(precision=3)
@@ -145,7 +148,9 @@ random_agent = RandomAgent(env)
 
 learn_params_sb = {
     'max_epochs': 2000,  # TODO: check
-    # 'callback': StopTrainingOnNoModelImprovement(1000, verbose=1),
+    # 'callback': EvalCallback(eval_env, eval_freq=1000,
+    #                          callback_after_eval=StopTrainingOnNoModelImprovement(1000, verbose=1),
+    #                          verbose=1),  # FIXME
 }
 
 model_kwargs = dict(
@@ -165,12 +170,8 @@ model_kwargs = dict(
     tensorboard_log=temp_path + 'logs/sb/',
     verbose=1,
 )
+# sb_env = make_vec_env(env, n_envs=1)
 sb_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', model_kwargs, learn_params_sb)
-
-# sb_name = 'models/PPO_temp.pkl'
-# sb_scheduler.save(sb_name)
-# del sb_scheduler
-# sb_scheduler = StableBaselinesScheduler.load(sb_name)
 
 
 # model_kwargs = dict(
