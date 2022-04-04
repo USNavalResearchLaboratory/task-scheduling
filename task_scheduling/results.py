@@ -44,7 +44,7 @@ def _file_logger(file, file_format):
         yield logger
 
 
-def _log_and_fig(message, log_path, ax, img_path):
+def _log_and_fig(message, log_path, fig, img_path):
     """Save figure, add figure to message format and log."""
 
     log_path = Path(log_path)
@@ -53,7 +53,6 @@ def _log_and_fig(message, log_path, ax, img_path):
         img_path = Path(img_path)
         img_path.parent.mkdir(parents=True, exist_ok=True)
 
-        fig = ax.figure
         fig.savefig(img_path)
         fig.savefig(img_path.parent / f"{img_path.stem}.png")  # save PNG for Markdown log
         if pickle_figs:
@@ -69,7 +68,7 @@ def _log_and_fig(message, log_path, ax, img_path):
         logger_.info(message)
 
 
-def _log_helper(problem_obj, learners, loss, t_run, solve, log_path, ax, img_path, rng, n_gen_learn=None, n_mc=None):
+def _log_helper(problem_obj, learners, loss, t_run, solve, log_path, fig, img_path, rng, n_gen_learn=None, n_mc=None):
     message = f'- Seed = {rng}'
     if n_gen_learn is not None:
         message += f'\n- Training problems: {n_gen_learn}'
@@ -91,7 +90,7 @@ def _log_helper(problem_obj, learners, loss, t_run, solve, log_path, ax, img_pat
     message += '\n\n## Results'
     message += f"\n{_print_averages(loss, t_run, do_relative=solve)}"
 
-    _log_and_fig(message, log_path, ax, img_path)
+    _log_and_fig(message, log_path, fig, img_path)
 
 
 # Utilities
@@ -169,8 +168,41 @@ def _scatter_loss_runtime(t_run, loss, ax=None, ax_kwargs=None):
     ax.set(**ax_kwargs)
 
 
+# def _scatter_results(t_run, loss, label='Results', do_relative=False):
+#     if do_relative:  # relative to B&B
+#         figsize = plt.rcParams['figure.figsize']
+#         with plt.rc_context({'figure.figsize': [figsize[0], 2 * figsize[1]]}):
+#             fig, ax = plt.subplots(2, num=label, clear=True)
+#
+#         _scatter_loss_runtime(t_run, loss,
+#                               ax=ax[0],
+#                               # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
+#                               )
+#
+#         normalize = True
+#         # normalize = False
+#
+#         loss_rel = _relative_loss(loss, normalize)
+#
+#         names = list(loss.dtype.names)
+#         names.remove(opt_name)
+#         _scatter_loss_runtime(t_run[names], loss_rel[names],
+#                               ax=ax[1],
+#                               ax_kwargs={'ylabel': 'Excess Loss' + r' (%)' if normalize else '',
+#                                          # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
+#                                          }
+#                               )
+#     else:
+#         fig, ax = plt.subplots(num=label, clear=True)
+#         _scatter_loss_runtime(t_run, loss,
+#                               ax=ax,
+#                               # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
+#                               )
+#
+#     return fig
+
 def _scatter_results(t_run, loss, label='Results', do_relative=False):
-    __, ax = plt.subplots(num=label, clear=True)
+    fig, ax = plt.subplots(num=label, clear=True)
     _scatter_loss_runtime(t_run, loss,
                           ax=ax,
                           # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
@@ -184,7 +216,7 @@ def _scatter_results(t_run, loss, label='Results', do_relative=False):
 
         names = list(loss.dtype.names)
         names.remove(opt_name)
-        __, ax_rel = plt.subplots(num=f'{label} (Relative)', clear=True)
+        fig_rel, ax_rel = plt.subplots(num=f'{label} (Relative)', clear=True)
         _scatter_loss_runtime(t_run[names], loss_rel[names],
                               ax=ax_rel,
                               ax_kwargs={'ylabel': 'Excess Loss' + r' (%)' if normalize else '',
@@ -192,7 +224,9 @@ def _scatter_results(t_run, loss, label='Results', do_relative=False):
                                          }
                               )
 
-    return ax
+        return fig_rel  # TODO
+
+    return fig
 
 
 def _print_averages(loss, t_run, do_relative=False):
@@ -319,13 +353,13 @@ def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0
 
     # Results
     if plotting >= 1:
-        ax = _scatter_results(t_run_iter, loss_iter, label='Problem', do_relative=solve)
+        fig = _scatter_results(t_run_iter, loss_iter, label='Problem', do_relative=solve)
     else:
-        ax, img_path = None, None
+        fig, img_path = None, None
 
     # Logging
     if verbose >= 1:
-        _log_helper(problem, learners, loss_iter, t_run_iter, solve, log_path, ax, img_path, rng)
+        _log_helper(problem, learners, loss_iter, t_run_iter, solve, log_path, fig, img_path, rng)
 
     return loss_iter, t_run_iter
 
@@ -426,13 +460,13 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, n_gen_learn=0, sol
 
     # Results
     if plotting >= 1:
-        ax = _scatter_results(t_run_mean, loss_mean, label='Gen', do_relative=solve)
+        fig = _scatter_results(t_run_mean, loss_mean, label='Gen', do_relative=solve)
     else:
-        ax, img_path = None, None
+        fig, img_path = None, None
 
     # Logging
     if verbose >= 1:
-        _log_helper(problem_gen, learners, loss_mean, t_run_mean, solve, log_path, ax, img_path, rng, n_gen_learn)
+        _log_helper(problem_gen, learners, loss_mean, t_run_mean, solve, log_path, fig, img_path, rng, n_gen_learn)
 
     return loss_mean, t_run_mean
 
@@ -520,12 +554,12 @@ def evaluate_algorithms_train(algorithms, problem_gen, n_gen=1, n_gen_learn=0, n
 
     # Results
     if plotting >= 1:
-        ax = _scatter_results(t_run_mc, loss_mc, label='Train', do_relative=solve)
+        fig = _scatter_results(t_run_mc, loss_mc, label='Train', do_relative=solve)
     else:
-        ax, img_path = None, None
+        fig, img_path = None, None
 
     # Logging
     if verbose >= 1:
-        _log_helper(problem_gen, learners, loss_mc, t_run_mc, solve, log_path, ax, img_path, rng, n_gen_learn, n_mc)
+        _log_helper(problem_gen, learners, loss_mc, t_run_mc, solve, log_path, fig, img_path, rng, n_gen_learn, n_mc)
 
     return loss_mc, t_run_mc
