@@ -197,9 +197,9 @@ class Base(Env, ABC):
         Parameters
         ----------
         tasks : Collection of task_scheduling.tasks.Base, optional
-            Optional task set for non-random reset.
+            Task set for non-random reset.
         ch_avail : Collection of float, optional
-            Optional initial channel availabilities for non-random reset.
+            Initial channel availabilities for non-random reset.
         solve : bool
             Solves for and stores the Branch & Bound optimal schedule.
         rng : int or RandomState or Generator, optional
@@ -430,7 +430,7 @@ class Index(Base):
         super().__init__(problem_gen, features, normalize, sort_func, time_shift, masking)
 
         # Action space
-        self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)  # TODO: necessary with valid models?
+        self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)
 
     def _update_spaces(self):
         """Update observation and action spaces."""

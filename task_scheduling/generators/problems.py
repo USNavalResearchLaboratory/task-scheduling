@@ -365,7 +365,7 @@ class Dataset(Base):
         super().__init__(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
         self.stack = deque()
-        self.add_problems(problems, solutions)
+        self.add(problems, solutions)
 
         if shuffle:
             self.shuffle()
@@ -388,7 +388,7 @@ class Dataset(Base):
                   'ch_avail_gen': dict_gen['ch_avail_gen'], 'rng': rng}
         return cls(*args, **kwargs)
 
-    def pop_dataset(self, n, shuffle=False, repeat=False, rng=None):
+    def split(self, n, shuffle=False, repeat=False, rng=None):
         """Create a new Dataset from elements of own queue."""
 
         if isinstance(n, float):  # interpret as fraction of total problems
@@ -398,7 +398,7 @@ class Dataset(Base):
         problems, solutions = zip(*items)
         return Dataset(problems, solutions, shuffle, repeat, self.task_gen, self.ch_avail_gen, rng)
 
-    def add_problems(self, problems, solutions=None):
+    def add(self, problems, solutions=None):
         """Add problems and solutions to the data set."""
 
         if solutions is None:

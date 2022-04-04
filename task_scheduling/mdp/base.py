@@ -113,9 +113,8 @@ class BaseLearning(Base):
         raise NotImplementedError
 
     def summary(self):
-        str_model = f"\n\n" \
-                    f"Model:\n" \
-                    f"{self._print_model()}"
+        str_model = f"Model:" \
+                    f"\n{self._print_model()}"
         return super().summary() + '\n\n' + str_model
 
     def _print_model(self):
