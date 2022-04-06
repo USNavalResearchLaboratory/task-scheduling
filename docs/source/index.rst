@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Task Scheduling's documentation!
-===========================================
+Task Scheduling package documentation
+=====================================
 
 This package provides a framework for implementing task scheduling algorithms and assessing their performance. It
 includes traditional schedulers as well as both supervised and reinforcement learning schedulers.
@@ -16,7 +16,7 @@ includes traditional schedulers as well as both supervised and reinforcement lea
    :maxdepth: 5
    :caption: Contents:
 
-   modules
+   task_scheduling
 
 Indices and tables
 ==================
