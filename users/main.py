@@ -25,7 +25,7 @@ from task_scheduling.results import evaluate_algorithms_train, evaluate_algorith
 from task_scheduling.mdp.base import RandomAgent
 from task_scheduling.mdp.environments import Index
 from task_scheduling.mdp.features import encode_discrete_features, param_features
-from task_scheduling.mdp.supervised.torch import TorchScheduler, LitScheduler, MultiNet, VaryCNN
+from task_scheduling.mdp.supervised.torch import TorchScheduler, LitScheduler, MultiNet, VaryCNN, valid_logits
 from task_scheduling.mdp.supervised.torch.modules import build_mlp
 from task_scheduling.mdp.reinforcement import StableBaselinesScheduler, ValidActorCriticPolicy, MultiExtractor, \
     ValidDQNPolicy
@@ -52,7 +52,7 @@ if seed is not None:
 
 # %% Define scheduling problem and algorithms
 
-# problem_gen = problem_gens.Random.continuous_linear_drop(n_tasks=8, n_ch=2, ch_avail_lim=(0., 10.), rng=seed)
+problem_gen = problem_gens.Random.continuous_linear_drop(n_tasks=8, n_ch=1, ch_avail_lim=(0., 0.), rng=seed)
 # problem_gen = problem_gens.Random.radar(n_tasks=8, n_ch=1, mode='track', rng=seed)
 # problem_gen = problem_gens.Random.discrete_linear_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
@@ -64,11 +64,13 @@ data_path = Path('../data/')
 
 
 dataset = 'continuous_linear_drop_c1t8'
-problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
+# problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
 temp_path = f'main_temp/'
-if isinstance(problem_gen, problem_gens.Dataset):
+if isinstance(problem_gen, problem_gens.Dataset):  # TODO: give generators a `name` attribute?
     temp_path += f'{dataset}/'
+else:
+    temp_path += 'other/'
 
 
 # Algorithms
@@ -147,13 +149,14 @@ random_agent = RandomAgent(env)
 # check_env(env)
 
 learn_params_sb = {
-    'max_epochs': 2000,  # TODO: check
-    # 'callback': EvalCallback(eval_env, eval_freq=1000,
-    #                          callback_after_eval=StopTrainingOnNoModelImprovement(1000, verbose=1),
-    #                          verbose=1),  # FIXME
+    'n_gen_val': 1/3,
+    # 'max_epochs': 2000,
+    'max_epochs': 1,
+    'eval_callback_kwargs': dict(callback_after_eval=StopTrainingOnNoModelImprovement(1000, min_evals=0, verbose=1),
+                                 n_eval_episodes=100, eval_freq=1000, verbose=1),
 }
 
-model_kwargs = dict(
+sb_model_kwargs = dict(
     policy=ValidActorCriticPolicy,
     policy_kwargs=dict(
         features_extractor_class=MultiExtractor.mlp,
@@ -166,12 +169,37 @@ model_kwargs = dict(
         normalize_images=False,
         infer_valid_mask=env.infer_valid_mask,
     ),
+    # learning_rate=3e-12,
     n_steps=2048,  # TODO: investigate problem reuse
     tensorboard_log=temp_path + 'logs/sb/',
     verbose=1,
 )
-# sb_env = make_vec_env(env, n_envs=1)
-sb_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', model_kwargs, learn_params_sb)
+sb_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', sb_model_kwargs, learn_params_sb)
+
+
+# Behavioral cloning attempt
+class SLPolicy(nn.Module):
+    def __init__(self, policy):
+        super().__init__()
+        self.policy = policy
+
+    def forward(self, ch_avail, seq, tasks):
+        obs = dict(ch_avail=ch_avail, seq=seq, tasks=tasks)
+        features_ = self.policy.extract_features(obs)
+        latent_pi, _latent_vf = self.policy.mlp_extractor(features_)
+        mean_actions = self.policy.action_net(latent_pi)
+        mean_actions = valid_logits(mean_actions, self.policy.infer_valid_mask(obs))
+        return mean_actions
+
+
+# bc_module = SLPolicy(sb_scheduler.model.policy)
+# bc_scheduler = LitScheduler.from_module(env, bc_module, model_kwargs, trainer_kwargs=trainer_kwargs,
+#                                         learn_params=learn_params_torch)
+
+# # FIXME: train/test leakage?
+# bc_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', sb_model_kwargs, learn_params_sb)
+# bc_scheduler.model.policy.load_state_dict(torch.load('../models/imitate.pkl'))
+# bc_scheduler.model.policy.eval()
 
 
 # model_kwargs = dict(
@@ -207,12 +235,13 @@ algorithms = np.array([
     # ('Torch Policy', torch_scheduler, 10),
     # ('Lit Policy', lit_scheduler, 10),
     ('SB Agent', sb_scheduler, 10),
+    # ('BC', bc_scheduler, 10),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
 
 # %% Evaluate and record results
-# n_gen_learn, n_gen = 9000, 1000
-n_gen_learn, n_gen = 900, 100
+n_gen_learn, n_gen = 300000, 100
+# n_gen_learn, n_gen = 900, 100
 # n_gen_learn = 900  # the number of problems generated for learning, per iteration
 # n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment

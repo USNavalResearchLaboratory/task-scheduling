@@ -1,3 +1,4 @@
+import math
 from collections import namedtuple
 from pathlib import Path
 
@@ -6,7 +7,8 @@ import numpy as np
 import torch
 from gym import spaces
 from stable_baselines3 import DQN, A2C, PPO
-from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.callbacks import EvalCallback
+from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.dqn.policies import QNetwork, DQNPolicy
@@ -14,6 +16,7 @@ from torch import nn
 
 from task_scheduling.base import get_now
 from task_scheduling.mdp.base import BaseLearning as BaseLearningScheduler
+from task_scheduling.mdp.environments import Index
 from task_scheduling.mdp.supervised.torch import reset_weights, valid_logits
 from task_scheduling.mdp.supervised.torch.modules import build_mlp, build_cnn
 
@@ -23,8 +26,9 @@ _default_tuple = namedtuple('ModelDefault', ['cls', 'params'], defaults={})
 
 class StableBaselinesScheduler(BaseLearningScheduler):
     _learn_params_default = {
+        'n_gen_val': 0,
         'max_epochs': 1,
-        'callback': None,
+        'eval_callback_kwargs': None,
     }
 
     model_defaults = {
@@ -60,19 +64,41 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         return action
 
     def learn(self, n_gen_learn, verbose=0):
-        total_timesteps = self.learn_params['max_epochs'] * n_gen_learn * self.env.action_space.n
+
+        n_gen_val = self.learn_params['n_gen_val']
+        if isinstance(n_gen_val, float) and n_gen_val < 1:  # convert fraction to number of problems
+            n_gen_val = math.floor(n_gen_learn * n_gen_val)
+        n_gen_train = n_gen_learn - n_gen_val
+
+        total_timesteps = self.learn_params['max_epochs'] * n_gen_train * self.env.action_space.n
+
+        if n_gen_val > 0:
+            problem_gen_val = self.env.problem_gen.split(n_gen_val, shuffle=True, repeat=True)
+            eval_env = Index(problem_gen_val, self.env.features, self.env.normalize, self.env.sort_func,
+                             self.env.time_shift, self.env.masking)
+            eval_env = Monitor(eval_env)
+            callback = EvalCallback(eval_env, **self.learn_params['eval_callback_kwargs'])
+        else:
+            callback = None
+
         log_name = get_now() + '_' + self.model.__class__.__name__
-        self.model.learn(total_timesteps, callback=self.learn_params['callback'], tb_log_name=log_name)
+        self.model.learn(total_timesteps, callback=callback, tb_log_name=log_name)
+
+        # total_timesteps = self.learn_params['max_epochs'] * n_gen_learn * self.env.action_space.n
+        # self.model.learn(total_timesteps, tb_log_name=log_name)
 
     def reset(self):
         self.model.policy.apply(reset_weights)
 
     def _print_model(self):
-        return f"{self.model.__class__.__name__}\n" \
-               f"```\n" \
-               f"{str(self.model.policy)}\n" \
-               f"```\n" \
-               f"- TB log: `{self.model.logger.dir}`"
+        model_str = f"{self.model.__class__.__name__}\n" \
+                    f"```\n" \
+                    f"{str(self.model.policy)}\n" \
+                    f"```"
+        if self.model.logger is not None:
+            model_str += f"\n- TB log: `{self.model.logger.dir}`"
+
+        return model_str
 
     def save(self, save_path):
         save_path = Path(save_path)
