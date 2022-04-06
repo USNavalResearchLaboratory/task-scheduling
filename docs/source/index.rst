@@ -16,7 +16,7 @@ includes traditional schedulers as well as both supervised and reinforcement lea
    :maxdepth: 5
    :caption: Contents:
 
-   source/modules
+   modules
 
 Indices and tables
 ==================
