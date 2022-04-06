@@ -47,7 +47,6 @@ def _file_logger(file, file_format):
 def _log_and_fig(message, log_path, fig, img_path):
     """Save figure, add figure to message format and log."""
 
-    log_path = Path(log_path)
     file_format = '\n# %(asctime)s\n%(message)s\n'
     if img_path is not None:
         img_path = Path(img_path)
@@ -60,9 +59,10 @@ def _log_and_fig(message, log_path, fig, img_path):
             with open(mpl_file, 'wb') as f:
                 pickle.dump(fig, f)
 
-        img_path_rel = img_path.relative_to(log_path.parent)
-        img_path_png = img_path_rel.parent / f"{img_path_rel.stem}.png"
-        file_format += f"\n![]({img_path_png.as_posix()})\n"
+        if log_path is not None:
+            img_path_rel = img_path.relative_to(Path(log_path).parent)
+            img_path_png = img_path_rel.parent / f"{img_path_rel.stem}.png"
+            file_format += f"\n![]({img_path_png.as_posix()})\n"
 
     with _file_logger(log_path, file_format) as logger_:
         logger_.info(message)
@@ -185,9 +185,15 @@ def _scatter_loss_runtime(t_run, loss, ax=None, ax_kwargs=None):
 #
 #         names = list(loss.dtype.names)
 #         names.remove(opt_name)
+#         ylabel = 'Excess Loss'
+#         if normalize:
+#             if plt.rcParams['text.usetex']:
+#                 ylabel += r' (\%)'
+#             else:
+#                 ylabel += r' (%)'
 #         _scatter_loss_runtime(t_run[names], loss_rel[names],
 #                               ax=ax[1],
-#                               ax_kwargs={'ylabel': 'Excess Loss' + r' (%)' if normalize else '',
+#                               ax_kwargs={'ylabel': ylabel,
 #                                          # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
 #                                          }
 #                               )
@@ -215,9 +221,15 @@ def _scatter_results(t_run, loss, label='Results', do_relative=False):
         names = list(loss.dtype.names)
         names.remove(opt_name)
         fig_rel, ax_rel = plt.subplots(num=f'{label} (Relative)', clear=True)
+        ylabel = 'Excess Loss'
+        if normalize:
+            if plt.rcParams['text.usetex']:
+                ylabel += r' (\%)'
+            else:
+                ylabel += r' (%)'
         _scatter_loss_runtime(t_run[names], loss_rel[names],
                               ax=ax_rel,
-                              ax_kwargs={'ylabel': 'Excess Loss' + r' (%)' if normalize else '',
+                              ax_kwargs={'ylabel': ylabel,
                                          # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
                                          }
                               )
