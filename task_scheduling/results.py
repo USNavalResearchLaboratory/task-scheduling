@@ -180,7 +180,6 @@ def _scatter_loss_runtime(t_run, loss, ax=None, ax_kwargs=None):
 #                               )
 #
 #         normalize = True
-#         # normalize = False
 #
 #         loss_rel = _relative_loss(loss, normalize)
 #
@@ -210,7 +209,6 @@ def _scatter_results(t_run, loss, label='Results', do_relative=False):
 
     if do_relative:  # relative to B&B
         normalize = True
-        # normalize = False
 
         loss_rel = _relative_loss(loss, normalize)
 
@@ -247,11 +245,6 @@ def _print_averages(loss, t_run, do_relative=False):
     df_str = df.to_markdown(tablefmt='github', floatfmt='.3f')
 
     return df_str
-
-    # print(df_str, end='\n\n')
-    # if log_path is not None:
-    #     with open(log_path, 'a') as fid:
-    #         print(df_str, end='\n\n', file=fid)
 
 
 # RNG handling

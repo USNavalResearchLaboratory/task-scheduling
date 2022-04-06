@@ -17,7 +17,7 @@ class Base(ABC):
     duration : float
         Time duration of the task.
     t_release : float
-        Earliest time the task may be scheduled.
+        The earliest time the task may be scheduled.
 
     """
 
@@ -34,7 +34,7 @@ class Base(ABC):
 
     @abstractmethod
     def __call__(self, t):
-        """Loss function versus time."""
+        """The loss function versus time."""
         raise NotImplementedError
 
     def __str__(self):
@@ -62,13 +62,6 @@ class Base(ABC):
         str_ = f"{self.__class__.__name__}"
         str_ += '\n' + self.to_series(name='value').to_markdown(tablefmt='github', floatfmt='.3f')
         return str_
-
-    # def feature_gen(self, *funcs):
-    #     """Generate features from input functions. Defaults to the parametric representation."""
-    #     if len(funcs) > 0:
-    #         return [func(self) for func in funcs]
-    #     else:   # default, return task parameters
-    #         return list(self.params.values())
 
     @property
     def plot_lim(self):
@@ -116,7 +109,7 @@ class Generic(Base):
     duration : float
         Time duration of the task.
     t_release : float
-        Earliest time the task may be scheduled.
+        The earliest time the task may be scheduled.
     loss_func : function, optional
         Maps execution time to scheduling loss.
 
@@ -131,14 +124,8 @@ class Generic(Base):
             self.loss_func = loss_func
 
     def __call__(self, t):
-        """Loss function versus time."""
+        """The loss function versus time."""
         return self.loss_func(t)
-
-    # def __eq__(self, other):
-    #     if isinstance(other, Generic):
-    #         return self.params == other.params and self.loss_func == other.loss_func
-    #     else:
-    #         return NotImplemented
 
 
 class Shift(Base):
@@ -146,11 +133,22 @@ class Shift(Base):
 
     @abstractmethod
     def __call__(self, t):
-        """Loss function versus time."""
+        """The loss function versus time."""
         raise NotImplementedError
 
-    @abstractmethod
     def shift_origin(self, t):
+        t_excess = t - self.t_release
+        self.t_release = max(0., -t_excess)
+        if self.t_release == 0.:  # loss is incurred, drop time and loss are updated
+            loss_inc = self(t_excess)
+            self._shift(t_excess, loss_inc)
+
+            return loss_inc
+        else:
+            return 0.  # no loss incurred
+
+    @abstractmethod
+    def _shift(self, t_excess, loss_inc):
         raise NotImplementedError
 
 
@@ -185,7 +183,7 @@ class Shift(Base):
 #         self._check_params()
 #
 #     def __call__(self, t):
-#         """Loss function versus time."""
+#         """The loss function versus time."""
 #
 #         t = np.array(t, dtype=float)
 #         t -= self.t_release  # relative time
@@ -286,7 +284,7 @@ class PiecewiseLinear(Shift):
         self._check_non_decreasing()
 
     def __call__(self, t):
-        """Loss function versus time."""
+        """The loss function versus time."""
 
         t = np.array(t, dtype=float)
         t -= self.t_release  # relative time
@@ -339,24 +337,35 @@ class PiecewiseLinear(Shift):
             if l_c < l_d:
                 raise ValueError(f"Loss decreases from {l_d} to {l_c} at discontinuity.")
 
-    def shift_origin(self, t):
-        t_excess = t - self.t_release
-        self.t_release = max(0., -t_excess)
-        if self.t_release == 0.:  # loss is incurred, drop time and loss are updated
-            loss_inc = self(t_excess)
-            for i, c in enumerate(self.corners):
-                c[0] = max(0., c[0] - t_excess)
-                c[1] = max(0., c[1] - loss_inc)
+    # def shift_origin(self, t):
+    #     t_excess = t - self.t_release
+    #     self.t_release = max(0., -t_excess)
+    #     if self.t_release == 0.:  # loss is incurred, drop time and loss are updated
+    #         loss_inc = self(t_excess)
+    #         for i, c in enumerate(self.corners):
+    #             c[0] = max(0., c[0] - t_excess)
+    #             c[1] = max(0., c[1] - loss_inc)
+    #
+    #             # if not self.prune and c[0] == 0. and i >= 1:  # zero out unused slope
+    #             #     self.corners[i - 1][2] = 0.
+    #
+    #         if self.prune:
+    #             self._prune_corners()
+    #
+    #         return loss_inc
+    #     else:
+    #         return 0.  # no loss incurred
 
-                # if not self.prune and c[0] == 0. and i >= 1:  # zero out unused slope
-                #     self.corners[i - 1][2] = 0.
+    def _shift(self, t_excess, loss_inc):
+        for i, c in enumerate(self.corners):
+            c[0] = max(0., c[0] - t_excess)
+            c[1] = max(0., c[1] - loss_inc)
 
-            if self.prune:
-                self._prune_corners()
+            # if not self.prune and c[0] == 0. and i >= 1:  # zero out unused slope
+            #     self.corners[i - 1][2] = 0.
 
-            return loss_inc
-        else:
-            return 0.  # no loss incurred
+        if self.prune:
+            self._prune_corners()
 
     def _prune_corners(self):
         corners = np.array(self.corners)
@@ -535,7 +544,7 @@ class Exponential(Shift):
         # TODO: add positive param checks?
 
     def __call__(self, t):
-        """Loss function versus time."""
+        """The loss function versus time."""
 
         t = np.array(t, dtype=float)
         t -= self.t_release  # relative time
@@ -549,13 +558,16 @@ class Exponential(Shift):
 
         return loss
 
-    def shift_origin(self, t):  # TODO: D.R.Y. with `PiecewiseLinear`!?
-        t_excess = t - self.t_release
-        self.t_release = max(0., -t_excess)
-        if self.t_release == 0.:  # loss is incurred, drop time and loss are updated
-            loss_inc = self(t_excess)
-            self.a *= self.b ** t_excess
+    # def shift_origin(self, t):  # TODO: D.R.Y. with `PiecewiseLinear`!?
+    #     t_excess = t - self.t_release
+    #     self.t_release = max(0., -t_excess)
+    #     if self.t_release == 0.:  # loss is incurred, drop time and loss are updated
+    #         loss_inc = self(t_excess)
+    #         self.a *= self.b ** t_excess
+    #
+    #         return loss_inc
+    #     else:
+    #         return 0.  # no loss incurred
 
-            return loss_inc
-        else:
-            return 0.  # no loss incurred
+    def _shift(self, t_excess, loss_inc):
+        self.a *= self.b ** t_excess

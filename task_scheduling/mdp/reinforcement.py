@@ -24,6 +24,8 @@ from task_scheduling.mdp.supervised.torch.modules import build_mlp, build_cnn
 _default_tuple = namedtuple('ModelDefault', ['cls', 'params'], defaults={})
 
 
+# TODO: allow general vectorized environments
+
 class StableBaselinesScheduler(BaseLearningScheduler):
     _learn_params_default = {
         'n_gen_val': 0,

@@ -77,29 +77,6 @@ def reshape(space, newshape):
     else:
         raise NotImplementedError
 
-# def as_box(space):
-#     """Upcast space to a Box."""
-#
-#     if isinstance(space, Box):
-#         return space
-#     elif isinstance(space, MultiDiscrete):
-#         return Box(np.zeros(space.shape), space.nvec - 1)
-#     elif isinstance(space, Discrete):
-#         return Box(0, space.n - 1, shape=())
-#     elif isinstance(space, DiscreteSet):
-#         return Box(*space.elements[[0, -1]], shape=())
-#     else:
-#         raise TypeError('Only supported for Box, Discrete, or DiscreteSet type inputs.')
-#
-#
-# def as_multidiscrete(space):
-#     if isinstance(space, MultiDiscrete):
-#         return space
-#     elif isinstance(space, Discrete):
-#         return MultiDiscrete([space.n])
-#     else:
-#         raise TypeError
-
 
 # Space classes
 class Permutation(Space):
@@ -139,7 +116,6 @@ class DiscreteSet(Space):
 
         """
 
-        # self.elements = np.unique(np.array(elements).flatten())
         self.elements = np.array([])
         self.add_elements(elements)
         super().__init__(shape=(), dtype=self.elements.dtype)

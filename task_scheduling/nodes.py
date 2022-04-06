@@ -11,7 +11,6 @@ import pandas as pd
 from sortedcontainers import SortedKeyList
 
 from task_scheduling.base import RandomGeneratorMixin
-# from task_scheduling.tasks import Shift as ShiftTask
 
 
 # TODO: make problem a shared class attribute? Make a class constructor?
@@ -133,7 +132,7 @@ class ScheduleNode(RandomGeneratorMixin):
         self._update_sch(n)
 
     def _update_sch(self, n):
-        c_min = np.argmin(self._ch_avail)  # assign task to channel with earliest availability
+        c_min = np.argmin(self._ch_avail)  # assign task to channel with the earliest availability
 
         self._sch[n] = (max(self._tasks[n].t_release, self._ch_avail[c_min]), c_min)
         self._loss += self._tasks[n](self.sch['t'][n])  # add task execution loss
@@ -281,7 +280,6 @@ class ScheduleNode(RandomGeneratorMixin):
         #     print(f"Total # rollouts: {root.n_visits}, loss={loss_best}")
 
         if inplace:
-            # self.seq = node_best.seq
             seq_ext = node_best.seq[len(self.seq):]
             self._extend_util(seq_ext)
         else:
@@ -317,7 +315,6 @@ class ScheduleNode(RandomGeneratorMixin):
                 node_best, loss_best = node, node.loss
 
         if inplace:
-            # self.seq = node_best.seq
             seq_ext = node_best.seq[len(self.seq):]
             self._extend_util(seq_ext)
         else:
@@ -414,12 +411,11 @@ class ScheduleNodeBound(ScheduleNode):
                         node_best = node_new.roll_out(inplace=False, rng=rng)  # roll-out a new best node
 
             if verbose:
-                progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(self.n_tasks)
-                print(f'Search progress: {progress:.3f}, Loss < {node_best.loss:.3f}', end='\r')
-                # print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}', end='\r')
+                # progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(self.n_tasks)
+                # print(f'Search progress: {progress:.3f}, Loss < {node_best.loss:.3f}', end='\r')
+                print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}', end='\r')
 
         if inplace:
-            # self.seq = node_best.seq
             seq_ext = node_best.seq[len(self.seq):]
             self._extend_util(seq_ext)
         else:
@@ -481,7 +477,6 @@ class ScheduleNodeBound(ScheduleNode):
                 print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}', end='\r')
 
         if inplace:
-            # self.seq = node_best.seq
             seq_ext = node_best.seq[len(self.seq):]
             self._extend_util(seq_ext)
         else:
@@ -489,8 +484,6 @@ class ScheduleNodeBound(ScheduleNode):
 
 
 class ScheduleNodeShift(ScheduleNode):
-    # _tasks: Collection[ShiftTask]
-
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
         self.t_origin = 0.
         tasks = deepcopy(tasks)  # tasks modified in-place during `shift_origin`

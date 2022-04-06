@@ -10,7 +10,7 @@ import dill
 import numpy as np
 
 from task_scheduling.algorithms import branch_bound_priority
-from task_scheduling.base import RandomGeneratorMixin, SchedulingProblem, SchedulingSolution
+from task_scheduling.base import RandomGeneratorMixin, SchedulingProblem, SchedulingSolution, get_now
 from task_scheduling.generators import tasks as task_gens, channels as chan_gens
 from task_scheduling.util import eval_wrapper
 
@@ -74,8 +74,7 @@ class Base(RandomGeneratorMixin, ABC):
         solutions = [] if solve else None
 
         if save_path is None and self.temp_path is not None:
-            now = datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
-            save_path = Path(self.temp_path) / now
+            save_path = Path(self.temp_path) / get_now()
 
         save = save_path is not None
 
