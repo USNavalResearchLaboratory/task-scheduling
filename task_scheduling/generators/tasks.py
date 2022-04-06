@@ -9,14 +9,14 @@ Assumes all tasks are instances of the same class. Heterogeneous task types will
 
 from abc import ABC, abstractmethod
 from collections import deque
-from functools import cached_property
+# from functools import cached_property
 from types import MethodType
 from typing import Collection
 
 import numpy as np
 import pandas as pd
 from gym import spaces
-from scipy import stats
+# from scipy import stats
 
 from task_scheduling import tasks as task_types
 from task_scheduling.base import RandomGeneratorMixin

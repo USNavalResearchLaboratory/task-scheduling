@@ -2,7 +2,6 @@
 
 from abc import ABC, abstractmethod
 from collections import deque
-from datetime import datetime
 from functools import partial
 from pathlib import Path
 
@@ -108,7 +107,6 @@ class Base(RandomGeneratorMixin, ABC):
 
     @staticmethod
     def _gen_solution(problem, verbose=False):
-        # scheduler_opt = partial(branch_bound, verbose=verbose)
         scheduler_opt = partial(branch_bound_priority, verbose=verbose)
 
         return eval_wrapper(scheduler_opt)(*problem)

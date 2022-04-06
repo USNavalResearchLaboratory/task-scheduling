@@ -188,7 +188,7 @@ class Base(Env, ABC):
 
     def _update_spaces(self):
         """Update observation and action spaces."""
-        pass  # TODO: varying `n_tasks` control
+        pass
 
     def reset(self, tasks=None, ch_avail=None, solve=False, rng=None):
         """

@@ -67,8 +67,7 @@ class RandomAgent(Base):
         action_space = self.env.action_space
         # action_space = self.env.infer_action_space(obs)
 
-        return action_space.sample()
-        # return action_space.sample(), None
+        return action_space.sample(), None
 
 
 class BaseLearning(Base):

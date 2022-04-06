@@ -67,7 +67,6 @@ class Deterministic(Base):
     def __init__(self, ch_avail):
         super().__init__()
         self.ch_avail = tuple(ch_avail)
-        # super().__init__(lims=(min(ch_avail), max(ch_avail)))
 
     def __call__(self, n_ch, rng=None):
         if n_ch != len(self.ch_avail):
