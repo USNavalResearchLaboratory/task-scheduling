@@ -13,10 +13,9 @@ from torch import nn, optim
 from torch.nn import functional
 from torch.utils.data import TensorDataset, DataLoader
 
-from task_scheduling.mdp.supervised.torch.modules import MultiNet
 from task_scheduling.mdp.environments import Base as BaseEnv, Index
 from task_scheduling.mdp.supervised.base import Base as BaseSupervisedScheduler
-
+from task_scheduling.mdp.supervised.torch.modules import MultiNet
 
 # TODO: use reward!? Add task loss to NLL loss for backprop?
 
@@ -28,6 +27,8 @@ num_workers = 0
 # num_workers = os.cpu_count()
 
 pin_memory = True
+
+
 # pin_memory = False
 
 

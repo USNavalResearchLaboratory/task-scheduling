@@ -314,7 +314,7 @@ class PiecewiseLinear(Shift):
                 if i == 0:
                     c.insert(1, 0.)
                 else:
-                    t_prev, l_prev, s_prev = val[i-1]
+                    t_prev, l_prev, s_prev = val[i - 1]
                     c.insert(1, l_prev + s_prev * (t - t_prev))
 
         self._corners = val

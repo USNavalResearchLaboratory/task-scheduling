@@ -9,8 +9,8 @@ from gym.spaces import MultiDiscrete, Box, Dict
 from matplotlib import pyplot as plt
 
 import task_scheduling.spaces as spaces_tasking
-from task_scheduling.nodes import ScheduleNode, ScheduleNodeShift
 from task_scheduling.mdp.features import param_features, normalize as normalize_features
+from task_scheduling.nodes import ScheduleNode, ScheduleNodeShift
 from task_scheduling.util import plot_task_losses, plot_schedule
 
 
@@ -523,7 +523,6 @@ def int_to_seq(num, length, check_input=True):
         seq.append(n)
 
     return tuple(seq)
-
 
 # TODO: deprecate environments below?
 

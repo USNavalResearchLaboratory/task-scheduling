@@ -63,6 +63,7 @@ class Base(ABC):
 
 class RandomAgent(Base):
     """Uniformly random action selector."""
+
     def predict(self, obs):
         action_space = self.env.action_space
         # action_space = self.env.infer_action_space(obs)

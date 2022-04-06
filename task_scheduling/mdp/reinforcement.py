@@ -20,7 +20,6 @@ from task_scheduling.mdp.environments import Index
 from task_scheduling.mdp.supervised.torch import reset_weights, valid_logits
 from task_scheduling.mdp.supervised.torch.modules import build_mlp, build_cnn
 
-
 _default_tuple = namedtuple('ModelDefault', ['cls', 'params'], defaults={})
 
 

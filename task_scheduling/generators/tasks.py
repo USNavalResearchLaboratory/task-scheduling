@@ -16,11 +16,13 @@ from typing import Collection
 import numpy as np
 import pandas as pd
 from gym import spaces
-# from scipy import stats
 
 from task_scheduling import tasks as task_types
 from task_scheduling.base import RandomGeneratorMixin
-from task_scheduling.spaces import DiscreteSet, get_space_lims
+from task_scheduling.spaces import DiscreteSet
+
+
+# from scipy import stats
 
 
 class Base(RandomGeneratorMixin, ABC):
@@ -349,7 +351,6 @@ class Dataset(Fixed):
                 self.tasks.appendleft(task)
 
             yield task
-
 
 # # Radar
 # class SearchTrackIID(BaseIID):  # TODO: integrate or deprecate (and `search_track` methods)

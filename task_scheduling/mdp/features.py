@@ -7,7 +7,6 @@ from gym.spaces import Discrete, MultiDiscrete, Box
 from task_scheduling.spaces import DiscreteSet, get_space_lims
 from task_scheduling.tasks import Shift
 
-
 feature_dtype = [('name', '<U32'), ('func', object), ('space', object)]
 
 
@@ -90,6 +89,7 @@ def encode_discrete_features(problem_gen):
         if isinstance(space, DiscreteSet):  # use encoding feature func, change space to Discrete
             def func(task):
                 return np.flatnonzero(space.elements == getattr(task, name)).item()
+
             space = Discrete(len(space))
         else:
             func = attrgetter(name)
