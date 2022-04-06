@@ -12,10 +12,10 @@ task\_scheduling.algorithms.base module
    :undoc-members:
    :show-inheritance:
 
-task\_scheduling.algorithms.ensemble module
+task\_scheduling.algorithms.wrappers module
 -------------------------------------------
 
-.. automodule:: task_scheduling.algorithms.ensemble
+.. automodule:: task_scheduling.algorithms.wrappers
    :members:
    :undoc-members:
    :show-inheritance:

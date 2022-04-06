@@ -1,4 +1,4 @@
-task_scheduling
+task-scheduling
 ===============
 
 .. toctree::
