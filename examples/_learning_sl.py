@@ -55,7 +55,7 @@ algorithms = np.array([
     ('Random', random_sequencer, 10),
     ('ERT', earliest_release, 10),
     ('MCTS', partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=.05, th_visit=5), 10),
-    ('Lit Policy', lit_scheduler, 10),
+    ('SL Policy', lit_scheduler, 10),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
 
