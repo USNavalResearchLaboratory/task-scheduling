@@ -1,3 +1,5 @@
+"""Observation feature extractors and utilities."""
+
 from operator import attrgetter
 from warnings import warn
 

@@ -1,3 +1,5 @@
+"""Base classes for supervised learning."""
+
 from abc import abstractmethod
 
 from task_scheduling.mdp.base import BaseLearning

@@ -27,14 +27,14 @@ function that increases linearly from zero according to a positive parameter `sl
 
 ## Algorithms
 The task scheduling problem is defined using two variables:
-- `tasks` - an array of task objects
-- `ch_avail` - an array of channel availability times
+- `tasks`, an array of task objects
+- `ch_avail`, an array of channel availability times
 
 and the scheduling solution is defined using a 
 [NumPy structured array](https://numpy.org/doc/stable/user/basics.rec.html) `sch` of length `len(tasks)` with two 
 fields:
-- `t` - execution times (`float`)
-- `c` - execution channels (`int`, in `range(len(ch_avail))`)
+- `t`, execution times (`float`)
+- `c`, execution channels (`int`, in `range(len(ch_avail))`)
 
 To be valid (as assessed using `util.check_schedule`), the execution times, execution channels, and task
 durations must be such that no two tasks on the same channel are executing at the same time.

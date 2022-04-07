@@ -1,3 +1,5 @@
+"""Nodes for mapping task sequences into schedules and executing traditional algorithms."""
+
 from collections import deque
 from copy import deepcopy
 from itertools import permutations
@@ -17,22 +19,21 @@ from task_scheduling.base import RandomGeneratorMixin
 
 
 class ScheduleNode(RandomGeneratorMixin):
+    """
+    Base node object for mapping task sequences into execution schedules.
+
+    Parameters
+    ----------
+    tasks : Collection
+    ch_avail : Collection of float
+        Channel availability times.
+    seq : Collection of int
+        Partial task index sequence.
+    rng : int or RandomState or Generator, optional
+            NumPy random number generator or seed. Instance RNG if None.
+
+    """
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
-        """
-        Node object for mapping task sequences into execution schedules.
-
-        Parameters
-        ----------
-        tasks : Collection
-        ch_avail : Collection of float
-            Channel availability times.
-        seq : Collection of int
-            Partial task index sequence.
-        rng : int or RandomState or Generator, optional
-                NumPy random number generator or seed. Instance RNG if None.
-
-        """
-
         super().__init__(rng)
 
         self._tasks = list(tasks)
@@ -322,6 +323,20 @@ class ScheduleNode(RandomGeneratorMixin):
 
 
 class ScheduleNodeBound(ScheduleNode):
+    """
+    Node object that calculates loss bounds.
+
+    Parameters
+    ----------
+    tasks : Collection
+    ch_avail : Collection of float
+        Channel availability times.
+    seq : Collection of int
+        Partial task index sequence.
+    rng : int or RandomState or Generator, optional
+            NumPy random number generator or seed. Instance RNG if None.
+
+    """
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
         self._bounds = [0., np.inf]
         super().__init__(tasks, ch_avail, seq, rng)
@@ -484,6 +499,20 @@ class ScheduleNodeBound(ScheduleNode):
 
 
 class ScheduleNodeShift(ScheduleNode):
+    """
+    Node object that enables time origin shifting and task re-parameterization.
+
+    Parameters
+    ----------
+    tasks : Collection
+    ch_avail : Collection of float
+        Channel availability times.
+    seq : Collection of int
+        Partial task index sequence.
+    rng : int or RandomState or Generator, optional
+            NumPy random number generator or seed. Instance RNG if None.
+
+    """
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
         self.t_origin = 0.
         tasks = deepcopy(tasks)  # tasks modified in-place during `shift_origin`
@@ -515,27 +544,26 @@ class ScheduleNodeShift(ScheduleNode):
 
 
 class MCTSNode(RandomGeneratorMixin):
+    """
+    Node object for Monte Carlo Tree Search.
+
+    Parameters
+    ----------
+    n_tasks : int
+    bounds : Collection of float
+        Lower and upper loss bounds for node value normalization
+    seq : Collection of int
+        Partial task index sequence.
+    c_explore : float, optional
+        Exploration weight. Higher values prioritize searching new branches.
+    th_visit : int, optional
+        Once node has been visited this many times, UCT is used for child selection, not random choice.
+    parent : MCTSNode, optional
+    rng : int or RandomState or Generator, optional
+        NumPy random number generator or seed. Instance RNG if None.
+
+    """
     def __init__(self, n_tasks, bounds, seq=(), c_explore=0., th_visit=0, parent=None, rng=None):
-        """
-        Node object for Monte Carlo Tree Search.
-
-        Parameters
-        ----------
-        n_tasks : int
-        bounds : Collection of float
-            Lower and upper loss bounds for node value normalization
-        seq : Collection of int
-            Partial task index sequence.
-        c_explore : float, optional
-            Exploration weight. Higher values prioritize searching new branches.
-        th_visit : int, optional
-            Once node has been visited this many times, UCT is used for child selection, not random choice.
-        parent : MCTSNode, optional
-        rng : int or RandomState or Generator, optional
-            NumPy random number generator or seed. Instance RNG if None.
-
-        """
-
         super().__init__(rng)
 
         self._n_tasks = n_tasks

@@ -8,12 +8,36 @@ from task_scheduling.base import RandomGeneratorMixin
 
 
 class Base(RandomGeneratorMixin, ABC):
+    """
+    Base class for channel availability generators.
+
+    Parameters
+    ----------
+    rng : int or RandomState or Generator, optional
+        Random number generator seed or object.
+
+    """
     def __init__(self, rng=None):
         super().__init__(rng)
         self.space = None
 
     @abstractmethod
     def __call__(self, n_ch, rng=None):
+        """
+        Generate channel availabilities.
+
+        Parameters
+        ----------
+        n_ch : int
+            Number of channels to generate.
+        rng : int or RandomState or Generator, optional
+            Random number generator seed or object.
+
+        Returns
+        -------
+        Generator
+
+        """
         raise NotImplementedError
 
     def summary(self):
@@ -22,7 +46,21 @@ class Base(RandomGeneratorMixin, ABC):
 
 class BaseIID(Base, ABC):
     def __call__(self, n_ch, rng=None):
-        """Randomly generate tasks."""
+        """
+        Randomly generate channel availabilities.
+
+        Parameters
+        ----------
+        n_ch : int
+            Number of channels to generate.
+        rng : int or RandomState or Generator, optional
+            Random number generator seed or object.
+
+        Returns
+        -------
+        Generator
+
+        """
         rng = self._get_rng(rng)
         for _ in range(n_ch):
             yield self._gen_single(rng)
@@ -34,18 +72,18 @@ class BaseIID(Base, ABC):
 
 
 class UniformIID(BaseIID):
+    """
+    Generator of random channel availabilities.
+
+    Parameters
+    ----------
+    lims : Collection of float
+        Lower and upper channel limits.
+    rng : int or RandomState or Generator, optional
+        NumPy random number generator or seed. Instance RNG if None.
+
+    """
     def __init__(self, lims=(0., 0.), rng=None):
-        """
-        Generator of random channel availabilities.
-
-        Parameters
-        ----------
-        lims : Collection of float
-            Lower and upper channel limits.
-        rng : int or RandomState or Generator, optional
-            NumPy random number generator or seed. Instance RNG if None.
-
-        """
         super().__init__(rng)
         self.lims = tuple(lims)
         self.space = Box(*lims, shape=(), dtype=float)
@@ -69,6 +107,21 @@ class Deterministic(Base):
         self.ch_avail = tuple(ch_avail)
 
     def __call__(self, n_ch, rng=None):
+        """
+        Generate deterministic channel availabilities.
+
+        Parameters
+        ----------
+        n_ch : int
+            Number of channels to generate.
+        rng : int or RandomState or Generator, optional
+            Random number generator seed or object.
+
+        Returns
+        -------
+        Generator
+
+        """
         if n_ch != len(self.ch_avail):
             raise ValueError(f"Number of channels must be {len(self.ch_avail)}.")
 

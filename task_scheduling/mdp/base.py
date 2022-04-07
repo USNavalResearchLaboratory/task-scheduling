@@ -1,19 +1,21 @@
+"""Base classes for MDP agent schedulers."""
+
 from abc import ABC, abstractmethod
 
 from task_scheduling.mdp.environments import Base as BaseEnv
 
 
 class Base(ABC):
+    """
+    Base class for agent schedulers.
+
+    Parameters
+    ----------
+    env : BaseEnv
+        OpenAi gym environment.
+
+    """
     def __init__(self, env):
-        """
-        Base class for learning schedulers.
-
-        Parameters
-        ----------
-        env : BaseEnv
-            OpenAi gym environment.
-
-        """
         if not isinstance(env, BaseEnv):
             raise TypeError(f"`env` must be of type BaseEnv, got {type(env)}")
         self.env = env
@@ -47,6 +49,20 @@ class Base(ABC):
 
     @abstractmethod
     def predict(self, obs):
+        """
+        Take an action given an observation.
+
+        Parameters
+        ----------
+        obs : array_like
+            Observation.
+
+        Returns
+        -------
+        int or array_like
+            Action.
+
+        """
         raise NotImplementedError
 
     def summary(self):
@@ -62,7 +78,7 @@ class Base(ABC):
 
 
 class RandomAgent(Base):
-    """Uniformly random action selector."""
+    """Uniformly random actor."""
 
     def predict(self, obs):
         action_space = self.env.action_space
@@ -72,22 +88,22 @@ class RandomAgent(Base):
 
 
 class BaseLearning(Base):
+    """
+    Base class for learning schedulers.
+
+    Parameters
+    ----------
+    env : BaseEnv
+        OpenAi gym environment.
+    model
+        The learning object.
+    learn_params : dict, optional
+        Parameters used by the `learn` method.
+
+    """
     _learn_params_default = {}
 
     def __init__(self, env, model, learn_params=None):
-        """
-        Base class for learning schedulers.
-
-        Parameters
-        ----------
-        env : BaseEnv
-            OpenAi gym environment.
-        model
-            The learning object.
-        learn_params : dict, optional
-            Parameters used by the `learn` method.
-
-        """
         self.model = model
         super().__init__(env)
 
@@ -106,10 +122,22 @@ class BaseLearning(Base):
 
     @abstractmethod
     def learn(self, n_gen_learn, verbose=0):
+        """
+        Learn from the environment.
+
+        Parameters
+        ----------
+        n_gen_learn : int
+            Number of problems to generate data from.
+        verbose : int, optional
+            Progress print-out level.
+
+        """
         raise NotImplementedError
 
     @abstractmethod
     def reset(self, *args, **kwargs):
+        """Reset the learner."""
         raise NotImplementedError
 
     def summary(self):

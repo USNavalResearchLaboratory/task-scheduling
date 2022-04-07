@@ -9,7 +9,6 @@ Assumes all tasks are instances of the same class. Heterogeneous task types will
 
 from abc import ABC, abstractmethod
 from collections import deque
-# from functools import cached_property
 from types import MethodType
 from typing import Collection
 
@@ -22,25 +21,21 @@ from task_scheduling.base import RandomGeneratorMixin
 from task_scheduling.spaces import DiscreteSet
 
 
-# from scipy import stats
-
-
 class Base(RandomGeneratorMixin, ABC):
+    """
+    Base class for generation of task objects.
+
+    Parameters
+    ----------
+    cls_task : class
+        Class for instantiating task objects.
+    param_spaces : dict, optional
+        Mapping of parameter name strings to gym.spaces.Space objects
+    rng : int or RandomState or Generator, optional
+        Random number generator seed or object.
+
+    """
     def __init__(self, cls_task, param_spaces=None, rng=None):
-        """
-        Base class for generation of task objects.
-
-        Parameters
-        ----------
-        cls_task : class
-            Class for instantiating task objects.
-        param_spaces : dict, optional
-            Maps parameter name strings to gym.spaces.Space objects
-        rng : int or RandomState or Generator, optional
-            Random number generator seed or object.
-
-        """
-
         super().__init__(rng)
         self.cls_task = cls_task
 
@@ -52,7 +47,20 @@ class Base(RandomGeneratorMixin, ABC):
 
     @abstractmethod
     def __call__(self, n_tasks, rng=None):
-        """Yield tasks."""
+        """
+        Generate tasks.
+
+        Parameters
+        ----------
+        n_tasks : int
+        rng : int or RandomState or Generator, optional
+            Random number generator seed or object.
+
+        Returns
+        -------
+        Generator
+
+        """
         raise NotImplementedError
 
     def summary(self):
@@ -64,7 +72,20 @@ class BaseIID(Base, ABC):
     """Base class for generation of independently and identically distributed random task objects."""
 
     def __call__(self, n_tasks, rng=None):
-        """Randomly generate tasks."""
+        """
+        Randomly generate tasks.
+
+        Parameters
+        ----------
+        n_tasks : int
+        rng : int or RandomState or Generator, optional
+            Random number generator seed or object.
+
+        Returns
+        -------
+        Generator
+
+        """
         rng = self._get_rng(rng)
         for __ in range(n_tasks):
             yield self.cls_task(**self._param_gen(rng))
@@ -84,9 +105,9 @@ class GenericIID(BaseIID):
     cls_task : class
         Class for instantiating task objects.
     param_gen : callable
-        Callable object with 'self' argument, for use as the '_param_gen' method.
+        Invoked with 'self' argument, for use as the '_param_gen' method.
     param_spaces : dict, optional
-            Maps parameter name strings to gym.spaces.Space objects
+        Mapping of parameter name strings to gym.spaces.Space objects
     rng : int or RandomState or Generator, optional
         Random number generator seed or object.
 
@@ -105,20 +126,20 @@ class GenericIID(BaseIID):
 
 
 class ContinuousUniformIID(BaseIID):
+    """
+    Random generator of I.I.D. tasks with independently uniform continuous parameters.
+
+    Parameters
+    ----------
+    cls_task : class
+        Class for instantiating task objects.
+    param_lims : dict of Collection
+        Mapping of parameter name strings to 2-tuples of parameter limits.
+    rng : int or RandomState or Generator, optional
+        Random number generator seed or object.
+
+    """
     def __init__(self, cls_task, param_lims, rng=None):
-        """
-        Generates I.I.D. tasks with independently uniform continuous parameters.
-
-        Parameters
-        ----------
-        cls_task : class
-            Class for instantiating task objects.
-        param_lims : dict of Collection
-            Maps parameter name strings to 2-tuples of parameter limits.
-        rng : int or RandomState or Generator, optional
-            Random number generator seed or object.
-
-        """
         param_spaces = {name: spaces.Box(*param_lims[name], shape=(), dtype=float)
                         for name in cls_task.param_names}
         super().__init__(cls_task, param_spaces, rng)
@@ -174,19 +195,18 @@ class ContinuousUniformIID(BaseIID):
 
 class DiscreteIID(BaseIID):
     """
-    Generates I.I.D. tasks with independently discrete parameters.
+    Random generator of I.I.D. tasks with independent discrete-valued parameters.
 
     Parameters
     ----------
     cls_task : class
         Class for instantiating task objects.
     param_probs: dict of str to dict
-        Maps parameter name strings to dictionaries mapping values to probabilities.
+        Mapping of parameter name strings to dictionaries mapping values to probabilities.
     rng : int or RandomState or Generator, optional
         Random number generator seed or object.
 
     """
-
     def __init__(self, cls_task, param_probs, rng=None):
         param_spaces = {name: DiscreteSet(list(param_probs[name].keys())) for name in cls_task.param_names}
         super().__init__(cls_task, param_spaces, rng)
@@ -242,19 +262,19 @@ class DiscreteIID(BaseIID):
 
 
 class Fixed(Base, ABC):
+    """
+    Permutation task generator.
+
+    Parameters
+    ----------
+    tasks : Collection of task_scheduling.tasks.Base
+    param_spaces : dict, optional
+        Mapping of parameter name strings to gym.spaces.Space objects
+    rng : int or RandomState or Generator, optional
+        Random number generator seed or object.
+
+    """
     def __init__(self, tasks, param_spaces=None, rng=None):
-        """
-        Permutation task generator.
-
-        Parameters
-        ----------
-        tasks : Collection of task_scheduling.tasks.Base
-        param_spaces : dict, optional
-            Maps parameter name strings to gym.spaces.Space objects
-        rng : int or RandomState or Generator, optional
-            Random number generator seed or object.
-        """
-
         cls_task = tasks[0].__class__
         if not all(isinstance(task, cls_task) for task in tasks[1:]):
             raise TypeError("All tasks must be of the same type.")
@@ -268,7 +288,20 @@ class Fixed(Base, ABC):
 
     @abstractmethod
     def __call__(self, n_tasks, rng=None):
-        """Yield tasks."""
+        """
+        Generate fixed tasks.
+
+        Parameters
+        ----------
+        n_tasks : int
+        rng : int or RandomState or Generator, optional
+            Random number generator seed or object.
+
+        Returns
+        -------
+        Generator
+
+        """
         raise NotImplementedError
 
     def __eq__(self, other):
@@ -319,7 +352,24 @@ class Permutation(Fixed):
             yield task
 
 
-class Dataset(Fixed):
+class Dataset(Fixed):  # FIXME: inherit from `Base`??
+    """
+    Generator of tasks from a dataset.
+
+    Parameters
+    ----------
+    tasks : Sequence of task_scheduling.tasks.Base
+        Stored tasks to be yielded.
+    shuffle : bool, optional
+        Shuffle task during instantiation.
+    repeat : bool, optional
+        Allow tasks to be yielded more than once.
+    param_spaces : dict, optional
+        Mapping of parameter name strings to gym.spaces.Space objects
+    rng : int or RandomState or Generator, optional
+        Random number generator seed or object.
+
+    """
     def __init__(self, tasks, shuffle=False, repeat=False, param_spaces=None, rng=None):
         super().__init__(tasks, param_spaces, rng)
 
@@ -332,16 +382,32 @@ class Dataset(Fixed):
         self.repeat = repeat
 
     def add_tasks(self, tasks):
+        """Add tasks to the queue."""
         if isinstance(tasks, Collection):
             self.tasks.extendleft(tasks)
         else:
             self.tasks.appendleft(tasks)  # for single tasks
 
     def shuffle(self, rng=None):
+        """Shuffle the task queue."""
         rng = self._get_rng(rng)
         self.tasks = deque(rng.permutation(self.tasks))
 
     def __call__(self, n_tasks, rng=None):
+        """
+        Yield tasks from the queue.
+
+        Parameters
+        ----------
+        n_tasks : int
+        rng : int or RandomState or Generator, optional
+            Random number generator seed or object.
+
+        Returns
+        -------
+        Generator
+
+        """
         for __ in range(n_tasks):
             if len(self.tasks) == 0:
                 raise ValueError("Task generator data has been exhausted.")

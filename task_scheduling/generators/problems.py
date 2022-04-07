@@ -15,27 +15,26 @@ from task_scheduling.util import eval_wrapper
 
 
 class Base(RandomGeneratorMixin, ABC):
+    """
+    Base class for scheduling problem generators.
+
+    Parameters
+    ----------
+    n_tasks : int
+        Number of tasks.
+    n_ch: int
+        Number of channels.
+    task_gen : generators.tasks.Base
+        Task generation object.
+    ch_avail_gen : generators.channels.Base
+        Returns random initial channel availabilities.
+    rng : int or RandomState or Generator, optional
+        Random number generator seed or object.
+
+    """
     temp_path = None
 
     def __init__(self, n_tasks, n_ch, task_gen, ch_avail_gen, rng=None):
-        """
-        Base class for scheduling problem generators.
-
-        Parameters
-        ----------
-        n_tasks : int
-            Number of tasks.
-        n_ch: int
-            Number of channels.
-        task_gen : generators.tasks.Base
-            Task generation object.
-        ch_avail_gen : generators.channels.Base
-            Returns random initial channel availabilities.
-        rng : int or RandomState or Generator, optional
-            Random number generator seed or object.
-
-        """
-
         super().__init__(rng)
 
         self.n_tasks = n_tasks
@@ -196,7 +195,23 @@ class Base(RandomGeneratorMixin, ABC):
 
 
 class Random(Base):
-    """Randomly generated scheduling problems."""
+    """
+    Random scheduling problem generator.
+
+    Parameters
+    ----------
+    n_tasks : int
+        Number of tasks.
+    n_ch: int
+        Number of channels.
+    task_gen : generators.tasks.Base
+        Task generation object.
+    ch_avail_gen : generators.channels.Base
+        Returns random initial channel availabilities.
+    rng : int or RandomState or Generator, optional
+        Random number generator seed or object.
+
+    """
 
     def _gen_problem(self, rng):
         """Return a single scheduling problem (and optional solution)."""
@@ -351,11 +366,31 @@ class PermutedTasks(FixedTasks):
 
 
 class Dataset(Base):
+    """
+    Generator of scheduling problems from a dataset.
+
+    Parameters
+    ----------
+    problems : Sequence of task_scheduling.base.SchedulingProblem
+        Stored problems to be yielded.
+    solutions : Sequence of task_scheduling.base.SchedulingSolution, optional
+        Stored solutions to be yielded.
+    shuffle : bool, optional
+        Shuffle task during instantiation.
+    repeat : bool, optional
+        Allow tasks to be yielded more than once.
+    task_gen : generators.tasks.Base
+        Task generation object.
+    ch_avail_gen : generators.channels.Base
+        Returns random initial channel availabilities.
+    rng : int or RandomState or Generator, optional
+        Random number generator seed or object.
+
+    """
     stack: deque[tuple]
 
     def __init__(self, problems, solutions=None, shuffle=False, repeat=False, task_gen=None, ch_avail_gen=None,
                  rng=None):
-
         n_tasks = len(problems[0].tasks)
         n_ch = len(problems[0].ch_avail)
 

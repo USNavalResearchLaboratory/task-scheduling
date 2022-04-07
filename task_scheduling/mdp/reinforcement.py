@@ -1,3 +1,5 @@
+"""Reinforcement learning schedulers and custom policies."""
+
 import math
 from collections import namedtuple
 from pathlib import Path
@@ -26,6 +28,19 @@ _default_tuple = namedtuple('ModelDefault', ['cls', 'params'], defaults={})
 # TODO: allow general vectorized environments
 
 class StableBaselinesScheduler(BaseLearningScheduler):
+    """
+    Base class for learning schedulers.
+
+    Parameters
+    ----------
+    env : BaseEnv
+        OpenAi gym environment.
+    model
+        The learning object.
+    learn_params : dict, optional
+        Parameters used by the `learn` method.
+
+    """
     _learn_params_default = {
         'n_gen_val': 0,
         'max_epochs': 1,
@@ -40,6 +55,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
 
     @classmethod
     def make_model(cls, env, model_cls, model_kwargs=None, learn_params=None):
+        """Construct scheduler from Stable-Baselines3 model specification."""
         if model_kwargs is None:
             model_kwargs = {}
         if isinstance(model_cls, str):
@@ -61,11 +77,35 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         self.model.get_env().envs[0].env = env
 
     def predict(self, obs):
+        """
+        Take an action given an observation.
+
+        Parameters
+        ----------
+        obs : array_like
+            Observation.
+
+        Returns
+        -------
+        int or array_like
+            Action.
+
+        """
         action, _state = self.model.predict(obs, deterministic=True)
         return action
 
     def learn(self, n_gen_learn, verbose=0):
+        """
+        Learn from the environment.
 
+        Parameters
+        ----------
+        n_gen_learn : int
+            Number of problems to generate data from.
+        verbose : int, optional
+            Progress print-out level.
+
+        """
         n_gen_val = self.learn_params['n_gen_val']
         if isinstance(n_gen_val, float) and n_gen_val < 1:  # convert fraction to number of problems
             n_gen_val = math.floor(n_gen_learn * n_gen_val)
@@ -130,6 +170,16 @@ class StableBaselinesScheduler(BaseLearningScheduler):
 
 
 class MultiExtractor(BaseFeaturesExtractor):
+    """
+    Multiple-input feature extractor with valid action enforcement.
+
+    Parameters
+    ----------
+    observation_space : gym.spaces.Space
+    net_ch : nn.Module
+    net_tasks: nn.Module
+
+    """
     def __init__(self, observation_space: spaces.Dict, net_ch, net_tasks):
         super().__init__(observation_space, features_dim=1)  # `features_dim` must be overridden
 
@@ -189,6 +239,7 @@ class MultiExtractor(BaseFeaturesExtractor):
 
 
 class ValidActorCriticPolicy(ActorCriticPolicy):
+    """Custom AC policy with valid action enforcement."""
     def __init__(self, *args, infer_valid_mask=None, **kwargs):
         super().__init__(*args, **kwargs)
         if callable(infer_valid_mask):

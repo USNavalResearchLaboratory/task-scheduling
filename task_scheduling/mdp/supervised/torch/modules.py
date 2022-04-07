@@ -1,3 +1,5 @@
+"""Custom PyTorch modules with multiple inputs and valid action enforcement."""
+
 from typing import Collection
 
 import torch
@@ -77,6 +79,22 @@ def valid_logits(x, seq):
 
 
 class MultiNet(nn.Module):
+    """
+    Multiple-input network with valid action enforcement.
+
+    Parameters
+    ----------
+    net_ch : nn.Module
+    net_tasks: nn.Module
+    net_joint : nn.Module
+
+    Notes
+    -----
+    Processes input tensors for channel availability, sequence masking, and tasks. The channel and task tensors are
+    separately processed by the respective modules before concatenation and further processing in `net_joint`. The
+    sequence mask blocks invalid logits at the output to ensure only valid actions are taken.
+
+    """
     def __init__(self, net_ch, net_tasks, net_joint):
         super().__init__()
         self.net_ch = net_ch

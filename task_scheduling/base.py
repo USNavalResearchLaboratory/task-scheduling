@@ -1,3 +1,5 @@
+"""Core package objects."""
+
 from collections import namedtuple
 from datetime import datetime
 
@@ -12,11 +14,21 @@ def get_now():
 
 
 class RandomGeneratorMixin:
+    """
+    Mixin class providing a random number generating attribute and methods.
+
+    Parameters
+    ----------
+    rng : int or RandomState or Generator, optional
+        Random number generator seed or object.
+
+    """
     def __init__(self, rng=None):
         self.rng = rng
 
     @property
     def rng(self):
+        r"""The NumPy random number generator."""
         return self._rng
 
     @rng.setter

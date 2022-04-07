@@ -1,3 +1,5 @@
+"""Algorithm wrappers."""
+
 from functools import wraps
 from operator import attrgetter
 
@@ -7,6 +9,19 @@ from task_scheduling.util import evaluate_schedule
 
 
 def sort_wrapper(scheduler, sort_func):
+    """
+    Create a chained scheduler with pre-sort function.
+
+    Parameters
+    ----------
+    scheduler : callable
+    sort_func : function or str, optional
+        Method that returns a sorting value for re-indexing given a task index 'n'.
+
+    Returns
+    -------
+
+    """
     if isinstance(sort_func, str):
         sort_func = attrgetter(sort_func)
 

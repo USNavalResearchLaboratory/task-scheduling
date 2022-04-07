@@ -1,3 +1,5 @@
+"""Classic scheduling algorithms."""
+
 from task_scheduling.nodes import ScheduleNode, ScheduleNodeBound
 
 

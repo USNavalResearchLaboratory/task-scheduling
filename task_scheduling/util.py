@@ -1,3 +1,5 @@
+"""Common utilities."""
+
 from functools import wraps
 from time import perf_counter
 

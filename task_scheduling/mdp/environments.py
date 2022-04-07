@@ -1,3 +1,5 @@
+"""Gym Environments."""
+
 from abc import ABC, abstractmethod
 # from collections import OrderedDict
 from math import factorial
@@ -17,28 +19,26 @@ from task_scheduling.util import plot_task_losses, plot_schedule
 # TODO: move masking op to policies?
 
 
-# Gym Environments
 class Base(Env, ABC):
+    """Base environment for task scheduling.
+
+    Parameters
+    ----------
+    problem_gen : generators.problems.Base
+        Scheduling problem generation object.
+    features : numpy.ndarray, optional
+        Structured numpy array of features with fields 'name', 'func', and 'space'.
+    normalize : bool, optional
+        Rescale task features to unit interval.
+    sort_func : function or str, optional
+        Method that returns a sorting value for re-indexing given a task index 'n'.
+    time_shift : bool, optional
+        Enables task re-parameterization after sequence updates.
+    masking : bool, optional
+        If True, features are zeroed out for scheduled tasks.
+
+    """
     def __init__(self, problem_gen, features=None, normalize=True, sort_func=None, time_shift=False, masking=False):
-        """Base environment for task scheduling.
-
-        Parameters
-        ----------
-        normalize
-        problem_gen : generators.problems.Base
-            Scheduling problem generation object.
-        features : numpy.ndarray, optional
-            Structured numpy array of features with fields 'name', 'func', and 'space'.
-        normalize : bool, optional
-            Rescale task features to unit interval.
-        sort_func : function or str, optional
-            Method that returns a sorting value for re-indexing given a task index 'n'.
-        time_shift : bool, optional
-            Enables task re-parameterization after sequence updates.
-        masking : bool, optional
-            If True, features are zeroed out for scheduled tasks.
-
-        """
         self._problem_gen = problem_gen
 
         # Set features
@@ -408,25 +408,25 @@ class Base(Env, ABC):
 
 
 class Index(Base):
+    """Tasking environment with actions of single task indices.
+
+    Parameters
+    ----------
+    problem_gen : generators.problems.Base
+        Scheduling problem generation object.
+    features : numpy.ndarray, optional
+        Structured numpy array of features with fields 'name', 'func', and 'space'.
+    normalize : bool, optional
+        Rescale task features to unit interval.
+    sort_func : function or str, optional
+        Method that returns a sorting value for re-indexing given a task index 'n'.
+    time_shift : bool, optional
+        Enables task re-parameterization after sequence updates.
+    masking : bool, optional
+        If True, features are zeroed out for scheduled tasks.
+
+    """
     def __init__(self, problem_gen, features=None, normalize=True, sort_func=None, time_shift=False, masking=False):
-        """Tasking environment with actions of single task indices.
-
-        Parameters
-        ----------
-        problem_gen : generators.problems.Base
-            Scheduling problem generation object.
-        features : numpy.ndarray, optional
-            Structured numpy array of features with fields 'name', 'func', and 'space'.
-        normalize : bool, optional
-            Rescale task features to unit interval.
-        sort_func : function or str, optional
-            Method that returns a sorting value for re-indexing given a task index 'n'.
-        time_shift : bool, optional
-            Enables task re-parameterization after sequence updates.
-        masking : bool, optional
-            If True, features are zeroed out for scheduled tasks.
-
-        """
         super().__init__(problem_gen, features, normalize, sort_func, time_shift, masking)
 
         # Action space

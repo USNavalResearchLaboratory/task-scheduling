@@ -18,6 +18,7 @@ class Base(ABC):
         Time duration of the task.
     t_release : float
         The earliest time the task may be scheduled.
+    name : str, optional
 
     """
 
@@ -34,7 +35,20 @@ class Base(ABC):
 
     @abstractmethod
     def __call__(self, t):
-        """The loss function versus time."""
+        """
+        The loss function versus time.
+
+        Parameters
+        ----------
+        t : float
+            Execution time.
+
+        Returns
+        -------
+        float
+            Execution loss.
+
+        """
         raise NotImplementedError
 
     def __str__(self):
@@ -124,7 +138,20 @@ class Generic(Base):
             self.loss_func = loss_func
 
     def __call__(self, t):
-        """The loss function versus time."""
+        """
+        The loss function versus time.
+
+        Parameters
+        ----------
+        t : float
+            Execution time.
+
+        Returns
+        -------
+        float
+            Execution loss.
+
+        """
         return self.loss_func(t)
 
 
@@ -133,10 +160,37 @@ class Shift(Base):
 
     @abstractmethod
     def __call__(self, t):
-        """The loss function versus time."""
+        """
+        The loss function versus time.
+
+        Parameters
+        ----------
+        t : float
+            Execution time.
+
+        Returns
+        -------
+        float
+            Execution loss.
+
+        """
         raise NotImplementedError
 
     def shift_origin(self, t):
+        """
+        Shift the loss function origin, return incurred loss, and re-parameterize.
+
+        Parameters
+        ----------
+        t : float
+            Temporal shift to advance the time origin.
+
+        Returns
+        -------
+        float
+            Incurred loss.
+
+        """
         t_excess = t - self.t_release
         self.t_release = max(0., -t_excess)
         if self.t_release == 0.:  # loss is incurred, drop time and loss are updated
@@ -272,6 +326,20 @@ class Shift(Base):
 #         return self.t_release, self.t_release + self.t_drop + 1.
 
 class PiecewiseLinear(Shift):
+    """
+    Task with a piecewise linear loss function.
+
+    Parameters
+    ----------
+    duration : float
+        Time duration of the task.
+    t_release : float
+        The earliest time the task may be scheduled.
+    corners : Sequence of Sequence, optional
+        Each element is a 3-tuple of the corner time, loss, and proceeding slope.
+    name : str, optional
+
+    """
     param_names = Base.param_names + ('corners',)
     shift_params = Shift.shift_params  # TODO: Add shift params. Handle `list` parameters for `space` shifts?!?
 
@@ -284,7 +352,20 @@ class PiecewiseLinear(Shift):
         self._check_non_decreasing()
 
     def __call__(self, t):
-        """The loss function versus time."""
+        """
+        The loss function versus time.
+
+        Parameters
+        ----------
+        t : float
+            Execution time.
+
+        Returns
+        -------
+        float
+            Execution loss.
+
+        """
 
         t = np.array(t, dtype=float)
         t -= self.t_release  # relative time
@@ -392,6 +473,19 @@ class PiecewiseLinear(Shift):
 
 
 class Linear(PiecewiseLinear):
+    """
+    Task with a linear loss function.
+
+    Parameters
+    ----------
+    duration : float
+        Time duration of the task.
+    t_release : float
+        The earliest time the task may be scheduled.
+    slope : float, optional
+    name : str, optional
+
+    """
     param_names = Base.param_names + ('slope',)
     shift_params = Shift.shift_params
 
@@ -410,6 +504,23 @@ class Linear(PiecewiseLinear):
 
 
 class LinearDrop(PiecewiseLinear):
+    """
+    Task with a piecewise linear loss function leading to a constant value.
+
+    Parameters
+    ----------
+    duration : float
+        Time duration of the task.
+    t_release : float
+        The earliest time the task may be scheduled.
+    slope : float, optional
+    t_drop : float, optional
+        Drop time.
+    l_drop : float, optional
+        Drop loss.
+    name : str, optional
+
+    """
     param_names = Base.param_names + ('slope', 't_drop', 'l_drop')
     shift_params = Shift.shift_params + ('t_drop', 'l_drop')
 
@@ -533,6 +644,22 @@ class LinearLinear(PiecewiseLinear):  # TODO: delete, and generators
 
 
 class Exponential(Shift):
+    """
+    Task with an exponential loss function.
+
+    Parameters
+    ----------
+    duration : float
+        Time duration of the task.
+    t_release : float
+        The earliest time the task may be scheduled.
+    a : float, optional
+        Multiplicative constant.
+    b : float, optional
+        Exponent base.
+    name : str, optional
+
+    """
     param_names = Base.param_names + ('a', 'b')
     shift_params = Shift.shift_params + ('a',)
 

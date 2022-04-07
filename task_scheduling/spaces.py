@@ -1,3 +1,5 @@
+"""Additional OpenAI Gym spaces and utilities."""
+
 from math import factorial
 from typing import Collection
 
@@ -106,16 +108,16 @@ class Permutation(Space):
 
 
 class DiscreteSet(Space):
+    """
+    Gym Space for discrete, non-integral elements.
+
+    Parameters
+    ----------
+    elements : Collection
+        Explicit space elements.
+
+    """
     def __init__(self, elements):
-        """
-        Gym Space for discrete, non-integral elements.
-
-        Parameters
-        ----------
-        elements : Collection
-
-        """
-
         self.elements = np.array([])
         self.add_elements(elements)
         super().__init__(shape=(), dtype=self.elements.dtype)
@@ -144,8 +146,17 @@ class DiscreteSet(Space):
 
 
 class DiscreteMasked(Discrete):
+    r"""
+    A Discrete space with masked elements for sampling and membership testing.
+
+    Parameters
+    ----------
+    n : int
+        Space assumes values in :math:`\{ 0, 1, \\dots, n-1 \}`.
+    mask : Sequence of bool, optional
+        Length `n` array where `True` elements indicate invalid actions.
+    """
     def __init__(self, n, mask=np.ma.nomask):
-        """A Discrete space with masked elements for sampling and membership testing."""
         super().__init__(n)
         self.mask = mask
         self._rng = np.random.default_rng()

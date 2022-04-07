@@ -52,7 +52,7 @@ if seed is not None:
 
 # %% Define scheduling problem and algorithms
 
-problem_gen = problem_gens.Random.continuous_linear_drop(n_tasks=8, n_ch=1, ch_avail_lim=(0., 0.), rng=seed)
+# problem_gen = problem_gens.Random.continuous_linear_drop(n_tasks=8, n_ch=1, ch_avail_lim=(0., 0.), rng=seed)
 # problem_gen = problem_gens.Random.radar(n_tasks=8, n_ch=1, mode='track', rng=seed)
 # problem_gen = problem_gens.Random.discrete_linear_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.Random.search_track(n_tasks=8, n_ch=1, t_release_lim=(0., .018), rng=seed)
@@ -64,7 +64,7 @@ data_path = Path('../data/')
 
 
 dataset = 'continuous_linear_drop_c1t8'
-# problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
+problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
 temp_path = f'main_temp/'
 if isinstance(problem_gen, problem_gens.Dataset):  # TODO: give generators a `name` attribute?
@@ -233,15 +233,15 @@ algorithms = np.array([
     # ('MCTS', partial(mcts, max_runtime=6e-3, max_rollouts=None, c_explore=0, th_visit=5), 10),
     # ('Random Agent', random_agent, 10),
     # ('Torch Policy', torch_scheduler, 10),
-    # ('Lit Policy', lit_scheduler, 10),
-    ('SB Agent', sb_scheduler, 10),
+    ('Lit Policy', lit_scheduler, 10),
+    # ('SB Agent', sb_scheduler, 10),
     # ('BC', bc_scheduler, 10),
 ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
 
 
 # %% Evaluate and record results
-n_gen_learn, n_gen = 300000, 100
-# n_gen_learn, n_gen = 900, 100
+# n_gen_learn, n_gen = 300000, 100
+n_gen_learn, n_gen = 900, 100
 # n_gen_learn = 900  # the number of problems generated for learning, per iteration
 # n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment

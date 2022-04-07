@@ -1,3 +1,5 @@
+"""SL schedulers using PyTorch."""
+
 import math
 from abc import abstractmethod
 from copy import deepcopy
@@ -38,6 +40,19 @@ def reset_weights(model):
 
 
 class Base(BaseSupervisedScheduler):
+    """
+    Base class for PyTorch-based schedulers.
+
+    Parameters
+    ----------
+    env : BaseEnv
+        OpenAi gym environment.
+    model : torch.nn.Module
+        The learning network.
+    learn_params : dict, optional
+        Parameters used by the `learn` method.
+
+    """
     _learn_params_default = {
         'batch_size_train': 1,
         'n_gen_val': 0,
@@ -48,19 +63,6 @@ class Base(BaseSupervisedScheduler):
     }
 
     def __init__(self, env, model, learn_params=None):
-        """
-        Base class for PyTorch-based schedulers.
-
-        Parameters
-        ----------
-        env : BaseEnv
-            OpenAi gym environment.
-        model : torch.nn.Module
-            The learning network.
-        learn_params : dict, optional
-            Parameters used by the `learn` method.
-
-        """
         if not isinstance(model, nn.Module):
             raise TypeError("Argument `model` must be a `torch.nn.Module` instance.")
 
@@ -114,6 +116,20 @@ class Base(BaseSupervisedScheduler):
         return out
 
     def predict_prob(self, obs):
+        """
+        Formulate action probabilities for a given observation.
+
+        Parameters
+        ----------
+        obs : array_like
+            Observation.
+
+        Returns
+        -------
+        array_like
+            Action probabilities.
+
+        """
         return self._process_obs(obs, softmax=True)
 
     def predict(self, obs):
@@ -206,6 +222,7 @@ class Base(BaseSupervisedScheduler):
         self._fit(dl_train, dl_val, verbose)
 
     def save(self, save_path):
+        """Save the scheduler model and environment."""
         torch.save(self.model, save_path)
 
         save_path = Path(save_path)
@@ -215,6 +232,7 @@ class Base(BaseSupervisedScheduler):
 
     @classmethod
     def load(cls, load_path, env=None, **kwargs):
+        """Load the scheduler model and environment."""
         model = torch.load(load_path)
 
         if env is None:
@@ -227,26 +245,26 @@ class Base(BaseSupervisedScheduler):
 
 
 class TorchScheduler(Base):
+    """
+    Base class for pure PyTorch-based schedulers.
+
+    Parameters
+    ----------
+    env : BaseEnv
+        OpenAi gym environment.
+    module : torch.nn.Module
+        The PyTorch network.
+    loss_func : callable, optional
+    optim_cls : class, optional
+        Optimizer class from `torch.nn.optim`.
+    optim_params : dict, optional
+        Arguments for optimizer instantiation.
+    learn_params : dict, optional
+        Parameters used by the `learn` method.
+
+    """
     def __init__(self, env, module, loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None,
                  learn_params=None):
-        """
-        Base class for pure PyTorch-based schedulers.
-
-        Parameters
-        ----------
-        env : BaseEnv
-            OpenAi gym environment.
-        module : torch.nn.Module
-            The PyTorch network.
-        loss_func : callable, optional
-        optim_cls : class, optional
-            Optimizer class from `torch.nn.optim`.
-        optim_params : dict, optional
-            Arguments for optimizer instantiation.
-        learn_params : dict, optional
-            Parameters used by the `learn` method.
-
-        """
         super().__init__(env, module, learn_params)
 
         # self.model = model.to(device)
@@ -258,6 +276,7 @@ class TorchScheduler(Base):
     @classmethod
     def mlp(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=(),
             loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None, learn_params=None):
+        """Construct scheduler with MLP policy."""
         module = MultiNet.mlp(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint)
         return cls(env, module, loss_func, optim_cls, optim_params, learn_params)
 
@@ -265,6 +284,7 @@ class TorchScheduler(Base):
     def from_gen_mlp(cls, problem_gen, env_cls=Index, env_params=None, hidden_sizes_ch=(), hidden_sizes_tasks=(),
                      hidden_sizes_joint=(), loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None,
                      learn_params=None):
+        """Construct scheduler with MLP policy from problem generator."""
         if env_params is None:
             env_params = {}
         env = env_cls(problem_gen, **env_params)
@@ -317,6 +337,17 @@ class TorchScheduler(Base):
 
 class LitModel(pl.LightningModule):
     def __init__(self, module, loss_func=functional.cross_entropy, optim_cls=torch.optim.Adam, optim_params=None):
+        """
+        Basic PyTorch-Lightning model.
+
+        Parameters
+        ----------
+        module : nn.Module
+        loss_func : callable, optional
+        optim_cls : class, optional
+        optim_params: dict, optional
+
+        """
         super().__init__()
 
         self.module = module
@@ -360,22 +391,22 @@ class LitModel(pl.LightningModule):
 
 
 class LitScheduler(Base):
+    """
+    Base class for PyTorch Lightning-based schedulers.
+
+    Parameters
+    ----------
+    env : BaseEnv
+        OpenAi gym environment.
+    model : torch.nn.Module
+        The PyTorch-Lightning network.
+    trainer_kwargs : dict, optional
+        Arguments passed to instantiation of pl.Trainer object.
+    learn_params : dict, optional
+        Parameters used by the `learn` method.
+
+    """
     def __init__(self, env, model, trainer_kwargs=None, learn_params=None):
-        """
-        Base class for PyTorch Lightning-based schedulers.
-
-        Parameters
-        ----------
-        env : BaseEnv
-            OpenAi gym environment.
-        model : torch.nn.Module
-            The PyTorch-Lightning network.
-        trainer_kwargs : dict, optional
-            Arguments passed to instantiation of pl.Trainer object.
-        learn_params : dict, optional
-            Parameters used by the `learn` method.
-
-        """
         super().__init__(env, model, learn_params)
 
         if trainer_kwargs is None:
@@ -390,6 +421,7 @@ class LitScheduler(Base):
 
     @classmethod
     def from_module(cls, env, module, model_kwargs=None, trainer_kwargs=None, learn_params=None):
+        """Construct scheduler from a `nn.Module`"""
         if model_kwargs is None:
             model_kwargs = {}
         model = LitModel(module, **model_kwargs)
@@ -398,6 +430,7 @@ class LitScheduler(Base):
     @classmethod
     def from_gen_module(cls, problem_gen, module, env_cls=Index, env_params=None, model_kwargs=None,
                         trainer_kwargs=None, learn_params=None):
+        """Construct scheduler from a `nn.Module` and a problem generator."""
         if env_params is None:
             env_params = {}
         env = env_cls(problem_gen, **env_params)
@@ -407,12 +440,14 @@ class LitScheduler(Base):
     @classmethod
     def mlp(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=(), model_kwargs=None,
             trainer_kwargs=None, learn_params=None):
+        """Construct scheduler with MLP policy."""
         module = MultiNet.mlp(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint)
         return cls.from_module(env, module, model_kwargs, trainer_kwargs, learn_params)
 
     @classmethod
     def from_gen_mlp(cls, problem_gen, env_cls=Index, env_params=None, hidden_sizes_ch=(), hidden_sizes_tasks=(),
                      hidden_sizes_joint=(), model_kwargs=None, trainer_kwargs=None, learn_params=None):
+        """Construct scheduler with MLP policy from problem generator."""
         if env_params is None:
             env_params = {}
         env = env_cls(problem_gen, **env_params)
