@@ -1,0 +1,897 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>task_scheduling.mdp.supervised.torch package &#8212; Task Scheduling  documentation</title>
+    
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
+<link href="_static/styles/pydata-sphinx-theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
+
+    
+  <link rel="stylesheet"
+    href="_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf">
+
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="task_scheduling.mdp.supervised package" href="task_scheduling.mdp.supervised.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="docsearch:language" content="None">
+    
+
+    <!-- Google Analytics -->
+    
+  </head>
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="60">
+    
+    <div class="container-fluid" id="banner"></div>
+
+    
+    <nav class="navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main"><div class="container-xl">
+
+  <div id="navbar-start">
+    
+    
+<a class="navbar-brand" href="index.html">
+<p class="title">Task Scheduling</p>
+</a>
+
+    
+  </div>
+
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-collapsible" aria-controls="navbar-collapsible" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  
+  <div id="navbar-collapsible" class="col-lg-9 collapse navbar-collapse">
+    <div id="navbar-center" class="mr-auto">
+      
+      <div class="navbar-center-item">
+        <ul id="navbar-main-elements" class="navbar-nav">
+    <li class="toctree-l1 current active nav-item">
+ <a class="reference internal nav-link" href="task_scheduling.html">
+  task_scheduling package
+ </a>
+</li>
+
+    
+</ul>
+      </div>
+      
+    </div>
+
+    <div id="navbar-end">
+      
+      <div class="navbar-end-item">
+        <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
+      </ul>
+      </div>
+      
+    </div>
+  </div>
+</div>
+    </nav>
+    
+
+    <div class="container-xl">
+      <div class="row">
+          
+            
+            <!-- Only show if we have sidebars configured, else just a small margin  -->
+            <div class="col-12 col-md-3 bd-sidebar">
+              <div class="sidebar-start-items"><form class="bd-search d-flex align-items-center" action="search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
+  <div class="bd-toc-item active">
+    <ul class="current nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="task_scheduling.algorithms.html">
+   task_scheduling.algorithms package
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="task_scheduling.generators.html">
+   task_scheduling.generators package
+  </a>
+ </li>
+ <li class="toctree-l1 current active has-children">
+  <a class="reference internal" href="task_scheduling.mdp.html">
+   task_scheduling.mdp package
+  </a>
+  <input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/>
+  <label for="toctree-checkbox-1">
+   <i class="fas fa-chevron-down">
+   </i>
+  </label>
+  <ul class="current">
+   <li class="toctree-l2 current active has-children">
+    <a class="reference internal" href="task_scheduling.mdp.supervised.html">
+     task_scheduling.mdp.supervised package
+    </a>
+    <input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/>
+    <label for="toctree-checkbox-2">
+     <i class="fas fa-chevron-down">
+     </i>
+    </label>
+    <ul class="current">
+     <li class="toctree-l3 current active">
+      <a class="current reference internal" href="#">
+       task_scheduling.mdp.supervised.torch package
+      </a>
+     </li>
+    </ul>
+   </li>
+  </ul>
+ </li>
+</ul>
+
+  </div>
+</nav>
+              </div>
+              <div class="sidebar-end-items">
+              </div>
+            </div>
+            
+          
+
+          
+          <div class="d-none d-xl-block col-xl-2 bd-toc">
+            
+              
+              <div class="toc-item">
+                
+<div class="tocsection onthispage mt-5 pt-1 pb-3">
+    <i class="fas fa-list"></i> On this page
+</div>
+
+<nav id="bd-toc-nav">
+    <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#submodules">
+   Submodules
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#module-task_scheduling.mdp.supervised.torch.base">
+   task_scheduling.mdp.supervised.torch.base module
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#module-task_scheduling.mdp.supervised.torch.modules">
+   task_scheduling.mdp.supervised.torch.modules module
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#module-task_scheduling.mdp.supervised.torch">
+   Module contents
+  </a>
+ </li>
+</ul>
+
+</nav>
+              </div>
+              
+              <div class="toc-item">
+                
+              </div>
+              
+            
+          </div>
+          
+
+          
+          
+            
+          
+          <main class="col-12 col-md-9 col-xl-7 py-md-5 pl-md-5 pr-md-4 bd-content" role="main">
+              
+              <div>
+                
+  <div class="section" id="task-scheduling-mdp-supervised-torch-package">
+<h1>task_scheduling.mdp.supervised.torch package<a class="headerlink" href="#task-scheduling-mdp-supervised-torch-package" title="Permalink to this headline">#</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">#</a></h2>
+</div>
+<div class="section" id="module-task_scheduling.mdp.supervised.torch.base">
+<span id="task-scheduling-mdp-supervised-torch-base-module"></span><h2>task_scheduling.mdp.supervised.torch.base module<a class="headerlink" href="#module-task_scheduling.mdp.supervised.torch.base" title="Permalink to this headline">#</a></h2>
+<p>SL schedulers using PyTorch.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.Base">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.supervised.torch.base.</span></span><span class="sig-name descname"><span class="pre">Base</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.Base" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="task_scheduling.mdp.supervised.html#task_scheduling.mdp.supervised.base.Base" title="task_scheduling.mdp.supervised.base.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.mdp.supervised.base.Base</span></code></a></p>
+<p>Base class for PyTorch-based schedulers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>env</strong> (<em>BaseEnv</em>) – OpenAi gym environment.</p></li>
+<li><p><strong>model</strong> (<em>torch.nn.Module</em>) – The learning network.</p></li>
+<li><p><strong>learn_params</strong> (<em>dict</em><em>, </em><em>optional</em>) – Parameters used by the <cite>learn</cite> method.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.Base.from_gen">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_gen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_cls=&lt;class</span> <span class="pre">'task_scheduling.mdp.environments.Index'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_params=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.Base.from_gen" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.Base.learn">
+<span class="sig-name descname"><span class="pre">learn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_gen_learn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.Base.learn" title="Permalink to this definition">#</a></dt>
+<dd><p>Learn from the environment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_gen_learn</strong> (<em>int</em>) – Number of problems to generate data from.</p></li>
+<li><p><strong>verbose</strong> (<em>{0</em><em>, </em><em>1</em><em>, </em><em>2}</em><em>, </em><em>optional</em>) – Progress print-out level. 0: silent, 1: add batch info, 2: add problem info</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.Base.load">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">load_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.Base.load" title="Permalink to this definition">#</a></dt>
+<dd><p>Load the scheduler model and environment.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.Base.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.Base.predict" title="Permalink to this definition">#</a></dt>
+<dd><p>Take an action given an observation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obs</strong> (<em>array_like</em>) – Observation.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Action.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>int or array_like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.Base.predict_prob">
+<span class="sig-name descname"><span class="pre">predict_prob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.Base.predict_prob" title="Permalink to this definition">#</a></dt>
+<dd><p>Formulate action probabilities for a given observation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obs</strong> (<em>array_like</em>) – Observation.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Action probabilities.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>array_like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.Base.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.Base.reset" title="Permalink to this definition">#</a></dt>
+<dd><p>Reset the learner.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.Base.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">save_path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.Base.save" title="Permalink to this definition">#</a></dt>
+<dd><p>Save the scheduler model and environment.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.LitModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.supervised.torch.base.</span></span><span class="sig-name descname"><span class="pre">LitModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_func=&lt;function</span> <span class="pre">cross_entropy&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_cls=&lt;class</span> <span class="pre">'torch.optim.adam.Adam'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_params=None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.LitModel" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">pytorch_lightning.core.lightning.LightningModule</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.LitModel.configure_optimizers">
+<span class="sig-name descname"><span class="pre">configure_optimizers</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.LitModel.configure_optimizers" title="Permalink to this definition">#</a></dt>
+<dd><p>Choose what optimizers and learning-rate schedulers to use in your optimization.
+Normally you’d need one. But in the case of GANs or similar you might have multiple.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><p>Any of these 6 options.</p>
+<ul class="simple">
+<li><p><strong>Single optimizer</strong>.</p></li>
+<li><p><strong>List or Tuple</strong> of optimizers.</p></li>
+<li><p><strong>Two lists</strong> - The first list has multiple optimizers, and the second has multiple LR schedulers
+(or multiple <code class="docutils literal notranslate"><span class="pre">lr_scheduler_config</span></code>).</p></li>
+<li><p><strong>Dictionary</strong>, with an <code class="docutils literal notranslate"><span class="pre">&quot;optimizer&quot;</span></code> key, and (optionally) a <code class="docutils literal notranslate"><span class="pre">&quot;lr_scheduler&quot;</span></code>
+key whose value is a single LR scheduler or <code class="docutils literal notranslate"><span class="pre">lr_scheduler_config</span></code>.</p></li>
+<li><p><strong>Tuple of dictionaries</strong> as described above, with an optional <code class="docutils literal notranslate"><span class="pre">&quot;frequency&quot;</span></code> key.</p></li>
+<li><p><strong>None</strong> - Fit will run without any optimizer.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p>The <code class="docutils literal notranslate"><span class="pre">lr_scheduler_config</span></code> is a dictionary which contains the scheduler and its associated configuration.
+The default configuration is shown below.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">lr_scheduler_config</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># REQUIRED: The scheduler instance</span>
+    <span class="s2">&quot;scheduler&quot;</span><span class="p">:</span> <span class="n">lr_scheduler</span><span class="p">,</span>
+    <span class="c1"># The unit of the scheduler&#39;s step size, could also be &#39;step&#39;.</span>
+    <span class="c1"># &#39;epoch&#39; updates the scheduler on epoch end whereas &#39;step&#39;</span>
+    <span class="c1"># updates it after a optimizer update.</span>
+    <span class="s2">&quot;interval&quot;</span><span class="p">:</span> <span class="s2">&quot;epoch&quot;</span><span class="p">,</span>
+    <span class="c1"># How many epochs/steps should pass between calls to</span>
+    <span class="c1"># `scheduler.step()`. 1 corresponds to updating the learning</span>
+    <span class="c1"># rate after every epoch/step.</span>
+    <span class="s2">&quot;frequency&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="c1"># Metric to to monitor for schedulers like `ReduceLROnPlateau`</span>
+    <span class="s2">&quot;monitor&quot;</span><span class="p">:</span> <span class="s2">&quot;val_loss&quot;</span><span class="p">,</span>
+    <span class="c1"># If set to `True`, will enforce that the value specified &#39;monitor&#39;</span>
+    <span class="c1"># is available when the scheduler is updated, thus stopping</span>
+    <span class="c1"># training if not found. If set to `False`, it will only produce a warning</span>
+    <span class="s2">&quot;strict&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># If using the `LearningRateMonitor` callback to monitor the</span>
+    <span class="c1"># learning rate progress, this keyword can be used to specify</span>
+    <span class="c1"># a custom logged name</span>
+    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>When there are schedulers in which the <code class="docutils literal notranslate"><span class="pre">.step()</span></code> method is conditioned on a value, such as the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">torch.optim.lr_scheduler.ReduceLROnPlateau</span></code> scheduler, Lightning requires that the
+<code class="docutils literal notranslate"><span class="pre">lr_scheduler_config</span></code> contains the keyword <code class="docutils literal notranslate"><span class="pre">&quot;monitor&quot;</span></code> set to the metric name that the scheduler
+should be conditioned on.</p>
+<p>Metrics can be made available to monitor by simply logging it using
+<code class="docutils literal notranslate"><span class="pre">self.log('metric_to_track',</span> <span class="pre">metric_val)</span></code> in your <code class="xref py py-class docutils literal notranslate"><span class="pre">LightningModule</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">frequency</span></code> value specified in a dict along with the <code class="docutils literal notranslate"><span class="pre">optimizer</span></code> key is an int corresponding
+to the number of sequential batches optimized with the specific optimizer.
+It should be given to none or to all of the optimizers.
+There is a difference between passing multiple optimizers in a list,
+and passing multiple optimizers in dictionaries with a frequency of 1:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>In the former case, all optimizers will operate on the given batch in each optimization step.</p></li>
+<li><p>In the latter, only one optimizer will operate on the given batch at every step.</p></li>
+</ul>
+</div></blockquote>
+<p>This is different from the <code class="docutils literal notranslate"><span class="pre">frequency</span></code> value specified in the <code class="docutils literal notranslate"><span class="pre">lr_scheduler_config</span></code> mentioned above.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">configure_optimizers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">optimizer_one</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+    <span class="n">optimizer_two</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">{</span><span class="s2">&quot;optimizer&quot;</span><span class="p">:</span> <span class="n">optimizer_one</span><span class="p">,</span> <span class="s2">&quot;frequency&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">},</span>
+        <span class="p">{</span><span class="s2">&quot;optimizer&quot;</span><span class="p">:</span> <span class="n">optimizer_two</span><span class="p">,</span> <span class="s2">&quot;frequency&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">},</span>
+    <span class="p">]</span>
+</pre></div>
+</div>
+<p>In this example, the first optimizer will be used for the first 5 steps,
+the second optimizer for the next 10 steps and that cycle will continue.
+If an LR scheduler is specified for an optimizer using the <code class="docutils literal notranslate"><span class="pre">lr_scheduler</span></code> key in the above dict,
+the scheduler will only be updated when its optimizer is being used.</p>
+</div>
+<p>Examples:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># most cases. no learning rate scheduler</span>
+<span class="k">def</span> <span class="nf">configure_optimizers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+
+<span class="c1"># multiple optimizer case (e.g.: GAN)</span>
+<span class="k">def</span> <span class="nf">configure_optimizers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">gen_opt</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_gen</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+    <span class="n">dis_opt</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_dis</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.02</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">gen_opt</span><span class="p">,</span> <span class="n">dis_opt</span>
+
+<span class="c1"># example with learning rate schedulers</span>
+<span class="k">def</span> <span class="nf">configure_optimizers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">gen_opt</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_gen</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+    <span class="n">dis_opt</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_dis</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.02</span><span class="p">)</span>
+    <span class="n">dis_sch</span> <span class="o">=</span> <span class="n">CosineAnnealing</span><span class="p">(</span><span class="n">dis_opt</span><span class="p">,</span> <span class="n">T_max</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">gen_opt</span><span class="p">,</span> <span class="n">dis_opt</span><span class="p">],</span> <span class="p">[</span><span class="n">dis_sch</span><span class="p">]</span>
+
+<span class="c1"># example with step-based learning rate schedulers</span>
+<span class="c1"># each optimizer has its own scheduler</span>
+<span class="k">def</span> <span class="nf">configure_optimizers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">gen_opt</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_gen</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+    <span class="n">dis_opt</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_dis</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.02</span><span class="p">)</span>
+    <span class="n">gen_sch</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;scheduler&#39;</span><span class="p">:</span> <span class="n">ExponentialLR</span><span class="p">(</span><span class="n">gen_opt</span><span class="p">,</span> <span class="mf">0.99</span><span class="p">),</span>
+        <span class="s1">&#39;interval&#39;</span><span class="p">:</span> <span class="s1">&#39;step&#39;</span>  <span class="c1"># called after each training step</span>
+    <span class="p">}</span>
+    <span class="n">dis_sch</span> <span class="o">=</span> <span class="n">CosineAnnealing</span><span class="p">(</span><span class="n">dis_opt</span><span class="p">,</span> <span class="n">T_max</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span> <span class="c1"># called every epoch</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">gen_opt</span><span class="p">,</span> <span class="n">dis_opt</span><span class="p">],</span> <span class="p">[</span><span class="n">gen_sch</span><span class="p">,</span> <span class="n">dis_sch</span><span class="p">]</span>
+
+<span class="c1"># example with optimizer frequencies</span>
+<span class="c1"># see training procedure in `Improved Training of Wasserstein GANs`, Algorithm 1</span>
+<span class="c1"># https://arxiv.org/abs/1704.00028</span>
+<span class="k">def</span> <span class="nf">configure_optimizers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">gen_opt</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_gen</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+    <span class="n">dis_opt</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_dis</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.02</span><span class="p">)</span>
+    <span class="n">n_critic</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="p">{</span><span class="s1">&#39;optimizer&#39;</span><span class="p">:</span> <span class="n">dis_opt</span><span class="p">,</span> <span class="s1">&#39;frequency&#39;</span><span class="p">:</span> <span class="n">n_critic</span><span class="p">},</span>
+        <span class="p">{</span><span class="s1">&#39;optimizer&#39;</span><span class="p">:</span> <span class="n">gen_opt</span><span class="p">,</span> <span class="s1">&#39;frequency&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Some things to know:</p>
+<ul class="simple">
+<li><p>Lightning calls <code class="docutils literal notranslate"><span class="pre">.backward()</span></code> and <code class="docutils literal notranslate"><span class="pre">.step()</span></code> on each optimizer and learning rate scheduler as needed.</p></li>
+<li><p>If you use 16-bit precision (<code class="docutils literal notranslate"><span class="pre">precision=16</span></code>), Lightning will automatically handle the optimizers.</p></li>
+<li><p>If you use multiple optimizers, <a class="reference internal" href="#task_scheduling.mdp.supervised.torch.base.LitModel.training_step" title="task_scheduling.mdp.supervised.torch.base.LitModel.training_step"><code class="xref py py-meth docutils literal notranslate"><span class="pre">training_step()</span></code></a> will have an additional <code class="docutils literal notranslate"><span class="pre">optimizer_idx</span></code> parameter.</p></li>
+<li><p>If you use <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.optim.LBFGS</span></code>, Lightning handles the closure function automatically for you.</p></li>
+<li><p>If you use multiple optimizers, gradients will be calculated only for the parameters of current optimizer
+at each training step.</p></li>
+<li><p>If you need to control how often those optimizers step or override the default <code class="docutils literal notranslate"><span class="pre">.step()</span></code> schedule,
+override the <code class="xref py py-meth docutils literal notranslate"><span class="pre">optimizer_step()</span></code> hook.</p></li>
+</ul>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.LitModel.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.LitModel.forward" title="Permalink to this definition">#</a></dt>
+<dd><p>Same as <code class="xref py py-meth docutils literal notranslate"><span class="pre">torch.nn.Module.forward()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*args</strong> – Whatever you decide to pass into the forward method.</p></li>
+<li><p><strong>**kwargs</strong> – Keyword arguments are also possible.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Your model’s output</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.LitModel.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.LitModel.training" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.LitModel.training_step">
+<span class="sig-name descname"><span class="pre">training_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_idx</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.LitModel.training_step" title="Permalink to this definition">#</a></dt>
+<dd><p>Here you compute and return the training loss and some additional metrics for e.g.
+the progress bar or logger.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>batch</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code> | (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, …) | [<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, …]) – The output of your <code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code>. A tensor, tuple or list.</p></li>
+<li><p><strong>batch_idx</strong> (<code class="docutils literal notranslate"><span class="pre">int</span></code>) – Integer displaying index of this batch</p></li>
+<li><p><strong>optimizer_idx</strong> (<code class="docutils literal notranslate"><span class="pre">int</span></code>) – When using multiple optimizers, this argument will also be present.</p></li>
+<li><p><strong>hiddens</strong> (<code class="docutils literal notranslate"><span class="pre">Any</span></code>) – Passed in if
+<a href="#id1"><span class="problematic" id="id2">:paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps`</span></a> &gt; 0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>Any of.</p>
+<ul class="simple">
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code> - The loss tensor</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dict</span></code> - A dictionary. Can include any keys, but must include the key <code class="docutils literal notranslate"><span class="pre">'loss'</span></code></p></li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">None</span></code> - Training will skip to the next batch. This is only for automatic optimization.</dt><dd><p>This is not supported for multi-GPU, TPU, IPU, or DeepSpeed.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</p>
+</dd>
+</dl>
+<p>In this step you’d normally do the forward pass and calculate the loss for a batch.
+You can also do fancier things like multiple forward passes or something model specific.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">training_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">batch_idx</span><span class="p">):</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">batch</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">loss</span>
+</pre></div>
+</div>
+<p>If you define multiple optimizers, this step will be called with an additional
+<code class="docutils literal notranslate"><span class="pre">optimizer_idx</span></code> parameter.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Multiple optimizers (e.g.: GANs)</span>
+<span class="k">def</span> <span class="nf">training_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">batch_idx</span><span class="p">,</span> <span class="n">optimizer_idx</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">optimizer_idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># do training_step with encoder</span>
+        <span class="o">...</span>
+    <span class="k">if</span> <span class="n">optimizer_idx</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="c1"># do training_step with decoder</span>
+        <span class="o">...</span>
+</pre></div>
+</div>
+<p>If you add truncated back propagation through time you will also get an additional
+argument with the hidden states of the previous step.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Truncated back-propagation through time</span>
+<span class="k">def</span> <span class="nf">training_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">batch_idx</span><span class="p">,</span> <span class="n">hiddens</span><span class="p">):</span>
+    <span class="c1"># hiddens are the hidden states from the previous truncated backprop step</span>
+    <span class="n">out</span><span class="p">,</span> <span class="n">hiddens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">hiddens</span><span class="p">)</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="o">...</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;loss&quot;</span><span class="p">:</span> <span class="n">loss</span><span class="p">,</span> <span class="s2">&quot;hiddens&quot;</span><span class="p">:</span> <span class="n">hiddens</span><span class="p">}</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The loss value shown in the progress bar is smoothed (averaged) over the last values,
+so it differs from the actual loss returned in train/validation step.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.LitModel.validation_step">
+<span class="sig-name descname"><span class="pre">validation_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_idx</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.LitModel.validation_step" title="Permalink to this definition">#</a></dt>
+<dd><p>Operates on a single batch of data from the validation set.
+In this step you’d might generate examples or calculate anything of interest like accuracy.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># the pseudocode for these calls</span>
+<span class="n">val_outs</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">val_batch</span> <span class="ow">in</span> <span class="n">val_data</span><span class="p">:</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">validation_step</span><span class="p">(</span><span class="n">val_batch</span><span class="p">)</span>
+    <span class="n">val_outs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+<span class="n">validation_epoch_end</span><span class="p">(</span><span class="n">val_outs</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>batch</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code> | (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, …) | [<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, …]) – The output of your <code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code>. A tensor, tuple or list.</p></li>
+<li><p><strong>batch_idx</strong> (<em>int</em>) – The index of this batch</p></li>
+<li><p><strong>dataloader_idx</strong> (<em>int</em>) – The index of the dataloader that produced this batch
+(only if multiple val dataloaders used)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>Any object or value</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code> - Validation will skip to the next batch</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># pseudocode of order</span>
+<span class="n">val_outs</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">val_batch</span> <span class="ow">in</span> <span class="n">val_data</span><span class="p">:</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">validation_step</span><span class="p">(</span><span class="n">val_batch</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">defined</span><span class="p">(</span><span class="s2">&quot;validation_step_end&quot;</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">validation_step_end</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+    <span class="n">val_outs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+<span class="n">val_outs</span> <span class="o">=</span> <span class="n">validation_epoch_end</span><span class="p">(</span><span class="n">val_outs</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># if you have one val dataloader:</span>
+<span class="k">def</span> <span class="nf">validation_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">batch_idx</span><span class="p">):</span>
+    <span class="o">...</span>
+
+
+<span class="c1"># if you have multiple val dataloaders:</span>
+<span class="k">def</span> <span class="nf">validation_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">batch_idx</span><span class="p">,</span> <span class="n">dataloader_idx</span><span class="p">):</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<p>Examples:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># CASE 1: A single validation dataset</span>
+<span class="k">def</span> <span class="nf">validation_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">batch_idx</span><span class="p">):</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">batch</span>
+
+    <span class="c1"># implement your own</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+    <span class="c1"># log 6 example images</span>
+    <span class="c1"># or generated text... or whatever</span>
+    <span class="n">sample_imgs</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:</span><span class="mi">6</span><span class="p">]</span>
+    <span class="n">grid</span> <span class="o">=</span> <span class="n">torchvision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">make_grid</span><span class="p">(</span><span class="n">sample_imgs</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">experiment</span><span class="o">.</span><span class="n">add_image</span><span class="p">(</span><span class="s1">&#39;example_images&#39;</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># calculate acc</span>
+    <span class="n">labels_hat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">val_acc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y</span> <span class="o">==</span> <span class="n">labels_hat</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">/</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.0</span><span class="p">)</span>
+
+    <span class="c1"># log the outputs!</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">log_dict</span><span class="p">({</span><span class="s1">&#39;val_loss&#39;</span><span class="p">:</span> <span class="n">loss</span><span class="p">,</span> <span class="s1">&#39;val_acc&#39;</span><span class="p">:</span> <span class="n">val_acc</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>If you pass in multiple val dataloaders, <a class="reference internal" href="#task_scheduling.mdp.supervised.torch.base.LitModel.validation_step" title="task_scheduling.mdp.supervised.torch.base.LitModel.validation_step"><code class="xref py py-meth docutils literal notranslate"><span class="pre">validation_step()</span></code></a> will have an additional argument.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># CASE 2: multiple validation dataloaders</span>
+<span class="k">def</span> <span class="nf">validation_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">batch_idx</span><span class="p">,</span> <span class="n">dataloader_idx</span><span class="p">):</span>
+    <span class="c1"># dataloader_idx tells you which dataset this is.</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you don’t need to validate you don’t need to implement this method.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When the <a class="reference internal" href="#task_scheduling.mdp.supervised.torch.base.LitModel.validation_step" title="task_scheduling.mdp.supervised.torch.base.LitModel.validation_step"><code class="xref py py-meth docutils literal notranslate"><span class="pre">validation_step()</span></code></a> is called, the model has been put in eval mode
+and PyTorch gradients have been disabled. At the end of validation,
+the model goes back to training mode and gradients are enabled.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.LitScheduler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.supervised.torch.base.</span></span><span class="sig-name descname"><span class="pre">LitScheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trainer_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.LitScheduler" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.mdp.supervised.torch.base.Base" title="task_scheduling.mdp.supervised.torch.base.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.mdp.supervised.torch.base.Base</span></code></a></p>
+<p>Base class for PyTorch Lightning-based schedulers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>env</strong> (<em>BaseEnv</em>) – OpenAi gym environment.</p></li>
+<li><p><strong>model</strong> (<em>torch.nn.Module</em>) – The PyTorch-Lightning network.</p></li>
+<li><p><strong>trainer_kwargs</strong> (<em>dict</em><em>, </em><em>optional</em>) – Arguments passed to instantiation of pl.Trainer object.</p></li>
+<li><p><strong>learn_params</strong> (<em>dict</em><em>, </em><em>optional</em>) – Parameters used by the <cite>learn</cite> method.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.LitScheduler.from_gen_mlp">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_gen_mlp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_cls=&lt;class</span> <span class="pre">'task_scheduling.mdp.environments.Index'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_params=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_ch=()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_tasks=()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_joint=()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_kwargs=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trainer_kwargs=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params=None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.LitScheduler.from_gen_mlp" title="Permalink to this definition">#</a></dt>
+<dd><p>Construct scheduler with MLP policy from problem generator.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.LitScheduler.from_gen_module">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_gen_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_cls=&lt;class</span> <span class="pre">'task_scheduling.mdp.environments.Index'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_params=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_kwargs=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trainer_kwargs=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params=None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.LitScheduler.from_gen_module" title="Permalink to this definition">#</a></dt>
+<dd><p>Construct scheduler from a <cite>nn.Module</cite> and a problem generator.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.LitScheduler.from_module">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trainer_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.LitScheduler.from_module" title="Permalink to this definition">#</a></dt>
+<dd><p>Construct scheduler from a <cite>nn.Module</cite></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.LitScheduler.mlp">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mlp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_ch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_tasks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_joint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trainer_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.LitScheduler.mlp" title="Permalink to this definition">#</a></dt>
+<dd><p>Construct scheduler with MLP policy.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.LitScheduler.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.LitScheduler.reset" title="Permalink to this definition">#</a></dt>
+<dd><p>Reset the learner.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.TorchScheduler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.supervised.torch.base.</span></span><span class="sig-name descname"><span class="pre">TorchScheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_func=&lt;function</span> <span class="pre">cross_entropy&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_cls=&lt;class</span> <span class="pre">'torch.optim.adam.Adam'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_params=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params=None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.TorchScheduler" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.mdp.supervised.torch.base.Base" title="task_scheduling.mdp.supervised.torch.base.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.mdp.supervised.torch.base.Base</span></code></a></p>
+<p>Base class for pure PyTorch-based schedulers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>env</strong> (<em>BaseEnv</em>) – OpenAi gym environment.</p></li>
+<li><p><strong>module</strong> (<em>torch.nn.Module</em>) – The PyTorch network.</p></li>
+<li><p><strong>loss_func</strong> (<em>callable</em><em>, </em><em>optional</em>) – </p></li>
+<li><p><strong>optim_cls</strong> (<em>class</em><em>, </em><em>optional</em>) – Optimizer class from <cite>torch.nn.optim</cite>.</p></li>
+<li><p><strong>optim_params</strong> (<em>dict</em><em>, </em><em>optional</em>) – Arguments for optimizer instantiation.</p></li>
+<li><p><strong>learn_params</strong> (<em>dict</em><em>, </em><em>optional</em>) – Parameters used by the <cite>learn</cite> method.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.TorchScheduler.from_gen_mlp">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_gen_mlp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_cls=&lt;class</span> <span class="pre">'task_scheduling.mdp.environments.Index'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_params=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_ch=()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_tasks=()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_joint=()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_func=&lt;function</span> <span class="pre">cross_entropy&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_cls=&lt;class</span> <span class="pre">'torch.optim.adam.Adam'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_params=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params=None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.TorchScheduler.from_gen_mlp" title="Permalink to this definition">#</a></dt>
+<dd><p>Construct scheduler with MLP policy from problem generator.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.TorchScheduler.learn">
+<span class="sig-name descname"><span class="pre">learn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_gen_learn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.TorchScheduler.learn" title="Permalink to this definition">#</a></dt>
+<dd><p>Learn from the environment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_gen_learn</strong> (<em>int</em>) – Number of problems to generate data from.</p></li>
+<li><p><strong>verbose</strong> (<em>{0</em><em>, </em><em>1</em><em>, </em><em>2}</em><em>, </em><em>optional</em>) – Progress print-out level. 0: silent, 1: add batch info, 2: add problem info</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.TorchScheduler.mlp">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mlp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_ch=()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_tasks=()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_joint=()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_func=&lt;function</span> <span class="pre">cross_entropy&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_cls=&lt;class</span> <span class="pre">'torch.optim.adam.Adam'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_params=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params=None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.TorchScheduler.mlp" title="Permalink to this definition">#</a></dt>
+<dd><p>Construct scheduler with MLP policy.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.base.reset_weights">
+<span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.supervised.torch.base.</span></span><span class="sig-name descname"><span class="pre">reset_weights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.base.reset_weights" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-task_scheduling.mdp.supervised.torch.modules">
+<span id="task-scheduling-mdp-supervised-torch-modules-module"></span><h2>task_scheduling.mdp.supervised.torch.modules module<a class="headerlink" href="#module-task_scheduling.mdp.supervised.torch.modules" title="Permalink to this headline">#</a></h2>
+<p>Custom PyTorch modules with multiple inputs and valid action enforcement.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.modules.MultiNet">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.supervised.torch.modules.</span></span><span class="sig-name descname"><span class="pre">MultiNet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">net_ch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">net_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">net_joint</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.modules.MultiNet" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Multiple-input network with valid action enforcement.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>net_ch</strong> (<em>nn.Module</em>) – </p></li>
+<li><p><strong>net_tasks</strong> (<em>nn.Module</em>) – </p></li>
+<li><p><strong>net_joint</strong> (<em>nn.Module</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Processes input tensors for channel availability, sequence masking, and tasks. The channel and task tensors are
+separately processed by the respective modules before concatenation and further processing in <cite>net_joint</cite>. The
+sequence mask blocks invalid logits at the output to ensure only valid actions are taken.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.modules.MultiNet.cnn">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">cnn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_ch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_tasks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_sizes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cnn_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_joint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.modules.MultiNet.cnn" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.modules.MultiNet.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_avail</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tasks</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.modules.MultiNet.forward" title="Permalink to this definition">#</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.modules.MultiNet.mlp">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mlp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_ch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_tasks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_joint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.modules.MultiNet.mlp" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.modules.MultiNet.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.modules.MultiNet.training" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.modules.VaryCNN">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.supervised.torch.modules.</span></span><span class="sig-name descname"><span class="pre">VaryCNN</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_len</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.modules.VaryCNN" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.modules.VaryCNN.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_avail</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tasks</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.modules.VaryCNN.forward" title="Permalink to this definition">#</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.modules.VaryCNN.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.modules.VaryCNN.training" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.modules.build_cnn">
+<span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.supervised.torch.modules.</span></span><span class="sig-name descname"><span class="pre">build_cnn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer_sizes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_sizes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pooling_layers=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation=&lt;class</span> <span class="pre">'torch.nn.modules.activation.ReLU'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_act=False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.modules.build_cnn" title="Permalink to this definition">#</a></dt>
+<dd><p>PyTorch sequential CNN.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>layer_sizes</strong> (<em>Collection of int</em>) – Hidden layer sizes.</p></li>
+<li><p><strong>kernel_sizes</strong> (<em>int</em><em> or </em><em>tuple</em><em> or </em><em>Collection of tuple</em>) – Kernel sizes for convolutional layers. If only one value is provided, the same is used for all convolutional
+layers.</p></li>
+<li><p><strong>pooling_layers</strong> (<em>nn.Module</em><em> or </em><em>Collection of nn.Module</em><em>, </em><em>optional</em>) – Pooling modules. If only one value is provided, the same is used after each convolutional layer.</p></li>
+<li><p><strong>activation</strong> (<em>nn.Module</em><em>, </em><em>optional</em>) – </p></li>
+<li><p><strong>last_act</strong> (<em>bool</em><em>, </em><em>optional</em>) – Include final activation function.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>nn.Sequential</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.modules.build_mlp">
+<span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.supervised.torch.modules.</span></span><span class="sig-name descname"><span class="pre">build_mlp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer_sizes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation=&lt;class</span> <span class="pre">'torch.nn.modules.activation.ReLU'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_act=False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.modules.build_mlp" title="Permalink to this definition">#</a></dt>
+<dd><p>PyTorch sequential MLP.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>layer_sizes</strong> (<em>Collection of int</em>) – Hidden layer sizes.</p></li>
+<li><p><strong>activation</strong> (<em>nn.Module</em><em>, </em><em>optional</em>) – </p></li>
+<li><p><strong>last_act</strong> (<em>bool</em><em>, </em><em>optional</em>) – Include final activation function.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>nn.Sequential</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.torch.modules.valid_logits">
+<span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.supervised.torch.modules.</span></span><span class="sig-name descname"><span class="pre">valid_logits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.torch.modules.valid_logits" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-task_scheduling.mdp.supervised.torch">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-task_scheduling.mdp.supervised.torch" title="Permalink to this headline">#</a></h2>
+</div>
+</div>
+
+
+              </div>
+              
+              
+              <!-- Previous / next buttons -->
+<div class='prev-next-area'>
+    <a class='left-prev' id="prev-link" href="task_scheduling.mdp.supervised.html" title="previous page">
+        <i class="fas fa-angle-left"></i>
+        <div class="prev-next-info">
+            <p class="prev-next-subtitle">previous</p>
+            <p class="prev-next-title">task_scheduling.mdp.supervised package</p>
+        </div>
+    </a>
+</div>
+              
+          </main>
+          
+
+      </div>
+    </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf"></script>
+<footer class="footer mt-5 mt-md-0">
+  <div class="container">
+    
+    <div class="footer-item">
+      <p class="copyright">
+    &copy; Copyright 2022, Paul Rademacher.<br>
+</p>
+    </div>
+    
+    <div class="footer-item">
+      <p class="sphinx-version">
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.5.0.<br>
+</p>
+    </div>
+    
+  </div>
+</footer>
+  </body>
+</html>
