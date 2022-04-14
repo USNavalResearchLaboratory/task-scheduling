@@ -28,10 +28,8 @@ device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cp
 num_workers = 0
 # num_workers = os.cpu_count()
 
-pin_memory = True
-
-
-# pin_memory = False
+# pin_memory = True
+pin_memory = False
 
 
 def reset_weights(model):
@@ -208,8 +206,8 @@ class Base(BaseSupervisedScheduler):
             tensors_train.append(w_train)
             tensors_val.append(w_val)
 
-        # tensors_train = [t.to(device) for t in tensors_train]
-        # tensors_val = [t.to(device) for t in tensors_val]
+        tensors_train = [t.to(device) for t in tensors_train]
+        tensors_val = [t.to(device) for t in tensors_val]
 
         ds_train = TensorDataset(*tensors_train)
         dl_train = DataLoader(ds_train, batch_size=self.learn_params['batch_size_train'] * self.env.n_tasks,
@@ -297,7 +295,7 @@ class TorchScheduler(Base):
             print('Training model...')
 
         def loss_batch(model, loss_func, batch_, opt=None):
-            batch_ = [t.to(device) for t in batch_]
+            # batch_ = [t.to(device) for t in batch_]
 
             if callable(self.learn_params['weight_func']):
                 xb_, yb_, wb_ = batch_[:-2], batch_[-2], batch_[-1]
@@ -417,7 +415,7 @@ class LitScheduler(Base):
         self.trainer_kwargs.update({
             'max_epochs': self.learn_params['max_epochs'],
         })
-        self.trainer = pl.Trainer(**self.trainer_kwargs)
+        self.trainer = pl.Trainer(**self.trainer_kwargs)  # TODO: store init kwargs, use for `reset`?
 
     @classmethod
     def from_module(cls, env, module, model_kwargs=None, trainer_kwargs=None, learn_params=None):
