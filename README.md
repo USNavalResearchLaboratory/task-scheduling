@@ -9,7 +9,12 @@ The `task_scheduling` package has not been published to public code repositories
 ## Documentation
 API documentation is provided locally at `docs/API/index.html`
 
-## Tasks
+## Development
+`task-scheduling` is developed and maintained by [Paul Rademacher](https://github.com/rademacher-p). For contribution and/or collaboration, please [contact me](mailto:paul.rademacher@nrl.navy.mil).
+
+## Quickstart
+
+### Tasks
 Task objects must expose two attributes:
 - `duration` - the time required to execute a task
 - `t_release` - the earliest time at which a task may be executed
@@ -25,7 +30,7 @@ function that increases linearly from zero according to a positive parameter `sl
 ![Task loss functions](images/ex_tasks.png)
 
 
-## Algorithms
+### Algorithms
 The task scheduling problem is defined using two variables:
 - `tasks`, an array of task objects
 - `ch_avail`, an array of channel availability times
@@ -44,7 +49,7 @@ Each algorithm is a Python `callable` implementing the same API; it takes two le
 
 ![Task schedule](images/ex_schedule.png)
 
-### Traditional schedulers
+#### Traditional schedulers
 A variety of classic schedulers are provided in the `algorithms` subpackage:
 
 - Optimal
@@ -57,7 +62,7 @@ A variety of classic schedulers are provided in the `algorithms` subpackage:
   - Earliest drop time
   - Random sequencer
 
-### Learning schedulers
+#### Learning schedulers
 Traditional schedulers typically suffer from one of two drawbacks: high computational load or poor performance. New
 algorithms that learn from related problems may generalize well, finding near-optimal schedules in a 
 shorter, more practical amount of runtime. 
@@ -69,7 +74,7 @@ assignments as actions and converts the scheduling problem (tasks and channel av
 including the status of each task. The `mdp.supervised` subpackage provides scheduler objects that use policy 
 networks (implemented with [PyTorch](https://pytorch.org/)) to learn from these environments. The `mdp.reinforcement` submodule provides schedulers that implement and use agents from [Stable-Baselines3](https://stable-baselines3.readthedocs.io/en/master/); also included are special policies for Actor-Critic and DQN that enforce valid actions throughout the MDP episode.
 
-## Evaluation
+### Evaluation
 The primary metrics used to evaluate a scheduling algorithm are its achieved loss and its runtime. The 
 `util.evaluate_schedule` function calculates the total loss; the `util.eval_wrapper` function allows 
 any scheduler to be timed and assessed. 
