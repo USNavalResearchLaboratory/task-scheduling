@@ -336,18 +336,18 @@ class TorchScheduler(Base):
 
 
 class LitModel(pl.LightningModule):
+    """
+    Basic PyTorch-Lightning model.
+
+    Parameters
+    ----------
+    module : nn.Module
+    loss_func : callable, optional
+    optim_cls : class, optional
+    optim_params: dict, optional
+
+    """
     def __init__(self, module, loss_func=functional.cross_entropy, optim_cls=torch.optim.Adam, optim_params=None):
-        """
-        Basic PyTorch-Lightning model.
-
-        Parameters
-        ----------
-        module : nn.Module
-        loss_func : callable, optional
-        optim_cls : class, optional
-        optim_params: dict, optional
-
-        """
         super().__init__()
 
         self.module = module
