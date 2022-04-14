@@ -1,0 +1,2 @@
+include data/* docs/API/* examples/* images/* tests/*
+recursive-include docs/API *
