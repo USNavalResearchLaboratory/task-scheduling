@@ -48,7 +48,7 @@ learn_params = {
 }
 trainer_kwargs = {
     'logger': False,
-    'checkpoint_callback': False,
+    'enable_checkpointing': False,
     'callbacks': EarlyStopping('val_loss', min_delta=0., patience=50),
     'gpus': torch.cuda.device_count(),
 }

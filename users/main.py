@@ -126,7 +126,7 @@ torch_scheduler = TorchScheduler(env, module, **model_kwargs, learn_params=learn
 
 trainer_kwargs = dict(
     logger=TensorBoardLogger(temp_path + 'logs/lit/', name=now),
-    checkpoint_callback=False,
+    enable_checkpointing=False,
     callbacks=EarlyStopping('val_loss', min_delta=1e-3, patience=100),
     default_root_dir=temp_path + 'logs/lit/',
     gpus=torch.cuda.device_count(),

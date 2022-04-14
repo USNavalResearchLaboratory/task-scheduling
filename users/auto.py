@@ -47,7 +47,7 @@ algorithms_base = np.array([
 
 trainer_kwargs = dict(
     logger=TensorBoardLogger('auto_temp/logs/', name=now),
-    checkpoint_callback=False,
+    enable_checkpointing=False,
     callbacks=EarlyStopping('val_loss', min_delta=1e-3, patience=100),
     default_root_dir='auto_temp/logs/',
     gpus=torch.cuda.device_count(),
