@@ -10,7 +10,7 @@ The `task_scheduling` package has not been published to public code repositories
 API documentation is provided locally at `docs/API/index.html`
 
 ## Development
-`task-scheduling` is developed and maintained by [Paul Rademacher](https://github.com/rademacher-p). For contribution and/or collaboration, please [contact me](mailto:paul.rademacher@nrl.navy.mil).
+`task-scheduling` is being developed for the Cognitive Resource Management project @ U.S. Naval Research Laboratory. It is maintained by [Paul Rademacher](https://github.com/rademacher-p) and NRL Radar Division. For contribution and/or collaboration, please [contact us](mailto:paul.rademacher@nrl.navy.mil,kevin.wagner@nrl.navy.mil).
 
 ## Quickstart
 
