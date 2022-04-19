@@ -447,7 +447,8 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, n_gen_learn=0, sol
                 print(f"\nTraining learner: {learner['name']}")
 
             func = learner['func']
-            func.reset()
+            # func.reset()
+
             # instantiate new generator for each learner
             func.env.problem_gen = Dataset(problems, solutions, shuffle=True, repeat=True,
                                            task_gen=problem_gen.task_gen, ch_avail_gen=problem_gen.ch_avail_gen)
@@ -553,6 +554,9 @@ def evaluate_algorithms_train(algorithms, problem_gen, n_gen=1, n_gen_learn=0, n
 
         if reuse_data:
             problem_gen.shuffle()  # random train/test split
+
+        for learner in learners:  # reset learned policies
+            learner['func'].reset()
 
         # Evaluate performance
         loss_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve,
