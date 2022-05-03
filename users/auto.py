@@ -63,8 +63,8 @@ learn_params = {
 }
 
 model_kwargs = dict(
-    optim_params={'lr': 1e-3},
-    # optim_params={'lr': 1e-4},
+    # optim_params={'lr': 1e-3},
+    optim_params={'lr': 1e-4},
 )
 
 module_constructors = [
@@ -131,9 +131,8 @@ for dataset in datasets:
         lit_scheduler = LitScheduler.from_module(env, module, model_kwargs, trainer_kwargs=trainer_kwargs,
                                                  learn_params=learn_params)
 
+        # name = f"Policy: Env {i_env}, Net {i_net}"
         name = f"Policy: Env {i_env}"
-        # name = f"Policy: Env {i_env}, MLP {i_net}"
-        # name = f"Policy: Env {i_env}, MLP {'-'.join(map(str, layer_sizes))}"
 
         algorithms_data.append((name, lit_scheduler, 10))
 

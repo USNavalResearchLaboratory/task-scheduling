@@ -1,6 +1,7 @@
 """SL schedulers using PyTorch."""
 
 import math
+# import os
 from abc import abstractmethod
 from copy import deepcopy
 from functools import partial
@@ -28,8 +29,8 @@ device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cp
 num_workers = 0
 # num_workers = os.cpu_count()
 
-# pin_memory = True
 pin_memory = False
+# pin_memory = True
 
 
 def reset_weights(model):
@@ -462,7 +463,7 @@ class LitScheduler(Base):
             print('Training model...')
 
         for cb in self.trainer.callbacks:
-            if isinstance(cb, pl.callbacks.progress.ProgressBar):
+            if isinstance(cb, pl.callbacks.progress.tqdm_progress.TQDMProgressBar):
                 cb._refresh_rate = int(verbose >= 1)
 
         self.trainer.fit(self.model, dl_train, dl_val)

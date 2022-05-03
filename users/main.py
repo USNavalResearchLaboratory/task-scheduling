@@ -44,11 +44,6 @@ seed = None
 if seed is not None:
     seed_everything(seed)
 
-# TODO: document class attributes, even if identical to init parameters?
-# TODO: document instantiation parameters under the class def for Sphinx!
-# TODO: rework docstring parameter typing?
-
-# TODO: try making new features
 
 # %% Define scheduling problem and algorithms
 
@@ -67,7 +62,7 @@ dataset = 'continuous_linear_drop_c1t8'
 problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
 temp_path = f'main_temp/'
-if isinstance(problem_gen, problem_gens.Dataset):  # TODO: give generators a `name` attribute?
+if isinstance(problem_gen, problem_gens.Dataset):
     temp_path += f'{dataset}/'
 else:
     temp_path += 'other/'
@@ -79,7 +74,6 @@ time_shift = True
 # time_shift = False
 masking = True
 # masking = False
-
 
 features = param_features(problem_gen.task_gen, time_shift, masking)
 # features = features[1:]  # remove duration from `param_features` for radar
@@ -106,7 +100,7 @@ learn_params_torch = {
     'weight_func': None,  # TODO: use reward!?
     # 'weight_func': lambda o, a, r: r,
     # 'weight_func': lambda o, a, r: 1 - o['seq'].sum() / o['seq'].size,
-    'max_epochs': 2000,
+    'max_epochs': 5000,
     'shuffle': True,
 }
 
@@ -127,7 +121,8 @@ torch_scheduler = TorchScheduler(env, module, **model_kwargs, learn_params=learn
 trainer_kwargs = dict(
     logger=TensorBoardLogger(temp_path + 'logs/lit/', name=now),
     enable_checkpointing=False,
-    callbacks=EarlyStopping('val_loss', min_delta=1e-3, patience=100),
+    log_every_n_steps=30,
+    callbacks=EarlyStopping('val_loss', min_delta=1e-3, patience=200),
     default_root_dir=temp_path + 'logs/lit/',
     gpus=torch.cuda.device_count(),
     # 'distributed_backend': 'ddp',
@@ -138,13 +133,12 @@ trainer_kwargs = dict(
 lit_scheduler = LitScheduler.from_module(env, module, model_kwargs, trainer_kwargs=trainer_kwargs,
                                          learn_params=learn_params_torch)
 
-# lit_scheduler = LitScheduler.load('../models/c1t8.pth', env=env)
+# lit_scheduler = LitScheduler.load('../models/sl_c1t8.pth', env=env)
 # lit_scheduler = LitScheduler.load('../models/c1t8.pth', trainer_kwargs={'logger': False})  # FIXME
 
 
 random_agent = RandomAgent(env)
 
-# FIXME: imitation learning
 
 # check_env(env)
 
@@ -169,12 +163,15 @@ sb_model_kwargs = dict(
         normalize_images=False,
         infer_valid_mask=env.infer_valid_mask,
     ),
-    # learning_rate=3e-12,
-    n_steps=2048,  # TODO: investigate problem reuse
+    learning_rate=3e-4,
+    # learning_rate=3e-5,
+    # n_steps=2048,  # TODO: investigate problem reuse
+    n_steps=env.n_tasks * 20 * 15,
+    batch_size=env.n_tasks * 20,
     tensorboard_log=temp_path + 'logs/sb/',
     verbose=1,
 )
-sb_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', sb_model_kwargs, learn_params_sb)
+# sb_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', sb_model_kwargs, learn_params_sb)
 
 
 # Behavioral cloning attempt
@@ -198,7 +195,7 @@ class SLPolicy(nn.Module):
 
 # # FIXME: train/test leakage?
 # bc_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', sb_model_kwargs, learn_params_sb)
-# bc_scheduler.model.policy.load_state_dict(torch.load('../models/imitate.pkl'))
+# bc_scheduler.model.policy.load_state_dict(torch.load('../models/imitate_c1t8.pkl'))
 # bc_scheduler.model.policy.eval()
 
 
@@ -240,8 +237,9 @@ algorithms = np.array([
 
 
 # %% Evaluate and record results
-# n_gen_learn, n_gen = 300000, 100
 n_gen_learn, n_gen = 900, 100
+# n_gen_learn, n_gen = 500000, 100
+
 # n_gen_learn = 900  # the number of problems generated for learning, per iteration
 # n_gen = 100  # the number of problems generated for testing, per iteration
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
@@ -256,7 +254,6 @@ img_path = temp_path + f'images/{now}'
 
 # loss_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
 #                                               verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
-
 loss_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve=True,
                                                 verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
 
