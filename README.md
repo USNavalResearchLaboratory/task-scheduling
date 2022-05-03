@@ -116,7 +116,6 @@ from task_scheduling import algorithms
 from task_scheduling.generators import tasks as task_gens
 from task_scheduling.util import summarize_tasks, plot_task_losses, plot_schedule, check_schedule, evaluate_schedule
 
-plt.style.use('../images/style.mplstyle')
 seed = 12345
 
 # Define scheduling problem
@@ -176,7 +175,6 @@ from task_scheduling.results import evaluate_algorithms_train, evaluate_algorith
 
 np.set_printoptions(precision=3)
 pd.options.display.float_format = '{:,.3f}'.format
-plt.style.use('../images/style.mplstyle')
 seed = 12345
 
 if seed is not None:
@@ -184,8 +182,8 @@ if seed is not None:
 
 
 # Define scheduling problem and algorithms
-problem_gen = problem_gens.Dataset.load('../data/continuous_linear_drop_c1t8', repeat=True)
-# problem_gen = problem_gens.Random.discrete_linear_drop(n_tasks=8, n_ch=1, rng=seed)
+problem_gen = problem_gens.Random.discrete_linear_drop(n_tasks=8, n_ch=1, rng=seed)
+# problem_gen = problem_gens.Dataset.load('../data/continuous_linear_drop_c1t8', repeat=True)
 
 env_params = {
     'features': None,  # defaults to task parameters
