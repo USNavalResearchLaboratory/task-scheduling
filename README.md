@@ -142,6 +142,8 @@ for (name, algorithm), ax in zip(algorithms.items(), axes):
     check_schedule(tasks, sch)
     loss = evaluate_schedule(tasks, sch)
     plot_schedule(tasks, sch, loss=loss, name=name, ax=ax)
+
+plt.show()
 ```
 
 ### Policy learning and Monte Carlo assessment (`examples/learning.py`)
@@ -250,4 +252,6 @@ loss_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_
                                               verbose=1, plotting=1, rng=seed)
 # loss_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve=True,
 #                                                 verbose=1, plotting=1, rng=seed)
+
+plt.show()
 ```

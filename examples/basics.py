@@ -30,3 +30,5 @@ for (name, algorithm), ax in zip(algorithms.items(), axes):
     check_schedule(tasks, sch)
     loss = evaluate_schedule(tasks, sch)
     plot_schedule(tasks, sch, loss=loss, name=name, ax=ax)
+
+plt.show()
