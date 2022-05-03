@@ -10,3 +10,5 @@ scipy>=1.7.0
 torch
 pytorch-lightning
 stable-baselines3
+tabulate
+pyqt5
