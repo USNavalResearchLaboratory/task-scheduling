@@ -30,7 +30,7 @@ from task_scheduling.mdp.supervised.torch.modules import build_mlp
 from task_scheduling.mdp.reinforcement import StableBaselinesScheduler, ValidActorCriticPolicy, MultiExtractor, \
     ValidDQNPolicy
 
-
+print('gp3')
 np.set_printoptions(precision=3)
 pd.options.display.float_format = '{:,.3f}'.format
 plt.style.use('../images/style.mplstyle')
