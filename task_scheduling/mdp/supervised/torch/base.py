@@ -26,11 +26,11 @@ from task_scheduling.mdp.supervised.torch.modules import MultiNet
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 # device = torch.device("cpu")
 
-num_workers = 2  # TODO: catch PL warning? See PL `trainer` docs
+num_workers = 0  # TODO: catch PL warning? See PL `trainer` docs
 # num_workers = os.cpu_count()
 
-# persistent_workers = False
-persistent_workers = True
+persistent_workers = False
+# persistent_workers = True
 
 pin_memory = False
 # pin_memory = True
@@ -105,7 +105,6 @@ class Base(BaseSupervisedScheduler):
         """
 
         input_ = (torch.from_numpy(o).float().unsqueeze(0) for o in self._obs_to_tuple(obs))
-        # input_ = input_.to(device)
         with torch.no_grad():
             out = self.model(*input_)
 
@@ -210,8 +209,8 @@ class Base(BaseSupervisedScheduler):
             tensors_train.append(w_train)
             tensors_val.append(w_val)
 
-        tensors_train = [t.to(device) for t in tensors_train]
-        tensors_val = [t.to(device) for t in tensors_val]
+        # tensors_train = [t.to(device) for t in tensors_train]
+        # tensors_val = [t.to(device) for t in tensors_val]
 
         ds_train = TensorDataset(*tensors_train)
         dl_train = DataLoader(ds_train, batch_size=self.learn_params['batch_size_train'] * self.env.n_tasks,
@@ -271,7 +270,6 @@ class TorchScheduler(Base):
                  learn_params=None):
         super().__init__(env, module, learn_params)
 
-        # self.model = model.to(device)
         self.loss_func = loss_func
         if optim_params is None:
             optim_params = {}
@@ -301,7 +299,7 @@ class TorchScheduler(Base):
             print('Training model...')
 
         def loss_batch(model, loss_func, batch_, opt=None):
-            # batch_ = [t.to(device) for t in batch_]
+            batch_ = [t.to(device) for t in batch_]
 
             if callable(self.learn_params['weight_func']):
                 xb_, yb_, wb_ = batch_[:-2], batch_[-2], batch_[-1]
