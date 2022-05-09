@@ -14,6 +14,7 @@ from torch import nn, optim
 from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.strategies import DDPStrategy, DDPSpawnStrategy
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
@@ -127,7 +128,8 @@ trainer_kwargs = dict(
     default_root_dir=temp_path + 'logs/lit/',
     # devices=torch.cuda.device_count(),
     accelerator='auto',
-    # strategy='ddp',
+    strategy=DDPStrategy(find_unused_parameters=False),
+    # strategy=DDPSpawnStrategy(find_unused_parameters=False),
 )
 
 lit_scheduler = LitScheduler.from_module(env, module, model_kwargs, trainer_kwargs=trainer_kwargs,

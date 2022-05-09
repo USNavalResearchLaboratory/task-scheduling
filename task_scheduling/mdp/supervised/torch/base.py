@@ -1,7 +1,7 @@
 """SL schedulers using PyTorch."""
 
 import math
-# import os
+import os
 from abc import abstractmethod
 from copy import deepcopy
 from functools import partial
@@ -24,16 +24,9 @@ from task_scheduling.mdp.supervised.torch.modules import MultiNet
 
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-# device = torch.device("cpu")
-
-num_workers = 0  # TODO: catch PL warning? See PL `trainer` docs
-# num_workers = os.cpu_count()
-
-persistent_workers = False
-# persistent_workers = True
-
-pin_memory = False
-# pin_memory = True
+num_workers = os.cpu_count()
+persistent_workers = True
+pin_memory = True
 
 
 def reset_weights(model):
