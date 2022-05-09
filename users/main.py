@@ -249,14 +249,18 @@ n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assess
 # TODO: avoid state correlation? Do Env transforms already achieve this?
 
 
-log_path = temp_path + 'log.md'
-img_path = temp_path + f'images/{now}'
+eval_kwargs = dict(
+    solve=True,
+    verbose=1,
+    plotting=1,
+    log_path=temp_path + 'log.md',
+    img_path=temp_path + f'images/{now}',
+    rng=seed
+)
 
 if __name__ == '__main__':
-    # loss_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, solve=True,
-    #                                               verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
-    loss_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve=True,
-                                                    verbose=1, plotting=1, log_path=log_path, img_path=img_path, rng=seed)
+    # loss_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, **eval_kwargs)
+    loss_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, **eval_kwargs)
 
 
 # np.savez(temp_path + f'results/{now}.np', loss_mc=loss_mc, t_run_mc=t_run_mc)
