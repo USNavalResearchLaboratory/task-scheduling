@@ -1,7 +1,6 @@
 """SL schedulers using PyTorch."""
 
 import math
-import os
 from abc import abstractmethod
 from copy import deepcopy
 from functools import partial
@@ -21,12 +20,6 @@ from task_scheduling.mdp.supervised.base import Base as BaseSupervisedScheduler
 from task_scheduling.mdp.supervised.torch.modules import MultiNet
 
 # TODO: use reward!? Add task loss to NLL loss for backprop?
-
-
-device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-num_workers = os.cpu_count()
-persistent_workers = True
-pin_memory = True
 
 
 def reset_weights(model):
@@ -202,18 +195,13 @@ class Base(BaseSupervisedScheduler):
             tensors_train.append(w_train)
             tensors_val.append(w_val)
 
-        # tensors_train = [t.to(device) for t in tensors_train]
-        # tensors_val = [t.to(device) for t in tensors_val]
-
         ds_train = TensorDataset(*tensors_train)
         dl_train = DataLoader(ds_train, batch_size=self.learn_params['batch_size_train'] * self.env.n_tasks,
-                              shuffle=self.learn_params['shuffle'], pin_memory=pin_memory, num_workers=num_workers,
-                              persistent_workers=persistent_workers)
+                              shuffle=self.learn_params['shuffle'], **self.learn_params['dl_kwargs'])
 
         ds_val = TensorDataset(*tensors_val)
         dl_val = DataLoader(ds_val, batch_size=self.learn_params['batch_size_val'] * self.env.n_tasks,
-                            shuffle=False, pin_memory=pin_memory, num_workers=num_workers,
-                            persistent_workers=persistent_workers)
+                            shuffle=False, **self.learn_params['dl_kwargs'])
 
         self._fit(dl_train, dl_val, verbose)
 
@@ -259,6 +247,8 @@ class TorchScheduler(Base):
         Parameters used by the `learn` method.
 
     """
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
     def __init__(self, env, module, loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None,
                  learn_params=None):
         super().__init__(env, module, learn_params)
@@ -292,7 +282,7 @@ class TorchScheduler(Base):
             print('Training model...')
 
         def loss_batch(model, loss_func, batch_, opt=None):
-            batch_ = [t.to(device) for t in batch_]
+            batch_ = [t.to(self.device) for t in batch_]
 
             if callable(self.learn_params['weight_func']):
                 xb_, yb_, wb_ = batch_[:-2], batch_[-2], batch_[-1]
@@ -325,7 +315,7 @@ class TorchScheduler(Base):
                 print(f"  Epoch = {epoch} : loss = {val_loss:.3f}", end='\r')
 
     def learn(self, n_gen_learn, verbose=0):
-        self.model = self.model.to(device)
+        self.model = self.model.to(self.device)
         super().learn(n_gen_learn, verbose)
         self.model = self.model.to('cpu')  # move back to CPU for single sample evaluations in `__call__`
 

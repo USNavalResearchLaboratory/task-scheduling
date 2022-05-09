@@ -104,6 +104,11 @@ learn_params_torch = {
     # 'weight_func': lambda o, a, r: 1 - o['seq'].sum() / o['seq'].size,
     'max_epochs': 5000,
     'shuffle': True,
+    'dl_kwargs': dict(
+        num_workers=os.cpu_count(),
+        persistent_workers=True,
+        pin_memory=True
+    ),
 }
 
 model_kwargs = dict(
@@ -128,7 +133,7 @@ trainer_kwargs = dict(
     default_root_dir=temp_path + 'logs/lit/',
     # devices=torch.cuda.device_count(),
     accelerator='auto',
-    strategy=DDPStrategy(find_unused_parameters=False),
+    # strategy=DDPStrategy(find_unused_parameters=False),
     # strategy=DDPSpawnStrategy(find_unused_parameters=False),
 )
 
