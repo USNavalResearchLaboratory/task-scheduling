@@ -1,3 +1,4 @@
+import os
 from functools import partial
 from itertools import product
 from pathlib import Path
@@ -124,10 +125,9 @@ trainer_kwargs = dict(
     log_every_n_steps=30,
     callbacks=EarlyStopping('val_loss', min_delta=1e-3, patience=200),
     default_root_dir=temp_path + 'logs/lit/',
-    gpus=torch.cuda.device_count(),
-    # 'distributed_backend': 'ddp',
-    # 'profiler': 'simple',
-    # 'progress_bar_refresh_rate': 0,
+    # devices=torch.cuda.device_count(),
+    accelerator='auto',
+    # strategy='ddp',
 )
 
 lit_scheduler = LitScheduler.from_module(env, module, model_kwargs, trainer_kwargs=trainer_kwargs,
