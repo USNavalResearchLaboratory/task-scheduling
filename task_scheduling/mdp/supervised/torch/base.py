@@ -26,8 +26,11 @@ from task_scheduling.mdp.supervised.torch.modules import MultiNet
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 # device = torch.device("cpu")
 
-num_workers = 0
+num_workers = 2  # TODO: catch PL warning? See PL `trainer` docs
 # num_workers = os.cpu_count()
+
+# persistent_workers = False
+persistent_workers = True
 
 pin_memory = False
 # pin_memory = True
@@ -212,11 +215,13 @@ class Base(BaseSupervisedScheduler):
 
         ds_train = TensorDataset(*tensors_train)
         dl_train = DataLoader(ds_train, batch_size=self.learn_params['batch_size_train'] * self.env.n_tasks,
-                              shuffle=self.learn_params['shuffle'], pin_memory=pin_memory, num_workers=num_workers)
+                              shuffle=self.learn_params['shuffle'], pin_memory=pin_memory, num_workers=num_workers,
+                              persistent_workers=persistent_workers)
 
         ds_val = TensorDataset(*tensors_val)
         dl_val = DataLoader(ds_val, batch_size=self.learn_params['batch_size_val'] * self.env.n_tasks,
-                            shuffle=False, pin_memory=pin_memory, num_workers=num_workers)
+                            shuffle=False, pin_memory=pin_memory, num_workers=num_workers,
+                            persistent_workers=persistent_workers)
 
         self._fit(dl_train, dl_val, verbose)
 
