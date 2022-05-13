@@ -5,7 +5,15 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "main",
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "main.py",
             "type": "python",
             "request": "launch",
             "program": "main.py",
@@ -13,13 +21,5 @@
             "justMyCode": true,
             "cwd": "${workspaceFolder}/users",
         },
-        {
-            "name": "Python: Current File",
-            "type": "python",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "justMyCode": true
-        }
     ]
 }
