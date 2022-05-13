@@ -252,7 +252,7 @@ n_gen_learn, n_gen = 900, 100
 n_mc = 10  # the number of Monte Carlo iterations performed for scheduler assessment
 
 
-# TODO: no faster on GPU!?!? CHECK batch size effects!
+# TODO: no faster on GPU!? CHECK batch size effects!
 # TODO: avoid state correlation? Do Env transforms already achieve this?
 
 
