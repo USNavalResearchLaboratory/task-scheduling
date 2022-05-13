@@ -9,7 +9,12 @@ import dill
 import numpy as np
 
 from task_scheduling.algorithms import branch_bound_priority
-from task_scheduling.base import RandomGeneratorMixin, SchedulingProblem, SchedulingSolution, get_now
+from task_scheduling.base import (
+    RandomGeneratorMixin,
+    SchedulingProblem,
+    SchedulingSolution,
+    get_now,
+)
 from task_scheduling.generators import tasks as task_gens, channels as chan_gens
 from task_scheduling.util import eval_wrapper
 
@@ -32,6 +37,7 @@ class Base(RandomGeneratorMixin, ABC):
         Random number generator seed or object.
 
     """
+
     temp_path = None
 
     def __init__(self, n_tasks, n_ch, task_gen, ch_avail_gen, rng=None):
@@ -80,8 +86,8 @@ class Base(RandomGeneratorMixin, ABC):
         rng = self._get_rng(rng)
         for i_gen in range(n_gen):
             if verbose >= 1:
-                end = '\r' if verbose == 1 else '\n'
-                print(f'Problem: {i_gen + 1}/{n_gen}', end=end)
+                end = "\r" if verbose == 1 else "\n"
+                print(f"Problem: {i_gen + 1}/{n_gen}", end=end)
 
             problem = self._gen_problem(rng)
             if save:
@@ -126,46 +132,50 @@ class Base(RandomGeneratorMixin, ABC):
         """
 
         save_dict = {
-            'n_tasks': self.n_tasks,
-            'n_ch': self.n_ch,
-            'task_gen': self.task_gen,
-            'ch_avail_gen': self.ch_avail_gen,
-            'problems': problems
+            "n_tasks": self.n_tasks,
+            "n_ch": self.n_ch,
+            "task_gen": self.task_gen,
+            "ch_avail_gen": self.ch_avail_gen,
+            "problems": problems,
         }
         if solutions is not None:
-            save_dict['solutions'] = solutions
+            save_dict["solutions"] = solutions
 
         file_path = Path(file_path)
 
         try:  # search for existing file
-            with file_path.open(mode='rb') as fid:
+            with file_path.open(mode="rb") as fid:
                 load_dict = dill.load(fid)
 
             # Check equivalence of generators
             conditions = [
-                load_dict['n_tasks'] == save_dict['n_tasks'],
-                load_dict['n_ch'] == save_dict['n_ch'],
-                load_dict['task_gen'] == save_dict['task_gen'],
-                load_dict['ch_avail_gen'] == save_dict['ch_avail_gen']
+                load_dict["n_tasks"] == save_dict["n_tasks"],
+                load_dict["n_ch"] == save_dict["n_ch"],
+                load_dict["task_gen"] == save_dict["task_gen"],
+                load_dict["ch_avail_gen"] == save_dict["ch_avail_gen"],
             ]
 
             if all(conditions):  # Append loaded problems and solutions
-                print('File already exists. Appending existing data.')
+                print("File already exists. Appending existing data.")
 
-                save_dict['problems'] += load_dict['problems']
+                save_dict["problems"] += load_dict["problems"]
 
-                if 'solutions' in save_dict.keys():
-                    if 'solutions' in load_dict.keys():
-                        save_dict['solutions'] += load_dict['solutions']
+                if "solutions" in save_dict.keys():
+                    if "solutions" in load_dict.keys():
+                        save_dict["solutions"] += load_dict["solutions"]
                     else:
-                        save_dict['solutions'] += [None for __ in range(len(load_dict['problems']))]
-                elif 'solutions' in load_dict.keys():
-                    save_dict['solutions'] = [None for __ in range(len(save_dict['problems']))] + load_dict['solutions']
+                        save_dict["solutions"] += [
+                            None for __ in range(len(load_dict["problems"]))
+                        ]
+                elif "solutions" in load_dict.keys():
+                    save_dict["solutions"] = [
+                        None for __ in range(len(save_dict["problems"]))
+                    ] + load_dict["solutions"]
 
         except FileNotFoundError:
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with file_path.open(mode='wb') as fid:
+        with file_path.open(mode="wb") as fid:
             dill.dump(save_dict, fid)  # save schedules
 
     def __eq__(self, other):
@@ -174,7 +184,7 @@ class Base(RandomGeneratorMixin, ABC):
                 self.n_tasks == other.n_tasks,
                 self.n_ch == other.n_ch,
                 self.task_gen == other.task_gen,
-                self.ch_avail_gen == other.ch_avail_gen
+                self.ch_avail_gen == other.ch_avail_gen,
             ]
             return all(conditions)
         else:
@@ -183,13 +193,13 @@ class Base(RandomGeneratorMixin, ABC):
     def summary(self):
         cls_str = self.__class__.__name__
 
-        plural_ = 's' if self.n_ch > 1 else ''
+        plural_ = "s" if self.n_ch > 1 else ""
         str_ = f"{cls_str}\n---\n{self.n_ch} channel{plural_}, {self.n_tasks} tasks"
 
         if self.ch_avail_gen is not None:
-            str_ += '\n\n' + self.ch_avail_gen.summary()
+            str_ += "\n\n" + self.ch_avail_gen.summary()
         if self.task_gen is not None:
-            str_ += '\n\n' + self.task_gen.summary()
+            str_ += "\n\n" + self.task_gen.summary()
 
         return str_
 
@@ -226,27 +236,37 @@ class Random(Base):
         return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
     @classmethod
-    def continuous_linear(cls, n_tasks, n_ch, ch_avail_lim=(0., 0.), rng=None, **task_gen_kwargs):
+    def continuous_linear(
+        cls, n_tasks, n_ch, ch_avail_lim=(0.0, 0.0), rng=None, **task_gen_kwargs
+    ):
         task_gen = task_gens.ContinuousUniformIID.linear(**task_gen_kwargs)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
     @classmethod
-    def continuous_linear_drop(cls, n_tasks, n_ch, ch_avail_lim=(0., 0.), rng=None, **task_gen_kwargs):
+    def continuous_linear_drop(
+        cls, n_tasks, n_ch, ch_avail_lim=(0.0, 0.0), rng=None, **task_gen_kwargs
+    ):
         task_gen = task_gens.ContinuousUniformIID.linear_drop(**task_gen_kwargs)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
     @classmethod
-    def continuous_linear_linear(cls, n_tasks, n_ch, ch_avail_lim=(0., 0.), rng=None, **task_gen_kwargs):
+    def continuous_linear_linear(
+        cls, n_tasks, n_ch, ch_avail_lim=(0.0, 0.0), rng=None, **task_gen_kwargs
+    ):
         task_gen = task_gens.ContinuousUniformIID.linear_linear(**task_gen_kwargs)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
     @classmethod
-    def discrete_linear(cls, n_tasks, n_ch, ch_avail_lim=(0., 0.), rng=None, **task_gen_kwargs):
+    def discrete_linear(
+        cls, n_tasks, n_ch, ch_avail_lim=(0.0, 0.0), rng=None, **task_gen_kwargs
+    ):
         task_gen = task_gens.DiscreteIID.linear_uniform(**task_gen_kwargs)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
     @classmethod
-    def discrete_linear_drop(cls, n_tasks, n_ch, ch_avail_lim=(0., 0.), rng=None, **task_gen_kwargs):
+    def discrete_linear_drop(
+        cls, n_tasks, n_ch, ch_avail_lim=(0.0, 0.0), rng=None, **task_gen_kwargs
+    ):
         task_gen = task_gens.DiscreteIID.linear_drop_uniform(**task_gen_kwargs)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
@@ -324,7 +344,9 @@ class FixedTasks(Base, ABC):
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
 
     @classmethod
-    def search_track(cls, n_tasks, n_ch, probs=None, t_release_lim=(0., 0.), rng=None):
+    def search_track(
+        cls, n_tasks, n_ch, probs=None, t_release_lim=(0.0, 0.0), rng=None
+    ):
         task_gen = cls.cls_task_gen.search_track(n_tasks, probs, t_release_lim)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
 
@@ -362,7 +384,9 @@ class PermutedTasks(FixedTasks):
             idx.append(i)
             tasks_init[i] = None  # ensures unique indices
 
-        return SchedulingSolution(self.solution.sch[idx], self.solution.loss, self.solution.t_run)
+        return SchedulingSolution(
+            self.solution.sch[idx], self.solution.loss, self.solution.t_run
+        )
 
 
 class Dataset(Base):
@@ -387,10 +411,19 @@ class Dataset(Base):
         Random number generator seed or object.
 
     """
+
     stack: deque[tuple]
 
-    def __init__(self, problems, solutions=None, shuffle=False, repeat=False, task_gen=None, ch_avail_gen=None,
-                 rng=None):
+    def __init__(
+        self,
+        problems,
+        solutions=None,
+        shuffle=False,
+        repeat=False,
+        task_gen=None,
+        ch_avail_gen=None,
+        rng=None,
+    ):
         n_tasks = len(problems[0].tasks)
         n_ch = len(problems[0].ch_avail)
 
@@ -410,14 +443,19 @@ class Dataset(Base):
     def load(cls, file_path, shuffle=False, repeat=False, rng=None):
         """Load problems/solutions from memory."""
 
-        with Path(file_path).open(mode='rb') as fid:
+        with Path(file_path).open(mode="rb") as fid:
             dict_gen = dill.load(fid)
 
-        args = [dict_gen['problems']]
-        if 'solutions' in dict_gen.keys():
-            args.append(dict_gen['solutions'])
-        kwargs = {'shuffle': shuffle, 'repeat': repeat, 'task_gen': dict_gen['task_gen'],
-                  'ch_avail_gen': dict_gen['ch_avail_gen'], 'rng': rng}
+        args = [dict_gen["problems"]]
+        if "solutions" in dict_gen.keys():
+            args.append(dict_gen["solutions"])
+        kwargs = {
+            "shuffle": shuffle,
+            "repeat": repeat,
+            "task_gen": dict_gen["task_gen"],
+            "ch_avail_gen": dict_gen["ch_avail_gen"],
+            "rng": rng,
+        }
         return cls(*args, **kwargs)
 
     def split(self, n, shuffle=False, repeat=False, rng=None):
@@ -428,7 +466,9 @@ class Dataset(Base):
 
         items = [self.stack.pop() for __ in range(n)]
         problems, solutions = zip(*items)
-        return Dataset(problems, solutions, shuffle, repeat, self.task_gen, self.ch_avail_gen, rng)
+        return Dataset(
+            problems, solutions, shuffle, repeat, self.task_gen, self.ch_avail_gen, rng
+        )
 
     def add(self, problems, solutions=None):
         """Add problems and solutions to the data set."""
@@ -461,14 +501,19 @@ class Dataset(Base):
     def _gen_solution(self, problem, verbose=False):
         _last_problem, _last_solution = self._last_item
         if problem != _last_problem:
-            raise ValueError("Bug: problem used by `_gen_solution` should match dataset `_last_solution`.")
+            raise ValueError(
+                "Bug: problem used by `_gen_solution` should match dataset `_last_solution`."
+            )
 
         if _last_solution is not None:
             return _last_solution
         else:  # use B&B solver
             solution = super()._gen_solution(problem, verbose)
             if self.repeat:  # store result
-                self.stack[0] = (_last_problem, solution)  # at index 0 after `appendleft` in `_gen_problem`
+                self.stack[0] = (
+                    _last_problem,
+                    solution,
+                )  # at index 0 after `appendleft` in `_gen_problem`
             return solution
 
     def summary(self):

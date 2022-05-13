@@ -22,10 +22,11 @@ from task_scheduling.mdp.environments import Index
 from task_scheduling.mdp.supervised.torch import reset_weights, valid_logits
 from task_scheduling.mdp.supervised.torch.modules import build_mlp, build_cnn
 
-_default_tuple = namedtuple('ModelDefault', ['cls', 'params'], defaults={})
+_default_tuple = namedtuple("ModelDefault", ["cls", "params"], defaults={})
 
 
 # TODO: allow general vectorized environments
+
 
 class StableBaselinesScheduler(BaseLearningScheduler):
     """
@@ -41,16 +42,17 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         Parameters used by the `learn` method.
 
     """
+
     _learn_params_default = {
-        'n_gen_val': 0,
-        'max_epochs': 1,
-        'eval_callback_kwargs': None,
+        "n_gen_val": 0,
+        "max_epochs": 1,
+        "eval_callback_kwargs": None,
     }
 
     model_defaults = {
-        'DQN': _default_tuple(DQN, {'policy': 'MlpPolicy', 'verbose': 1}),
-        'A2C': _default_tuple(A2C, {'policy': 'MlpPolicy', 'verbose': 1}),
-        'PPO': _default_tuple(PPO, {'policy': 'MlpPolicy', 'verbose': 1})
+        "DQN": _default_tuple(DQN, {"policy": "MlpPolicy", "verbose": 1}),
+        "A2C": _default_tuple(A2C, {"policy": "MlpPolicy", "verbose": 1}),
+        "PPO": _default_tuple(PPO, {"policy": "MlpPolicy", "verbose": 1}),
     }
 
     @classmethod
@@ -69,7 +71,9 @@ class StableBaselinesScheduler(BaseLearningScheduler):
     @property
     def env(self):
         # return self.model.get_env()
-        return self.model.get_env().envs[0].env  # unwrap vectorized, monitored environment
+        return (
+            self.model.get_env().envs[0].env
+        )  # unwrap vectorized, monitored environment
 
     @env.setter
     def env(self, env):
@@ -106,23 +110,37 @@ class StableBaselinesScheduler(BaseLearningScheduler):
             Progress print-out level.
 
         """
-        n_gen_val = self.learn_params['n_gen_val']
-        if isinstance(n_gen_val, float) and n_gen_val < 1:  # convert fraction to number of problems
+        n_gen_val = self.learn_params["n_gen_val"]
+        if (
+            isinstance(n_gen_val, float) and n_gen_val < 1
+        ):  # convert fraction to number of problems
             n_gen_val = math.floor(n_gen_learn * n_gen_val)
         n_gen_train = n_gen_learn - n_gen_val
 
-        total_timesteps = self.learn_params['max_epochs'] * n_gen_train * self.env.action_space.n
+        total_timesteps = (
+            self.learn_params["max_epochs"] * n_gen_train * self.env.action_space.n
+        )
 
         if n_gen_val > 0:
-            problem_gen_val = self.env.problem_gen.split(n_gen_val, shuffle=True, repeat=True)
-            eval_env = Index(problem_gen_val, self.env.features, self.env.normalize, self.env.sort_func,
-                             self.env.time_shift, self.env.masking)
+            problem_gen_val = self.env.problem_gen.split(
+                n_gen_val, shuffle=True, repeat=True
+            )
+            eval_env = Index(
+                problem_gen_val,
+                self.env.features,
+                self.env.normalize,
+                self.env.sort_func,
+                self.env.time_shift,
+                self.env.masking,
+            )
             eval_env = Monitor(eval_env)
-            callback = EvalCallback(eval_env, **self.learn_params['eval_callback_kwargs'])
+            callback = EvalCallback(
+                eval_env, **self.learn_params["eval_callback_kwargs"]
+            )
         else:
             callback = None
 
-        log_name = get_now() + '_' + self.model.__class__.__name__
+        log_name = get_now() + "_" + self.model.__class__.__name__
         self.model.learn(total_timesteps, callback=callback, tb_log_name=log_name)
 
         # total_timesteps = self.learn_params['max_epochs'] * n_gen_learn * self.env.action_space.n
@@ -132,10 +150,12 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         self.model.policy.apply(reset_weights)
 
     def _print_model(self):
-        model_str = f"{self.model.__class__.__name__}\n" \
-                    f"```\n" \
-                    f"{str(self.model.policy)}\n" \
-                    f"```"
+        model_str = (
+            f"{self.model.__class__.__name__}\n"
+            f"```\n"
+            f"{str(self.model.policy)}\n"
+            f"```"
+        )
         if self.model.logger is not None:
             model_str += f"\n- TB log: `{self.model.logger.dir}`"
 
@@ -146,8 +166,8 @@ class StableBaselinesScheduler(BaseLearningScheduler):
 
         self.model.save(save_path)
 
-        env_path = save_path.parent / f'{save_path.stem}.env'
-        with env_path.open(mode='wb') as fid:
+        env_path = save_path.parent / f"{save_path.stem}.env"
+        with env_path.open(mode="wb") as fid:
             dill.dump(self.env, fid)
 
     @classmethod
@@ -155,15 +175,15 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         load_path = Path(load_path)
 
         if model_cls is None:
-            cls_str = load_path.stem.split('_')[0]
+            cls_str = load_path.stem.split("_")[0]
             model_cls = cls.model_defaults[cls_str].cls
         elif isinstance(model_cls, str):
             model_cls = cls.model_defaults[model_cls].cls
         model = model_cls.load(load_path)
 
         if env is None:
-            env_path = load_path.parent / f'{load_path.stem}.env'
-            with env_path.open(mode='rb') as fid:
+            env_path = load_path.parent / f"{load_path.stem}.env"
+            with env_path.open(mode="rb") as fid:
                 env = dill.load(fid)
 
         return cls(env, model, **kwargs)
@@ -180,15 +200,20 @@ class MultiExtractor(BaseFeaturesExtractor):
     net_tasks: nn.Module
 
     """
+
     def __init__(self, observation_space: spaces.Dict, net_ch, net_tasks):
-        super().__init__(observation_space, features_dim=1)  # `features_dim` must be overridden
+        super().__init__(
+            observation_space, features_dim=1
+        )  # `features_dim` must be overridden
 
         self.net_ch = net_ch
         self.net_tasks = net_tasks
 
         # Determine `features_dim` with single forward pass
         sample = observation_space.sample()
-        sample['seq'] = np.stack((sample['seq'], 1 - sample['seq'])).flatten(order='F')  # workaround SB3 encoding
+        sample["seq"] = np.stack((sample["seq"], 1 - sample["seq"])).flatten(
+            order="F"
+        )  # workaround SB3 encoding
         sample = {key: torch.tensor(sample[key]).float().unsqueeze(0) for key in sample}
         with torch.no_grad():
             self._features_dim = self.forward(sample).shape[1]  # SB3's workaround
@@ -206,22 +231,31 @@ class MultiExtractor(BaseFeaturesExtractor):
 
     @classmethod
     def mlp(cls, observation_space, hidden_sizes_ch=(), hidden_sizes_tasks=()):
-        n_ch = observation_space['ch_avail'].shape[-1]
-        n_tasks, n_features = observation_space['tasks'].shape[-2:]
+        n_ch = observation_space["ch_avail"].shape[-1]
+        n_tasks, n_features = observation_space["tasks"].shape[-2:]
 
         layer_sizes_ch = [n_ch, *hidden_sizes_ch]
         net_ch = build_mlp(layer_sizes_ch, last_act=True)
 
         layer_sizes_tasks = [n_tasks * n_features, *hidden_sizes_tasks]
         # layer_sizes_tasks = [n_tasks * (1 + n_features), *hidden_sizes_tasks]
-        net_tasks = nn.Sequential(nn.Flatten(), *build_mlp(layer_sizes_tasks, last_act=True))
+        net_tasks = nn.Sequential(
+            nn.Flatten(), *build_mlp(layer_sizes_tasks, last_act=True)
+        )
 
         return cls(observation_space, net_ch, net_tasks)
 
     @classmethod
-    def cnn(cls, observation_space, hidden_sizes_ch=(), hidden_sizes_tasks=(), kernel_sizes=2, cnn_kwargs=None):
-        n_ch = observation_space['ch_avail'].shape[-1]
-        n_features = observation_space['tasks'].shape[-1]
+    def cnn(
+        cls,
+        observation_space,
+        hidden_sizes_ch=(),
+        hidden_sizes_tasks=(),
+        kernel_sizes=2,
+        cnn_kwargs=None,
+    ):
+        n_ch = observation_space["ch_avail"].shape[-1]
+        n_features = observation_space["tasks"].shape[-1]
 
         layer_sizes_ch = [n_ch, *hidden_sizes_ch]
         net_ch = build_mlp(layer_sizes_ch, last_act=True)
@@ -240,6 +274,7 @@ class MultiExtractor(BaseFeaturesExtractor):
 
 class ValidActorCriticPolicy(ActorCriticPolicy):
     """Custom AC policy with valid action enforcement."""
+
     def __init__(self, *args, infer_valid_mask=None, **kwargs):
         super().__init__(*args, **kwargs)
         if callable(infer_valid_mask):
@@ -247,9 +282,13 @@ class ValidActorCriticPolicy(ActorCriticPolicy):
         else:
             self.infer_valid_mask = lambda obs: np.ones(self.observation_space.shape)
 
-    def _get_action_dist_from_latent_valid(self, obs, latent_pi):  # added `obs` to signature
+    def _get_action_dist_from_latent_valid(
+        self, obs, latent_pi
+    ):  # added `obs` to signature
         mean_actions = self.action_net(latent_pi)
-        mean_actions = valid_logits(mean_actions, self.infer_valid_mask(obs))  # mask out invalid actions
+        mean_actions = valid_logits(
+            mean_actions, self.infer_valid_mask(obs)
+        )  # mask out invalid actions
         return self.action_dist.proba_distribution(action_logits=mean_actions)
 
     def forward(self, obs, deterministic=False):
@@ -295,5 +334,9 @@ class ValidDQNPolicy(DQNPolicy):
         super().__init__(*args, **kwargs)
 
     def make_q_net(self):
-        net_args = self._update_features_extractor(self.net_args, features_extractor=None)
-        return ValidQNetwork(**net_args, infer_valid_mask=self.infer_valid_mask).to(self.device)
+        net_args = self._update_features_extractor(
+            self.net_args, features_extractor=None
+        )
+        return ValidQNetwork(**net_args, infer_valid_mask=self.infer_valid_mask).to(
+            self.device
+        )

@@ -41,7 +41,7 @@ def ensemble_scheduler(*schedulers):
 
     def new_scheduler(tasks, ch_avail):
         sch_best = None
-        loss_best = float('inf')
+        loss_best = float("inf")
         for scheduler in schedulers:
             sch = scheduler(tasks, ch_avail)
             loss = evaluate_schedule(tasks, sch)

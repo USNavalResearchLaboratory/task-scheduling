@@ -22,7 +22,7 @@ class Base(ABC):
 
     """
 
-    param_names = ('duration', 't_release')
+    param_names = ("duration", "t_release")
 
     def __init__(self, duration, t_release, name=None):
         self.duration = float(duration)
@@ -74,7 +74,9 @@ class Base(ABC):
     def summary(self):
         """Print a string listing task parameters."""
         str_ = f"{self.__class__.__name__}"
-        str_ += '\n' + self.to_series(name='value').to_markdown(tablefmt='github', floatfmt='.3f')
+        str_ += "\n" + self.to_series(name="value").to_markdown(
+            tablefmt="github", floatfmt=".3f"
+        )
         return str_
 
     @property
@@ -106,7 +108,7 @@ class Base(ABC):
         if ax is None:
             _, ax = plt.subplots()
 
-            ax.set(xlabel='t', ylabel='Loss')
+            ax.set(xlabel="t", ylabel="Loss")
             plt.title(self)
 
         plot_data = ax.plot(t_plot, self(t_plot), label=str(self))
@@ -129,7 +131,7 @@ class Generic(Base):
 
     """
 
-    param_names = Base.param_names + ('loss_func',)
+    param_names = Base.param_names + ("loss_func",)
 
     def __init__(self, duration, t_release, loss_func=None, name=None):
         super().__init__(duration, t_release, name)
@@ -156,7 +158,7 @@ class Generic(Base):
 
 
 class Shift(Base):
-    shift_params = ('t_release',)
+    shift_params = ("t_release",)
 
     @abstractmethod
     def __call__(self, t):
@@ -192,14 +194,14 @@ class Shift(Base):
 
         """
         t_excess = t - self.t_release
-        self.t_release = max(0., -t_excess)
-        if self.t_release == 0.:  # loss is incurred, drop time and loss are updated
+        self.t_release = max(0.0, -t_excess)
+        if self.t_release == 0.0:  # loss is incurred, drop time and loss are updated
             loss_inc = self(t_excess)
             self._shift(t_excess, loss_inc)
 
             return loss_inc
         else:
-            return 0.  # no loss incurred
+            return 0.0  # no loss incurred
 
     @abstractmethod
     def _shift(self, t_excess, loss_inc):
@@ -325,6 +327,7 @@ class Shift(Base):
 #         """2-tuple of limits for automatic plotting."""
 #         return self.t_release, self.t_release + self.t_drop + 1.
 
+
 class PiecewiseLinear(Shift):
     """
     Task with a piecewise linear loss function.
@@ -340,12 +343,15 @@ class PiecewiseLinear(Shift):
     name : str, optional
 
     """
-    param_names = Base.param_names + ('corners',)
-    shift_params = Shift.shift_params  # TODO: Add shift params. Handle `list` parameters for `space` shifts?!?
+
+    param_names = Base.param_names + ("corners",)
+    shift_params = (
+        Shift.shift_params
+    )  # TODO: Add shift params. Handle `list` parameters for `space` shifts?!?
 
     prune = True
 
-    def __init__(self, duration, t_release=0., corners=(), name=None):
+    def __init__(self, duration, t_release=0.0, corners=(), name=None):
         super().__init__(duration, t_release, name)
         self.corners = corners
 
@@ -372,7 +378,7 @@ class PiecewiseLinear(Shift):
 
         loss = np.full(t.shape, np.nan)
 
-        loss[t >= 0] = 0.
+        loss[t >= 0] = 0.0
         for t_c, l_c, s_c in self.corners:
             loss[t >= t_c] = l_c + s_c * (t[t >= t_c] - t_c)
 
@@ -390,10 +396,12 @@ class PiecewiseLinear(Shift):
         val = list(map(list, val))
         val = sorted(val, key=itemgetter(0))  # sort by time
         for i, c in enumerate(val):
-            if len(c) == 2:  # interpret as time and slope, calculate loss for continuity
+            if (
+                len(c) == 2
+            ):  # interpret as time and slope, calculate loss for continuity
                 t = c[0]
                 if i == 0:
-                    c.insert(1, 0.)
+                    c.insert(1, 0.0)
                 else:
                     t_prev, l_prev, s_prev = val[i - 1]
                     c.insert(1, l_prev + s_prev * (t - t_prev))
@@ -403,20 +411,22 @@ class PiecewiseLinear(Shift):
     def _check_non_decreasing(self):  # TODO: integrate with param setters?
         for i, c in enumerate(self.corners):
             t_c, l_c, s_c = c
-            if t_c < 0.:
+            if t_c < 0.0:
                 raise ValueError("Relative corner times must be non-negative.")
-            if l_c < 0.:
+            if l_c < 0.0:
                 raise ValueError("Corner losses must be non-negative.")
-            if s_c < 0.:
+            if s_c < 0.0:
                 raise ValueError("Corner slopes must be non-negative.")
 
             if i == 0:
-                l_d = 0.
+                l_d = 0.0
             else:
                 t_prev, l_prev, s_prev = self.corners[i - 1]
                 l_d = l_prev + s_prev * (t_c - t_prev)
             if l_c < l_d:
-                raise ValueError(f"Loss decreases from {l_d} to {l_c} at discontinuity.")
+                raise ValueError(
+                    f"Loss decreases from {l_d} to {l_c} at discontinuity."
+                )
 
     # def shift_origin(self, t):
     #     t_excess = t - self.t_release
@@ -439,8 +449,8 @@ class PiecewiseLinear(Shift):
 
     def _shift(self, t_excess, loss_inc):
         for i, c in enumerate(self.corners):
-            c[0] = max(0., c[0] - t_excess)
-            c[1] = max(0., c[1] - loss_inc)
+            c[0] = max(0.0, c[0] - t_excess)
+            c[1] = max(0.0, c[1] - loss_inc)
 
             # if not self.prune and c[0] == 0. and i >= 1:  # zero out unused slope
             #     self.corners[i - 1][2] = 0.
@@ -458,15 +468,15 @@ class PiecewiseLinear(Shift):
                 idx.append(np.flatnonzero(times == t)[-1])
             self._corners = corners[idx].tolist()
 
-            if self._corners == [[0., 0., 0.]]:  # remove uninformative corner
+            if self._corners == [[0.0, 0.0, 0.0]]:  # remove uninformative corner
                 self._corners = []
 
     @property
     def plot_lim(self):
         """2-tuple of limits for automatic plotting."""
         t_1 = self.t_release
-        if bool(self.corners) and self.corners[-1][0] > 0.:
-            t_1 += self.corners[-1][0] * (1 + plt.rcParams['axes.xmargin'])
+        if bool(self.corners) and self.corners[-1][0] > 0.0:
+            t_1 += self.corners[-1][0] * (1 + plt.rcParams["axes.xmargin"])
         else:
             t_1 += self.duration
         return self.t_release, t_1
@@ -486,13 +496,14 @@ class Linear(PiecewiseLinear):
     name : str, optional
 
     """
-    param_names = Base.param_names + ('slope',)
+
+    param_names = Base.param_names + ("slope",)
     shift_params = Shift.shift_params
 
     prune = False
 
-    def __init__(self, duration, t_release=0., slope=1., name=None):
-        super().__init__(duration, t_release, [[0., 0., slope]], name)
+    def __init__(self, duration, t_release=0.0, slope=1.0, name=None):
+        super().__init__(duration, t_release, [[0.0, 0.0, slope]], name)
 
     @property
     def slope(self):
@@ -521,17 +532,20 @@ class LinearDrop(PiecewiseLinear):
     name : str, optional
 
     """
-    param_names = Base.param_names + ('slope', 't_drop', 'l_drop')
-    shift_params = Shift.shift_params + ('t_drop', 'l_drop')
+
+    param_names = Base.param_names + ("slope", "t_drop", "l_drop")
+    shift_params = Shift.shift_params + ("t_drop", "l_drop")
 
     prune = False
 
-    def __init__(self, duration, t_release=0., slope=1., t_drop=1., l_drop=None, name=None):
-        corners = [[0., 0., slope]]
+    def __init__(
+        self, duration, t_release=0.0, slope=1.0, t_drop=1.0, l_drop=None, name=None
+    ):
+        corners = [[0.0, 0.0, slope]]
         if l_drop is not None:
-            corners.append([t_drop, l_drop, 0.])
+            corners.append([t_drop, l_drop, 0.0])
         else:
-            corners.append([t_drop, 0.])
+            corners.append([t_drop, 0.0])
         super().__init__(duration, t_release, corners, name)
 
     @property
@@ -560,13 +574,22 @@ class LinearDrop(PiecewiseLinear):
 
 
 class LinearLinear(PiecewiseLinear):  # TODO: delete, and generators
-    param_names = Base.param_names + ('slope', 't_drop', 'l_drop', 'slope_2')
-    shift_params = Shift.shift_params + ('t_drop', 'l_drop')
+    param_names = Base.param_names + ("slope", "t_drop", "l_drop", "slope_2")
+    shift_params = Shift.shift_params + ("t_drop", "l_drop")
 
     prune = False
 
-    def __init__(self, duration, t_release=0., slope=1., t_drop=1., l_drop=None, slope_2=1., name=None):
-        corners = [[0., 0., slope]]
+    def __init__(
+        self,
+        duration,
+        t_release=0.0,
+        slope=1.0,
+        t_drop=1.0,
+        l_drop=None,
+        slope_2=1.0,
+        name=None,
+    ):
+        corners = [[0.0, 0.0, slope]]
         if l_drop is not None:
             corners.append([t_drop, l_drop, slope_2])
         else:
@@ -660,10 +683,11 @@ class Exponential(Shift):
     name : str, optional
 
     """
-    param_names = Base.param_names + ('a', 'b')
-    shift_params = Shift.shift_params + ('a',)
 
-    def __init__(self, duration, t_release=0., a=1., b=np.e, name=None):
+    param_names = Base.param_names + ("a", "b")
+    shift_params = Shift.shift_params + ("a",)
+
+    def __init__(self, duration, t_release=0.0, a=1.0, b=np.e, name=None):
         super().__init__(duration, t_release, name)
         self.a = float(a)
         self.b = float(b)
@@ -697,4 +721,4 @@ class Exponential(Shift):
     #         return 0.  # no loss incurred
 
     def _shift(self, t_excess, loss_inc):
-        self.a *= self.b ** t_excess
+        self.a *= self.b**t_excess

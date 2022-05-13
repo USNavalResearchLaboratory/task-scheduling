@@ -18,14 +18,16 @@ from task_scheduling.mdp.base import BaseLearning as BaseLearningScheduler
 from task_scheduling.mdp.supervised.base import Base as BaseSupervisedScheduler
 from task_scheduling.util import eval_wrapper, plot_schedule
 
-opt_name = 'BB Optimal'
+opt_name = "BB Optimal"
 pickle_figs = True
 
 # Logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 out_handler = logging.StreamHandler(stream=sys.stdout)
-out_formatter = logging.Formatter('\n# %(asctime)s\n%(message)s\n', datefmt='%Y-%m-%d %H:%M:%S')
+out_formatter = logging.Formatter(
+    "\n# %(asctime)s\n%(message)s\n", datefmt="%Y-%m-%d %H:%M:%S"
+)
 out_handler.setFormatter(out_formatter)
 logger.addHandler(out_handler)
 
@@ -37,7 +39,7 @@ def _file_logger(file, file_format):
         file.parent.mkdir(parents=True, exist_ok=True)
 
         file_handler = logging.FileHandler(file)
-        file_formatter = logging.Formatter(file_format, datefmt='%Y-%m-%d %H:%M:%S')
+        file_formatter = logging.Formatter(file_format, datefmt="%Y-%m-%d %H:%M:%S")
         file_handler.setFormatter(file_formatter)
         logger.addHandler(file_handler)
         yield logger
@@ -49,16 +51,18 @@ def _file_logger(file, file_format):
 def _log_and_fig(message, log_path, fig, img_path):
     """Save figure, add figure to message format and log."""
 
-    file_format = '\n# %(asctime)s\n%(message)s\n'
+    file_format = "\n# %(asctime)s\n%(message)s\n"
     if img_path is not None:
         img_path = Path(img_path)
         img_path.parent.mkdir(parents=True, exist_ok=True)
 
         fig.savefig(img_path)
-        fig.savefig(img_path.parent / f"{img_path.stem}.png")  # save PNG for Markdown log
+        fig.savefig(
+            img_path.parent / f"{img_path.stem}.png"
+        )  # save PNG for Markdown log
         if pickle_figs:
             mpl_file = img_path.parent / f"{img_path.stem}.mpl"
-            with open(mpl_file, 'wb') as f:
+            with open(mpl_file, "wb") as f:
                 pickle.dump(fig, f)
 
         if log_path is not None:
@@ -70,12 +74,24 @@ def _log_and_fig(message, log_path, fig, img_path):
         logger_.info(message)
 
 
-def _log_helper(problem_obj, learners, loss, t_run, solve, log_path, fig, img_path, rng, n_gen_learn=None, n_mc=None):
-    message = f'- Seed = {rng}'
+def _log_helper(
+    problem_obj,
+    learners,
+    loss,
+    t_run,
+    solve,
+    log_path,
+    fig,
+    img_path,
+    rng,
+    n_gen_learn=None,
+    n_mc=None,
+):
+    message = f"- Seed = {rng}"
     if n_gen_learn is not None:
-        message += f'\n- Training problems: {n_gen_learn}'
+        message += f"\n- Training problems: {n_gen_learn}"
     if n_mc is not None:
-        message += f'\n- MC iterations: {n_mc}'
+        message += f"\n- MC iterations: {n_mc}"
 
     if isinstance(problem_obj, BaseProblemGenerator):
         # message += f"\n\n## Problem:\n{problem_obj.summary()}"
@@ -89,7 +105,7 @@ def _log_helper(problem_obj, learners, loss, t_run, solve, log_path, fig, img_pa
             message += f"\n\n### {learner['name']}"
             message += f"\n{learner['func'].summary()}"
 
-    message += '\n\n## Results'
+    message += "\n\n## Results"
     message += f"\n{_print_averages(loss, t_run, do_relative=solve)}"
 
     _log_and_fig(message, log_path, fig, img_path)
@@ -97,8 +113,10 @@ def _log_helper(problem_obj, learners, loss, t_run, solve, log_path, fig, img_pa
 
 # Utilities
 def _iter_to_mean(array):
-    return np.array([tuple(map(np.mean, item)) for item in array.flatten()],
-                    dtype=[(name, float) for name in array.dtype.names]).reshape(array.shape)
+    return np.array(
+        [tuple(map(np.mean, item)) for item in array.flatten()],
+        dtype=[(name, float) for name in array.dtype.names],
+    ).reshape(array.shape)
 
 
 def _struct_mean(array):
@@ -108,15 +126,21 @@ def _struct_mean(array):
 
 
 def _add_opt(algorithms):
-    if opt_name not in algorithms['name']:
-        _opt = np.array([(opt_name, None, 1)], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
+    if opt_name not in algorithms["name"]:
+        _opt = np.array(
+            [(opt_name, None, 1)],
+            dtype=[("name", "<U32"), ("func", object), ("n_iter", int)],
+        )
         algorithms = np.concatenate((_opt, algorithms))
 
     return algorithms
 
 
 def _empty_result(algorithms, n):
-    return np.array([(np.nan,) * len(algorithms)] * n, dtype=[(alg['name'], float) for alg in algorithms])
+    return np.array(
+        [(np.nan,) * len(algorithms)] * n,
+        dtype=[(alg["name"], float) for alg in algorithms],
+    )
 
 
 # Printing/plotting
@@ -160,12 +184,12 @@ def _scatter_loss_runtime(t_run, loss, ax=None, ax_kwargs=None):
     for name in t_run.dtype.names:
         kwargs = {}
         if name == opt_name:
-            kwargs.update(c='k')
+            kwargs.update(c="k")
 
-        ax.plot(1e3 * t_run[name], loss[name], '.', label=name, **kwargs)
+        ax.plot(1e3 * t_run[name], loss[name], ".", label=name, **kwargs)
         # ax.scatter(1e3 * t_run[name], loss[name], label=name, **kwargs)
 
-    ax.set(xlabel='Runtime (ms)', ylabel='Loss', xscale='log')
+    ax.set(xlabel="Runtime (ms)", ylabel="Loss", xscale="log")
     ax.legend()
     ax.set(**ax_kwargs)
 
@@ -208,12 +232,15 @@ def _scatter_loss_runtime(t_run, loss, ax=None, ax_kwargs=None):
 #
 #     return fig
 
-def _scatter_results(t_run, loss, label='Results', do_relative=False):
+
+def _scatter_results(t_run, loss, label="Results", do_relative=False):
     fig, ax = plt.subplots(num=label, clear=True)
-    _scatter_loss_runtime(t_run, loss,
-                          ax=ax,
-                          # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
-                          )
+    _scatter_loss_runtime(
+        t_run,
+        loss,
+        ax=ax,
+        # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
+    )
 
     if do_relative:  # relative to B&B
         normalize = True
@@ -222,19 +249,22 @@ def _scatter_results(t_run, loss, label='Results', do_relative=False):
 
         names = list(loss.dtype.names)
         names.remove(opt_name)
-        fig_rel, ax_rel = plt.subplots(num=f'{label} (Relative)', clear=True)
-        ylabel = 'Excess Loss'
+        fig_rel, ax_rel = plt.subplots(num=f"{label} (Relative)", clear=True)
+        ylabel = "Excess Loss"
         if normalize:
-            if plt.rcParams['text.usetex']:
-                ylabel += r' (\%)'
+            if plt.rcParams["text.usetex"]:
+                ylabel += r" (\%)"
             else:
-                ylabel += r' (%)'
-        _scatter_loss_runtime(t_run[names], loss_rel[names],
-                              ax=ax_rel,
-                              ax_kwargs={'ylabel': ylabel,
-                                         # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
-                                         }
-                              )
+                ylabel += r" (%)"
+        _scatter_loss_runtime(
+            t_run[names],
+            loss_rel[names],
+            ax=ax_rel,
+            ax_kwargs={
+                "ylabel": ylabel,
+                # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
+            },
+        )
 
         return fig_rel  # TODO
 
@@ -245,18 +275,20 @@ def _print_averages(loss, t_run, do_relative=False):
     names = list(loss.dtype.names)
 
     data = [[loss[name].mean(), 1e3 * t_run[name].mean()] for name in names]
-    columns = ['Loss', 'Runtime (ms)']
+    columns = ["Loss", "Runtime (ms)"]
 
     if do_relative:
         loss_rel = _relative_loss(loss)
 
         loss_opt = data[names.index(opt_name)][0]
         for item, name in zip(data, names):
-            item.insert(0, loss_rel[name].mean() / loss_opt * 100)  # normalize to percentage
-        columns.insert(0, 'Excess Loss (%)')
+            item.insert(
+                0, loss_rel[name].mean() / loss_opt * 100
+            )  # normalize to percentage
+        columns.insert(0, "Excess Loss (%)")
 
     df = pd.DataFrame(data, index=pd.CategoricalIndex(names), columns=columns)
-    df_str = df.to_markdown(tablefmt='github', floatfmt='.3f')
+    df_str = df.to_markdown(tablefmt="github", floatfmt=".3f")
 
     return df_str
 
@@ -265,34 +297,42 @@ def _print_averages(loss, t_run, do_relative=False):
 def _set_algorithm_rng(algorithms, rng):
     """Makes algorithms into `functools.partial` objects, overwrites any existing `rng` arguments."""
     for algorithm in algorithms:
-        if isinstance(algorithm['func'], partial):
-            func_code = algorithm['func'].func.__code__
-            arg_names = func_code.co_varnames[:func_code.co_argcount]
-            if 'rng' in arg_names:  # algorithm takes `rng` argument, can be seeded
-                algorithm['func'].keywords['rng'] = rng
+        if isinstance(algorithm["func"], partial):
+            func_code = algorithm["func"].func.__code__
+            arg_names = func_code.co_varnames[: func_code.co_argcount]
+            if "rng" in arg_names:  # algorithm takes `rng` argument, can be seeded
+                algorithm["func"].keywords["rng"] = rng
         else:
             try:  # FIXME: hack. should be able to inspect `__call__` signature
-                func_code = algorithm['func'].__code__
+                func_code = algorithm["func"].__code__
             except AttributeError:
                 warn(f"RNG cannot be set for algorithm: {algorithm['name']}")
                 continue
-            arg_names = func_code.co_varnames[:func_code.co_argcount]
-            if 'rng' in arg_names:  # algorithm takes `rng` argument, can be seeded
-                algorithm['func'] = partial(algorithm['func'])
-                algorithm['func'].keywords['rng'] = rng
+            arg_names = func_code.co_varnames[: func_code.co_argcount]
+            if "rng" in arg_names:  # algorithm takes `rng` argument, can be seeded
+                algorithm["func"] = partial(algorithm["func"])
+                algorithm["func"].keywords["rng"] = rng
 
 
 def _seed_to_rng(algorithms):
     """Convert algorithm `rng` arguments to NumPy `Generator` objects. Repeated calls to algorithms will use the RNG
     in-place, avoiding exact reproduction and ensuring new output for Monte Carlo evaluation."""
-    for func in algorithms['func']:
-        if isinstance(func, partial) and 'rng' in func.keywords:
-            func.keywords['rng'] = RNGMix.make_rng(func.keywords['rng'])
+    for func in algorithms["func"]:
+        if isinstance(func, partial) and "rng" in func.keywords:
+            func.keywords["rng"] = RNGMix.make_rng(func.keywords["rng"])
 
 
 # Algorithm evaluation
-def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0, plotting=0, log_path=None,
-                               img_path=None, rng=None):
+def evaluate_algorithms_single(
+    algorithms,
+    problem,
+    solution_opt=None,
+    verbose=0,
+    plotting=0,
+    log_path=None,
+    img_path=None,
+    rng=None,
+):
     """
     Compare scheduling algorithms.
 
@@ -323,7 +363,9 @@ def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0
 
     """
 
-    learners = algorithms[[isinstance(alg['func'], BaseLearningScheduler) for alg in algorithms]]
+    learners = algorithms[
+        [isinstance(alg["func"], BaseLearningScheduler) for alg in algorithms]
+    ]
 
     # RNG control
     if rng is not None:
@@ -334,17 +376,22 @@ def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0
     if solve:
         algorithms = _add_opt(algorithms)
 
-    _array_iter = np.array(tuple([np.nan] * alg['n_iter'] for alg in algorithms),
-                           dtype=[(alg['name'], float, (alg['n_iter'],)) for alg in algorithms])
+    _array_iter = np.array(
+        tuple([np.nan] * alg["n_iter"] for alg in algorithms),
+        dtype=[(alg["name"], float, (alg["n_iter"],)) for alg in algorithms],
+    )
     loss_iter, t_run_iter = _array_iter.copy(), _array_iter.copy()
 
     for i_alg, (name, func, n_iter) in enumerate(algorithms):
         if verbose >= 1:
-            print(f'{name} ({i_alg + 1}/{len(algorithms)})', end=('\r' if verbose == 1 else '\n'))
+            print(
+                f"{name} ({i_alg + 1}/{len(algorithms)})",
+                end=("\r" if verbose == 1 else "\n"),
+            )
 
         for iter_ in range(n_iter):  # perform new algorithm runs
             if verbose >= 2:
-                print(f'Iteration: {iter_ + 1}/{n_iter})', end='\r')
+                print(f"Iteration: {iter_ + 1}/{n_iter})", end="\r")
 
             # Run algorithm
             if name == opt_name:
@@ -356,23 +403,52 @@ def evaluate_algorithms_single(algorithms, problem, solution_opt=None, verbose=0
             t_run_iter[name][iter_] = solution.t_run
 
             if plotting >= 2:
-                plot_schedule(problem.tasks, solution.sch, problem.ch_avail, solution.loss, name, ax=None)
+                plot_schedule(
+                    problem.tasks,
+                    solution.sch,
+                    problem.ch_avail,
+                    solution.loss,
+                    name,
+                    ax=None,
+                )
 
     # Results
     if plotting >= 1:
-        fig = _scatter_results(t_run_iter, loss_iter, label='Problem', do_relative=solve)
+        fig = _scatter_results(
+            t_run_iter, loss_iter, label="Problem", do_relative=solve
+        )
     else:
         fig, img_path = None, None
 
     # Logging
     if verbose >= 1:
-        _log_helper(problem, learners, loss_iter, t_run_iter, solve, log_path, fig, img_path, rng)
+        _log_helper(
+            problem,
+            learners,
+            loss_iter,
+            t_run_iter,
+            solve,
+            log_path,
+            fig,
+            img_path,
+            rng,
+        )
 
     return loss_iter, t_run_iter
 
 
-def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, n_gen_learn=0, solve=False, verbose=0, plotting=0,
-                            log_path=None, img_path=None, rng=None):
+def evaluate_algorithms_gen(
+    algorithms,
+    problem_gen,
+    n_gen=1,
+    n_gen_learn=0,
+    solve=False,
+    verbose=0,
+    plotting=0,
+    log_path=None,
+    img_path=None,
+    rng=None,
+):
     """
     Compare scheduling algorithms against generated problems.
 
@@ -409,7 +485,9 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, n_gen_learn=0, sol
 
     """
 
-    learners = algorithms[[isinstance(alg['func'], BaseLearningScheduler) for alg in algorithms]]
+    learners = algorithms[
+        [isinstance(alg["func"], BaseLearningScheduler) for alg in algorithms]
+    ]
     _do_learn = bool(len(learners)) and bool(n_gen_learn)
     if not _do_learn:
         n_gen_learn = 0
@@ -432,7 +510,9 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, n_gen_learn=0, sol
 
     if _do_learn:
         # Get training problems, make solutions if needed for SL
-        supervised_learners = learners[[isinstance(alg['func'], BaseSupervisedScheduler) for alg in learners]]
+        supervised_learners = learners[
+            [isinstance(alg["func"], BaseSupervisedScheduler) for alg in learners]
+        ]
         _do_sl = bool(len(supervised_learners))
 
         out_gen = list(problem_gen(n_gen_learn, solve=_do_sl, verbose=verbose))
@@ -446,15 +526,25 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, n_gen_learn=0, sol
             if verbose >= 1:
                 print(f"\nTraining learner: {learner['name']}")
 
-            func = learner['func']
+            func = learner["func"]
             # func.reset()
 
             # instantiate new generator for each learner
-            func.env.problem_gen = Dataset(problems, solutions, shuffle=True, repeat=True,
-                                           task_gen=problem_gen.task_gen, ch_avail_gen=problem_gen.ch_avail_gen)
-            func.learn(n_gen_learn, verbose=verbose)  # calls `problem_gen` via environment `reset`
+            func.env.problem_gen = Dataset(
+                problems,
+                solutions,
+                shuffle=True,
+                repeat=True,
+                task_gen=problem_gen.task_gen,
+                ch_avail_gen=problem_gen.ch_avail_gen,
+            )
+            func.learn(
+                n_gen_learn, verbose=verbose
+            )  # calls `problem_gen` via environment `reset`
 
-    loss_mean, t_run_mean = _empty_result(algorithms, n_gen), _empty_result(algorithms, n_gen)
+    loss_mean, t_run_mean = _empty_result(algorithms, n_gen), _empty_result(
+        algorithms, n_gen
+    )
     if verbose >= 1:
         print("\nEvaluating algorithms...")
     for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose)):
@@ -463,24 +553,50 @@ def evaluate_algorithms_gen(algorithms, problem_gen, n_gen=1, n_gen_learn=0, sol
         else:
             problem, solution_opt = out_gen, None
 
-        loss_iter, t_run_iter = evaluate_algorithms_single(algorithms, problem, solution_opt, verbose - 1, plotting - 1)
-        loss_mean[i_gen], t_run_mean[i_gen] = map(_iter_to_mean, (loss_iter, t_run_iter))
+        loss_iter, t_run_iter = evaluate_algorithms_single(
+            algorithms, problem, solution_opt, verbose - 1, plotting - 1
+        )
+        loss_mean[i_gen], t_run_mean[i_gen] = map(
+            _iter_to_mean, (loss_iter, t_run_iter)
+        )
 
     # Results
     if plotting >= 1:
-        fig = _scatter_results(t_run_mean, loss_mean, label='Gen', do_relative=solve)
+        fig = _scatter_results(t_run_mean, loss_mean, label="Gen", do_relative=solve)
     else:
         fig, img_path = None, None
 
     # Logging
     if verbose >= 1:
-        _log_helper(problem_gen, learners, loss_mean, t_run_mean, solve, log_path, fig, img_path, rng, n_gen_learn)
+        _log_helper(
+            problem_gen,
+            learners,
+            loss_mean,
+            t_run_mean,
+            solve,
+            log_path,
+            fig,
+            img_path,
+            rng,
+            n_gen_learn,
+        )
 
     return loss_mean, t_run_mean
 
 
-def evaluate_algorithms_train(algorithms, problem_gen, n_gen=1, n_gen_learn=0, n_mc=1, solve=False, verbose=0,
-                              plotting=0, log_path=None, img_path=None, rng=None):
+def evaluate_algorithms_train(
+    algorithms,
+    problem_gen,
+    n_gen=1,
+    n_gen_learn=0,
+    n_mc=1,
+    solve=False,
+    verbose=0,
+    plotting=0,
+    log_path=None,
+    img_path=None,
+    rng=None,
+):
     """
     Compare scheduling algorithms with iterative training of learners.
 
@@ -518,7 +634,9 @@ def evaluate_algorithms_train(algorithms, problem_gen, n_gen=1, n_gen_learn=0, n
 
     """
 
-    learners = algorithms[[isinstance(alg['func'], BaseLearningScheduler) for alg in algorithms]]
+    learners = algorithms[
+        [isinstance(alg["func"], BaseLearningScheduler) for alg in algorithms]
+    ]
     if len(learners) == 0:
         n_gen_learn = 0
 
@@ -556,21 +674,42 @@ def evaluate_algorithms_train(algorithms, problem_gen, n_gen=1, n_gen_learn=0, n
             problem_gen.shuffle()  # random train/test split
 
         for learner in learners:  # reset learned policies
-            learner['func'].reset()
+            learner["func"].reset()
 
         # Evaluate performance
-        loss_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve,
-                                                        verbose=verbose - 1, plotting=plotting - 1)
-        loss_mc[i_mc], t_run_mc[i_mc] = _struct_mean(loss_mean), _struct_mean(t_run_mean)
+        loss_mean, t_run_mean = evaluate_algorithms_gen(
+            algorithms,
+            problem_gen,
+            n_gen,
+            n_gen_learn,
+            solve,
+            verbose=verbose - 1,
+            plotting=plotting - 1,
+        )
+        loss_mc[i_mc], t_run_mc[i_mc] = _struct_mean(loss_mean), _struct_mean(
+            t_run_mean
+        )
 
     # Results
     if plotting >= 1:
-        fig = _scatter_results(t_run_mc, loss_mc, label='Train', do_relative=solve)
+        fig = _scatter_results(t_run_mc, loss_mc, label="Train", do_relative=solve)
     else:
         fig, img_path = None, None
 
     # Logging
     if verbose >= 1:
-        _log_helper(problem_gen, learners, loss_mc, t_run_mc, solve, log_path, fig, img_path, rng, n_gen_learn, n_mc)
+        _log_helper(
+            problem_gen,
+            learners,
+            loss_mc,
+            t_run_mc,
+            solve,
+            log_path,
+            fig,
+            img_path,
+            rng,
+            n_gen_learn,
+            n_mc,
+        )
 
     return loss_mc, t_run_mc

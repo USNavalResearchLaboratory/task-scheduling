@@ -35,7 +35,7 @@ def mcts_orig(tasks, ch_avail, n_mc, verbose=False, rng=None):
 
     for n in range(n_tasks):
         if verbose:
-            print(f'Assigning Task {n + 1}/{n_tasks}', end='\r')
+            print(f"Assigning Task {n + 1}/{n_tasks}", end="\r")
 
         # Perform Roll-outs
         for _ in range(n_mc[n]):

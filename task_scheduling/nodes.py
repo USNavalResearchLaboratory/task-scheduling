@@ -33,6 +33,7 @@ class ScheduleNode(RandomGeneratorMixin):
             NumPy random number generator or seed. Instance RNG if None.
 
     """
+
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
         super().__init__(rng)
 
@@ -42,8 +43,11 @@ class ScheduleNode(RandomGeneratorMixin):
         self._seq = []
         self._seq_rem = set(range(self.n_tasks))
 
-        self._sch = np.array([(np.nan, -1) for __ in range(self.n_tasks)], dtype=[('t', float), ('c', int)])
-        self._loss = 0.  # incurred loss
+        self._sch = np.array(
+            [(np.nan, -1) for __ in range(self.n_tasks)],
+            dtype=[("t", float), ("c", int)],
+        )
+        self._loss = 0.0  # incurred loss
 
         self.seq = seq  # triggers setter
 
@@ -52,15 +56,19 @@ class ScheduleNode(RandomGeneratorMixin):
 
     def __eq__(self, other):
         if isinstance(other, ScheduleNode):
-            return (self.tasks, self.ch_avail, self.seq) == (other.tasks, other.ch_avail, other.seq)
+            return (self.tasks, self.ch_avail, self.seq) == (
+                other.tasks,
+                other.ch_avail,
+                other.seq,
+            )
         else:
             return NotImplemented
 
     def summary(self):
         """Print a string describing important node attributes."""
-        keys = ('seq', 'sch', 'loss')
+        keys = ("seq", "sch", "loss")
         df = pd.Series({key: getattr(self, key) for key in keys})
-        return df.to_markdown(tablefmt='github', floatfmt='.3f')
+        return df.to_markdown(tablefmt="github", floatfmt=".3f")
 
     tasks = property(lambda self: self._tasks)
     ch_avail = property(lambda self: self._ch_avail)
@@ -80,12 +88,14 @@ class ScheduleNode(RandomGeneratorMixin):
     @seq.setter
     def seq(self, seq):
         seq = list(seq)
-        seq_prev, seq_ext = seq[:len(self._seq)], seq[len(self._seq):]
+        seq_prev, seq_ext = seq[: len(self._seq)], seq[len(self._seq) :]
         if seq_prev == self._seq:  # new sequence is an extension of current sequence
             self.seq_extend(seq_ext)
         else:
             # self.__init__(self.tasks, self.ch_avail, seq, rng=self.rng)  # initialize from scratch
-            raise ValueError(f"Sequence must be an extension of {self._seq}")  # shift nodes cannot recover tasks
+            raise ValueError(
+                f"Sequence must be an extension of {self._seq}"
+            )  # shift nodes cannot recover tasks
 
     def seq_extend(self, seq_ext, check_valid=True):
         """
@@ -107,7 +117,9 @@ class ScheduleNode(RandomGeneratorMixin):
             if len(seq_ext) != len(set_ext):
                 raise ValueError("Input 'seq_ext' must have unique values.")
             elif not set_ext.issubset(self._seq_rem):
-                raise ValueError("Values in 'seq_ext' must not be in the current node sequence.")
+                raise ValueError(
+                    "Values in 'seq_ext' must not be in the current node sequence."
+                )
 
         for n in seq_ext:
             self.seq_append(n, check_valid=False)
@@ -133,11 +145,15 @@ class ScheduleNode(RandomGeneratorMixin):
         self._update_sch(n)
 
     def _update_sch(self, n):
-        c_min = np.argmin(self._ch_avail)  # assign task to channel with the earliest availability
+        c_min = np.argmin(
+            self._ch_avail
+        )  # assign task to channel with the earliest availability
 
         self._sch[n] = (max(self._tasks[n].t_release, self._ch_avail[c_min]), c_min)
-        self._loss += self._tasks[n](self.sch['t'][n])  # add task execution loss
-        self._ch_avail[c_min] = self.sch['t'][n] + self._tasks[n].duration  # new channel availability
+        self._loss += self._tasks[n](self.sch["t"][n])  # add task execution loss
+        self._ch_avail[c_min] = (
+            self.sch["t"][n] + self._tasks[n].duration
+        )  # new channel availability
 
     def _extend_util(self, seq_ext, inplace=True):
         node = self
@@ -205,13 +221,25 @@ class ScheduleNode(RandomGeneratorMixin):
         return self._extend_util(seq_ext, inplace)
 
     def earliest_release(self, inplace=True):
-        return self.priority_sorter(attrgetter('t_release'), reverse=False, inplace=inplace)
+        return self.priority_sorter(
+            attrgetter("t_release"), reverse=False, inplace=inplace
+        )
 
     def earliest_drop(self, inplace=True):
-        return self.priority_sorter(attrgetter('t_drop'), reverse=False, inplace=inplace)
+        return self.priority_sorter(
+            attrgetter("t_drop"), reverse=False, inplace=inplace
+        )
 
-    def mcts(self, max_runtime=None, max_rollouts=None, c_explore=0., th_visit=0, inplace=True, verbose=False,
-             rng=None):
+    def mcts(
+        self,
+        max_runtime=None,
+        max_rollouts=None,
+        c_explore=0.0,
+        th_visit=0,
+        inplace=True,
+        verbose=False,
+        rng=None,
+    ):
         """
         Monte Carlo tree search.
 
@@ -246,7 +274,9 @@ class ScheduleNode(RandomGeneratorMixin):
         t_run = perf_counter()
 
         if max_runtime is None and max_rollouts is None:
-            raise ValueError("Either `max_runtime` or `max_rollouts` must be specified.")
+            raise ValueError(
+                "Either `max_runtime` or `max_rollouts` must be specified."
+            )
         if max_runtime is None:
             max_runtime = np.inf
         if max_rollouts is None:
@@ -263,11 +293,11 @@ class ScheduleNode(RandomGeneratorMixin):
         node_best, loss_best = None, np.inf
         while perf_counter() - t_run < max_runtime and root.n_visits < max_rollouts:
             if verbose:
-                print(f'# rollouts: {root.n_visits}, Min. Loss: {loss_best}', end='\r')
+                print(f"# rollouts: {root.n_visits}, Min. Loss: {loss_best}", end="\r")
 
             leaf_new = root.selection()  # expansion step happens in selection call
 
-            seq_ext = leaf_new.seq[len(self.seq):]
+            seq_ext = leaf_new.seq[len(self.seq) :]
             node = self._extend_util(seq_ext, inplace=False)
             node.roll_out(rng=rng)  # TODO: rollout with learned policy?
             if node.loss < loss_best:
@@ -281,7 +311,7 @@ class ScheduleNode(RandomGeneratorMixin):
         #     print(f"Total # rollouts: {root.n_visits}, loss={loss_best}")
 
         if inplace:
-            seq_ext = node_best.seq[len(self.seq):]
+            seq_ext = node_best.seq[len(self.seq) :]
             self._extend_util(seq_ext)
         else:
             return node_best
@@ -309,14 +339,14 @@ class ScheduleNode(RandomGeneratorMixin):
         n_perms = factorial(len(self.seq_rem))
         for i, seq in enumerate(permutations(self.seq_rem)):
             if verbose:
-                print(f"Brute force: {i + 1}/{n_perms}", end='\r')
+                print(f"Brute force: {i + 1}/{n_perms}", end="\r")
 
             node = self._extend_util(seq, inplace=False)
             if node.loss < loss_best:
                 node_best, loss_best = node, node.loss
 
         if inplace:
-            seq_ext = node_best.seq[len(self.seq):]
+            seq_ext = node_best.seq[len(self.seq) :]
             self._extend_util(seq_ext)
         else:
             return node_best
@@ -337,8 +367,9 @@ class ScheduleNodeBound(ScheduleNode):
             NumPy random number generator or seed. Instance RNG if None.
 
     """
+
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
-        self._bounds = [0., np.inf]
+        self._bounds = [0.0, np.inf]
         super().__init__(tasks, ch_avail, seq, rng)
 
     def __str__(self):
@@ -374,12 +405,16 @@ class ScheduleNodeBound(ScheduleNode):
             return  # already converged
 
         ch_avail_min = min(self._ch_avail)
-        t_release_max = max(ch_avail_min, *(self._tasks[n].t_release for n in self._seq_rem))
+        t_release_max = max(
+            ch_avail_min, *(self._tasks[n].t_release for n in self._seq_rem)
+        )
         t_max = t_release_max + sum(self._tasks[n].duration for n in self._seq_rem)
         # t_max -= min(self._tasks[n].duration for n in self._seq_rem)
 
         for n in self._seq_rem:  # update loss bounds
-            self._bounds[0] += self._tasks[n](max(ch_avail_min, self._tasks[n].t_release))
+            self._bounds[0] += self._tasks[n](
+                max(ch_avail_min, self._tasks[n].t_release)
+            )
             self._bounds[1] += self._tasks[n](t_max)
 
     def branch_bound(self, inplace=True, verbose=False, rng=None):
@@ -420,23 +455,32 @@ class ScheduleNodeBound(ScheduleNode):
             for node_new in node.branch(permute=True, rng=rng):
                 # Bound
                 if node_new.l_lo < node_best.loss:
-                    stack.append(node_new)  # new node is not dominated, add to stack (LIFO)
+                    stack.append(
+                        node_new
+                    )  # new node is not dominated, add to stack (LIFO)
 
                     if node_new.l_up < node_best.loss:
-                        node_best = node_new.roll_out(inplace=False, rng=rng)  # roll-out a new best node
+                        node_best = node_new.roll_out(
+                            inplace=False, rng=rng
+                        )  # roll-out a new best node
 
             if verbose:
                 # progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(self.n_tasks)
                 # print(f'Search progress: {progress:.3f}, Loss < {node_best.loss:.3f}', end='\r')
-                print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}', end='\r')
+                print(
+                    f"# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}",
+                    end="\r",
+                )
 
         if inplace:
-            seq_ext = node_best.seq[len(self.seq):]
+            seq_ext = node_best.seq[len(self.seq) :]
             self._extend_util(seq_ext)
         else:
             return node_best
 
-    def branch_bound_priority(self, priority_func=None, heuristic=None, inplace=True, verbose=False):
+    def branch_bound_priority(
+        self, priority_func=None, heuristic=None, inplace=True, verbose=False
+    ):
         """
         Branch-and-Bound with priority queueing and user-defined heuristics.
 
@@ -462,11 +506,12 @@ class ScheduleNodeBound(ScheduleNode):
             return self.roll_out(inplace)
 
         if priority_func is None:
+
             def priority_func(node_):
                 return -node_.l_lo
 
         if heuristic is None:
-            heuristic = methodcaller('roll_out', inplace=False)
+            heuristic = methodcaller("roll_out", inplace=False)
 
         node_best = heuristic(self)
         stack = SortedKeyList([self], priority_func)
@@ -481,7 +526,9 @@ class ScheduleNodeBound(ScheduleNode):
             for node_new in node.branch():
                 # Bound
                 if node_new.l_lo < node_best.loss:
-                    stack.add(node_new)  # new node is not dominated, add to stack (prioritized)
+                    stack.add(
+                        node_new
+                    )  # new node is not dominated, add to stack (prioritized)
 
                     if node_new.l_up < node_best.loss:
                         node_best = heuristic(node_new)
@@ -489,10 +536,13 @@ class ScheduleNodeBound(ScheduleNode):
             if verbose:
                 # progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(self.n_tasks)
                 # print(f'Search progress: {progress:.3f}, Loss < {node_best.loss:.3f}', end='\r')
-                print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}', end='\r')
+                print(
+                    f"# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}",
+                    end="\r",
+                )
 
         if inplace:
-            seq_ext = node_best.seq[len(self.seq):]
+            seq_ext = node_best.seq[len(self.seq) :]
             self._extend_util(seq_ext)
         else:
             return node_best
@@ -513,8 +563,9 @@ class ScheduleNodeShift(ScheduleNode):
             NumPy random number generator or seed. Instance RNG if None.
 
     """
+
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
-        self.t_origin = 0.
+        self.t_origin = 0.0
         tasks = deepcopy(tasks)  # tasks modified in-place during `shift_origin`
         super().__init__(tasks, ch_avail, seq, rng)
 
@@ -526,7 +577,7 @@ class ScheduleNodeShift(ScheduleNode):
 
     def _update_sch(self, n):
         super()._update_sch(n)
-        self._sch['t'][n] += self.t_origin  # convert from relative to absolute
+        self._sch["t"][n] += self.t_origin  # convert from relative to absolute
         self.shift_origin()
 
     def shift_origin(self):
@@ -538,7 +589,9 @@ class ScheduleNodeShift(ScheduleNode):
         self.t_origin += ch_avail_min
         self._ch_avail -= ch_avail_min
         for n, task in enumerate(self._tasks):
-            loss_inc = task.shift_origin(ch_avail_min)  # re-parameterize task, return any incurred loss
+            loss_inc = task.shift_origin(
+                ch_avail_min
+            )  # re-parameterize task, return any incurred loss
             if n in self._seq_rem:
                 self._loss += loss_inc  # add loss incurred due to origin shift for any unscheduled tasks
 
@@ -563,7 +616,10 @@ class MCTSNode(RandomGeneratorMixin):
         NumPy random number generator or seed. Instance RNG if None.
 
     """
-    def __init__(self, n_tasks, bounds, seq=(), c_explore=0., th_visit=0, parent=None, rng=None):
+
+    def __init__(
+        self, n_tasks, bounds, seq=(), c_explore=0.0, th_visit=0, parent=None, rng=None
+    ):
         super().__init__(rng)
 
         self._n_tasks = n_tasks
@@ -578,7 +634,7 @@ class MCTSNode(RandomGeneratorMixin):
         self._seq_rem = set(range(self.n_tasks)) - set(self._seq)
 
         self._n_visits = 0
-        self._l_avg = 0.  # TODO: try using min? ordered statistic?
+        self._l_avg = 0.0  # TODO: try using min? ordered statistic?
 
     n_tasks = property(lambda self: self._n_tasks)
     seq = property(lambda self: self._seq)
@@ -591,8 +647,10 @@ class MCTSNode(RandomGeneratorMixin):
     l_avg = property(lambda self: self._l_avg)
 
     def __str__(self):
-        return f"MCTSNode(seq={self._seq}, children={list(self._children.keys())}, " \
-               f"visits={self._n_visits}, avg_loss={self._l_avg:.3f})"
+        return (
+            f"MCTSNode(seq={self._seq}, children={list(self._children.keys())}, "
+            f"visits={self._n_visits}, avg_loss={self._l_avg:.3f})"
+        )
 
     @property
     def is_root(self):
@@ -608,7 +666,9 @@ class MCTSNode(RandomGeneratorMixin):
 
         # TODO: use parent policy eval to influence weighting
 
-        value_loss = (self._bounds[1] - self._l_avg) / (self._bounds[1] - self._bounds[0])
+        value_loss = (self._bounds[1] - self._l_avg) / (
+            self._bounds[1] - self._bounds[0]
+        )
         value_explore = np.sqrt(np.log(self.parent.n_visits) / self._n_visits)
         # value_explore = np.sqrt(self.parent.n_visits) / (self._n_visits + 1)
         return value_loss + self._c_explore * value_explore
@@ -619,7 +679,9 @@ class MCTSNode(RandomGeneratorMixin):
         if self._n_visits <= self._th_visit:
             return self.expansion()
         else:
-            w = {n: child.weight for (n, child) in self._children.items()}  # descendant node weights
+            w = {
+                n: child.weight for (n, child) in self._children.items()
+            }  # descendant node weights
             n = max(w, key=w.__getitem__)
             return self.children[n]
 
@@ -629,14 +691,23 @@ class MCTSNode(RandomGeneratorMixin):
         node = self
         while not node.is_leaf:
             node = node.select_child()
-        if node.n_visits > 0 and len(node.seq_rem) > 0:  # node is not new, expand to create child
+        if (
+            node.n_visits > 0 and len(node.seq_rem) > 0
+        ):  # node is not new, expand to create child
             node = node.expansion()
 
         return node
 
     def _add_child(self, n):
-        self._children[n] = self.__class__(self.n_tasks, self._bounds, self._seq + [n], self._c_explore,
-                                           self._th_visit, parent=self, rng=self.rng)
+        self._children[n] = self.__class__(
+            self.n_tasks,
+            self._bounds,
+            self._seq + [n],
+            self._c_explore,
+            self._th_visit,
+            parent=self,
+            rng=self.rng,
+        )
 
     def expansion(self):
         """Pseudo-random expansion, potentially creating a new child node."""
