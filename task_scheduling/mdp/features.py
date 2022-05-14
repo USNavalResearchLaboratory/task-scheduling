@@ -4,7 +4,7 @@ from operator import attrgetter
 from warnings import warn
 
 import numpy as np
-from gym.spaces import Discrete, MultiDiscrete, Box
+from gym.spaces import Box, Discrete, MultiDiscrete
 
 from task_scheduling.spaces import DiscreteSet, get_space_lims
 from task_scheduling.tasks import Shift

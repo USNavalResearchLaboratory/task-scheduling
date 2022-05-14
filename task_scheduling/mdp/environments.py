@@ -8,14 +8,14 @@ from operator import attrgetter
 
 import numpy as np
 from gym import Env
-from gym.spaces import MultiDiscrete, Box, Dict
+from gym.spaces import Box, Dict, MultiDiscrete
 from matplotlib import pyplot as plt
 
 import task_scheduling.spaces as spaces_tasking
-from task_scheduling.mdp.features import param_features, normalize as normalize_features
+from task_scheduling.mdp.features import normalize as normalize_features
+from task_scheduling.mdp.features import param_features
 from task_scheduling.nodes import ScheduleNode, ScheduleNodeShift
-from task_scheduling.util import plot_task_losses, plot_schedule
-
+from task_scheduling.util import plot_schedule, plot_task_losses
 
 # TODO: move masking op to policies?
 

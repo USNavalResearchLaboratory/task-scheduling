@@ -15,7 +15,8 @@ from task_scheduling.base import (
     SchedulingSolution,
     get_now,
 )
-from task_scheduling.generators import tasks as task_gens, channels as chan_gens
+from task_scheduling.generators import channels as chan_gens
+from task_scheduling.generators import tasks as task_gens
 from task_scheduling.util import eval_wrapper
 
 

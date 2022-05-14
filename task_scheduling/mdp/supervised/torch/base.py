@@ -13,9 +13,10 @@ import pytorch_lightning as pl
 import torch
 from torch import nn, optim
 from torch.nn import functional
-from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data import DataLoader, TensorDataset
 
-from task_scheduling.mdp.environments import Base as BaseEnv, Index
+from task_scheduling.mdp.environments import Base as BaseEnv
+from task_scheduling.mdp.environments import Index
 from task_scheduling.mdp.supervised.base import Base as BaseSupervisedScheduler
 from task_scheduling.mdp.supervised.torch.modules import MultiNet
 

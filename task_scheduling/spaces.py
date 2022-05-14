@@ -4,7 +4,7 @@ from math import factorial
 from typing import Collection
 
 import numpy as np
-from gym.spaces import Space, Discrete, MultiDiscrete, Box
+from gym.spaces import Box, Discrete, MultiDiscrete, Space
 
 
 # Utilities

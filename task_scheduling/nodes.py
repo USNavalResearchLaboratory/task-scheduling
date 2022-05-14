@@ -4,7 +4,7 @@ from collections import deque
 from copy import deepcopy
 from itertools import permutations
 from math import factorial
-from operator import methodcaller, attrgetter
+from operator import attrgetter, methodcaller
 from time import perf_counter
 from typing import Collection
 
@@ -13,7 +13,6 @@ import pandas as pd
 from sortedcontainers import SortedKeyList
 
 from task_scheduling.base import RandomGeneratorMixin
-
 
 # TODO: make problem a shared class attribute? Make a class constructor?
 

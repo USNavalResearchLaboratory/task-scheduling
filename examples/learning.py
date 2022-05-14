@@ -9,16 +9,16 @@ from pytorch_lightning.utilities.seed import seed_everything
 from stable_baselines3.common.callbacks import StopTrainingOnNoModelImprovement
 from torch import nn
 
-from task_scheduling.algorithms import mcts, random_sequencer, earliest_release
+from task_scheduling.algorithms import earliest_release, mcts, random_sequencer
 from task_scheduling.generators import problems as problem_gens
 from task_scheduling.mdp.environments import Index
 from task_scheduling.mdp.reinforcement import (
+    MultiExtractor,
     StableBaselinesScheduler,
     ValidActorCriticPolicy,
-    MultiExtractor,
 )
 from task_scheduling.mdp.supervised.torch import LitScheduler
-from task_scheduling.results import evaluate_algorithms_train, evaluate_algorithms_gen
+from task_scheduling.results import evaluate_algorithms_gen, evaluate_algorithms_train
 
 np.set_printoptions(precision=3)
 pd.options.display.float_format = "{:,.3f}".format

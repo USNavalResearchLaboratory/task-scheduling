@@ -8,23 +8,22 @@ Define a set of task objects and scheduling algorithms. Assess achieved loss and
 from functools import partial
 from itertools import product
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
-from task_scheduling.util.generic import algorithm_repr
-from task_scheduling.util.results import check_valid, eval_loss
-from task_scheduling.util.plot import plot_task_losses, plot_loss_runtime
-
+from _deprecated.tree_search_run_lim import (
+    branch_bound,
+    earliest_release,
+    mcts,
+    mcts_orig,
+    random_sequencer,
+)
 from task_scheduling.generators.tasks import (
     ContinuousUniformIID as ContinuousUniformTaskGenerator,
 )
-from _deprecated.tree_search_run_lim import (
-    branch_bound,
-    mcts_orig,
-    mcts,
-    random_sequencer,
-    earliest_release,
-)
+from task_scheduling.util.generic import algorithm_repr
+from task_scheduling.util.plot import plot_loss_runtime, plot_task_losses
+from task_scheduling.util.results import check_valid, eval_loss
 
 plt.style.use("seaborn")
 

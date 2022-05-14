@@ -1,41 +1,43 @@
 from functools import partial
 from itertools import product
-from pathlib import Path
 from operator import attrgetter
-
-# from math import factorial
+from pathlib import Path
 
 import numpy as np
-import pandas as pd
-from matplotlib import pyplot as plt
-
 import optuna
+import pandas as pd
 import torch
+from matplotlib import pyplot as plt
 from optuna.integration import PyTorchLightningPruningCallback
-from torch import nn, optim
-from pytorch_lightning.utilities.seed import seed_everything
-from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.utilities.seed import seed_everything
+from torch import nn, optim
 
-from task_scheduling.base import get_now
 from task_scheduling.algorithms import (
-    mcts,
-    random_sequencer,
     earliest_release,
+    mcts,
     priority_sorter,
+    random_sequencer,
 )
+from task_scheduling.base import get_now
 from task_scheduling.generators import problems as problem_gens
-from task_scheduling.results import evaluate_algorithms_train, evaluate_algorithms_gen
 from task_scheduling.mdp.environments import Index
 from task_scheduling.mdp.features import encode_discrete_features, param_features
 from task_scheduling.mdp.supervised.torch import (
-    TorchScheduler,
     LitScheduler,
     MultiNet,
+    TorchScheduler,
     VaryCNN,
     valid_logits,
 )
 from task_scheduling.mdp.supervised.torch.modules import build_mlp
+from task_scheduling.results import evaluate_algorithms_gen, evaluate_algorithms_train
+
+# from math import factorial
+
+
+
 
 
 np.set_printoptions(precision=3)

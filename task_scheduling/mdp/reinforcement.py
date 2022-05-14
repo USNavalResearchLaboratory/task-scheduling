@@ -8,19 +8,19 @@ import dill
 import numpy as np
 import torch
 from gym import spaces
-from stable_baselines3 import DQN, A2C, PPO
+from stable_baselines3 import A2C, DQN, PPO
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
-from stable_baselines3.dqn.policies import QNetwork, DQNPolicy
+from stable_baselines3.dqn.policies import DQNPolicy, QNetwork
 from torch import nn
 
 from task_scheduling.base import get_now
 from task_scheduling.mdp.base import BaseLearning as BaseLearningScheduler
 from task_scheduling.mdp.environments import Index
 from task_scheduling.mdp.supervised.torch import reset_weights, valid_logits
-from task_scheduling.mdp.supervised.torch.modules import build_mlp, build_cnn
+from task_scheduling.mdp.supervised.torch.modules import build_cnn, build_mlp
 
 _default_tuple = namedtuple("ModelDefault", ["cls", "params"], defaults={})
 

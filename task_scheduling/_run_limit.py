@@ -6,10 +6,10 @@ from matplotlib import pyplot as plt
 
 from task_scheduling.nodes import ScheduleNodeBound
 from task_scheduling.util import (
-    plot_task_losses,
-    plot_schedule,
     check_schedule,
     evaluate_schedule,
+    plot_schedule,
+    plot_task_losses,
 )
 
 

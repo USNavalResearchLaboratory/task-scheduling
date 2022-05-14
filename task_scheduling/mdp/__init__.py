@@ -1,1 +1,1 @@
-from . import environments, features, supervised, reinforcement
+from . import environments, features, reinforcement, supervised

@@ -3,26 +3,25 @@ from time import strftime
 
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
-
 import tensorflow as tf
+from matplotlib import pyplot as plt
 from tensorflow import keras
 
-from task_scheduling.util.results import evaluate_algorithms_train
-from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix, reset_weights
-from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.algorithms import free
-from task_scheduling.learning.SL_policy import SupervisedLearningScheduler
+from task_scheduling.generators import scheduling_problems as problem_gens
 from task_scheduling.learning import environments as envs
+from task_scheduling.learning.features import encode_discrete_features, param_features
+from task_scheduling.learning.SL_policy import SupervisedLearningScheduler
+from task_scheduling.util.generic import RandomGeneratorMixin as RNGMix
+from task_scheduling.util.generic import reset_weights
 from task_scheduling.util.plot import (
-    plot_task_losses,
-    plot_schedule,
-    scatter_loss_runtime,
     plot_loss_runtime,
+    plot_schedule,
+    plot_task_losses,
+    scatter_loss_runtime,
 )
-from task_scheduling.learning.features import param_features, encode_discrete_features
+from task_scheduling.util.results import evaluate_algorithms_train
 from tests import seq_num_encoding
-
 
 np.set_printoptions(precision=3)
 pd.options.display.float_format = "{:,.3f}".format
