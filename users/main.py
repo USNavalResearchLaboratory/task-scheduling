@@ -82,7 +82,7 @@ data_path = Path("../data/")
 dataset = "continuous_linear_drop_c1t8"
 problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
-temp_path = f"main_temp/"
+temp_path = "main_temp/"
 if isinstance(problem_gen, problem_gens.Dataset):
     temp_path += f"{dataset}/"
 else:
