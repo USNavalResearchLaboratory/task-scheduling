@@ -187,3 +187,5 @@ if __name__ == "__main__":
     print("  Params: ")
     for key, value in best_trial.params.items():
         print(f"    {key}: {value}")
+
+    plt.show()

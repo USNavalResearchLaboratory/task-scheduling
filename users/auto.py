@@ -175,3 +175,5 @@ for dataset in datasets:
     # loss_mean, t_run_mean = evaluate_algorithms_gen(algorithms, problem_gen, n_gen, n_gen_learn, solve=True,
     #                                                 verbose=1, plotting=1, log_path=log_path, img_path=img_path,
     #                                                 rng=seed)
+
+plt.show()

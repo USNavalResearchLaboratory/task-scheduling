@@ -305,5 +305,6 @@ if __name__ == "__main__":
         algorithms, problem_gen, n_gen, n_gen_learn, **eval_kwargs
     )
 
+    # np.savez(temp_path + f'results/{now}.np', loss_mc=loss_mc, t_run_mc=t_run_mc)
 
-# np.savez(temp_path + f'results/{now}.np', loss_mc=loss_mc, t_run_mc=t_run_mc)
+    plt.show()
