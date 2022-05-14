@@ -22,7 +22,7 @@ from task_scheduling.mdp.supervised.torch import LitScheduler, MultiNet, VaryCNN
 
 np.set_printoptions(precision=3)
 pd.options.display.float_format = "{:,.3f}".format
-plt.style.use("../images/style.mplstyle")
+plt.style.use("images/style.mplstyle")
 
 now = get_now()
 
@@ -34,7 +34,7 @@ if seed is not None:
         seed
     )  # TODO: doesn't guarantee reproducibility of PL learners if reordered
 
-data_path = Path("../data/")
+data_path = Path("data/")
 
 
 # %% Algorithms

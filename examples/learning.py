@@ -30,7 +30,7 @@ if seed is not None:
 
 # Define scheduling problem and algorithms
 problem_gen = problem_gens.Random.discrete_linear_drop(n_tasks=8, n_ch=1, rng=seed)
-# problem_gen = problem_gens.Dataset.load('../data/continuous_linear_drop_c1t8', repeat=True)
+# problem_gen = problem_gens.Dataset.load('data/continuous_linear_drop_c1t8', repeat=True)
 
 env_params = {
     "features": None,  # defaults to task parameters

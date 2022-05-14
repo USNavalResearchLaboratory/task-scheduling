@@ -12,14 +12,5 @@
             "console": "integratedTerminal",
             "justMyCode": true
         },
-        {
-            "name": "main.py",
-            "type": "python",
-            "request": "launch",
-            "program": "main.py",
-            "console": "integratedTerminal",
-            "justMyCode": true,
-            "cwd": "${workspaceFolder}/users",
-        },
     ]
 }

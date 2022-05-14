@@ -40,7 +40,7 @@ from task_scheduling.mdp.supervised.torch.modules import build_mlp
 
 np.set_printoptions(precision=3)
 pd.options.display.float_format = "{:,.3f}".format
-plt.style.use("../images/style.mplstyle")
+plt.style.use("images/style.mplstyle")
 plt.rc("text", usetex=False)
 
 # seed = None
@@ -60,7 +60,7 @@ if seed is not None:
 # problem_gen = problem_gens.PermutedTasks.continuous_linear_drop(n_tasks=8, n_ch=1, rng=seed)
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2), rng=seed)
 
-data_path = Path("../data/")
+data_path = Path("data/")
 
 
 dataset = "continuous_linear_drop_c1t8"
