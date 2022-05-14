@@ -37,9 +37,6 @@ from task_scheduling.results import evaluate_algorithms_gen, evaluate_algorithms
 # from math import factorial
 
 
-
-
-
 np.set_printoptions(precision=3)
 pd.options.display.float_format = "{:,.3f}".format
 plt.style.use("images/style.mplstyle")
