@@ -33,6 +33,7 @@ if seed is not None:
     )  # TODO: doesn't guarantee reproducibility of PL learners if reordered
 
 data_path = Path("data/")
+save_dir = "users/auto_temp/"
 
 
 # %% Algorithms
@@ -56,10 +57,10 @@ algorithms_base = np.array(
 
 
 trainer_kwargs = dict(
-    logger=TensorBoardLogger("auto_temp/logs/", name=now),
+    logger=TensorBoardLogger(save_dir + "logs/", name=now),
     enable_checkpointing=False,
     callbacks=EarlyStopping("val_loss", min_delta=1e-3, patience=100),
-    default_root_dir="auto_temp/logs/",
+    default_root_dir=save_dir + "logs/",
     gpus=torch.cuda.device_count(),
 )
 
@@ -123,10 +124,10 @@ datasets = [
 env_params_set = [env_params_base | env_params for env_params in env_params_set]
 
 for dataset in datasets:
-    temp_path = f"auto_temp/{dataset}/"
-    log_path = temp_path + "log.md"
-    img_path = temp_path + f"images/{now}"
-    trainer_kwargs["logger"] = TensorBoardLogger(temp_path + "logs/", name=now)
+    save_dir_ds = save_dir + f"{dataset}/"
+    log_path = save_dir_ds + "log.md"
+    img_path = save_dir_ds + f"images/{now}"
+    trainer_kwargs["logger"] = TensorBoardLogger(save_dir_ds + "logs/", name=now)
 
     problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 

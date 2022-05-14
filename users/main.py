@@ -81,11 +81,11 @@ data_path = Path("data/")
 dataset = "continuous_linear_drop_c1t8"
 problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
-temp_path = "main_temp/"
+save_dir = "users/main_temp/"
 if isinstance(problem_gen, problem_gens.Dataset):
-    temp_path += f"{dataset}/"
+    save_dir += f"{dataset}/"
 else:
-    temp_path += "other/"
+    save_dir += "other/"
 
 
 # Algorithms
@@ -146,11 +146,11 @@ torch_scheduler = TorchScheduler(
 
 
 trainer_kwargs = dict(
-    logger=TensorBoardLogger(temp_path + "logs/lit/", name=now),
+    logger=TensorBoardLogger(save_dir + "logs/lit/", name=now),
     enable_checkpointing=False,
     log_every_n_steps=30,
     callbacks=EarlyStopping("val_loss", min_delta=1e-3, patience=200),
-    default_root_dir=temp_path + "logs/lit/",
+    default_root_dir=save_dir + "logs/lit/",
     # devices=torch.cuda.device_count(),
     accelerator="auto",
     # strategy=DDPStrategy(find_unused_parameters=False),
@@ -206,7 +206,7 @@ sb_model_kwargs = dict(
     # n_steps=2048,  # TODO: investigate problem reuse
     n_steps=env.n_tasks * 20 * 15,
     batch_size=env.n_tasks * 20,
-    tensorboard_log=temp_path + "logs/sb/",
+    tensorboard_log=save_dir + "logs/sb/",
     verbose=1,
 )
 # sb_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', sb_model_kwargs, learn_params_sb)
@@ -294,8 +294,8 @@ eval_kwargs = dict(
     solve=True,
     verbose=1,
     plotting=1,
-    log_path=temp_path + "log.md",
-    img_path=temp_path + f"images/{now}",
+    log_path=save_dir + "log.md",
+    img_path=save_dir + f"images/{now}",
     rng=seed,
 )
 

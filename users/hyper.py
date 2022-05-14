@@ -65,7 +65,7 @@ data_path = Path("data/")
 dataset = "continuous_linear_drop_c1t8"
 problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
-temp_path = f"main_temp/optuna/"
+temp_path = "users/main_temp/optuna/"
 if isinstance(problem_gen, problem_gens.Dataset):
     temp_path += f"{dataset}/"
 else:
@@ -143,9 +143,7 @@ def objective(trial):
     )
 
     algorithms = np.array(
-        [
-            ("Lit Policy", lit_scheduler, 10),
-        ],
+        [("Lit Policy", lit_scheduler, 10)],
         dtype=[("name", "<U32"), ("func", object), ("n_iter", int)],
     )
 
