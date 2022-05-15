@@ -1,14 +1,14 @@
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
-]
 build-backend = "setuptools.build_meta"
+requires = [
+  "setuptools>=42",
+  "wheel",
+]
 
 [tool.pytest.ini_options]
 filterwarnings = [
-    "ignore::DeprecationWarning",
-    "ignore::UserWarning",
+  "ignore::DeprecationWarning",
+  "ignore::UserWarning",
 ]
 testpaths = ["tests"]
 
@@ -16,5 +16,17 @@ testpaths = ["tests"]
 line-length = 88
 
 [tool.isort]
-profile = "black"
 line_length = 88
+profile = "black"
+
+[tool.pylint.main]
+disable = [
+  "fixme",
+  "missing-function-docstring",
+  "too-many-arguments",
+  "too-many-instance-attributes",
+  "too-many-locals",
+]
+[tool.pylint.basic]
+const-naming-style = "any"
+good-names-rgxs = "^[_a-z][_a-z0-9]?$"
