@@ -35,13 +35,16 @@ class Base(RandomGeneratorMixin, ABC):
         Random number generator seed or object.
 
     """
+
     def __init__(self, cls_task, param_spaces=None, rng=None):
         super().__init__(rng)
         self.cls_task = cls_task
 
         if param_spaces is None:
-            self.param_spaces = {name: spaces.Box(-np.inf, np.inf, shape=(), dtype=float)
-                                 for name in self.cls_task.param_names}
+            self.param_spaces = {
+                name: spaces.Box(-np.inf, np.inf, shape=(), dtype=float)
+                for name in self.cls_task.param_names
+            }
         else:
             self.param_spaces = param_spaces
 
@@ -139,20 +142,28 @@ class ContinuousUniformIID(BaseIID):
         Random number generator seed or object.
 
     """
+
     def __init__(self, cls_task, param_lims, rng=None):
-        param_spaces = {name: spaces.Box(*param_lims[name], shape=(), dtype=float)
-                        for name in cls_task.param_names}
+        param_spaces = {
+            name: spaces.Box(*param_lims[name], shape=(), dtype=float)
+            for name in cls_task.param_names
+        }
         super().__init__(cls_task, param_spaces, rng)
 
         self.param_lims = param_lims
 
     def _param_gen(self, rng):
         """Randomly generate task parameters."""
-        return {name: rng.uniform(*self.param_lims[name]) for name in self.cls_task.param_names}
+        return {
+            name: rng.uniform(*self.param_lims[name])
+            for name in self.cls_task.param_names
+        }
 
     def __eq__(self, other):
         if isinstance(other, ContinuousUniformIID):
-            return self.cls_task == other.cls_task and self.param_lims == other.param_lims
+            return (
+                self.cls_task == other.cls_task and self.param_lims == other.param_lims
+            )
         else:
             return NotImplemented
 
@@ -160,36 +171,68 @@ class ContinuousUniformIID(BaseIID):
         str_ = super().summary()
         str_ += f"\nTask class: {self.cls_task.__name__}"
 
-        df = pd.DataFrame({name: self.param_lims[name] for name in self.cls_task.param_names},
-                          index=pd.CategoricalIndex(['low', 'high']))
-        df_str = df.to_markdown(tablefmt='github', floatfmt='.3f')
+        df = pd.DataFrame(
+            {name: self.param_lims[name] for name in self.cls_task.param_names},
+            index=pd.CategoricalIndex(["low", "high"]),
+        )
+        df_str = df.to_markdown(tablefmt="github", floatfmt=".3f")
 
         str_ += f"\n\n{df_str}"
         return str_
 
     @classmethod
-    def linear(cls, duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2), rng=None):
+    def linear(
+        cls, duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2), rng=None
+    ):
         """Factory constructor for `Linear` task objects."""
 
-        param_lims = dict(duration=duration_lim, t_release=t_release_lim, slope=slope_lim)
+        param_lims = dict(
+            duration=duration_lim, t_release=t_release_lim, slope=slope_lim
+        )
         return cls(task_types.Linear, param_lims, rng)
 
     @classmethod
-    def linear_drop(cls, duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2), t_drop_lim=(6, 12),
-                    l_drop_lim=(35, 50), rng=None):
+    def linear_drop(
+        cls,
+        duration_lim=(3, 6),
+        t_release_lim=(0, 4),
+        slope_lim=(0.5, 2),
+        t_drop_lim=(6, 12),
+        l_drop_lim=(35, 50),
+        rng=None,
+    ):
         """Factory constructor for `LinearDrop` task objects."""
 
-        param_lims = dict(duration=duration_lim, t_release=t_release_lim, slope=slope_lim, t_drop=t_drop_lim,
-                          l_drop=l_drop_lim)
+        param_lims = dict(
+            duration=duration_lim,
+            t_release=t_release_lim,
+            slope=slope_lim,
+            t_drop=t_drop_lim,
+            l_drop=l_drop_lim,
+        )
         return cls(task_types.LinearDrop, param_lims, rng)
 
     @classmethod
-    def linear_linear(cls, duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2), t_drop_lim=(6, 12),
-                      l_drop_lim=(35, 50), slope_2_lim=(0.5, 2), rng=None):
+    def linear_linear(
+        cls,
+        duration_lim=(3, 6),
+        t_release_lim=(0, 4),
+        slope_lim=(0.5, 2),
+        t_drop_lim=(6, 12),
+        l_drop_lim=(35, 50),
+        slope_2_lim=(0.5, 2),
+        rng=None,
+    ):
         """Factory constructor for `LinearLinear` task objects."""
 
-        param_lims = dict(duration=duration_lim, t_release=t_release_lim, slope=slope_lim, t_drop=t_drop_lim,
-                          l_drop=l_drop_lim, slope_2=slope_2_lim)
+        param_lims = dict(
+            duration=duration_lim,
+            t_release=t_release_lim,
+            slope=slope_lim,
+            t_drop=t_drop_lim,
+            l_drop=l_drop_lim,
+            slope_2=slope_2_lim,
+        )
         return cls(task_types.LinearLinear, param_lims, rng)
 
 
@@ -207,20 +250,32 @@ class DiscreteIID(BaseIID):
         Random number generator seed or object.
 
     """
+
     def __init__(self, cls_task, param_probs, rng=None):
-        param_spaces = {name: DiscreteSet(list(param_probs[name].keys())) for name in cls_task.param_names}
+        param_spaces = {
+            name: DiscreteSet(list(param_probs[name].keys()))
+            for name in cls_task.param_names
+        }
         super().__init__(cls_task, param_spaces, rng)
 
         self.param_probs = param_probs
 
     def _param_gen(self, rng):
         """Randomly generate task parameters."""
-        return {name: rng.choice(list(self.param_probs[name].keys()), p=list(self.param_probs[name].values()))
-                for name in self.cls_task.param_names}
+        return {
+            name: rng.choice(
+                list(self.param_probs[name].keys()),
+                p=list(self.param_probs[name].values()),
+            )
+            for name in self.cls_task.param_names
+        }
 
     def __eq__(self, other):
         if isinstance(other, DiscreteIID):
-            return self.cls_task == other.cls_task and self.param_probs == other.param_probs
+            return (
+                self.cls_task == other.cls_task
+                and self.param_probs == other.param_probs
+            )
         else:
             return NotImplemented
 
@@ -230,33 +285,61 @@ class DiscreteIID(BaseIID):
         for name in self.cls_task.param_names:
             # s = pd.Series(self.param_probs[name], name='Pr')
             # s = pd.DataFrame(self.param_probs[name], index=pd.CategoricalIndex(['Pr']))
-            s = pd.DataFrame({name: self.param_probs[name].keys(), 'Pr': self.param_probs[name].values()})
-            str_ += f"\n\n{s.to_markdown(tablefmt='github', floatfmt='.3f', index=False)}"
+            s = pd.DataFrame(
+                {
+                    name: self.param_probs[name].keys(),
+                    "Pr": self.param_probs[name].values(),
+                }
+            )
+            str_ += (
+                f"\n\n{s.to_markdown(tablefmt='github', floatfmt='.3f', index=False)}"
+            )
 
         return str_
 
     @classmethod
-    def linear_uniform(cls, duration_vals=(3, 6), t_release_vals=(0, 4), slope_vals=(0.5, 2), rng=None):
+    def linear_uniform(
+        cls, duration_vals=(3, 6), t_release_vals=(0, 4), slope_vals=(0.5, 2), rng=None
+    ):
         """Factory constructor for `Linear` task objects."""
 
         param_probs = {
-            'duration': dict(zip(duration_vals, np.ones(len(duration_vals)) / len(duration_vals))),
-            't_release': dict(zip(t_release_vals, np.ones(len(t_release_vals)) / len(t_release_vals))),
-            'slope': dict(zip(slope_vals, np.ones(len(slope_vals)) / len(slope_vals))),
+            "duration": dict(
+                zip(duration_vals, np.ones(len(duration_vals)) / len(duration_vals))
+            ),
+            "t_release": dict(
+                zip(t_release_vals, np.ones(len(t_release_vals)) / len(t_release_vals))
+            ),
+            "slope": dict(zip(slope_vals, np.ones(len(slope_vals)) / len(slope_vals))),
         }
         return cls(task_types.Linear, param_probs, rng)
 
     @classmethod
-    def linear_drop_uniform(cls, duration_vals=(3, 6), t_release_vals=(0, 4), slope_vals=(0.5, 2), t_drop_vals=(6, 12),
-                            l_drop_vals=(35, 50), rng=None):
+    def linear_drop_uniform(
+        cls,
+        duration_vals=(3, 6),
+        t_release_vals=(0, 4),
+        slope_vals=(0.5, 2),
+        t_drop_vals=(6, 12),
+        l_drop_vals=(35, 50),
+        rng=None,
+    ):
         """Factory constructor for `LinearDrop` task objects."""
 
         param_probs = {
-            'duration': dict(zip(duration_vals, np.ones(len(duration_vals)) / len(duration_vals))),
-            't_release': dict(zip(t_release_vals, np.ones(len(t_release_vals)) / len(t_release_vals))),
-            'slope': dict(zip(slope_vals, np.ones(len(slope_vals)) / len(slope_vals))),
-            't_drop': dict(zip(t_drop_vals, np.ones(len(t_drop_vals)) / len(t_drop_vals))),
-            'l_drop': dict(zip(l_drop_vals, np.ones(len(l_drop_vals)) / len(l_drop_vals))),
+            "duration": dict(
+                zip(duration_vals, np.ones(len(duration_vals)) / len(duration_vals))
+            ),
+            "t_release": dict(
+                zip(t_release_vals, np.ones(len(t_release_vals)) / len(t_release_vals))
+            ),
+            "slope": dict(zip(slope_vals, np.ones(len(slope_vals)) / len(slope_vals))),
+            "t_drop": dict(
+                zip(t_drop_vals, np.ones(len(t_drop_vals)) / len(t_drop_vals))
+            ),
+            "l_drop": dict(
+                zip(l_drop_vals, np.ones(len(l_drop_vals)) / len(l_drop_vals))
+            ),
         }
         return cls(task_types.LinearDrop, param_probs, rng)
 
@@ -274,13 +357,17 @@ class Fixed(Base, ABC):
         Random number generator seed or object.
 
     """
+
     def __init__(self, tasks, param_spaces=None, rng=None):
         cls_task = tasks[0].__class__
         if not all(isinstance(task, cls_task) for task in tasks[1:]):
             raise TypeError("All tasks must be of the same type.")
 
         if param_spaces is None:
-            param_spaces = {name: DiscreteSet([getattr(task, name) for task in tasks]) for name in cls_task.param_names}
+            param_spaces = {
+                name: DiscreteSet([getattr(task, name) for task in tasks])
+                for name in cls_task.param_names
+            }
 
         super().__init__(cls_task, param_spaces, rng)
 
@@ -370,6 +457,7 @@ class Dataset(Fixed):  # FIXME: inherit from `Base`??
         Random number generator seed or object.
 
     """
+
     def __init__(self, tasks, shuffle=False, repeat=False, param_spaces=None, rng=None):
         super().__init__(tasks, param_spaces, rng)
 
@@ -417,6 +505,7 @@ class Dataset(Fixed):  # FIXME: inherit from `Base`??
                 self.tasks.appendleft(task)
 
             yield task
+
 
 # # Radar
 # class SearchTrackIID(BaseIID):  # TODO: integrate or deprecate (and `search_track` methods)

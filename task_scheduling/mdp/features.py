@@ -4,19 +4,19 @@ from operator import attrgetter
 from warnings import warn
 
 import numpy as np
-from gym.spaces import Discrete, MultiDiscrete, Box
+from gym.spaces import Box, Discrete, MultiDiscrete
 
 from task_scheduling.spaces import DiscreteSet, get_space_lims
 from task_scheduling.tasks import Shift
 
-feature_dtype = [('name', '<U32'), ('func', object), ('space', object)]
+feature_dtype = [("name", "<U32"), ("func", object), ("space", object)]
 
 
 def _add_zero(space):
     """Modify space to include zero as a possible value."""
 
     if isinstance(space, Box):
-        space.low = np.array(0.)
+        space.low = np.array(0.0)
         return space
     elif isinstance(space, Discrete):
         return space
@@ -88,7 +88,10 @@ def encode_discrete_features(problem_gen):
 
     data = []
     for name, space in problem_gen.task_gen.param_spaces.items():
-        if isinstance(space, DiscreteSet):  # use encoding feature func, change space to Discrete
+        if isinstance(
+            space, DiscreteSet
+        ):  # use encoding feature func, change space to Discrete
+
             def func(task):
                 return np.flatnonzero(space.elements == getattr(task, name)).item()
 
@@ -118,7 +121,9 @@ def normalize(features):
     data = []
     for name, func, space in features:
         func = _make_norm_func(func, space)
-        space = Box(0, 1, shape=space.shape, dtype=float)  # all features are `float` in unit interval
+        space = Box(
+            0, 1, shape=space.shape, dtype=float
+        )  # all features are `float` in unit interval
 
         data.append((name, func, space))
     return np.array(data, dtype=feature_dtype)

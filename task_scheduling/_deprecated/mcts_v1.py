@@ -7,7 +7,7 @@ from task_scheduling.tree_search import TreeNode
 
 
 class MCTSv1Mixin:
-    def mcts_v1(self, runtime, c_explore=1., inplace=True, verbose=False, rng=None):
+    def mcts_v1(self, runtime, c_explore=1.0, inplace=True, verbose=False, rng=None):
 
         t_run = perf_counter()
 
@@ -17,11 +17,14 @@ class MCTSv1Mixin:
         node_best, loss_best = None, np.inf
         while perf_counter() - t_run < runtime:
             if verbose:
-                print(f'Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_best}', end='\r')
+                print(
+                    f"Solutions evaluated: {tree.n_visits}, Min. Loss: {loss_best}",
+                    end="\r",
+                )
 
             seq = tree.simulate()  # roll-out a complete sequence
 
-            seq_ext = seq[len(self.seq):]
+            seq_ext = seq[len(self.seq) :]
             node = self._extend_util(seq_ext, inplace=False)
             if node.l_ex < loss_best:
                 node_best, loss_best = node, node.l_ex
@@ -30,7 +33,7 @@ class MCTSv1Mixin:
 
         if inplace:
             # self.seq = node_best.seq
-            seq_ext = node_best.seq[len(self.seq):]
+            seq_ext = node_best.seq[len(self.seq) :]
             self._extend_util(seq_ext)
         else:
             return node_best
@@ -41,7 +44,9 @@ class TreeNodeMCTSv1(MCTSv1Mixin, TreeNode):
 
 
 class SearchNodeV1(RandomGeneratorMixin):
-    def __init__(self, n_tasks, seq=(), parent=None, c_explore=1., l_up=np.inf, rng=None):
+    def __init__(
+        self, n_tasks, seq=(), parent=None, c_explore=1.0, l_up=np.inf, rng=None
+    ):
         super().__init__(rng)
 
         self._n_tasks = n_tasks
@@ -49,13 +54,15 @@ class SearchNodeV1(RandomGeneratorMixin):
 
         self._parent = parent
         self._children = {}
-        self._seq_unk = set(range(self.n_tasks)) - set(self._seq)  # set of unexplored task indices
+        self._seq_unk = set(range(self.n_tasks)) - set(
+            self._seq
+        )  # set of unexplored task indices
 
         self._c_explore = c_explore
         self._l_up = l_up
 
         self._n_visits = 0
-        self._l_avg = 0.
+        self._l_avg = 0.0
 
     n_tasks = property(lambda self: self._n_tasks)
     seq = property(lambda self: self._seq)
@@ -67,8 +74,10 @@ class SearchNodeV1(RandomGeneratorMixin):
     l_avg = property(lambda self: self._l_avg)
 
     def __repr__(self):
-        return f"SearchNodeV1(seq={self._seq}, children={list(self._children.keys())}, " \
-               f"visits={self._n_visits}, avg_loss={self._l_avg:.3f})"
+        return (
+            f"SearchNodeV1(seq={self._seq}, children={list(self._children.keys())}, "
+            f"visits={self._n_visits}, avg_loss={self._l_avg:.3f})"
+        )
 
     def __getitem__(self, item):
         """
@@ -99,7 +108,9 @@ class SearchNodeV1(RandomGeneratorMixin):
     def weight(self):
         # return self._l_avg - self._c_explore / (self._n_visits + 1)
         # return self._l_avg - self._c_explore * np.sqrt(self.parent.n_visits) / (self._n_visits + 1)
-        return self._l_avg - self._c_explore * np.sqrt(np.log(self.parent.n_visits) / self._n_visits)
+        return self._l_avg - self._c_explore * np.sqrt(
+            np.log(self.parent.n_visits) / self._n_visits
+        )
 
     def select_child(self):
         """
@@ -111,16 +122,28 @@ class SearchNodeV1(RandomGeneratorMixin):
 
         """
 
-        w = {n: node.weight for (n, node) in self._children.items()}  # descendant node weights
-        w.update({n: -self._c_explore for n in self._seq_unk})  # base weight for unexplored nodes
+        w = {
+            n: node.weight for (n, node) in self._children.items()
+        }  # descendant node weights
+        w.update(
+            {n: -self._c_explore for n in self._seq_unk}
+        )  # base weight for unexplored nodes
         # FIXME: init value? use upper bound??
 
-        w = dict(self.rng.permutation(list(w.items())))  # permute elements to break ties randomly
+        w = dict(
+            self.rng.permutation(list(w.items()))
+        )  # permute elements to break ties randomly
 
         n = int(min(w, key=w.__getitem__))
         if n not in self._children:
-            self._children[n] = self.__class__(self.n_tasks, self._seq + [n], parent=self, c_explore=self._c_explore,
-                                               l_up=self._l_up, rng=self.rng)
+            self._children[n] = self.__class__(
+                self.n_tasks,
+                self._seq + [n],
+                parent=self,
+                c_explore=self._c_explore,
+                l_up=self._l_up,
+                rng=self.rng,
+            )
             self._seq_unk.remove(n)
 
         return self._children[n]
@@ -154,9 +177,9 @@ class SearchNodeV1(RandomGeneratorMixin):
         """
 
         if len(seq) != self.n_tasks:
-            raise ValueError('Sequence must be complete.')
+            raise ValueError("Sequence must be complete.")
 
-        seq_prev, seq_rem = seq[:len(self._seq)], seq[len(self._seq):]
+        seq_prev, seq_rem = seq[: len(self._seq)], seq[len(self._seq) :]
         if seq_prev != self._seq:
             raise ValueError(f"Sequence must be an extension of {self._seq}")
 
@@ -182,7 +205,7 @@ class SearchNodeV1(RandomGeneratorMixin):
         self._l_avg = loss_total / self._n_visits
 
 
-def mcts_v1(tasks, ch_avail, runtime, c_explore=1., verbose=False, rng=None):
+def mcts_v1(tasks, ch_avail, runtime, c_explore=1.0, verbose=False, rng=None):
     """
     Monte Carlo tree search algorithm.
 

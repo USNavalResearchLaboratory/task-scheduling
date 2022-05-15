@@ -1,20 +1,21 @@
 """Gym Environments."""
 
 from abc import ABC, abstractmethod
+
 # from collections import OrderedDict
 from math import factorial
 from operator import attrgetter
 
 import numpy as np
 from gym import Env
-from gym.spaces import MultiDiscrete, Box, Dict
+from gym.spaces import Box, Dict, MultiDiscrete
 from matplotlib import pyplot as plt
 
 import task_scheduling.spaces as spaces_tasking
-from task_scheduling.mdp.features import param_features, normalize as normalize_features
+from task_scheduling.mdp.features import normalize as normalize_features
+from task_scheduling.mdp.features import param_features
 from task_scheduling.nodes import ScheduleNode, ScheduleNodeShift
-from task_scheduling.util import plot_task_losses, plot_schedule
-
+from task_scheduling.util import plot_schedule, plot_task_losses
 
 # TODO: move masking op to policies?
 
@@ -38,7 +39,16 @@ class Base(Env, ABC):
         If True, features are zeroed out for scheduled tasks.
 
     """
-    def __init__(self, problem_gen, features=None, normalize=True, sort_func=None, time_shift=False, masking=False):
+
+    def __init__(
+        self,
+        problem_gen,
+        features=None,
+        normalize=True,
+        sort_func=None,
+        time_shift=False,
+        masking=False,
+    ):
         self._problem_gen = problem_gen
 
         # Set features
@@ -46,9 +56,11 @@ class Base(Env, ABC):
         if features is not None:
             self.features = features
         else:
-            self.features = param_features(self.problem_gen.task_gen, time_shift, masking)
+            self.features = param_features(
+                self.problem_gen.task_gen, time_shift, masking
+            )
 
-        if any(space.shape != () for space in self.features['space']):
+        if any(space.shape != () for space in self.features["space"]):
             raise NotImplementedError("Features must be scalar valued")
 
         self.normalize = normalize
@@ -58,7 +70,7 @@ class Base(Env, ABC):
         # Set sorting method
         if callable(sort_func):
             self.sort_func = sort_func
-            self._sort_func_str = 'Custom'
+            self._sort_func_str = "Custom"
         elif isinstance(sort_func, str):
             self.sort_func = attrgetter(sort_func)
             self._sort_func_str = sort_func
@@ -71,7 +83,7 @@ class Base(Env, ABC):
 
         self.reward_range = (-np.inf, 0)
         # self._loss_agg = None
-        self._loss_agg = 0.
+        self._loss_agg = 0.0
 
         self.node = None  # MDP state
         self._tasks_init = None
@@ -81,20 +93,29 @@ class Base(Env, ABC):
 
         # Observation space
         space_ch = self.problem_gen.ch_avail_gen.space
-        max_duration = spaces_tasking.get_space_lims(self.problem_gen.task_gen.param_spaces['duration'])[1]
-        self._obs_space_ch = Box(space_ch.low.item(), space_ch.high + self.n_tasks * max_duration, shape=(self.n_ch,),
-                                 dtype=float)
+        max_duration = spaces_tasking.get_space_lims(
+            self.problem_gen.task_gen.param_spaces["duration"]
+        )[1]
+        self._obs_space_ch = Box(
+            space_ch.low.item(),
+            space_ch.high + self.n_tasks * max_duration,
+            shape=(self.n_ch,),
+            dtype=float,
+        )
 
         self._obs_space_seq = MultiDiscrete(np.full(self.n_tasks, 2))
 
-        _obs_space_features = spaces_tasking.stack(self.features['space'])
-        self._obs_space_tasks = spaces_tasking.broadcast_to(_obs_space_features,
-                                                            shape=(self.n_tasks, len(self.features)))
+        _obs_space_features = spaces_tasking.stack(self.features["space"])
+        self._obs_space_tasks = spaces_tasking.broadcast_to(
+            _obs_space_features, shape=(self.n_tasks, len(self.features))
+        )
 
-        self.observation_space = Dict(  # note: `spaces` attribute is `OrderedDict` with sorted keys
-            ch_avail=self._obs_space_ch,
-            seq=self._obs_space_seq,
-            tasks=self._obs_space_tasks,
+        self.observation_space = (
+            Dict(  # note: `spaces` attribute is `OrderedDict` with sorted keys
+                ch_avail=self._obs_space_ch,
+                seq=self._obs_space_seq,
+                tasks=self._obs_space_tasks,
+            )
         )
 
         # Action space
@@ -110,9 +131,9 @@ class Base(Env, ABC):
 
     def __str__(self):
         if self.node is None:
-            _status = 'Initialized'
+            _status = "Initialized"
         else:
-            _status = f'{len(self.node.seq)}/{self.n_tasks}'
+            _status = f"{len(self.node.seq)}/{self.n_tasks}"
         return f"{self.__class__.__name__}({_status})"
 
     def summary(self):
@@ -129,8 +150,11 @@ class Base(Env, ABC):
 
     @problem_gen.setter
     def problem_gen(self, value):
-        if self._problem_gen.task_gen != value.task_gen or self._problem_gen.ch_avail_gen != value.ch_avail_gen:
-            raise ValueError('New generator must match.')
+        if (
+            self._problem_gen.task_gen != value.task_gen
+            or self._problem_gen.ch_avail_gen != value.ch_avail_gen
+        ):
+            raise ValueError("New generator must match.")
         self._problem_gen = value
 
     @property
@@ -160,9 +184,13 @@ class Base(Env, ABC):
 
     def _obs_tasks(self):
         """Observation tensor for task features."""
-        obs_tasks = np.array([[func(task) for func in self.features['func']] for task in self.tasks])
+        obs_tasks = np.array(
+            [[func(task) for func in self.features["func"]] for task in self.tasks]
+        )
         if self.masking:
-            obs_tasks[self.node.seq] = 0.  # zero out observation rows for scheduled tasks
+            obs_tasks[
+                self.node.seq
+            ] = 0.0  # zero out observation rows for scheduled tasks
 
         return obs_tasks[self.sorted_index]  # sort individual task observations
 
@@ -216,23 +244,34 @@ class Base(Env, ABC):
             out = list(self.problem_gen(1, solve=solve, rng=rng))[0]
             if solve:
                 (tasks, ch_avail), (sch, *__) = out
-                self._seq_opt = np.argsort(sch['t'])  # optimal schedule (see `test_tree_nodes.test_argsort`)
+                self._seq_opt = np.argsort(
+                    sch["t"]
+                )  # optimal schedule (see `test_tree_nodes.test_argsort`)
             else:
                 tasks, ch_avail = out
                 self._seq_opt = None
         elif len(tasks) != self.n_tasks:
-            raise ValueError(f"Input `tasks` must be None or a collection of {self.n_tasks} tasks")
+            raise ValueError(
+                f"Input `tasks` must be None or a collection of {self.n_tasks} tasks"
+            )
         elif len(ch_avail) != self.n_ch:
-            raise ValueError(f"Input `ch_avail` must be None or an array of {self.n_ch} channel availabilities")
+            raise ValueError(
+                f"Input `ch_avail` must be None or an array of {self.n_ch} channel availabilities"
+            )
 
-        self._tasks_init, self._ch_avail_init = tasks, ch_avail  # store problem before any in-place operations
+        self._tasks_init, self._ch_avail_init = (
+            tasks,
+            ch_avail,
+        )  # store problem before any in-place operations
 
         if self.time_shift:
             self.node = ScheduleNodeShift(tasks, ch_avail)
         else:
             self.node = ScheduleNode(tasks, ch_avail)
 
-        self._loss_agg = self.node.loss  # Loss can be non-zero due to time origin shift during node initialization
+        self._loss_agg = (
+            self.node.loss
+        )  # Loss can be non-zero due to time origin shift during node initialization
 
         self._update_spaces()
 
@@ -272,27 +311,53 @@ class Base(Env, ABC):
 
         return self.obs(), reward, done, {}
 
-    def render(self, mode='human'):
-        if mode != 'human':
+    def render(self, mode="human"):
+        if mode != "human":
             raise NotImplementedError("Render `mode` must be 'human'")
 
-        fig, axes = plt.subplots(2, num=f'render_{id(self)}', clear=True,
-                                 figsize=[12.8, 6.4], gridspec_kw={'left': .05, 'right': 0.7})
+        fig, axes = plt.subplots(
+            2,
+            num=f"render_{id(self)}",
+            clear=True,
+            figsize=[12.8, 6.4],
+            gridspec_kw={"left": 0.05, "right": 0.7},
+        )
 
         fig.suptitle(", ".join((str(self), f"Loss = {self._loss_agg:.3f}")), y=0.95)
 
-        plot_schedule(self._tasks_init, self.node.sch, self._ch_avail_init, self._loss_agg, ax=axes[1],
-                      ax_kwargs=dict(title=''))
+        plot_schedule(
+            self._tasks_init,
+            self.node.sch,
+            self._ch_avail_init,
+            self._loss_agg,
+            ax=axes[1],
+            ax_kwargs=dict(title=""),
+        )
 
-        axes[1].plot(self.ch_avail, np.arange(self.n_ch), 'ko')  # plot channel availabilities
+        axes[1].plot(
+            self.ch_avail, np.arange(self.n_ch), "ko"
+        )  # plot channel availabilities
 
-        lows, highs = zip(axes[1].get_xlim(), *(task.plot_lim for task in self._tasks_init))
+        lows, highs = zip(
+            axes[1].get_xlim(), *(task.plot_lim for task in self._tasks_init)
+        )
         t_plot = np.arange(min(*lows), max(*highs), 1e-3)
-        plot_task_losses(self._tasks_init, t_plot, ax=axes[0], ax_kwargs=dict(xlabel=''))
+        plot_task_losses(
+            self._tasks_init, t_plot, ax=axes[0], ax_kwargs=dict(xlabel="")
+        )
 
         # Mark loss functions with execution times
-        for task, (t_ex, _c_ex), line in zip(self._tasks_init, self.node.sch, axes[0].get_lines()):
-            axes[0].plot([t_ex], [task(t_ex)], color=line.get_color(), marker='o', linestyle='', label=None)
+        for task, (t_ex, _c_ex), line in zip(
+            self._tasks_init, self.node.sch, axes[0].get_lines()
+        ):
+            axes[0].plot(
+                [t_ex],
+                [task(t_ex)],
+                color=line.get_color(),
+                marker="o",
+                linestyle="",
+                label=None,
+            )
 
         # Match x-axis limits
         lows, highs = zip(*(ax.get_xlim() for ax in axes))
@@ -301,7 +366,11 @@ class Base(Env, ABC):
             ax.set(xlim=x_lims)
 
         # Use single `Figure` legend
-        fig.legend(*axes[0].get_legend_handles_labels(), loc='center right', bbox_to_anchor=(1., .5))
+        fig.legend(
+            *axes[0].get_legend_handles_labels(),
+            loc="center right",
+            bbox_to_anchor=(1.0, 0.5),
+        )
         for ax in axes:
             ax.get_legend().remove()
 
@@ -362,21 +431,33 @@ class Base(Env, ABC):
 
                 # x_set = OrderedDict([(key, np.empty((steps_total, *space.shape), dtype=space.dtype))
                 #                      for key, space in self.observation_space.spaces.items()])
-                x_set = {key: np.empty((steps_total, *space.shape), dtype=space.dtype)
-                         for key, space in self.observation_space.spaces.items()}
+                x_set = {
+                    key: np.empty((steps_total, *space.shape), dtype=space.dtype)
+                    for key, space in self.observation_space.spaces.items()
+                }
             else:
-                x_set = np.empty((steps_total, *self.observation_space.shape), dtype=self.observation_space.dtype)
+                x_set = np.empty(
+                    (steps_total, *self.observation_space.shape),
+                    dtype=self.observation_space.dtype,
+                )
 
-            y_set = np.empty((steps_total, *self.action_space.shape), dtype=self.action_space.dtype)
+            y_set = np.empty(
+                (steps_total, *self.action_space.shape), dtype=self.action_space.dtype
+            )
             w_set = np.empty(steps_total, dtype=float)
 
             for i_gen in range(batch_size):
                 # if verbose >= 2:
                 #     print(f'  Problem: {i_gen + 1}/{batch_size}', end='\r')
                 if verbose >= 1:
-                    print(f'Problem: {batch_size * i_batch + i_gen + 1}/{n_batch * batch_size}', end='\r')
+                    print(
+                        f"Problem: {batch_size * i_batch + i_gen + 1}/{n_batch * batch_size}",
+                        end="\r",
+                    )
 
-                obs = self.reset(solve=True, rng=rng)  # generates new scheduling problem
+                obs = self.reset(
+                    solve=True, rng=rng
+                )  # generates new scheduling problem
 
                 done = False
                 i_step = 0
@@ -390,9 +471,13 @@ class Base(Env, ABC):
                         x_set[key][i] = obs[key]
                     y_set[i] = action
 
-                    obs, reward, done, info = self.step(action)  # updates environment state
+                    obs, reward, done, info = self.step(
+                        action
+                    )  # updates environment state
                     if callable(weight_func):
-                        w_set[i] = weight_func(obs, action, reward)  # TODO: use rewards for weighting!?!
+                        w_set[i] = weight_func(
+                            obs, action, reward
+                        )  # TODO: use rewards for weighting!?!
 
                     i_step += 1
 
@@ -403,7 +488,9 @@ class Base(Env, ABC):
 
     def data_gen_full(self, n_gen, weight_func=None, verbose=0):
         """Generate observation-action data, return in single feature/class arrays."""
-        data, = self.data_gen(n_batch=1, batch_size=n_gen, weight_func=weight_func, verbose=verbose)
+        (data,) = self.data_gen(
+            n_batch=1, batch_size=n_gen, weight_func=weight_func, verbose=verbose
+        )
         return data
 
 
@@ -426,8 +513,19 @@ class Index(Base):
         If True, features are zeroed out for scheduled tasks.
 
     """
-    def __init__(self, problem_gen, features=None, normalize=True, sort_func=None, time_shift=False, masking=False):
-        super().__init__(problem_gen, features, normalize, sort_func, time_shift, masking)
+
+    def __init__(
+        self,
+        problem_gen,
+        features=None,
+        normalize=True,
+        sort_func=None,
+        time_shift=False,
+        masking=False,
+    ):
+        super().__init__(
+            problem_gen, features, normalize, sort_func, time_shift, masking
+        )
 
         # Action space
         self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)
@@ -435,12 +533,16 @@ class Index(Base):
     def _update_spaces(self):
         """Update observation and action spaces."""
         seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
-        self.action_space.mask = np.isin(np.arange(self.n_tasks), seq_rem_sort, invert=True)
+        self.action_space.mask = np.isin(
+            np.arange(self.n_tasks), seq_rem_sort, invert=True
+        )
 
     def opt_action(self):
         """Optimal action based on current state."""
         if self._seq_opt is None:
-            raise ValueError("Optimal action cannot be determined unless `reset` was called with `solve=True`.")
+            raise ValueError(
+                "Optimal action cannot be determined unless `reset` was called with `solve=True`."
+            )
 
         n = self._seq_opt[len(self.node.seq)]  # next optimal task index
         return self.sorted_index_inv[n]  # encode task index to sorted action
@@ -448,7 +550,7 @@ class Index(Base):
     @staticmethod
     def infer_valid_mask(obs):
         """Create a binary valid action mask from an observation."""
-        return obs['seq']
+        return obs["seq"]
 
     # def infer_action_space(self, obs):
     #     """Determines the action Gym.Space from an observation."""
@@ -523,6 +625,7 @@ def int_to_seq(num, length, check_input=True):
         seq.append(n)
 
     return tuple(seq)
+
 
 # TODO: deprecate environments below?
 

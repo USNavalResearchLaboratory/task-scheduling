@@ -17,6 +17,7 @@ class Base(RandomGeneratorMixin, ABC):
         Random number generator seed or object.
 
     """
+
     def __init__(self, rng=None):
         super().__init__(rng)
         self.space = None
@@ -83,7 +84,8 @@ class UniformIID(BaseIID):
         NumPy random number generator or seed. Instance RNG if None.
 
     """
-    def __init__(self, lims=(0., 0.), rng=None):
+
+    def __init__(self, lims=(0.0, 0.0), rng=None):
         super().__init__(rng)
         self.lims = tuple(lims)
         self.space = Box(*lims, shape=(), dtype=float)
@@ -129,7 +131,7 @@ class Deterministic(Base):
             yield ch_avail_
 
     @classmethod
-    def from_uniform(cls, n_ch, lims=(0., 0.), rng=None):
+    def from_uniform(cls, n_ch, lims=(0.0, 0.0), rng=None):
         ch_avail_gen = UniformIID(lims, rng=rng)
         return cls(tuple(ch_avail_gen(n_ch)))
 

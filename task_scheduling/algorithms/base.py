@@ -30,7 +30,9 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
     return node_best.sch  # optimal
 
 
-def branch_bound_priority(tasks, ch_avail, priority_func=None, heuristic=None, verbose=False):
+def branch_bound_priority(
+    tasks, ch_avail, priority_func=None, heuristic=None, verbose=False
+):
     """
     Branch-and-Bound with priority queueing and variable heuristic.
 
@@ -59,8 +61,16 @@ def branch_bound_priority(tasks, ch_avail, priority_func=None, heuristic=None, v
     return node_best.sch  # optimal
 
 
-def mcts(tasks, ch_avail, max_runtime=float('inf'), max_rollouts=None, c_explore=0., th_visit=0, verbose=False,
-         rng=None):
+def mcts(
+    tasks,
+    ch_avail,
+    max_runtime=float("inf"),
+    max_rollouts=None,
+    c_explore=0.0,
+    th_visit=0,
+    verbose=False,
+    rng=None,
+):
     """
     Monte Carlo tree search algorithm.
 
@@ -90,7 +100,9 @@ def mcts(tasks, ch_avail, max_runtime=float('inf'), max_rollouts=None, c_explore
     """
 
     node = ScheduleNode(tasks, ch_avail, rng=rng)
-    node = node.mcts(max_runtime, max_rollouts, c_explore, th_visit, inplace=False, verbose=verbose)
+    node = node.mcts(
+        max_runtime, max_rollouts, c_explore, th_visit, inplace=False, verbose=verbose
+    )
 
     return node.sch
 

@@ -5,7 +5,12 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from task_scheduling.nodes import ScheduleNodeBound
-from task_scheduling.util import plot_task_losses, plot_schedule, check_schedule, evaluate_schedule
+from task_scheduling.util import (
+    check_schedule,
+    evaluate_schedule,
+    plot_schedule,
+    plot_task_losses,
+)
 
 
 def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng=None):
@@ -47,8 +52,12 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
             # Bound
             if node_new.l_lo < node_best.loss:  # new node is not dominated
                 if node_new.l_up < node_best.loss:
-                    node_best = node_new.roll_out(inplace=False)  # roll-out a new best node
-                    stack = [s for s in stack if s.l_lo < node_best.loss]  # cut dominated nodes
+                    node_best = node_new.roll_out(
+                        inplace=False
+                    )  # roll-out a new best node
+                    stack = [
+                        s for s in stack if s.l_lo < node_best.loss
+                    ]  # cut dominated nodes
 
                 stack.append(node_new)  # add new node to stack, LIFO
 
@@ -62,7 +71,10 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
         if verbose:
             # progress = 1 - sum(math.factorial(len(node.seq_rem)) for node in stack) / math.factorial(len(tasks))
             # print(f'Search progress: {100*progress:.1f}% - Loss < {node_best.loss:.3f}', end='\r')
-            print(f'# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}', end='\r')
+            print(
+                f"# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}",
+                end="\r",
+            )
 
     for _ in range(i_time, n_times):
         yield node_best.sch
@@ -202,7 +214,7 @@ def plot_loss_runtime(t_run, loss, do_std=False, ax=None, ax_kwargs=None):
         # else:
         #     ax.plot(t_run, l_mean, label=name)
 
-    ax.set(xlabel='Runtime (s)', ylabel='Loss')
+    ax.set(xlabel="Runtime (s)", ylabel="Loss")
     ax.legend()
     ax.set(**ax_kwargs)
 
@@ -244,12 +256,25 @@ def runtime_wrapper(scheduler):
     return new_scheduler
 
 
-def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solve=False, verbose=0, plotting=0,
-                                save_path=None):
-    loss_iter = np.array([[tuple([np.nan] * alg['n_iter'] for alg in algorithms)] * n_gen] * len(runtimes),
-                         dtype=[(alg['name'], float, (alg['n_iter'],)) for alg in algorithms])
-    loss_mean = np.array([[(np.nan,) * len(algorithms)] * n_gen] * len(runtimes),
-                         dtype=[(alg['name'], float) for alg in algorithms])
+def evaluate_algorithms_runtime(
+    algorithms,
+    runtimes,
+    problem_gen,
+    n_gen=1,
+    solve=False,
+    verbose=0,
+    plotting=0,
+    save_path=None,
+):
+    loss_iter = np.array(
+        [[tuple([np.nan] * alg["n_iter"] for alg in algorithms)] * n_gen]
+        * len(runtimes),
+        dtype=[(alg["name"], float, (alg["n_iter"],)) for alg in algorithms],
+    )
+    loss_mean = np.array(
+        [[(np.nan,) * len(algorithms)] * n_gen] * len(runtimes),
+        dtype=[(alg["name"], float) for alg in algorithms],
+    )
 
     loss_opt = np.full(n_gen, np.nan)
     t_run_opt = np.full(n_gen, np.nan)  # TODO: use in plots?
@@ -266,7 +291,7 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
         for name, func, n_iter in algorithms:
             for iter_ in range(n_iter):  # perform new algorithm runs
                 if verbose >= 2:
-                    print(f'  {name}: Iteration: {iter_ + 1}/{n_iter}', end='\r')
+                    print(f"  {name}: Iteration: {iter_ + 1}/{n_iter}", end="\r")
 
                 # Evaluate schedule
                 for i_time, sch in enumerate(func(tasks, ch_avail, runtimes)):
@@ -284,34 +309,44 @@ def evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=1, solv
             loss_mean[name][:, i_gen] = loss_iter[name][:, i_gen].mean(-1)
 
         if plotting >= 2:
-            _, ax_gen = plt.subplots(2, 1, num=f'Scheduling Problem: {i_gen + 1}', clear=True)
+            _, ax_gen = plt.subplots(
+                2, 1, num=f"Scheduling Problem: {i_gen + 1}", clear=True
+            )
             plot_task_losses(tasks, ax=ax_gen[0])
             plot_loss_runtime(runtimes, loss_iter[:, i_gen], do_std=False, ax=ax_gen[1])
 
     # Results
     if plotting >= 1:
-        _, ax_results = plt.subplots(num='Results', clear=True)
-        plot_loss_runtime(runtimes, loss_mean, do_std=True,
-                          ax=ax_results,
-                          # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
-                          )
+        _, ax_results = plt.subplots(num="Results", clear=True)
+        plot_loss_runtime(
+            runtimes,
+            loss_mean,
+            do_std=True,
+            ax=ax_results,
+            # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
+        )
 
     if solve:  # relative to B&B
         loss_mean_rel = loss_mean.copy()
-        for name in algorithms['name']:
+        for name in algorithms["name"]:
             loss_mean_rel[name] -= loss_opt
             # loss_mean_rel[name] /= loss_opt
 
         if plotting >= 1:
-            _, ax_results_rel = plt.subplots(num='Results (Relative)', clear=True)
-            plot_loss_runtime(runtimes, loss_mean_rel, do_std=True,
-                              ax=ax_results_rel,
-                              ax_kwargs={'ylabel': 'Excess Loss',
-                                         # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
-                                         }
-                              )
+            _, ax_results_rel = plt.subplots(num="Results (Relative)", clear=True)
+            plot_loss_runtime(
+                runtimes,
+                loss_mean_rel,
+                do_std=True,
+                ax=ax_results_rel,
+                ax_kwargs={
+                    "ylabel": "Excess Loss",
+                    # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
+                },
+            )
 
     return loss_iter, loss_opt
+
 
 # # Evaluation example
 # algorithms = np.array([

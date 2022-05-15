@@ -13,9 +13,10 @@ import pytorch_lightning as pl
 import torch
 from torch import nn, optim
 from torch.nn import functional
-from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data import DataLoader, TensorDataset
 
-from task_scheduling.mdp.environments import Base as BaseEnv, Index
+from task_scheduling.mdp.environments import Base as BaseEnv
+from task_scheduling.mdp.environments import Index
 from task_scheduling.mdp.supervised.base import Base as BaseSupervisedScheduler
 from task_scheduling.mdp.supervised.torch.modules import MultiNet
 
@@ -23,7 +24,7 @@ from task_scheduling.mdp.supervised.torch.modules import MultiNet
 
 
 def reset_weights(model):
-    if hasattr(model, 'reset_parameters'):
+    if hasattr(model, "reset_parameters"):
         model.reset_parameters()
 
 
@@ -41,13 +42,14 @@ class Base(BaseSupervisedScheduler):
         Parameters used by the `learn` method.
 
     """
+
     _learn_params_default = {
-        'batch_size_train': 1,
-        'n_gen_val': 0,
-        'batch_size_val': 1,
-        'weight_func': None,
-        'max_epochs': 1,
-        'shuffle': False,
+        "batch_size_train": 1,
+        "n_gen_val": 0,
+        "batch_size_val": 1,
+        "weight_func": None,
+        "max_epochs": 1,
+        "shuffle": False,
     }
 
     def __init__(self, env, model, learn_params=None):
@@ -70,7 +72,7 @@ class Base(BaseSupervisedScheduler):
         # if obs.dtype.names is not None:
         #     return tuple(obs[key] for key in obs.dtype.names)
         else:
-            return obs,
+            return (obs,)
 
     def _process_obs(self, obs, softmax=False):
         """
@@ -90,7 +92,9 @@ class Base(BaseSupervisedScheduler):
 
         """
 
-        input_ = (torch.from_numpy(o).float().unsqueeze(0) for o in self._obs_to_tuple(obs))
+        input_ = (
+            torch.from_numpy(o).float().unsqueeze(0) for o in self._obs_to_tuple(obs)
+        )
         with torch.no_grad():
             out = self.model(*input_)
 
@@ -167,41 +171,59 @@ class Base(BaseSupervisedScheduler):
             Progress print-out level. 0: silent, 1: add batch info, 2: add problem info
 
         """
-        n_gen_val = self.learn_params['n_gen_val']
-        if isinstance(n_gen_val, float) and n_gen_val < 1:  # convert fraction to number of problems
+        n_gen_val = self.learn_params["n_gen_val"]
+        if (
+            isinstance(n_gen_val, float) and n_gen_val < 1
+        ):  # convert fraction to number of problems
             n_gen_val = math.floor(n_gen_learn * n_gen_val)
         n_gen_train = n_gen_learn - n_gen_val
 
         if verbose >= 1:
             print("Generating training data...")
-        x_train, y_train, *w_train = self.env.data_gen_full(n_gen_train, weight_func=self.learn_params['weight_func'],
-                                                            verbose=verbose)
+        x_train, y_train, *w_train = self.env.data_gen_full(
+            n_gen_train, weight_func=self.learn_params["weight_func"], verbose=verbose
+        )
 
         if verbose >= 1:
             print("Generating validation data...")
-        x_val, y_val, *w_val = self.env.data_gen_full(n_gen_val, weight_func=self.learn_params['weight_func'],
-                                                      verbose=verbose)
+        x_val, y_val, *w_val = self.env.data_gen_full(
+            n_gen_val, weight_func=self.learn_params["weight_func"], verbose=verbose
+        )
 
-        x_train = tuple(map(partial(torch.tensor, dtype=torch.float32), self._obs_to_tuple(x_train)))
-        x_val = tuple(map(partial(torch.tensor, dtype=torch.float32), self._obs_to_tuple(x_val)))
+        x_train = tuple(
+            map(partial(torch.tensor, dtype=torch.float32), self._obs_to_tuple(x_train))
+        )
+        x_val = tuple(
+            map(partial(torch.tensor, dtype=torch.float32), self._obs_to_tuple(x_val))
+        )
 
         y_train, y_val = map(partial(torch.tensor, dtype=torch.int64), (y_train, y_val))
 
         tensors_train = [*x_train, y_train]
         tensors_val = [*x_val, y_val]
 
-        if callable(self.learn_params['weight_func']):
-            w_train, w_val = map(partial(torch.tensor, dtype=torch.float32), (w_train[0], w_val[0]))
+        if callable(self.learn_params["weight_func"]):
+            w_train, w_val = map(
+                partial(torch.tensor, dtype=torch.float32), (w_train[0], w_val[0])
+            )
             tensors_train.append(w_train)
             tensors_val.append(w_val)
 
         ds_train = TensorDataset(*tensors_train)
-        dl_train = DataLoader(ds_train, batch_size=self.learn_params['batch_size_train'] * self.env.n_tasks,
-                              shuffle=self.learn_params['shuffle'], **self.learn_params['dl_kwargs'])
+        dl_train = DataLoader(
+            ds_train,
+            batch_size=self.learn_params["batch_size_train"] * self.env.n_tasks,
+            shuffle=self.learn_params["shuffle"],
+            **self.learn_params["dl_kwargs"],
+        )
 
         ds_val = TensorDataset(*tensors_val)
-        dl_val = DataLoader(ds_val, batch_size=self.learn_params['batch_size_val'] * self.env.n_tasks,
-                            shuffle=False, **self.learn_params['dl_kwargs'])
+        dl_val = DataLoader(
+            ds_val,
+            batch_size=self.learn_params["batch_size_val"] * self.env.n_tasks,
+            shuffle=False,
+            **self.learn_params["dl_kwargs"],
+        )
 
         self._fit(dl_train, dl_val, verbose)
 
@@ -210,8 +232,8 @@ class Base(BaseSupervisedScheduler):
         torch.save(self.model, save_path)
 
         save_path = Path(save_path)
-        env_path = save_path.parent / f'{save_path.stem}.env'
-        with env_path.open(mode='wb') as fid:
+        env_path = save_path.parent / f"{save_path.stem}.env"
+        with env_path.open(mode="wb") as fid:
             dill.dump(self.env, fid)
 
     @classmethod
@@ -221,8 +243,8 @@ class Base(BaseSupervisedScheduler):
 
         if env is None:
             load_path = Path(load_path)
-            env_path = load_path.parent / f'{load_path.stem}.env'
-            with env_path.open(mode='rb') as fid:
+            env_path = load_path.parent / f"{load_path.stem}.env"
+            with env_path.open(mode="rb") as fid:
                 env = dill.load(fid)
 
         return cls(env, model, **kwargs)
@@ -247,10 +269,18 @@ class TorchScheduler(Base):
         Parameters used by the `learn` method.
 
     """
+
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-    def __init__(self, env, module, loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None,
-                 learn_params=None):
+    def __init__(
+        self,
+        env,
+        module,
+        loss_func=functional.cross_entropy,
+        optim_cls=optim.Adam,
+        optim_params=None,
+        learn_params=None,
+    ):
         super().__init__(env, module, learn_params)
 
         self.loss_func = loss_func
@@ -259,34 +289,63 @@ class TorchScheduler(Base):
         self.optimizer = optim_cls(self.model.parameters(), **optim_params)
 
     @classmethod
-    def mlp(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=(),
-            loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None, learn_params=None):
+    def mlp(
+        cls,
+        env,
+        hidden_sizes_ch=(),
+        hidden_sizes_tasks=(),
+        hidden_sizes_joint=(),
+        loss_func=functional.cross_entropy,
+        optim_cls=optim.Adam,
+        optim_params=None,
+        learn_params=None,
+    ):
         """Construct scheduler with MLP policy."""
-        module = MultiNet.mlp(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint)
+        module = MultiNet.mlp(
+            env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint
+        )
         return cls(env, module, loss_func, optim_cls, optim_params, learn_params)
 
     @classmethod
-    def from_gen_mlp(cls, problem_gen, env_cls=Index, env_params=None, hidden_sizes_ch=(), hidden_sizes_tasks=(),
-                     hidden_sizes_joint=(), loss_func=functional.cross_entropy, optim_cls=optim.Adam, optim_params=None,
-                     learn_params=None):
+    def from_gen_mlp(
+        cls,
+        problem_gen,
+        env_cls=Index,
+        env_params=None,
+        hidden_sizes_ch=(),
+        hidden_sizes_tasks=(),
+        hidden_sizes_joint=(),
+        loss_func=functional.cross_entropy,
+        optim_cls=optim.Adam,
+        optim_params=None,
+        learn_params=None,
+    ):
         """Construct scheduler with MLP policy from problem generator."""
         if env_params is None:
             env_params = {}
         env = env_cls(problem_gen, **env_params)
 
-        return cls.mlp(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint, loss_func, optim_cls, optim_params,
-                       learn_params)
+        return cls.mlp(
+            env,
+            hidden_sizes_ch,
+            hidden_sizes_tasks,
+            hidden_sizes_joint,
+            loss_func,
+            optim_cls,
+            optim_params,
+            learn_params,
+        )
 
     def _fit(self, dl_train, dl_val, verbose=0):
         if verbose >= 1:
-            print('Training model...')
+            print("Training model...")
 
         def loss_batch(model, loss_func, batch_, opt=None):
             batch_ = [t.to(self.device) for t in batch_]
 
-            if callable(self.learn_params['weight_func']):
+            if callable(self.learn_params["weight_func"]):
                 xb_, yb_, wb_ = batch_[:-2], batch_[-2], batch_[-1]
-                losses_ = loss_func(model(*xb_), yb_, reduction='none')
+                losses_ = loss_func(model(*xb_), yb_, reduction="none")
                 loss = torch.mean(wb_ * losses_)
             else:
                 xb_, yb_ = batch_[:-1], batch_[-1]
@@ -299,7 +358,7 @@ class TorchScheduler(Base):
 
             return loss.item(), len(xb_)
 
-        for epoch in range(self.learn_params['max_epochs']):
+        for epoch in range(self.learn_params["max_epochs"]):
             self.model.train()
             for batch in dl_train:
                 loss_batch(self.model, self.loss_func, batch, self.optimizer)
@@ -312,12 +371,14 @@ class TorchScheduler(Base):
             val_loss = np.sum(np.multiply(losses, nums)) / np.sum(nums)
 
             if verbose >= 1:
-                print(f"  Epoch = {epoch} : loss = {val_loss:.3f}", end='\r')
+                print(f"  Epoch = {epoch} : loss = {val_loss:.3f}", end="\r")
 
     def learn(self, n_gen_learn, verbose=0):
         self.model = self.model.to(self.device)
         super().learn(n_gen_learn, verbose)
-        self.model = self.model.to('cpu')  # move back to CPU for single sample evaluations in `__call__`
+        self.model = self.model.to(
+            "cpu"
+        )  # move back to CPU for single sample evaluations in `__call__`
 
 
 class LitModel(pl.LightningModule):
@@ -332,7 +393,14 @@ class LitModel(pl.LightningModule):
     optim_params: dict, optional
 
     """
-    def __init__(self, module, loss_func=functional.cross_entropy, optim_cls=torch.optim.Adam, optim_params=None):
+
+    def __init__(
+        self,
+        module,
+        loss_func=functional.cross_entropy,
+        optim_cls=torch.optim.Adam,
+        optim_params=None,
+    ):
         super().__init__()
 
         self.module = module
@@ -351,7 +419,7 @@ class LitModel(pl.LightningModule):
     def _process_batch(self, batch, _batch_idx):
         if len(batch) > self._n_in + 1:  # includes sample weighting
             x, y, w = batch[:-2], batch[-2], batch[-1]
-            losses = self.loss_func(self(*x), y, reduction='none')
+            losses = self.loss_func(self(*x), y, reduction="none")
             loss = torch.mean(w * losses)
         elif len(batch) == self._n_in + 1:
             x, y = batch[:-1], batch[-1]
@@ -363,12 +431,12 @@ class LitModel(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         loss = self._process_batch(batch, batch_idx)
-        self.log('train_loss', loss)
+        self.log("train_loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
         loss = self._process_batch(batch, batch_idx)
-        self.log('val_loss', loss)
+        self.log("val_loss", loss)
         return loss
 
     def configure_optimizers(self):
@@ -391,6 +459,7 @@ class LitScheduler(Base):
         Parameters used by the `learn` method.
 
     """
+
     def __init__(self, env, model, trainer_kwargs=None, learn_params=None):
         super().__init__(env, model, learn_params)
 
@@ -399,13 +468,19 @@ class LitScheduler(Base):
         self.trainer_kwargs = trainer_kwargs
 
         # Note: the kwargs below are specified in `learn_params` for consistency with `TorchScheduler`
-        self.trainer_kwargs.update({
-            'max_epochs': self.learn_params['max_epochs'],
-        })
-        self.trainer = pl.Trainer(**self.trainer_kwargs)  # TODO: store init kwargs, use for `reset`?
+        self.trainer_kwargs.update(
+            {
+                "max_epochs": self.learn_params["max_epochs"],
+            }
+        )
+        self.trainer = pl.Trainer(
+            **self.trainer_kwargs
+        )  # TODO: store init kwargs, use for `reset`?
 
     @classmethod
-    def from_module(cls, env, module, model_kwargs=None, trainer_kwargs=None, learn_params=None):
+    def from_module(
+        cls, env, module, model_kwargs=None, trainer_kwargs=None, learn_params=None
+    ):
         """Construct scheduler from a `nn.Module`"""
         if model_kwargs is None:
             model_kwargs = {}
@@ -413,8 +488,16 @@ class LitScheduler(Base):
         return cls(env, model, trainer_kwargs, learn_params)
 
     @classmethod
-    def from_gen_module(cls, problem_gen, module, env_cls=Index, env_params=None, model_kwargs=None,
-                        trainer_kwargs=None, learn_params=None):
+    def from_gen_module(
+        cls,
+        problem_gen,
+        module,
+        env_cls=Index,
+        env_params=None,
+        model_kwargs=None,
+        trainer_kwargs=None,
+        learn_params=None,
+    ):
         """Construct scheduler from a `nn.Module` and a problem generator."""
         if env_params is None:
             env_params = {}
@@ -423,22 +506,49 @@ class LitScheduler(Base):
         cls.from_module(env, module, model_kwargs, trainer_kwargs, learn_params)
 
     @classmethod
-    def mlp(cls, env, hidden_sizes_ch=(), hidden_sizes_tasks=(), hidden_sizes_joint=(), model_kwargs=None,
-            trainer_kwargs=None, learn_params=None):
+    def mlp(
+        cls,
+        env,
+        hidden_sizes_ch=(),
+        hidden_sizes_tasks=(),
+        hidden_sizes_joint=(),
+        model_kwargs=None,
+        trainer_kwargs=None,
+        learn_params=None,
+    ):
         """Construct scheduler with MLP policy."""
-        module = MultiNet.mlp(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint)
+        module = MultiNet.mlp(
+            env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint
+        )
         return cls.from_module(env, module, model_kwargs, trainer_kwargs, learn_params)
 
     @classmethod
-    def from_gen_mlp(cls, problem_gen, env_cls=Index, env_params=None, hidden_sizes_ch=(), hidden_sizes_tasks=(),
-                     hidden_sizes_joint=(), model_kwargs=None, trainer_kwargs=None, learn_params=None):
+    def from_gen_mlp(
+        cls,
+        problem_gen,
+        env_cls=Index,
+        env_params=None,
+        hidden_sizes_ch=(),
+        hidden_sizes_tasks=(),
+        hidden_sizes_joint=(),
+        model_kwargs=None,
+        trainer_kwargs=None,
+        learn_params=None,
+    ):
         """Construct scheduler with MLP policy from problem generator."""
         if env_params is None:
             env_params = {}
         env = env_cls(problem_gen, **env_params)
 
-        return cls.mlp(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint, model_kwargs, trainer_kwargs,
-                       learn_params)
+        return cls.mlp(
+            env,
+            hidden_sizes_ch,
+            hidden_sizes_tasks,
+            hidden_sizes_joint,
+            model_kwargs,
+            trainer_kwargs,
+            learn_params,
+        )
 
     def reset(self):
         super().reset()
@@ -446,7 +556,7 @@ class LitScheduler(Base):
 
     def _fit(self, dl_train, dl_val, verbose=0):
         if verbose >= 1:
-            print('Training model...')
+            print("Training model...")
 
         for cb in self.trainer.callbacks:
             if isinstance(cb, pl.callbacks.progress.tqdm_progress.TQDMProgressBar):
@@ -455,9 +565,11 @@ class LitScheduler(Base):
         self.trainer.fit(self.model, dl_train, dl_val)
 
     def _print_model(self):
-        return f"{super()._print_model()}\n" \
-               f"- Loader:\n" \
-               f"  - Batch size: train={self.learn_params['batch_size_train']}, " \
-               f"val={self.learn_params['batch_size_val']}\n" \
-               f"- Optimizer: {self.model.optim_cls.__name__}{self.model.optim_params}\n" \
-               f"- TB log: `{self.trainer.log_dir}`"
+        return (
+            f"{super()._print_model()}\n"
+            f"- Loader:\n"
+            f"  - Batch size: train={self.learn_params['batch_size_train']}, "
+            f"val={self.learn_params['batch_size_val']}\n"
+            f"- Optimizer: {self.model.optim_cls.__name__}{self.model.optim_params}\n"
+            f"- TB log: `{self.trainer.log_dir}`"
+        )

@@ -5,12 +5,14 @@ from datetime import datetime
 
 import numpy as np
 
-SchedulingProblem = namedtuple('SchedulingProblem', ['tasks', 'ch_avail'])
-SchedulingSolution = namedtuple('SchedulingSolution', ['sch', 'loss', 't_run'], defaults=(None, None))
+SchedulingProblem = namedtuple("SchedulingProblem", ["tasks", "ch_avail"])
+SchedulingSolution = namedtuple(
+    "SchedulingSolution", ["sch", "loss", "t_run"], defaults=(None, None)
+)
 
 
 def get_now():
-    return datetime.now().replace(microsecond=0).isoformat().replace(':', '_')
+    return datetime.now().replace(microsecond=0).isoformat().replace(":", "_")
 
 
 class RandomGeneratorMixin:
@@ -23,6 +25,7 @@ class RandomGeneratorMixin:
         Random number generator seed or object.
 
     """
+
     def __init__(self, rng=None):
         self.rng = rng
 
@@ -60,7 +63,11 @@ class RandomGeneratorMixin:
             return np.random.default_rng()
         elif isinstance(rng, int):
             return np.random.default_rng(rng)
-        elif isinstance(rng, np.random.Generator) or isinstance(rng, np.random.RandomState):
+        elif isinstance(rng, np.random.Generator) or isinstance(
+            rng, np.random.RandomState
+        ):
             return rng
         else:
-            raise TypeError("Input must be None, int, or a valid NumPy random number generator.")
+            raise TypeError(
+                "Input must be None, int, or a valid NumPy random number generator."
+            )

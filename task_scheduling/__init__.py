@@ -1,1 +1,1 @@
-from . import util, algorithms, generators, mdp
+from . import algorithms, generators, mdp, util

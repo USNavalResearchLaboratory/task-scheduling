@@ -6,8 +6,8 @@ from task_scheduling.generators import problems as problem_gens
 # seed = None
 seed = 12345
 
-save_dir = Path(f'../data')
-# save_dir = Path(f'../data/temp')
+save_dir = Path("data")
+# save_dir = Path('data/temp')
 
 # ct_set = [(1, 4), (1, 8), (1, 12), (1, 16), (2, 4), (2, 8)]
 ct_set = [(1, 8)]

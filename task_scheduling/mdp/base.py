@@ -15,6 +15,7 @@ class Base(ABC):
         OpenAi gym environment.
 
     """
+
     def __init__(self, env):
         if not isinstance(env, BaseEnv):
             raise TypeError(f"`env` must be of type BaseEnv, got {type(env)}")
@@ -66,8 +67,7 @@ class Base(ABC):
         raise NotImplementedError
 
     def summary(self):
-        out = "Env:" \
-              f"\n{self._print_env()}"
+        out = "Env:" f"\n{self._print_env()}"
         return out
 
     def _print_env(self):
@@ -101,6 +101,7 @@ class BaseLearning(Base):
         Parameters used by the `learn` method.
 
     """
+
     _learn_params_default = {}
 
     def __init__(self, env, model, learn_params=None):
@@ -141,11 +142,8 @@ class BaseLearning(Base):
         raise NotImplementedError
 
     def summary(self):
-        str_model = f"Model:" \
-                    f"\n{self._print_model()}"
-        return super().summary() + '\n\n' + str_model
+        str_model = f"Model:" f"\n{self._print_model()}"
+        return super().summary() + "\n\n" + str_model
 
     def _print_model(self):
-        return f"```\n" \
-               f"{str(self.model)}\n" \
-               f"```"
+        return f"```\n" f"{str(self.model)}\n" f"```"

@@ -1,7 +1,7 @@
 # from task_scheduling.generators.scheduling_problems import Base
 
 
-class DatasetOld(Base):   # TODO: deprecate?
+class DatasetOld(Base):  # TODO: deprecate?
     """
     Generator of scheduling problems in memory.
 
@@ -24,8 +24,16 @@ class DatasetOld(Base):   # TODO: deprecate?
 
     """
 
-    def __init__(self, problems, solutions=None, task_gen=None, ch_avail_gen=None,
-                 iter_mode='once', shuffle_mode='never', rng=None):
+    def __init__(
+        self,
+        problems,
+        solutions=None,
+        task_gen=None,
+        ch_avail_gen=None,
+        iter_mode="once",
+        shuffle_mode="never",
+        rng=None,
+    ):
 
         self.problems = problems
         self.solutions = solutions
@@ -38,14 +46,14 @@ class DatasetOld(Base):   # TODO: deprecate?
 
         self.i = None
         self.n_problems = len(self.problems)
-        self.restart(self.shuffle_mode in ('once', 'repeat'))
+        self.restart(self.shuffle_mode in ("once", "repeat"))
 
     @classmethod
-    def load(cls, file, iter_mode='once', shuffle_mode='never', rng=None):
+    def load(cls, file, iter_mode="once", shuffle_mode="never", rng=None):
         """Load problems/solutions from memory."""
 
         # TODO: loads entire data set into memory - need iterative read/yield for large data sets
-        with data_path.joinpath(file).open(mode='rb') as fid:
+        with data_path.joinpath(file).open(mode="rb") as fid:
             dict_gen = dill.load(fid)
 
         return cls(**dict_gen, iter_mode=iter_mode, shuffle_mode=shuffle_mode, rng=rng)
@@ -59,17 +67,19 @@ class DatasetOld(Base):   # TODO: deprecate?
                 self.problems = rng.permutation(self.problems).tolist()
             else:
                 # _temp = list(zip(self.problems, self.solutions))
-                _temp = np.array(list(zip(self.problems, self.solutions)), dtype=np.object)
+                _temp = np.array(
+                    list(zip(self.problems, self.solutions)), dtype=np.object
+                )
                 _p, _s = zip(*rng.permutation(_temp).tolist())
                 self.problems, self.solutions = list(_p), list(_s)
 
     def _gen_problem(self, rng):
         """Return a single scheduling problem (and optional solution)."""
         if self.i == self.n_problems:
-            if self.iter_mode == 'once':
+            if self.iter_mode == "once":
                 raise ValueError("Problem generator data has been exhausted.")
-            elif self.iter_mode == 'repeat':
-                self.restart(self.shuffle_mode == 'repeat', rng=rng)
+            elif self.iter_mode == "repeat":
+                self.restart(self.shuffle_mode == "repeat", rng=rng)
 
         problem = self.problems[self.i]
         if self.solutions is not None:
@@ -87,13 +97,15 @@ class DatasetOld(Base):   # TODO: deprecate?
             return super()._gen_solution(problem, verbose)
 
 
-class Queue(Base):      # TODO: deprecate in favor of generators.tasks.Dataset?
+class Queue(Base):  # TODO: deprecate in favor of generators.tasks.Dataset?
     def __init__(self, n_tasks, tasks_full, ch_avail):
 
         self._cls_task = task_gens.check_task_types(tasks_full)
 
         # FIXME: make a task_gen???
-        super().__init__(n_tasks, len(ch_avail), task_gen=None, ch_avail_gen=None, rng=None)
+        super().__init__(
+            n_tasks, len(ch_avail), task_gen=None, ch_avail_gen=None, rng=None
+        )
 
         self.queue = deque()
         self.add_tasks(tasks_full)
@@ -109,7 +121,7 @@ class Queue(Base):      # TODO: deprecate in favor of generators.tasks.Dataset?
         if isinstance(tasks, Iterable):
             self.queue.extendleft(tasks)
         else:
-            self.queue.appendleft(tasks)    # for single tasks
+            self.queue.appendleft(tasks)  # for single tasks
 
     def update(self, tasks, t_ex, ch_ex):
         for task, t_ex_i, ch_ex_i in zip(tasks, t_ex, ch_ex):
@@ -129,8 +141,12 @@ class Queue(Base):      # TODO: deprecate in favor of generators.tasks.Dataset?
     def summary(self):
         print(f"Channel availabilities: {self.ch_avail}")
         print(f"Task queue:")
-        df = pd.DataFrame({name: [getattr(task, name) for task in self.queue]
-                           for name in self._cls_task.param_names})
+        df = pd.DataFrame(
+            {
+                name: [getattr(task, name) for task in self.queue]
+                for name in self._cls_task.param_names
+            }
+        )
         print(df)
 
 
