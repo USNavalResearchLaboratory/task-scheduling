@@ -11,3 +11,10 @@ torch
 pytorch-lightning
 stable-baselines3
 tensorboard
+pytest
+pylint
+black
+isort
+flake8
+flake8-bugbear
+pep8-naming
