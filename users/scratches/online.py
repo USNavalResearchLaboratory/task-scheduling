@@ -6,8 +6,13 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from task_scheduling import algorithms
-from task_scheduling.tasks import Linear, LinearDrop, Exponential
-from task_scheduling.util import summarize_tasks, check_schedule, evaluate_schedule, plot_losses_and_schedule
+from task_scheduling.tasks import Exponential, Linear, LinearDrop
+from task_scheduling.util import (
+    check_schedule,
+    evaluate_schedule,
+    plot_losses_and_schedule,
+    summarize_tasks,
+)
 
 plt.style.use(r'/images/style.mplstyle')
 plt.rc('text', usetex=False)
