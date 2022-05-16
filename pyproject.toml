@@ -30,3 +30,6 @@ disable = [
 [tool.pylint.basic]
 const-naming-style = "any"
 good-names-rgxs = "^[_a-z][_a-z0-9]?$"
+
+[tool.pylint.format]
+max-line-length = 88
