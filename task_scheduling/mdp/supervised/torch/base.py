@@ -50,6 +50,7 @@ class Base(BaseSupervisedScheduler):
         "weight_func": None,
         "max_epochs": 1,
         "shuffle": False,
+        "dl_kwargs": {},
     }
 
     def __init__(self, env, model, learn_params=None):
