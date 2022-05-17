@@ -14,18 +14,21 @@ from task_scheduling.util import (
     summarize_tasks,
 )
 
-plt.style.use(r'/images/style.mplstyle')
-plt.rc('text', usetex=False)
+plt.style.use(r"/images/style.mplstyle")
+plt.rc("text", usetex=False)
 
 
 n_block = 3
 
-ch_avail_init = [0.]
+ch_avail_init = [0.0]
 
 # tasks_search = [Linear(.036, 0., slope=1., name=f"s_{i}") for i in range(4)]
-tasks_search = [Exponential(.036, 0., a=1., b=100, name=f"s_{i}") for i in range(4)]
+tasks_search = [Exponential(0.036, 0.0, a=1.0, b=100, name=f"s_{i}") for i in range(4)]
 
-tasks_track = [LinearDrop(.018, 0., slope=2, t_drop=.06, l_drop=None, name=f"t_{i}") for i in range(0)]
+tasks_track = [
+    LinearDrop(0.018, 0.0, slope=2, t_drop=0.06, l_drop=None, name=f"t_{i}")
+    for i in range(0)
+]
 
 tasks_init = tasks_search + tasks_track
 
@@ -47,11 +50,21 @@ for name, algorithm in algorithms.items():
 
         check_schedule(tasks, sch)
         loss = evaluate_schedule(tasks, sch)
-        plot_losses_and_schedule(tasks, sch, ch_avail, loss, f"{name}_{i_b}", fig_kwargs=dict(figsize=[6.4, 4.8]))
+        plot_losses_and_schedule(
+            tasks,
+            sch,
+            ch_avail,
+            loss,
+            f"{name}_{i_b}",
+            fig_kwargs=dict(figsize=[6.4, 4.8]),
+        )
 
         # Update channel availability
         for i_c in range(len(ch_avail)):
-            ch_avail[i_c] = max(ch_avail[i_c], *(t + task.duration for task, (t, c) in zip(tasks, sch) if c == i_c))
+            ch_avail[i_c] = max(
+                ch_avail[i_c],
+                *(t + task.duration for task, (t, c) in zip(tasks, sch) if c == i_c),
+            )
 
         # Update tasks
         for task, (t, c) in zip(tasks, sch):
