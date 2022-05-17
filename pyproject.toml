@@ -19,6 +19,18 @@ line-length = 88
 line_length = 88
 profile = "black"
 
+[tool.pydocstyle] # parameter check D417 not working
+add-ignore = [
+  "D1",
+  "D202",
+  "D401",
+]
+add-select = [
+  "D413",
+  "D417",
+]
+convention = "numpy"
+
 # [tool.pylint.main]
 # disable = [
 #   "fixme",
@@ -46,11 +58,3 @@ profile = "black"
 # accept-no-return-doc = true
 # accept-no-yields-doc = true
 # default-docstring-type = "default"
-
-[tool.pydocstyle] # parameter check D417 not working
-add-ignore = [
-  "D1",
-  "D202",
-  "D401",
-]
-convention = "numpy"
