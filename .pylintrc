@@ -1,0 +1,30 @@
+[MASTER]
+load-plugins=pylint.extensions.docparams
+
+[MESSAGES CONTROL]
+disable=fixme,
+        missing-function-docstring,
+        missing-module-docstring,
+        missing-class-docstring,
+        too-many-arguments,
+        too-many-instance-attributes,
+        too-many-locals,
+        line-too-long,
+        # unused-import,
+        no-else-return,
+        no-else-raise,
+        missing-raises-doc,
+
+[BASIC]
+const-naming-style=any
+good-names-rgxs=^[_a-z][_a-z0-9]?$  # accept any names up to two characters
+
+[FORMAT]
+max-line-length=88
+
+[PARAMETER_DOCUMENTATION]
+accept-no-param-doc=yes
+accept-no-raise-doc=yes
+accept-no-return-doc=yes
+accept-no-yields-doc=yes
+default-docstring-type=numpy

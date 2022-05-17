@@ -19,17 +19,38 @@ line-length = 88
 line_length = 88
 profile = "black"
 
-[tool.pylint.main]
-disable = [
-  "fixme",
-  "missing-function-docstring",
-  "too-many-arguments",
-  "too-many-instance-attributes",
-  "too-many-locals",
-]
-[tool.pylint.basic]
-const-naming-style = "any"
-good-names-rgxs = "^[_a-z][_a-z0-9]?$"
+# [tool.pylint.main]
+# disable = [
+#   "fixme",
+#   "missing-function-docstring",
+#   "too-many-arguments",
+#   "too-many-instance-attributes",
+#   "too-many-locals",
+#   "line-too-long", # "unused-import",
+#   "missing-module-docstring",
+#   "missing-class-docstring",
+#   "no-else-return",
+#   "no-else-raise",
+# ]
 
-[tool.pylint.format]
-max-line-length = 88
+# [tool.pylint.basic]
+# const-naming-style = "any"
+# good-names-rgxs = "^[_a-z][_a-z0-9]?$"
+
+# [tool.pylint.format]
+# max-line-length = 88
+
+# [tool.pylint.parameter_documentation]
+# accept-no-param-doc = true
+# accept-no-raise-doc = true
+# accept-no-return-doc = true
+# accept-no-yields-doc = true
+# default-docstring-type = "default"
+
+[tool.pydocstyle] # parameter check D417 not working
+add-ignore = [
+  "D1",
+  "D202",
+  "D401",
+]
+convention = "numpy"
