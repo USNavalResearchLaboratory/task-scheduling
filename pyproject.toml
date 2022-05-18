@@ -22,7 +22,6 @@ profile = "black"
 [tool.pydocstyle] # parameter check D417 not working
 add-ignore = [
   "D1",
-  "D202",
   "D401",
 ]
 add-select = [
