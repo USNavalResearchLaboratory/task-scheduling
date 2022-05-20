@@ -1,6 +1,7 @@
 """Gym Environments."""
 
 from abc import ABC, abstractmethod
+from dis import dis
 
 # from collections import OrderedDict
 from math import factorial
@@ -10,6 +11,7 @@ import numpy as np
 from gym import Env
 from gym.spaces import Box, Dict, MultiDiscrete
 from matplotlib import pyplot as plt
+from tqdm import tqdm
 
 import task_scheduling.spaces as spaces_tasking
 from task_scheduling.mdp.features import normalize as normalize_features
@@ -417,7 +419,12 @@ class Base(Env, ABC):
 
         # TODO: refactor SL data gen to `mdp.supervised.Base`?
 
-        for i_batch in range(n_batch):
+        pbar = tqdm(
+            total=n_batch * batch_size * self.n_tasks,
+            desc="Creating tensors",
+            disable=(verbose == 0),
+        )
+        for __ in range(n_batch):
             # if verbose >= 1:
             #     print(f'Batch: {i_batch + 1}/{n_batch}', end='\n')
 
@@ -449,11 +456,11 @@ class Base(Env, ABC):
             for i_gen in range(batch_size):
                 # if verbose >= 2:
                 #     print(f'  Problem: {i_gen + 1}/{batch_size}', end='\r')
-                if verbose >= 1:
-                    print(
-                        f"Problem: {batch_size * i_batch + i_gen + 1}/{n_batch * batch_size}",
-                        end="\r",
-                    )
+                # if verbose >= 1:
+                #     print(
+                #         f"Problem: {batch_size * i_batch + i_gen + 1}/{n_batch * batch_size}",
+                #         end="\r",
+                #     )
 
                 obs = self.reset(
                     solve=True, rng=rng
@@ -481,10 +488,14 @@ class Base(Env, ABC):
 
                     i_step += 1
 
+                    pbar.update()
+
             if callable(weight_func):
                 yield x_set, y_set, w_set
             else:
                 yield x_set, y_set
+
+        pbar.close()
 
     def data_gen_full(self, n_gen, weight_func=None, verbose=0):
         """Generate observation-action data, return in single feature/class arrays."""

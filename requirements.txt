@@ -6,6 +6,7 @@ matplotlib==3.5.2
 PyQt5==5.15.6
 pandas==1.4.2
 tabulate==0.8.9
+tqdm==4.64.0
 gym==0.21.0
 dill==0.3.4
 sortedcontainers==2.4.0

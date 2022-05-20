@@ -3,6 +3,7 @@
 import math
 from abc import abstractmethod
 from copy import deepcopy
+from faulthandler import disable
 from functools import partial
 from inspect import signature
 from pathlib import Path
@@ -14,6 +15,7 @@ import torch
 from torch import nn, optim
 from torch.nn import functional
 from torch.utils.data import DataLoader, TensorDataset
+from tqdm import trange
 
 from task_scheduling.mdp.environments import Base as BaseEnv
 from task_scheduling.mdp.environments import Index
@@ -359,20 +361,25 @@ class TorchScheduler(Base):
 
             return loss.item(), len(xb_)
 
-        for epoch in range(self.learn_params["max_epochs"]):
-            self.model.train()
-            for batch in dl_train:
-                loss_batch(self.model, self.loss_func, batch, self.optimizer)
+        with trange(
+            self.learn_params["max_epochs"], desc="Epoch", disable=(verbose == 0)
+        ) as pbar:
+            for __ in pbar:
+                self.model.train()
+                for batch in dl_train:
+                    loss_batch(self.model, self.loss_func, batch, self.optimizer)
 
-            self.model.eval()
-            with torch.no_grad():
-                losses, nums = zip(
-                    *[loss_batch(self.model, self.loss_func, batch) for batch in dl_val]
-                )
-            val_loss = np.sum(np.multiply(losses, nums)) / np.sum(nums)
+                self.model.eval()
+                with torch.no_grad():
+                    losses, nums = zip(
+                        *[
+                            loss_batch(self.model, self.loss_func, batch)
+                            for batch in dl_val
+                        ]
+                    )
+                val_loss = np.sum(np.multiply(losses, nums)) / np.sum(nums)
 
-            if verbose >= 1:
-                print(f"  Epoch = {epoch} : loss = {val_loss:.3f}", end="\r")
+                pbar.set_postfix(val_loss=val_loss)
 
     def learn(self, n_gen_learn, verbose=0):
         self.model = self.model.to(self.device)
