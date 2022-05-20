@@ -44,9 +44,7 @@ class TreeNodeMCTSv1(MCTSv1Mixin, TreeNode):
 
 
 class SearchNodeV1(RandomGeneratorMixin):
-    def __init__(
-        self, n_tasks, seq=(), parent=None, c_explore=1.0, l_up=np.inf, rng=None
-    ):
+    def __init__(self, n_tasks, seq=(), parent=None, c_explore=1.0, l_up=np.inf, rng=None):
         super().__init__(rng)
 
         self._n_tasks = n_tasks
@@ -54,9 +52,7 @@ class SearchNodeV1(RandomGeneratorMixin):
 
         self._parent = parent
         self._children = {}
-        self._seq_unk = set(range(self.n_tasks)) - set(
-            self._seq
-        )  # set of unexplored task indices
+        self._seq_unk = set(range(self.n_tasks)) - set(self._seq)  # set of unexplored task indices
 
         self._c_explore = c_explore
         self._l_up = l_up
@@ -122,17 +118,11 @@ class SearchNodeV1(RandomGeneratorMixin):
 
         """
 
-        w = {
-            n: node.weight for (n, node) in self._children.items()
-        }  # descendant node weights
-        w.update(
-            {n: -self._c_explore for n in self._seq_unk}
-        )  # base weight for unexplored nodes
+        w = {n: node.weight for (n, node) in self._children.items()}  # descendant node weights
+        w.update({n: -self._c_explore for n in self._seq_unk})  # base weight for unexplored nodes
         # FIXME: init value? use upper bound??
 
-        w = dict(
-            self.rng.permutation(list(w.items()))
-        )  # permute elements to break ties randomly
+        w = dict(self.rng.permutation(list(w.items())))  # permute elements to break ties randomly
 
         n = int(min(w, key=w.__getitem__))
         if n not in self._children:

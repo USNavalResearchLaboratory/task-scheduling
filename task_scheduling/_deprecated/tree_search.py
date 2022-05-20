@@ -10,9 +10,7 @@ class TreeNodeBoundLo(TreeNodeBound):
 
         self._bounds = [self._l_ex, self._l_ex]
         for n in self._seq_rem:  # update loss bounds
-            self._bounds[0] += self._tasks[n](
-                max(min(self._ch_avail), self._tasks[n].t_release)
-            )
+            self._bounds[0] += self._tasks[n](max(min(self._ch_avail), self._tasks[n].t_release))
 
     def branch_bound(self, inplace=True, verbose=False, rng=None):
 
@@ -34,9 +32,9 @@ class TreeNodeBoundLo(TreeNodeBound):
                         stack.append(node_new)  # add new node to stack, LIFO
 
             if verbose:
-                progress = 1 - sum(
-                    factorial(len(node.seq_rem)) for node in stack
-                ) / factorial(self.n_tasks)
+                progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(
+                    self.n_tasks
+                )
                 print(
                     f"Search progress: {progress:.3f}, Loss < {node_best.l_ex:.3f}",
                     end="\r",

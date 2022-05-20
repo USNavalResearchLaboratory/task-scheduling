@@ -43,9 +43,7 @@ def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
     """
 
     if t_plot is None:
-        x_lim = min(task.plot_lim[0] for task in tasks), max(
-            task.plot_lim[1] for task in tasks
-        )
+        x_lim = min(task.plot_lim[0] for task in tasks), max(task.plot_lim[1] for task in tasks)
         t_plot = np.arange(*x_lim, 1e-3)
 
     with plt.rc_context({"axes.xmargin": 0}):
@@ -118,9 +116,7 @@ def evaluate_schedule(tasks, sch):
     return sum(task(t) for task, t in zip(tasks, sch["t"]))
 
 
-def plot_schedule(
-    tasks, sch, ch_avail=None, loss=None, name=None, ax=None, ax_kwargs=None
-):
+def plot_schedule(tasks, sch, ch_avail=None, loss=None, name=None, ax=None, ax_kwargs=None):
     """
     Plot task schedule.
 
@@ -208,9 +204,7 @@ def eval_wrapper(scheduler):
     return timed_scheduler
 
 
-def plot_losses_and_schedule(
-    tasks, sch, ch_avail, loss=None, name=None, fig_kwargs=None
-):
+def plot_losses_and_schedule(tasks, sch, ch_avail, loss=None, name=None, fig_kwargs=None):
     """
     Plot task loss functions with schedule, including partial losses.
 
@@ -244,9 +238,7 @@ def plot_losses_and_schedule(
         _temp.append(f"$L = {loss:.3f}$")
     fig.suptitle(", ".join(_temp), y=0.95)
 
-    plot_schedule(
-        tasks, sch, ch_avail, loss, name=None, ax=axes[1], ax_kwargs=dict(title="")
-    )
+    plot_schedule(tasks, sch, ch_avail, loss, name=None, ax=axes[1], ax_kwargs=dict(title=""))
 
     lows, highs = zip(axes[1].get_xlim(), *(task.plot_lim for task in tasks))
     t_plot = np.arange(min(*lows), max(*highs), 1e-3)

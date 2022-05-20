@@ -114,9 +114,7 @@ learn_params_torch = {
     # 'weight_func': lambda o, a, r: 1 - o['seq'].sum() / o['seq'].size,
     "max_epochs": 5000,
     "shuffle": True,
-    "dl_kwargs": dict(
-        num_workers=os.cpu_count(), persistent_workers=True, pin_memory=True
-    ),
+    "dl_kwargs": dict(num_workers=os.cpu_count(), persistent_workers=True, pin_memory=True),
 }
 
 model_kwargs = dict(
@@ -125,16 +123,12 @@ model_kwargs = dict(
     optim_params={"lr": 1e-4},
 )
 
-module = MultiNet.mlp(
-    env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_sizes_joint=[400]
-)
+module = MultiNet.mlp(env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_sizes_joint=[400])
 # module = MultiNet.cnn(env, hidden_sizes_ch=[], hidden_sizes_tasks=[400], kernel_sizes=2,
 #                       cnn_kwargs=dict(pooling_layers=[nn.AdaptiveMaxPool1d(1)]), hidden_sizes_joint=[])
 # module = VaryCNN(env, kernel_len=2)
 
-torch_scheduler = TorchScheduler(
-    env, module, **model_kwargs, learn_params=learn_params_torch
-)
+torch_scheduler = TorchScheduler(env, module, **model_kwargs, learn_params=learn_params_torch)
 
 
 trainer_kwargs = dict(
@@ -171,9 +165,7 @@ learn_params_sb = {
     # 'max_epochs': 2000,
     "max_epochs": 1,
     "eval_callback_kwargs": dict(
-        callback_after_eval=StopTrainingOnNoModelImprovement(
-            1000, min_evals=0, verbose=1
-        ),
+        callback_after_eval=StopTrainingOnNoModelImprovement(1000, min_evals=0, verbose=1),
         n_eval_episodes=100,
         eval_freq=1000,
         verbose=1,

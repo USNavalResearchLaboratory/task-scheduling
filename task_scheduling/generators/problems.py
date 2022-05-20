@@ -165,9 +165,7 @@ class Base(RandomGeneratorMixin, ABC):
                     if "solutions" in load_dict.keys():
                         save_dict["solutions"] += load_dict["solutions"]
                     else:
-                        save_dict["solutions"] += [
-                            None for __ in range(len(load_dict["problems"]))
-                        ]
+                        save_dict["solutions"] += [None for __ in range(len(load_dict["problems"]))]
                 elif "solutions" in load_dict.keys():
                     save_dict["solutions"] = [
                         None for __ in range(len(save_dict["problems"]))
@@ -237,9 +235,7 @@ class Random(Base):
         return cls(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
     @classmethod
-    def continuous_linear(
-        cls, n_tasks, n_ch, ch_avail_lim=(0.0, 0.0), rng=None, **task_gen_kwargs
-    ):
+    def continuous_linear(cls, n_tasks, n_ch, ch_avail_lim=(0.0, 0.0), rng=None, **task_gen_kwargs):
         task_gen = task_gens.ContinuousUniformIID.linear(**task_gen_kwargs)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
@@ -258,9 +254,7 @@ class Random(Base):
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
     @classmethod
-    def discrete_linear(
-        cls, n_tasks, n_ch, ch_avail_lim=(0.0, 0.0), rng=None, **task_gen_kwargs
-    ):
+    def discrete_linear(cls, n_tasks, n_ch, ch_avail_lim=(0.0, 0.0), rng=None, **task_gen_kwargs):
         task_gen = task_gens.DiscreteIID.linear_uniform(**task_gen_kwargs)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
@@ -345,9 +339,7 @@ class FixedTasks(Base, ABC):
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
 
     @classmethod
-    def search_track(
-        cls, n_tasks, n_ch, probs=None, t_release_lim=(0.0, 0.0), rng=None
-    ):
+    def search_track(cls, n_tasks, n_ch, probs=None, t_release_lim=(0.0, 0.0), rng=None):
         task_gen = cls.cls_task_gen.search_track(n_tasks, probs, t_release_lim)
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, rng)
 
@@ -385,9 +377,7 @@ class PermutedTasks(FixedTasks):
             idx.append(i)
             tasks_init[i] = None  # ensures unique indices
 
-        return SchedulingSolution(
-            self.solution.sch[idx], self.solution.loss, self.solution.t_run
-        )
+        return SchedulingSolution(self.solution.sch[idx], self.solution.loss, self.solution.t_run)
 
 
 class Dataset(Base):
@@ -467,9 +457,7 @@ class Dataset(Base):
 
         items = [self.stack.pop() for __ in range(n)]
         problems, solutions = zip(*items)
-        return Dataset(
-            problems, solutions, shuffle, repeat, self.task_gen, self.ch_avail_gen, rng
-        )
+        return Dataset(problems, solutions, shuffle, repeat, self.task_gen, self.ch_avail_gen, rng)
 
     def add(self, problems, solutions=None):
         """Add problems and solutions to the data set."""

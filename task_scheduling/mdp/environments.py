@@ -58,9 +58,7 @@ class Base(Env, ABC):
         if features is not None:
             self.features = features
         else:
-            self.features = param_features(
-                self.problem_gen.task_gen, time_shift, masking
-            )
+            self.features = param_features(self.problem_gen.task_gen, time_shift, masking)
 
         if any(space.shape != () for space in self.features["space"]):
             raise NotImplementedError("Features must be scalar valued")
@@ -112,12 +110,10 @@ class Base(Env, ABC):
             _obs_space_features, shape=(self.n_tasks, len(self.features))
         )
 
-        self.observation_space = (
-            Dict(  # note: `spaces` attribute is `OrderedDict` with sorted keys
-                ch_avail=self._obs_space_ch,
-                seq=self._obs_space_seq,
-                tasks=self._obs_space_tasks,
-            )
+        self.observation_space = Dict(  # note: `spaces` attribute is `OrderedDict` with sorted keys
+            ch_avail=self._obs_space_ch,
+            seq=self._obs_space_seq,
+            tasks=self._obs_space_tasks,
         )
 
         # Action space
@@ -190,9 +186,7 @@ class Base(Env, ABC):
             [[func(task) for func in self.features["func"]] for task in self.tasks]
         )
         if self.masking:
-            obs_tasks[
-                self.node.seq
-            ] = 0.0  # zero out observation rows for scheduled tasks
+            obs_tasks[self.node.seq] = 0.0  # zero out observation rows for scheduled tasks
 
         return obs_tasks[self.sorted_index]  # sort individual task observations
 
@@ -253,9 +247,7 @@ class Base(Env, ABC):
                 tasks, ch_avail = out
                 self._seq_opt = None
         elif len(tasks) != self.n_tasks:
-            raise ValueError(
-                f"Input `tasks` must be None or a collection of {self.n_tasks} tasks"
-            )
+            raise ValueError(f"Input `tasks` must be None or a collection of {self.n_tasks} tasks")
         elif len(ch_avail) != self.n_ch:
             raise ValueError(
                 f"Input `ch_avail` must be None or an array of {self.n_ch} channel availabilities"
@@ -336,22 +328,14 @@ class Base(Env, ABC):
             ax_kwargs=dict(title=""),
         )
 
-        axes[1].plot(
-            self.ch_avail, np.arange(self.n_ch), "ko"
-        )  # plot channel availabilities
+        axes[1].plot(self.ch_avail, np.arange(self.n_ch), "ko")  # plot channel availabilities
 
-        lows, highs = zip(
-            axes[1].get_xlim(), *(task.plot_lim for task in self._tasks_init)
-        )
+        lows, highs = zip(axes[1].get_xlim(), *(task.plot_lim for task in self._tasks_init))
         t_plot = np.arange(min(*lows), max(*highs), 1e-3)
-        plot_task_losses(
-            self._tasks_init, t_plot, ax=axes[0], ax_kwargs=dict(xlabel="")
-        )
+        plot_task_losses(self._tasks_init, t_plot, ax=axes[0], ax_kwargs=dict(xlabel=""))
 
         # Mark loss functions with execution times
-        for task, (t_ex, _c_ex), line in zip(
-            self._tasks_init, self.node.sch, axes[0].get_lines()
-        ):
+        for task, (t_ex, _c_ex), line in zip(self._tasks_init, self.node.sch, axes[0].get_lines()):
             axes[0].plot(
                 [t_ex],
                 [task(t_ex)],
@@ -448,9 +432,7 @@ class Base(Env, ABC):
                     dtype=self.observation_space.dtype,
                 )
 
-            y_set = np.empty(
-                (steps_total, *self.action_space.shape), dtype=self.action_space.dtype
-            )
+            y_set = np.empty((steps_total, *self.action_space.shape), dtype=self.action_space.dtype)
             w_set = np.empty(steps_total, dtype=float)
 
             for i_gen in range(batch_size):
@@ -462,9 +444,7 @@ class Base(Env, ABC):
                 #         end="\r",
                 #     )
 
-                obs = self.reset(
-                    solve=True, rng=rng
-                )  # generates new scheduling problem
+                obs = self.reset(solve=True, rng=rng)  # generates new scheduling problem
 
                 done = False
                 i_step = 0
@@ -478,9 +458,7 @@ class Base(Env, ABC):
                         x_set[key][i] = obs[key]
                     y_set[i] = action
 
-                    obs, reward, done, info = self.step(
-                        action
-                    )  # updates environment state
+                    obs, reward, done, info = self.step(action)  # updates environment state
                     if callable(weight_func):
                         w_set[i] = weight_func(
                             obs, action, reward
@@ -534,9 +512,7 @@ class Index(Base):
         time_shift=False,
         masking=False,
     ):
-        super().__init__(
-            problem_gen, features, normalize, sort_func, time_shift, masking
-        )
+        super().__init__(problem_gen, features, normalize, sort_func, time_shift, masking)
 
         # Action space
         self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)
@@ -544,9 +520,7 @@ class Index(Base):
     def _update_spaces(self):
         """Update observation and action spaces."""
         seq_rem_sort = self.sorted_index_inv[list(self.node.seq_rem)]
-        self.action_space.mask = np.isin(
-            np.arange(self.n_tasks), seq_rem_sort, invert=True
-        )
+        self.action_space.mask = np.isin(np.arange(self.n_tasks), seq_rem_sort, invert=True)
 
     def opt_action(self):
         """Optimal action based on current state."""

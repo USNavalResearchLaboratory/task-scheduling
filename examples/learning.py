@@ -68,9 +68,7 @@ learn_params_sb = {
     "n_gen_val": 1 / 3,
     "max_epochs": 2000,
     "eval_callback_kwargs": dict(
-        callback_after_eval=StopTrainingOnNoModelImprovement(
-            1000, min_evals=0, verbose=1
-        ),
+        callback_after_eval=StopTrainingOnNoModelImprovement(1000, min_evals=0, verbose=1),
         n_eval_episodes=100,
         eval_freq=1000,
         verbose=1,
@@ -87,9 +85,7 @@ sb_model_kwargs = dict(
         infer_valid_mask=env.infer_valid_mask,
     ),
 )
-sb_scheduler = StableBaselinesScheduler.make_model(
-    env, "PPO", sb_model_kwargs, learn_params_sb
-)
+sb_scheduler = StableBaselinesScheduler.make_model(env, "PPO", sb_model_kwargs, learn_params_sb)
 
 
 algorithms = np.array(
@@ -98,9 +94,7 @@ algorithms = np.array(
         ("ERT", earliest_release, 10),
         (
             "MCTS",
-            partial(
-                mcts, max_runtime=np.inf, max_rollouts=10, c_explore=0.05, th_visit=5
-            ),
+            partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=0.05, th_visit=5),
             10,
         ),
         ("SL Policy", lit_scheduler, 10),

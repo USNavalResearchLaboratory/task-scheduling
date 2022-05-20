@@ -52,12 +52,8 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
             # Bound
             if node_new.l_lo < node_best.loss:  # new node is not dominated
                 if node_new.l_up < node_best.loss:
-                    node_best = node_new.roll_out(
-                        inplace=False
-                    )  # roll-out a new best node
-                    stack = [
-                        s for s in stack if s.l_lo < node_best.loss
-                    ]  # cut dominated nodes
+                    node_best = node_new.roll_out(inplace=False)  # roll-out a new best node
+                    stack = [s for s in stack if s.l_lo < node_best.loss]  # cut dominated nodes
 
                 stack.append(node_new)  # add new node to stack, LIFO
 
@@ -267,8 +263,7 @@ def evaluate_algorithms_runtime(
     save_path=None,
 ):
     loss_iter = np.array(
-        [[tuple([np.nan] * alg["n_iter"] for alg in algorithms)] * n_gen]
-        * len(runtimes),
+        [[tuple([np.nan] * alg["n_iter"] for alg in algorithms)] * n_gen] * len(runtimes),
         dtype=[(alg["name"], float, (alg["n_iter"],)) for alg in algorithms],
     )
     loss_mean = np.array(
@@ -309,9 +304,7 @@ def evaluate_algorithms_runtime(
             loss_mean[name][:, i_gen] = loss_iter[name][:, i_gen].mean(-1)
 
         if plotting >= 2:
-            _, ax_gen = plt.subplots(
-                2, 1, num=f"Scheduling Problem: {i_gen + 1}", clear=True
-            )
+            _, ax_gen = plt.subplots(2, 1, num=f"Scheduling Problem: {i_gen + 1}", clear=True)
             plot_task_losses(tasks, ax=ax_gen[0])
             plot_loss_runtime(runtimes, loss_iter[:, i_gen], do_std=False, ax=ax_gen[1])
 

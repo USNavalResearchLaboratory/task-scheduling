@@ -26,8 +26,7 @@ ch_avail_init = [0.0]
 tasks_search = [Exponential(0.036, 0.0, a=1.0, b=100, name=f"s_{i}") for i in range(4)]
 
 tasks_track = [
-    LinearDrop(0.018, 0.0, slope=2, t_drop=0.06, l_drop=None, name=f"t_{i}")
-    for i in range(0)
+    LinearDrop(0.018, 0.0, slope=2, t_drop=0.06, l_drop=None, name=f"t_{i}") for i in range(0)
 ]
 
 tasks_init = tasks_search + tasks_track

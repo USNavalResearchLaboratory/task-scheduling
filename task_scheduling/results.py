@@ -26,9 +26,7 @@ pickle_figs = True
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 out_handler = logging.StreamHandler(stream=sys.stdout)
-out_formatter = logging.Formatter(
-    "\n# %(asctime)s\n%(message)s\n", datefmt="%Y-%m-%d %H:%M:%S"
-)
+out_formatter = logging.Formatter("\n# %(asctime)s\n%(message)s\n", datefmt="%Y-%m-%d %H:%M:%S")
 out_handler.setFormatter(out_formatter)
 logger.addHandler(out_handler)
 
@@ -58,9 +56,7 @@ def _log_and_fig(message, log_path, fig, img_path):
         img_path.parent.mkdir(parents=True, exist_ok=True)
 
         fig.savefig(img_path)
-        fig.savefig(
-            img_path.parent / f"{img_path.stem}.png"
-        )  # save PNG for Markdown log
+        fig.savefig(img_path.parent / f"{img_path.stem}.png")  # save PNG for Markdown log
         if pickle_figs:
             mpl_file = img_path.parent / f"{img_path.stem}.mpl"
             with open(mpl_file, "wb") as f:
@@ -283,9 +279,7 @@ def _print_averages(loss, t_run, do_relative=False):
 
         loss_opt = data[names.index(opt_name)][0]
         for item, name in zip(data, names):
-            item.insert(
-                0, loss_rel[name].mean() / loss_opt * 100
-            )  # normalize to percentage
+            item.insert(0, loss_rel[name].mean() / loss_opt * 100)  # normalize to percentage
         columns.insert(0, "Excess Loss (%)")
 
     df = pd.DataFrame(data, index=pd.CategoricalIndex(names), columns=columns)
@@ -364,9 +358,7 @@ def evaluate_algorithms_single(
 
     """
 
-    learners = algorithms[
-        [isinstance(alg["func"], BaseLearningScheduler) for alg in algorithms]
-    ]
+    learners = algorithms[[isinstance(alg["func"], BaseLearningScheduler) for alg in algorithms]]
 
     # RNG control
     if rng is not None:
@@ -415,9 +407,7 @@ def evaluate_algorithms_single(
 
     # Results
     if plotting >= 1:
-        fig = _scatter_results(
-            t_run_iter, loss_iter, label="Problem", do_relative=solve
-        )
+        fig = _scatter_results(t_run_iter, loss_iter, label="Problem", do_relative=solve)
     else:
         fig, img_path = None, None
 
@@ -486,9 +476,7 @@ def evaluate_algorithms_gen(
 
     """
 
-    learners = algorithms[
-        [isinstance(alg["func"], BaseLearningScheduler) for alg in algorithms]
-    ]
+    learners = algorithms[[isinstance(alg["func"], BaseLearningScheduler) for alg in algorithms]]
     _do_learn = bool(len(learners)) and bool(n_gen_learn)
     if not _do_learn:
         n_gen_learn = 0
@@ -539,13 +527,9 @@ def evaluate_algorithms_gen(
                 task_gen=problem_gen.task_gen,
                 ch_avail_gen=problem_gen.ch_avail_gen,
             )
-            func.learn(
-                n_gen_learn, verbose=verbose
-            )  # calls `problem_gen` via environment `reset`
+            func.learn(n_gen_learn, verbose=verbose)  # calls `problem_gen` via environment `reset`
 
-    loss_mean, t_run_mean = _empty_result(algorithms, n_gen), _empty_result(
-        algorithms, n_gen
-    )
+    loss_mean, t_run_mean = _empty_result(algorithms, n_gen), _empty_result(algorithms, n_gen)
     if verbose >= 1:
         print("\nEvaluating algorithms...")
     for i_gen, out_gen in enumerate(problem_gen(n_gen, solve, verbose)):
@@ -557,9 +541,7 @@ def evaluate_algorithms_gen(
         loss_iter, t_run_iter = evaluate_algorithms_single(
             algorithms, problem, solution_opt, verbose - 1, plotting - 1
         )
-        loss_mean[i_gen], t_run_mean[i_gen] = map(
-            _iter_to_mean, (loss_iter, t_run_iter)
-        )
+        loss_mean[i_gen], t_run_mean[i_gen] = map(_iter_to_mean, (loss_iter, t_run_iter))
 
     # Results
     if plotting >= 1:
@@ -635,9 +617,7 @@ def evaluate_algorithms_train(
 
     """
 
-    learners = algorithms[
-        [isinstance(alg["func"], BaseLearningScheduler) for alg in algorithms]
-    ]
+    learners = algorithms[[isinstance(alg["func"], BaseLearningScheduler) for alg in algorithms]]
     if len(learners) == 0:
         n_gen_learn = 0
 
@@ -687,9 +667,7 @@ def evaluate_algorithms_train(
             verbose=verbose - 1,
             plotting=plotting - 1,
         )
-        loss_mc[i_mc], t_run_mc[i_mc] = _struct_mean(loss_mean), _struct_mean(
-            t_run_mean
-        )
+        loss_mc[i_mc], t_run_mc[i_mc] = _struct_mean(loss_mean), _struct_mean(t_run_mean)
 
     # Results
     if plotting >= 1:

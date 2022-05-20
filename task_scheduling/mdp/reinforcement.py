@@ -71,9 +71,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
     @property
     def env(self):
         # return self.model.get_env()
-        return (
-            self.model.get_env().envs[0].env
-        )  # unwrap vectorized, monitored environment
+        return self.model.get_env().envs[0].env  # unwrap vectorized, monitored environment
 
     @env.setter
     def env(self, env):
@@ -111,20 +109,14 @@ class StableBaselinesScheduler(BaseLearningScheduler):
 
         """
         n_gen_val = self.learn_params["n_gen_val"]
-        if (
-            isinstance(n_gen_val, float) and n_gen_val < 1
-        ):  # convert fraction to number of problems
+        if isinstance(n_gen_val, float) and n_gen_val < 1:  # convert fraction to number of problems
             n_gen_val = math.floor(n_gen_learn * n_gen_val)
         n_gen_train = n_gen_learn - n_gen_val
 
-        total_timesteps = (
-            self.learn_params["max_epochs"] * n_gen_train * self.env.action_space.n
-        )
+        total_timesteps = self.learn_params["max_epochs"] * n_gen_train * self.env.action_space.n
 
         if n_gen_val > 0:
-            problem_gen_val = self.env.problem_gen.split(
-                n_gen_val, shuffle=True, repeat=True
-            )
+            problem_gen_val = self.env.problem_gen.split(n_gen_val, shuffle=True, repeat=True)
             eval_env = Index(
                 problem_gen_val,
                 self.env.features,
@@ -134,9 +126,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
                 self.env.masking,
             )
             eval_env = Monitor(eval_env)
-            callback = EvalCallback(
-                eval_env, **self.learn_params["eval_callback_kwargs"]
-            )
+            callback = EvalCallback(eval_env, **self.learn_params["eval_callback_kwargs"])
         else:
             callback = None
 
@@ -151,10 +141,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
 
     def _print_model(self):
         model_str = (
-            f"{self.model.__class__.__name__}\n"
-            f"```\n"
-            f"{str(self.model.policy)}\n"
-            f"```"
+            f"{self.model.__class__.__name__}\n" f"```\n" f"{str(self.model.policy)}\n" f"```"
         )
         if self.model.logger is not None:
             model_str += f"\n- TB log: `{self.model.logger.dir}`"
@@ -202,9 +189,7 @@ class MultiExtractor(BaseFeaturesExtractor):
     """
 
     def __init__(self, observation_space: spaces.Dict, net_ch, net_tasks):
-        super().__init__(
-            observation_space, features_dim=1
-        )  # `features_dim` must be overridden
+        super().__init__(observation_space, features_dim=1)  # `features_dim` must be overridden
 
         self.net_ch = net_ch
         self.net_tasks = net_tasks
@@ -239,9 +224,7 @@ class MultiExtractor(BaseFeaturesExtractor):
 
         layer_sizes_tasks = [n_tasks * n_features, *hidden_sizes_tasks]
         # layer_sizes_tasks = [n_tasks * (1 + n_features), *hidden_sizes_tasks]
-        net_tasks = nn.Sequential(
-            nn.Flatten(), *build_mlp(layer_sizes_tasks, last_act=True)
-        )
+        net_tasks = nn.Sequential(nn.Flatten(), *build_mlp(layer_sizes_tasks, last_act=True))
 
         return cls(observation_space, net_ch, net_tasks)
 
@@ -282,9 +265,7 @@ class ValidActorCriticPolicy(ActorCriticPolicy):
         else:
             self.infer_valid_mask = lambda obs: np.ones(self.observation_space.shape)
 
-    def _get_action_dist_from_latent_valid(
-        self, obs, latent_pi
-    ):  # added `obs` to signature
+    def _get_action_dist_from_latent_valid(self, obs, latent_pi):  # added `obs` to signature
         mean_actions = self.action_net(latent_pi)
         mean_actions = valid_logits(
             mean_actions, self.infer_valid_mask(obs)
@@ -334,9 +315,5 @@ class ValidDQNPolicy(DQNPolicy):
         super().__init__(*args, **kwargs)
 
     def make_q_net(self):
-        net_args = self._update_features_extractor(
-            self.net_args, features_extractor=None
-        )
-        return ValidQNetwork(**net_args, infer_valid_mask=self.infer_valid_mask).to(
-            self.device
-        )
+        net_args = self._update_features_extractor(self.net_args, features_extractor=None)
+        return ValidQNetwork(**net_args, infer_valid_mask=self.infer_valid_mask).to(self.device)

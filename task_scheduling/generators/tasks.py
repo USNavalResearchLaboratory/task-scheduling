@@ -154,16 +154,11 @@ class ContinuousUniformIID(BaseIID):
 
     def _param_gen(self, rng):
         """Randomly generate task parameters."""
-        return {
-            name: rng.uniform(*self.param_lims[name])
-            for name in self.cls_task.param_names
-        }
+        return {name: rng.uniform(*self.param_lims[name]) for name in self.cls_task.param_names}
 
     def __eq__(self, other):
         if isinstance(other, ContinuousUniformIID):
-            return (
-                self.cls_task == other.cls_task and self.param_lims == other.param_lims
-            )
+            return self.cls_task == other.cls_task and self.param_lims == other.param_lims
         else:
             return NotImplemented
 
@@ -181,14 +176,10 @@ class ContinuousUniformIID(BaseIID):
         return str_
 
     @classmethod
-    def linear(
-        cls, duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2), rng=None
-    ):
+    def linear(cls, duration_lim=(3, 6), t_release_lim=(0, 4), slope_lim=(0.5, 2), rng=None):
         """Factory constructor for `Linear` task objects."""
 
-        param_lims = dict(
-            duration=duration_lim, t_release=t_release_lim, slope=slope_lim
-        )
+        param_lims = dict(duration=duration_lim, t_release=t_release_lim, slope=slope_lim)
         return cls(task_types.Linear, param_lims, rng)
 
     @classmethod
@@ -253,8 +244,7 @@ class DiscreteIID(BaseIID):
 
     def __init__(self, cls_task, param_probs, rng=None):
         param_spaces = {
-            name: DiscreteSet(list(param_probs[name].keys()))
-            for name in cls_task.param_names
+            name: DiscreteSet(list(param_probs[name].keys())) for name in cls_task.param_names
         }
         super().__init__(cls_task, param_spaces, rng)
 
@@ -272,10 +262,7 @@ class DiscreteIID(BaseIID):
 
     def __eq__(self, other):
         if isinstance(other, DiscreteIID):
-            return (
-                self.cls_task == other.cls_task
-                and self.param_probs == other.param_probs
-            )
+            return self.cls_task == other.cls_task and self.param_probs == other.param_probs
         else:
             return NotImplemented
 
@@ -291,9 +278,7 @@ class DiscreteIID(BaseIID):
                     "Pr": self.param_probs[name].values(),
                 }
             )
-            str_ += (
-                f"\n\n{s.to_markdown(tablefmt='github', floatfmt='.3f', index=False)}"
-            )
+            str_ += f"\n\n{s.to_markdown(tablefmt='github', floatfmt='.3f', index=False)}"
 
         return str_
 
@@ -304,9 +289,7 @@ class DiscreteIID(BaseIID):
         """Factory constructor for `Linear` task objects."""
 
         param_probs = {
-            "duration": dict(
-                zip(duration_vals, np.ones(len(duration_vals)) / len(duration_vals))
-            ),
+            "duration": dict(zip(duration_vals, np.ones(len(duration_vals)) / len(duration_vals))),
             "t_release": dict(
                 zip(t_release_vals, np.ones(len(t_release_vals)) / len(t_release_vals))
             ),
@@ -327,19 +310,13 @@ class DiscreteIID(BaseIID):
         """Factory constructor for `LinearDrop` task objects."""
 
         param_probs = {
-            "duration": dict(
-                zip(duration_vals, np.ones(len(duration_vals)) / len(duration_vals))
-            ),
+            "duration": dict(zip(duration_vals, np.ones(len(duration_vals)) / len(duration_vals))),
             "t_release": dict(
                 zip(t_release_vals, np.ones(len(t_release_vals)) / len(t_release_vals))
             ),
             "slope": dict(zip(slope_vals, np.ones(len(slope_vals)) / len(slope_vals))),
-            "t_drop": dict(
-                zip(t_drop_vals, np.ones(len(t_drop_vals)) / len(t_drop_vals))
-            ),
-            "l_drop": dict(
-                zip(l_drop_vals, np.ones(len(l_drop_vals)) / len(l_drop_vals))
-            ),
+            "t_drop": dict(zip(t_drop_vals, np.ones(len(t_drop_vals)) / len(t_drop_vals))),
+            "l_drop": dict(zip(l_drop_vals, np.ones(len(l_drop_vals)) / len(l_drop_vals))),
         }
         return cls(task_types.LinearDrop, param_probs, rng)
 

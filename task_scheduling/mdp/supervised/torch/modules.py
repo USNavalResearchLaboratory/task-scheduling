@@ -32,9 +32,7 @@ def build_mlp(layer_sizes, activation=nn.ReLU, last_act=False):
     return nn.Sequential(*layers)
 
 
-def build_cnn(
-    layer_sizes, kernel_sizes, pooling_layers=None, activation=nn.ReLU, last_act=False
-):
+def build_cnn(layer_sizes, kernel_sizes, pooling_layers=None, activation=nn.ReLU, last_act=False):
     """
     PyTorch sequential CNN.
 
@@ -59,9 +57,7 @@ def build_cnn(
 
     if isinstance(kernel_sizes, int):
         kernel_sizes = (kernel_sizes,)
-    if isinstance(kernel_sizes, tuple) and all(
-        [isinstance(item, int) for item in kernel_sizes]
-    ):
+    if isinstance(kernel_sizes, tuple) and all([isinstance(item, int) for item in kernel_sizes]):
         kernel_sizes = [kernel_sizes for __ in range(len(layer_sizes) - 1)]
 
     if pooling_layers is None or isinstance(pooling_layers, nn.Module):
@@ -130,9 +126,7 @@ class MultiNet(nn.Module):
 
         layer_sizes_tasks = [env.n_tasks * env.n_features, *hidden_sizes_tasks]
         # layer_sizes_tasks = [env.n_tasks * (1 + env.n_features), *hidden_sizes_tasks]
-        net_tasks = nn.Sequential(
-            nn.Flatten(), *build_mlp(layer_sizes_tasks, last_act=True)
-        )
+        net_tasks = nn.Sequential(nn.Flatten(), *build_mlp(layer_sizes_tasks, last_act=True))
 
         size_in_joint = layer_sizes_ch[-1] + layer_sizes_tasks[-1]
         layer_sizes_joint = [size_in_joint, *hidden_sizes_joint, env.action_space.n]
@@ -189,9 +183,7 @@ class VaryCNN(nn.Module):
         t = functional.pad(t, (0, self.conv_t.kernel_size[0] - 1))
         t = self.conv_t(t)
 
-        c = functional.pad(
-            c.unsqueeze(1), (0, self.conv_ch.kernel_size[0] - 1), mode="circular"
-        )
+        c = functional.pad(c.unsqueeze(1), (0, self.conv_ch.kernel_size[0] - 1), mode="circular")
         c = self.conv_ch(c)
         c = functional.adaptive_max_pool1d(c, (1,))
 

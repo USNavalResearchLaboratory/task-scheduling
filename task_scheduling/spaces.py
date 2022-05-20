@@ -12,9 +12,7 @@ def broadcast_to(space, shape):
     """Broadcast space to new shape."""
 
     if isinstance(space, Box):
-        low, high = np.broadcast_to(space.low, shape), np.broadcast_to(
-            space.high, shape
-        )
+        low, high = np.broadcast_to(space.low, shape), np.broadcast_to(space.high, shape)
         return Box(low, high, dtype=space.dtype)
     elif isinstance(space, MultiDiscrete):
         return MultiDiscrete(np.broadcast_to(space.nvec, shape))
@@ -34,9 +32,7 @@ def get_space_lims(space):
     elif isinstance(space, DiscreteSet):
         return space.elements[[0, -1]]
     else:
-        raise NotImplementedError(
-            "Only supported for Box, Discrete, or DiscreteSet spaces."
-        )
+        raise NotImplementedError("Only supported for Box, Discrete, or DiscreteSet spaces.")
 
 
 def stack(spaces, axis=0):
@@ -96,11 +92,7 @@ class Permutation(Space):
         return self.np_random.permutation(self.n)
 
     def contains(self, x):
-        return (
-            True
-            if (np.sort(np.asarray(x, dtype=int)) == np.arange(self.n)).all()
-            else False
-        )
+        return True if (np.sort(np.asarray(x, dtype=int)) == np.arange(self.n)).all() else False
 
     def __str__(self):
         return f"Permutation({self.n})"
@@ -133,9 +125,7 @@ class DiscreteSet(Space):
 
     def add_elements(self, elements):
         elements = np.array(elements).flatten()
-        self.elements = np.unique(
-            np.concatenate((self.elements, elements))
-        )  # sorted, flattened
+        self.elements = np.unique(np.concatenate((self.elements, elements)))  # sorted, flattened
 
     def sample(self):
         return self.np_random.choice(self.elements)

@@ -63,11 +63,7 @@ class RandomGeneratorMixin:
             return np.random.default_rng()
         elif isinstance(rng, int):
             return np.random.default_rng(rng)
-        elif isinstance(rng, np.random.Generator) or isinstance(
-            rng, np.random.RandomState
-        ):
+        elif isinstance(rng, np.random.Generator) or isinstance(rng, np.random.RandomState):
             return rng
         else:
-            raise TypeError(
-                "Input must be None, int, or a valid NumPy random number generator."
-            )
+            raise TypeError("Input must be None, int, or a valid NumPy random number generator.")

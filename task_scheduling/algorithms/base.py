@@ -30,9 +30,7 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
     return node_best.sch  # optimal
 
 
-def branch_bound_priority(
-    tasks, ch_avail, priority_func=None, heuristic=None, verbose=False
-):
+def branch_bound_priority(tasks, ch_avail, priority_func=None, heuristic=None, verbose=False):
     """
     Branch-and-Bound with priority queueing and variable heuristic.
 
@@ -100,9 +98,7 @@ def mcts(
     """
 
     node = ScheduleNode(tasks, ch_avail, rng=rng)
-    node = node.mcts(
-        max_runtime, max_rollouts, c_explore, th_visit, inplace=False, verbose=verbose
-    )
+    node = node.mcts(max_runtime, max_rollouts, c_explore, th_visit, inplace=False, verbose=verbose)
 
     return node.sch
 

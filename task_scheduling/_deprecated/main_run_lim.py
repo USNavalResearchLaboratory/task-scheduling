@@ -77,10 +77,7 @@ n_runtimes = len(max_runtimes)
 
 l_ex_iter = np.array(
     [[tuple([np.nan] * n_iter for n_iter in alg_n_iters)] * n_runtimes] * n_gen,
-    dtype=[
-        (alg_repr, np.float, (n_iter,))
-        for alg_repr, n_iter in zip(alg_reprs, alg_n_iters)
-    ],
+    dtype=[(alg_repr, np.float, (n_iter,)) for alg_repr, n_iter in zip(alg_reprs, alg_n_iters)],
 )
 
 l_ex_mean = np.array(
@@ -100,9 +97,7 @@ for i_gen in range(n_gen):  # Generate new scheduling problem
 
     for alg_repr, alg_func, n_iter in zip(alg_reprs, alg_funcs, alg_n_iters):
         # Perform new algorithm runs
-        for (i_runtime, max_runtime), iter_ in product(
-            enumerate(max_runtimes), range(n_iter)
-        ):
+        for (i_runtime, max_runtime), iter_ in product(enumerate(max_runtimes), range(n_iter)):
             print(
                 f"  {alg_repr} - Runtime: {i_runtime + 1}/{n_runtimes} - Iteration: {iter_ + 1}/{n_iter}",
                 end="\r",

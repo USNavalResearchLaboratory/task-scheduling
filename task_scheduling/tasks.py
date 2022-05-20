@@ -31,7 +31,9 @@ class Base(ABC):
         if name is not None:
             self.name = str(name)
         else:
-            self.name = rf"{self.__class__.__name__}($d={self.duration:.3f}$, $\rho={self.t_release:.3f}$)"
+            self.name = (
+                rf"{self.__class__.__name__}($d={self.duration:.3f}$, $\rho={self.t_release:.3f}$)"
+            )
 
     @abstractmethod
     def __call__(self, t):
@@ -74,9 +76,7 @@ class Base(ABC):
     def summary(self):
         """Print a string listing task parameters."""
         str_ = f"{self.__class__.__name__}"
-        str_ += "\n" + self.to_series(name="value").to_markdown(
-            tablefmt="github", floatfmt=".3f"
-        )
+        str_ += "\n" + self.to_series(name="value").to_markdown(tablefmt="github", floatfmt=".3f")
         return str_
 
     @property
@@ -396,9 +396,7 @@ class PiecewiseLinear(Shift):
         val = list(map(list, val))
         val = sorted(val, key=itemgetter(0))  # sort by time
         for i, c in enumerate(val):
-            if (
-                len(c) == 2
-            ):  # interpret as time and slope, calculate loss for continuity
+            if len(c) == 2:  # interpret as time and slope, calculate loss for continuity
                 t = c[0]
                 if i == 0:
                     c.insert(1, 0.0)
@@ -424,9 +422,7 @@ class PiecewiseLinear(Shift):
                 t_prev, l_prev, s_prev = self.corners[i - 1]
                 l_d = l_prev + s_prev * (t_c - t_prev)
             if l_c < l_d:
-                raise ValueError(
-                    f"Loss decreases from {l_d} to {l_c} at discontinuity."
-                )
+                raise ValueError(f"Loss decreases from {l_d} to {l_c} at discontinuity.")
 
     # def shift_origin(self, t):
     #     t_excess = t - self.t_release
@@ -538,9 +534,7 @@ class LinearDrop(PiecewiseLinear):
 
     prune = False
 
-    def __init__(
-        self, duration, t_release=0.0, slope=1.0, t_drop=1.0, l_drop=None, name=None
-    ):
+    def __init__(self, duration, t_release=0.0, slope=1.0, t_drop=1.0, l_drop=None, name=None):
         corners = [[0.0, 0.0, slope]]
         if l_drop is not None:
             corners.append([t_drop, l_drop, 0.0])

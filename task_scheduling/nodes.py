@@ -116,9 +116,7 @@ class ScheduleNode(RandomGeneratorMixin):
             if len(seq_ext) != len(set_ext):
                 raise ValueError("Input 'seq_ext' must have unique values.")
             elif not set_ext.issubset(self._seq_rem):
-                raise ValueError(
-                    "Values in 'seq_ext' must not be in the current node sequence."
-                )
+                raise ValueError("Values in 'seq_ext' must not be in the current node sequence.")
 
         for n in seq_ext:
             self.seq_append(n, check_valid=False)
@@ -144,9 +142,7 @@ class ScheduleNode(RandomGeneratorMixin):
         self._update_sch(n)
 
     def _update_sch(self, n):
-        c_min = np.argmin(
-            self._ch_avail
-        )  # assign task to channel with the earliest availability
+        c_min = np.argmin(self._ch_avail)  # assign task to channel with the earliest availability
 
         self._sch[n] = (max(self._tasks[n].t_release, self._ch_avail[c_min]), c_min)
         self._loss += self._tasks[n](self.sch["t"][n])  # add task execution loss
@@ -220,14 +216,10 @@ class ScheduleNode(RandomGeneratorMixin):
         return self._extend_util(seq_ext, inplace)
 
     def earliest_release(self, inplace=True):
-        return self.priority_sorter(
-            attrgetter("t_release"), reverse=False, inplace=inplace
-        )
+        return self.priority_sorter(attrgetter("t_release"), reverse=False, inplace=inplace)
 
     def earliest_drop(self, inplace=True):
-        return self.priority_sorter(
-            attrgetter("t_drop"), reverse=False, inplace=inplace
-        )
+        return self.priority_sorter(attrgetter("t_drop"), reverse=False, inplace=inplace)
 
     def mcts(
         self,
@@ -273,9 +265,7 @@ class ScheduleNode(RandomGeneratorMixin):
         t_run = perf_counter()
 
         if max_runtime is None and max_rollouts is None:
-            raise ValueError(
-                "Either `max_runtime` or `max_rollouts` must be specified."
-            )
+            raise ValueError("Either `max_runtime` or `max_rollouts` must be specified.")
         if max_runtime is None:
             max_runtime = np.inf
         if max_rollouts is None:
@@ -404,16 +394,12 @@ class ScheduleNodeBound(ScheduleNode):
             return  # already converged
 
         ch_avail_min = min(self._ch_avail)
-        t_release_max = max(
-            ch_avail_min, *(self._tasks[n].t_release for n in self._seq_rem)
-        )
+        t_release_max = max(ch_avail_min, *(self._tasks[n].t_release for n in self._seq_rem))
         t_max = t_release_max + sum(self._tasks[n].duration for n in self._seq_rem)
         # t_max -= min(self._tasks[n].duration for n in self._seq_rem)
 
         for n in self._seq_rem:  # update loss bounds
-            self._bounds[0] += self._tasks[n](
-                max(ch_avail_min, self._tasks[n].t_release)
-            )
+            self._bounds[0] += self._tasks[n](max(ch_avail_min, self._tasks[n].t_release))
             self._bounds[1] += self._tasks[n](t_max)
 
     def branch_bound(self, inplace=True, verbose=False, rng=None):
@@ -454,9 +440,7 @@ class ScheduleNodeBound(ScheduleNode):
             for node_new in node.branch(permute=True, rng=rng):
                 # Bound
                 if node_new.l_lo < node_best.loss:
-                    stack.append(
-                        node_new
-                    )  # new node is not dominated, add to stack (LIFO)
+                    stack.append(node_new)  # new node is not dominated, add to stack (LIFO)
 
                     if node_new.l_up < node_best.loss:
                         node_best = node_new.roll_out(
@@ -525,9 +509,7 @@ class ScheduleNodeBound(ScheduleNode):
             for node_new in node.branch():
                 # Bound
                 if node_new.l_lo < node_best.loss:
-                    stack.add(
-                        node_new
-                    )  # new node is not dominated, add to stack (prioritized)
+                    stack.add(node_new)  # new node is not dominated, add to stack (prioritized)
 
                     if node_new.l_up < node_best.loss:
                         node_best = heuristic(node_new)
@@ -592,7 +574,9 @@ class ScheduleNodeShift(ScheduleNode):
                 ch_avail_min
             )  # re-parameterize task, return any incurred loss
             if n in self._seq_rem:
-                self._loss += loss_inc  # add loss incurred due to origin shift for any unscheduled tasks
+                self._loss += (
+                    loss_inc  # add loss incurred due to origin shift for any unscheduled tasks
+                )
 
 
 class MCTSNode(RandomGeneratorMixin):
@@ -616,9 +600,7 @@ class MCTSNode(RandomGeneratorMixin):
 
     """
 
-    def __init__(
-        self, n_tasks, bounds, seq=(), c_explore=0.0, th_visit=0, parent=None, rng=None
-    ):
+    def __init__(self, n_tasks, bounds, seq=(), c_explore=0.0, th_visit=0, parent=None, rng=None):
         super().__init__(rng)
 
         self._n_tasks = n_tasks
@@ -665,9 +647,7 @@ class MCTSNode(RandomGeneratorMixin):
 
         # TODO: use parent policy eval to influence weighting
 
-        value_loss = (self._bounds[1] - self._l_avg) / (
-            self._bounds[1] - self._bounds[0]
-        )
+        value_loss = (self._bounds[1] - self._l_avg) / (self._bounds[1] - self._bounds[0])
         value_explore = np.sqrt(np.log(self.parent.n_visits) / self._n_visits)
         # value_explore = np.sqrt(self.parent.n_visits) / (self._n_visits + 1)
         return value_loss + self._c_explore * value_explore
@@ -690,9 +670,7 @@ class MCTSNode(RandomGeneratorMixin):
         node = self
         while not node.is_leaf:
             node = node.select_child()
-        if (
-            node.n_visits > 0 and len(node.seq_rem) > 0
-        ):  # node is not new, expand to create child
+        if node.n_visits > 0 and len(node.seq_rem) > 0:  # node is not new, expand to create child
             node = node.expansion()
 
         return node

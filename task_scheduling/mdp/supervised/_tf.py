@@ -13,9 +13,7 @@ from tensorflow import keras
 from task_scheduling.mdp.supervised.base import Base
 
 for device in tf.config.experimental.list_physical_devices("GPU"):
-    tf.config.experimental.set_memory_growth(
-        device, True
-    )  # compatibility issue workaround
+    tf.config.experimental.set_memory_growth(device, True)  # compatibility issue workaround
 
 
 def reset_weights(
@@ -69,12 +67,9 @@ class Scheduler(Base):
             if "callbacks" not in fit_params:
                 fit_params["callbacks"] = []
             if not any(
-                isinstance(cb, keras.callbacks.TensorBoard)
-                for cb in fit_params["callbacks"]
+                isinstance(cb, keras.callbacks.TensorBoard) for cb in fit_params["callbacks"]
             ):
-                fit_params["callbacks"].append(
-                    keras.callbacks.TensorBoard(log_dir=self.log_dir)
-                )
+                fit_params["callbacks"].append(keras.callbacks.TensorBoard(log_dir=self.log_dir))
 
             tb = program.TensorBoard()
             tb.configure(argv=[None, "--logdir", str(self.log_dir)])
@@ -113,9 +108,7 @@ class Scheduler(Base):
     def learn(self, n_gen_learn, verbose=0):
 
         n_gen_val = self.learn_params["n_gen_val"]
-        if (
-            isinstance(n_gen_val, float) and n_gen_val < 1
-        ):  # convert fraction to number of problems
+        if isinstance(n_gen_val, float) and n_gen_val < 1:  # convert fraction to number of problems
             n_gen_val = math.floor(n_gen_learn * n_gen_val)
 
         n_gen_train = n_gen_learn - n_gen_val
@@ -125,8 +118,7 @@ class Scheduler(Base):
 
         fit_params = {
             "batch_size": self.learn_params["batch_size_train"] * self.env.n_tasks,
-            "validation_batch_size": self.learn_params["batch_size_val"]
-            * self.env.n_tasks,
+            "validation_batch_size": self.learn_params["batch_size_val"] * self.env.n_tasks,
             "epochs": self.learn_params["epochs"],
             "shuffle": self.learn_params["shuffle"],
             "callbacks": self.learn_params["callbacks"],
@@ -136,9 +128,7 @@ class Scheduler(Base):
         if verbose >= 1:
             print("Generating training data...")
         weight_func = self.learn_params["weight_func"]
-        d_train = self.env.data_gen_full(
-            n_gen_train, weight_func=weight_func, verbose=verbose
-        )
+        d_train = self.env.data_gen_full(n_gen_train, weight_func=weight_func, verbose=verbose)
 
         x_train, y_train = d_train[:2]
         if callable(weight_func):

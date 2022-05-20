@@ -88,9 +88,7 @@ def encode_discrete_features(problem_gen):
 
     data = []
     for name, space in problem_gen.task_gen.param_spaces.items():
-        if isinstance(
-            space, DiscreteSet
-        ):  # use encoding feature func, change space to Discrete
+        if isinstance(space, DiscreteSet):  # use encoding feature func, change space to Discrete
 
             def func(task):
                 return np.flatnonzero(space.elements == getattr(task, name)).item()

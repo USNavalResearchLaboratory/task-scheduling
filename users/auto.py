@@ -28,9 +28,7 @@ now = get_now()
 seed = 12345
 
 if seed is not None:
-    seed_everything(
-        seed
-    )  # TODO: doesn't guarantee reproducibility of PL learners if reordered
+    seed_everything(seed)  # TODO: doesn't guarantee reproducibility of PL learners if reordered
 
 data_path = Path("data/")
 save_dir = "users/auto_temp/"
@@ -44,9 +42,7 @@ algorithms_base = np.array(
         *(
             (
                 f"MCTS: c={c}, t={t}",
-                partial(
-                    mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, th_visit=t
-                ),
+                partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, th_visit=t),
                 10,
             )
             for c, t in product([0], [5, 10])

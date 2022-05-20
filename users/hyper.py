@@ -128,8 +128,7 @@ def objective(trial):
 
     n_layers = trial.suggest_int("n_layers", 1, 3)
     hidden_dims = [
-        trial.suggest_int("n_units_l{}".format(i), 10, 10000, log=True)
-        for i in range(n_layers)
+        trial.suggest_int("n_units_l{}".format(i), 10, 10000, log=True) for i in range(n_layers)
     ]
     module = MultiNet.mlp(
         env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_sizes_joint=hidden_dims

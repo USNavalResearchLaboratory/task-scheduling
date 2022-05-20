@@ -95,9 +95,7 @@ class Base(BaseSupervisedScheduler):
 
         """
 
-        input_ = (
-            torch.from_numpy(o).float().unsqueeze(0) for o in self._obs_to_tuple(obs)
-        )
+        input_ = (torch.from_numpy(o).float().unsqueeze(0) for o in self._obs_to_tuple(obs))
         with torch.no_grad():
             out = self.model(*input_)
 
@@ -175,9 +173,7 @@ class Base(BaseSupervisedScheduler):
 
         """
         n_gen_val = self.learn_params["n_gen_val"]
-        if (
-            isinstance(n_gen_val, float) and n_gen_val < 1
-        ):  # convert fraction to number of problems
+        if isinstance(n_gen_val, float) and n_gen_val < 1:  # convert fraction to number of problems
             n_gen_val = math.floor(n_gen_learn * n_gen_val)
         n_gen_train = n_gen_learn - n_gen_val
 
@@ -196,9 +192,7 @@ class Base(BaseSupervisedScheduler):
         x_train = tuple(
             map(partial(torch.tensor, dtype=torch.float32), self._obs_to_tuple(x_train))
         )
-        x_val = tuple(
-            map(partial(torch.tensor, dtype=torch.float32), self._obs_to_tuple(x_val))
-        )
+        x_val = tuple(map(partial(torch.tensor, dtype=torch.float32), self._obs_to_tuple(x_val)))
 
         y_train, y_val = map(partial(torch.tensor, dtype=torch.int64), (y_train, y_val))
 
@@ -206,9 +200,7 @@ class Base(BaseSupervisedScheduler):
         tensors_val = [*x_val, y_val]
 
         if callable(self.learn_params["weight_func"]):
-            w_train, w_val = map(
-                partial(torch.tensor, dtype=torch.float32), (w_train[0], w_val[0])
-            )
+            w_train, w_val = map(partial(torch.tensor, dtype=torch.float32), (w_train[0], w_val[0]))
             tensors_train.append(w_train)
             tensors_val.append(w_val)
 
@@ -304,9 +296,7 @@ class TorchScheduler(Base):
         learn_params=None,
     ):
         """Construct scheduler with MLP policy."""
-        module = MultiNet.mlp(
-            env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint
-        )
+        module = MultiNet.mlp(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint)
         return cls(env, module, loss_func, optim_cls, optim_params, learn_params)
 
     @classmethod
@@ -361,9 +351,7 @@ class TorchScheduler(Base):
 
             return loss.item(), len(xb_)
 
-        with trange(
-            self.learn_params["max_epochs"], desc="Epoch", disable=(verbose == 0)
-        ) as pbar:
+        with trange(self.learn_params["max_epochs"], desc="Epoch", disable=(verbose == 0)) as pbar:
             for __ in pbar:
                 self.model.train()
                 for batch in dl_train:
@@ -372,10 +360,7 @@ class TorchScheduler(Base):
                 self.model.eval()
                 with torch.no_grad():
                     losses, nums = zip(
-                        *[
-                            loss_batch(self.model, self.loss_func, batch)
-                            for batch in dl_val
-                        ]
+                        *[loss_batch(self.model, self.loss_func, batch) for batch in dl_val]
                     )
                 val_loss = np.sum(np.multiply(losses, nums)) / np.sum(nums)
 
@@ -486,9 +471,7 @@ class LitScheduler(Base):
         )  # TODO: store init kwargs, use for `reset`?
 
     @classmethod
-    def from_module(
-        cls, env, module, model_kwargs=None, trainer_kwargs=None, learn_params=None
-    ):
+    def from_module(cls, env, module, model_kwargs=None, trainer_kwargs=None, learn_params=None):
         """Construct scheduler from a `nn.Module`"""
         if model_kwargs is None:
             model_kwargs = {}
@@ -525,9 +508,7 @@ class LitScheduler(Base):
         learn_params=None,
     ):
         """Construct scheduler with MLP policy."""
-        module = MultiNet.mlp(
-            env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint
-        )
+        module = MultiNet.mlp(env, hidden_sizes_ch, hidden_sizes_tasks, hidden_sizes_joint)
         return cls.from_module(env, module, model_kwargs, trainer_kwargs, learn_params)
 
     @classmethod

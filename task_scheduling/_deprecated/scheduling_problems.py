@@ -67,9 +67,7 @@ class DatasetOld(Base):  # TODO: deprecate?
                 self.problems = rng.permutation(self.problems).tolist()
             else:
                 # _temp = list(zip(self.problems, self.solutions))
-                _temp = np.array(
-                    list(zip(self.problems, self.solutions)), dtype=np.object
-                )
+                _temp = np.array(list(zip(self.problems, self.solutions)), dtype=np.object)
                 _p, _s = zip(*rng.permutation(_temp).tolist())
                 self.problems, self.solutions = list(_p), list(_s)
 
@@ -103,9 +101,7 @@ class Queue(Base):  # TODO: deprecate in favor of generators.tasks.Dataset?
         self._cls_task = task_gens.check_task_types(tasks_full)
 
         # FIXME: make a task_gen???
-        super().__init__(
-            n_tasks, len(ch_avail), task_gen=None, ch_avail_gen=None, rng=None
-        )
+        super().__init__(n_tasks, len(ch_avail), task_gen=None, ch_avail_gen=None, rng=None)
 
         self.queue = deque()
         self.add_tasks(tasks_full)

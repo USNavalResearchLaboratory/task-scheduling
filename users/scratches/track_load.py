@@ -22,8 +22,7 @@ tasks_search = [Linear(0.036, 0.0, slope=1.0, name=f"s_{i}") for i in range(n_se
 
 n_track = 4
 tasks_track = [
-    LinearDrop(0.018, 0.0, slope=2, t_drop=0.06, l_drop=None, name=f"t_{i}")
-    for i in range(n_track)
+    LinearDrop(0.018, 0.0, slope=2, t_drop=0.06, l_drop=None, name=f"t_{i}") for i in range(n_track)
 ]
 
 tasks = tasks_search + tasks_track
@@ -48,7 +47,5 @@ for name, algorithm in algorithms.items():
 
     check_schedule(tasks, sch)
     loss = evaluate_schedule(tasks, sch)
-    plot_losses_and_schedule(
-        tasks, sch, ch_avail, loss, name, fig_kwargs=dict(figsize=[6.4, 4.8])
-    )
+    plot_losses_and_schedule(tasks, sch, ch_avail, loss, name, fig_kwargs=dict(figsize=[6.4, 4.8]))
     print(f"{name}: {loss}")
