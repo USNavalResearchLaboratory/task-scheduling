@@ -14,20 +14,12 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.strategies import DDPSpawnStrategy, DDPStrategy
 from pytorch_lightning.utilities.seed import seed_everything
 from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import (
-    EvalCallback,
-    StopTrainingOnNoModelImprovement,
-)
+from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnNoModelImprovement
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.env_util import make_vec_env
 from torch import nn, optim
 
-from task_scheduling.algorithms import (
-    earliest_release,
-    mcts,
-    priority_sorter,
-    random_sequencer,
-)
+from task_scheduling.algorithms import earliest_release, mcts, priority_sorter, random_sequencer
 from task_scheduling.base import get_now
 from task_scheduling.generators import problems as problem_gens
 from task_scheduling.mdp.base import RandomAgent
@@ -79,7 +71,8 @@ if seed is not None:
 data_path = Path("data/")
 
 
-dataset = "continuous_linear_drop_c1t8"
+# dataset = "continuous_linear_drop_c1t8"
+dataset = "temp/continuous_linear_drop_c1t8_1e5"
 problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
 save_dir = "users/main_temp/"
@@ -123,7 +116,13 @@ learn_params_torch = {
     # 'weight_func': lambda o, a, r: 1 - o['seq'].sum() / o['seq'].size,
     "max_epochs": 5000,
     "shuffle": True,
-    "dl_kwargs": dict(num_workers=os.cpu_count(), persistent_workers=True, pin_memory=True),
+    "dl_kwargs": dict(
+        num_workers=0,
+        persistent_workers=False,
+        # num_workers=os.cpu_count(),
+        # persistent_workers=True,
+        pin_memory=True,
+    ),
 }
 
 model_kwargs = dict(
@@ -271,7 +270,8 @@ algorithms = np.array(
 
 
 # %% Evaluate and record results
-n_gen_learn, n_gen = 900, 100
+# n_gen_learn, n_gen = 900, 100
+n_gen_learn, n_gen = 80000, 20000
 # n_gen_learn, n_gen = 500000, 100
 
 # n_gen_learn = 900  # the number of problems generated for learning, per iteration

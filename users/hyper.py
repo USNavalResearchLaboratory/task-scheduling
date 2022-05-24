@@ -14,12 +14,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.seed import seed_everything
 from torch import nn, optim
 
-from task_scheduling.algorithms import (
-    earliest_release,
-    mcts,
-    priority_sorter,
-    random_sequencer,
-)
+from task_scheduling.algorithms import earliest_release, mcts, priority_sorter, random_sequencer
 from task_scheduling.base import get_now
 from task_scheduling.generators import problems as problem_gens
 from task_scheduling.mdp.environments import Index
@@ -62,7 +57,8 @@ if seed is not None:
 data_path = Path("data/")
 
 
-dataset = "continuous_linear_drop_c1t8"
+# dataset = "continuous_linear_drop_c1t8"
+dataset = "temp/continuous_linear_drop_c1t8_1e5"
 problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
 temp_path = "users/main_temp/optuna/"
@@ -110,7 +106,7 @@ def objective(trial):
         gpus=torch.cuda.device_count(),
     )
 
-    batch_size = trial.suggest_int("batch_size", 10, 110, step=20)
+    batch_size = trial.suggest_int("batch_size", 10, 210, step=20)
     learn_params_torch = {
         "batch_size_train": batch_size,
         "n_gen_val": 1 / 3,
@@ -126,10 +122,8 @@ def objective(trial):
 
     env = Index(problem_gen, **env_params)
 
-    n_layers = trial.suggest_int("n_layers", 1, 3)
-    hidden_dims = [
-        trial.suggest_int("n_units_l{}".format(i), 10, 10000, log=True) for i in range(n_layers)
-    ]
+    n_layers = trial.suggest_int("n_layers", 1, 5)
+    hidden_dims = [trial.suggest_int(f"n_units_l{i}", 10, 10000, log=True) for i in range(n_layers)]
     module = MultiNet.mlp(
         env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_sizes_joint=hidden_dims
     )
@@ -146,7 +140,8 @@ def objective(trial):
         dtype=[("name", "<U32"), ("func", object), ("n_iter", int)],
     )
 
-    n_gen_learn, n_gen = 900, 100
+    # n_gen_learn, n_gen = 900, 100
+    n_gen_learn, n_gen = 80000, 20000
     # log_path = None
     log_path = temp_path + "log.md"
     # img_path = temp_path + f'images/{now}'
@@ -176,13 +171,13 @@ if __name__ == "__main__":
     # pruner = optuna.pruners.MedianPruner()
 
     study = optuna.create_study(sampler=sampler, pruner=pruner)
-    study.optimize(objective, n_trials=100, timeout=36000, show_progress_bar=True)
+    study.optimize(objective, n_trials=100, timeout=3600 * 10, show_progress_bar=True)
 
     print(f"Number of finished trials: {len(study.trials)}")
 
     best_trial = study.best_trial
     print("Best trial:")
-    print("  Value: {}".format(best_trial.value))
+    print(f"  Value: {best_trial.value}")
     print("  Params: ")
     for key, value in best_trial.params.items():
         print(f"    {key}: {value}")
