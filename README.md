@@ -74,7 +74,7 @@ The `mdp` subpackage implements the scheduling problem as a Markov decision proc
 learning. Scheduling environments are provided in `mdp.environments`, following the 
 [OpenAI Gym](https://gym.openai.com/) API. The primary `Env` class is `Index`; this environment uses single task 
 assignments as actions and converts the scheduling problem (tasks and channel availabilities) into observed states, 
-including the status of each task. The `mdp.supervised` subpackage provides scheduler objects that use policy 
+including the status of each task. The `mdp.supervised` submodule provides scheduler objects that use policy 
 networks (implemented with [PyTorch](https://pytorch.org/)) to learn from these environments. The `mdp.reinforcement` submodule provides schedulers that implement and use agents from [Stable-Baselines3](https://stable-baselines3.readthedocs.io/en/master/); also included are special policies for Actor-Critic and DQN that enforce valid actions throughout the MDP episode.
 
 ### Evaluation
