@@ -15,8 +15,8 @@ from matplotlib import pyplot as plt
 from task_scheduling.base import RandomGeneratorMixin as RNGMix
 from task_scheduling.generators.problems import Base as BaseProblemGenerator
 from task_scheduling.generators.problems import Dataset
-from task_scheduling.mdp.base import BaseLearning as BaseLearningScheduler
-from task_scheduling.mdp.supervised.base import Base as BaseSupervisedScheduler
+from task_scheduling.mdp.base import BaseLearning
+from task_scheduling.mdp.supervised import BaseSupervised
 from task_scheduling.util import eval_wrapper, plot_schedule
 
 opt_name = "BB Optimal"
@@ -373,7 +373,7 @@ def evaluate_algorithms_single(
         Algorithm scheduling runtimes.
 
     """
-    learners = algorithms[[isinstance(alg["func"], BaseLearningScheduler) for alg in algorithms]]
+    learners = algorithms[[isinstance(alg["func"], BaseLearning) for alg in algorithms]]
 
     # RNG control
     if rng is not None:
@@ -490,7 +490,7 @@ def evaluate_algorithms_gen(
         Algorithm scheduling runtimes.
 
     """
-    learners = algorithms[[isinstance(alg["func"], BaseLearningScheduler) for alg in algorithms]]
+    learners = algorithms[[isinstance(alg["func"], BaseLearning) for alg in algorithms]]
     _do_learn = bool(len(learners)) and bool(n_gen_learn)
     if not _do_learn:
         n_gen_learn = 0
@@ -514,7 +514,7 @@ def evaluate_algorithms_gen(
     if _do_learn:
         # Get training problems, make solutions if needed for SL
         supervised_learners = learners[
-            [isinstance(alg["func"], BaseSupervisedScheduler) for alg in learners]
+            [isinstance(alg["func"], BaseSupervised) for alg in learners]
         ]
         _do_sl = bool(len(supervised_learners))
 
@@ -632,7 +632,7 @@ def evaluate_algorithms_train(
         Algorithm scheduling runtimes.
 
     """
-    learners = algorithms[[isinstance(alg["func"], BaseLearningScheduler) for alg in algorithms]]
+    learners = algorithms[[isinstance(alg["func"], BaseLearning) for alg in algorithms]]
     if len(learners) == 0:
         n_gen_learn = 0
 

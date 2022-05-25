@@ -16,19 +16,28 @@ from torch.nn import functional
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import trange
 
+from task_scheduling.mdp.base import BaseLearning
 from task_scheduling.mdp.environments import Index
-from task_scheduling.mdp.supervised.base import Base as BaseSupervisedScheduler
-from task_scheduling.mdp.supervised.torch.modules import MultiNet
+from task_scheduling.mdp.modules import MultiNet, reset_weights
 
 # TODO: use reward!? Add task loss to NLL loss for backprop?
 
 
-def reset_weights(model):
-    if hasattr(model, "reset_parameters"):
-        model.reset_parameters()
+class BaseSupervised(BaseLearning):  # TODO: deprecate? Only used for type checking??
+    @abstractmethod
+    def predict(self, obs):
+        raise NotImplementedError
+
+    @abstractmethod
+    def learn(self, n_gen_learn, verbose=0):
+        raise NotImplementedError
+
+    @abstractmethod
+    def reset(self, *args, **kwargs):
+        raise NotImplementedError
 
 
-class Base(BaseSupervisedScheduler):
+class BasePyTorch(BaseSupervised):
     """
     Base class for PyTorch-based schedulers.
 
@@ -244,7 +253,7 @@ class Base(BaseSupervisedScheduler):
         return cls(env, model, **kwargs)
 
 
-class TorchScheduler(Base):
+class TorchScheduler(BasePyTorch):
     """
     Base class for pure PyTorch-based schedulers.
 
@@ -433,7 +442,7 @@ class LitModel(pl.LightningModule):
         return self.optim_cls(self.parameters(), **self.optim_params)
 
 
-class LitScheduler(Base):
+class LitScheduler(BasePyTorch):
     """
     Base class for PyTorch Lightning-based schedulers.
 

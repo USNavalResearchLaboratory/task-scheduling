@@ -19,14 +19,8 @@ from task_scheduling.base import get_now
 from task_scheduling.generators import problems as problem_gens
 from task_scheduling.mdp.environments import Index
 from task_scheduling.mdp.features import encode_discrete_features, param_features
-from task_scheduling.mdp.supervised.torch import (
-    LitScheduler,
-    MultiNet,
-    TorchScheduler,
-    VaryCNN,
-    valid_logits,
-)
-from task_scheduling.mdp.supervised.torch.modules import build_mlp
+from task_scheduling.mdp.modules import MultiNet, VaryCNN, build_mlp, valid_logits
+from task_scheduling.mdp.supervised import LitScheduler, TorchScheduler
 from task_scheduling.results import evaluate_algorithms_gen, evaluate_algorithms_train
 
 # from math import factorial

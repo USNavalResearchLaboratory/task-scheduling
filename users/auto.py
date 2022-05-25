@@ -15,7 +15,8 @@ from task_scheduling.algorithms import earliest_release, mcts, random_sequencer
 from task_scheduling.base import get_now
 from task_scheduling.generators import problems as problem_gens
 from task_scheduling.mdp.environments import Index
-from task_scheduling.mdp.supervised.torch import LitScheduler, MultiNet, VaryCNN
+from task_scheduling.mdp.modules import MultiNet, VaryCNN
+from task_scheduling.mdp.supervised import LitScheduler
 from task_scheduling.results import evaluate_algorithms_gen, evaluate_algorithms_train
 
 np.set_printoptions(precision=3)

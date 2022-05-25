@@ -25,20 +25,14 @@ from task_scheduling.generators import problems as problem_gens
 from task_scheduling.mdp.base import RandomAgent
 from task_scheduling.mdp.environments import Index
 from task_scheduling.mdp.features import encode_discrete_features, param_features
+from task_scheduling.mdp.modules import MultiNet, VaryCNN, build_mlp, valid_logits
 from task_scheduling.mdp.reinforcement import (
     MultiExtractor,
     StableBaselinesScheduler,
     ValidActorCriticPolicy,
     ValidDQNPolicy,
 )
-from task_scheduling.mdp.supervised.torch import (
-    LitScheduler,
-    MultiNet,
-    TorchScheduler,
-    VaryCNN,
-    valid_logits,
-)
-from task_scheduling.mdp.supervised.torch.modules import build_mlp
+from task_scheduling.mdp.supervised import LitScheduler, TorchScheduler
 from task_scheduling.results import evaluate_algorithms_gen, evaluate_algorithms_train
 
 # from math import factorial
@@ -114,7 +108,7 @@ learn_params_torch = {
     "weight_func": None,  # TODO: use reward!?
     # 'weight_func': lambda o, a, r: r,
     # 'weight_func': lambda o, a, r: 1 - o['seq'].sum() / o['seq'].size,
-    "max_epochs": 5000,
+    "max_epochs": 5,
     "shuffle": True,
     "dl_kwargs": dict(
         num_workers=0,
@@ -201,7 +195,7 @@ sb_model_kwargs = dict(
     tensorboard_log=save_dir + "logs/sb/",
     verbose=1,
 )
-# sb_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', sb_model_kwargs, learn_params_sb)
+sb_scheduler = StableBaselinesScheduler.make_model(env, "PPO", sb_model_kwargs, learn_params_sb)
 
 
 # Behavioral cloning attempt
@@ -261,8 +255,8 @@ algorithms = np.array(
         # ('MCTS', partial(mcts, max_runtime=6e-3, max_rollouts=None, c_explore=0, th_visit=5), 10),
         # ('Random Agent', random_agent, 10),
         # ('Torch Policy', torch_scheduler, 10),
-        ("Lit Policy", lit_scheduler, 10),
-        # ('SB Agent', sb_scheduler, 10),
+        # ("Lit Policy", lit_scheduler, 10),
+        ("SB Agent", sb_scheduler, 10),
         # ('BC', bc_scheduler, 10),
     ],
     dtype=[("name", "<U32"), ("func", object), ("n_iter", int)],
@@ -270,8 +264,8 @@ algorithms = np.array(
 
 
 # %% Evaluate and record results
-# n_gen_learn, n_gen = 900, 100
-n_gen_learn, n_gen = 80000, 20000
+n_gen_learn, n_gen = 900, 100
+# n_gen_learn, n_gen = 80000, 20000
 # n_gen_learn, n_gen = 500000, 100
 
 # n_gen_learn = 900  # the number of problems generated for learning, per iteration

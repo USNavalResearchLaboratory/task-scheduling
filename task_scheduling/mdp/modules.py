@@ -5,6 +5,11 @@ from torch import nn
 from torch.nn import functional
 
 
+def reset_weights(model):
+    if hasattr(model, "reset_parameters"):
+        model.reset_parameters()
+
+
 def build_mlp(layer_sizes, activation=nn.ReLU, last_act=False):
     """
     PyTorch sequential MLP.

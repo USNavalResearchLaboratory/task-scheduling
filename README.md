@@ -183,7 +183,7 @@ from task_scheduling.mdp.reinforcement import (
     StableBaselinesScheduler,
     ValidActorCriticPolicy,
 )
-from task_scheduling.mdp.supervised.torch import LitScheduler
+from task_scheduling.mdp.supervised import LitScheduler
 from task_scheduling.results import evaluate_algorithms_train
 
 # from task_scheduling.results import evaluate_algorithms_gen

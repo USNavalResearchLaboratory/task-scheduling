@@ -19,8 +19,7 @@ from torch import nn
 from task_scheduling.base import get_now
 from task_scheduling.mdp.base import BaseLearning as BaseLearningScheduler
 from task_scheduling.mdp.environments import Index
-from task_scheduling.mdp.supervised.torch import reset_weights, valid_logits
-from task_scheduling.mdp.supervised.torch.modules import build_cnn, build_mlp
+from task_scheduling.mdp.modules import build_cnn, build_mlp, reset_weights, valid_logits
 
 _default_tuple = namedtuple("ModelDefault", ["cls", "params"], defaults={})
 

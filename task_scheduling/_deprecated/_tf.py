@@ -10,7 +10,7 @@ import tensorflow as tf
 from tensorboard import program
 from tensorflow import keras
 
-from task_scheduling.mdp.supervised.base import Base
+from task_scheduling.mdp.supervised.supervised import BasePyTorch
 
 for device in tf.config.experimental.list_physical_devices("GPU"):
     tf.config.experimental.set_memory_growth(device, True)  # compatibility issue workaround
@@ -30,7 +30,7 @@ def reset_weights(
                     var.assign(initializer(var.shape, var.dtype))
 
 
-class Scheduler(Base):
+class Scheduler(BasePyTorch):
     log_dir = Path.cwd()
 
     _learn_params_default = {
