@@ -128,7 +128,7 @@ class Scheduler(Base):
         if verbose >= 1:
             print("Generating training data...")
         weight_func = self.learn_params["weight_func"]
-        d_train = self.env.data_gen_full(n_gen_train, weight_func=weight_func, verbose=verbose)
+        d_train = self.env.data_gen(n_gen_train, weight_func=weight_func, verbose=verbose)
 
         x_train, y_train = d_train[:2]
         if callable(weight_func):
@@ -137,7 +137,7 @@ class Scheduler(Base):
         if n_gen_val > 0:  # use validation data
             if verbose >= 1:
                 print("Generating validation data...")
-            fit_params["validation_data"] = self.env.data_gen_full(
+            fit_params["validation_data"] = self.env.data_gen(
                 n_gen_val, weight_func=weight_func, verbose=verbose
             )
 

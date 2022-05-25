@@ -270,8 +270,8 @@ algorithms = np.array(
 
 
 # %% Evaluate and record results
-# n_gen_learn, n_gen = 900, 100
-n_gen_learn, n_gen = 80000, 20000
+n_gen_learn, n_gen = 900, 100
+# n_gen_learn, n_gen = 80000, 20000
 # n_gen_learn, n_gen = 500000, 100
 
 # n_gen_learn = 900  # the number of problems generated for learning, per iteration

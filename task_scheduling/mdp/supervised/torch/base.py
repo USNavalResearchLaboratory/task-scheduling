@@ -146,9 +146,9 @@ class Base(BaseSupervisedScheduler):
         self.model.apply(reset_weights)
 
     @abstractmethod
-    def _fit(self, dl_train, dl_val, verbose=0):
+    def _train(self, dl_train, dl_val, verbose=0):
         """
-        Fit the PyTorch network.
+        Train the PyTorch network.
 
         Parameters
         ----------
@@ -179,13 +179,13 @@ class Base(BaseSupervisedScheduler):
 
         if verbose >= 1:
             print("Generating training data...")
-        x_train, y_train, *w_train = self.env.data_gen_full(
+        x_train, y_train, *w_train = self.env.data_gen(
             n_gen_train, weight_func=self.learn_params["weight_func"], verbose=verbose
         )
 
         if verbose >= 1:
             print("Generating validation data...")
-        x_val, y_val, *w_val = self.env.data_gen_full(
+        x_val, y_val, *w_val = self.env.data_gen(
             n_gen_val, weight_func=self.learn_params["weight_func"], verbose=verbose
         )
 
@@ -220,7 +220,7 @@ class Base(BaseSupervisedScheduler):
             **self.learn_params["dl_kwargs"],
         )
 
-        self._fit(dl_train, dl_val, verbose)
+        self._train(dl_train, dl_val, verbose)
 
     def save(self, save_path):
         """Save the scheduler model and environment."""
@@ -329,7 +329,7 @@ class TorchScheduler(Base):
             learn_params,
         )
 
-    def _fit(self, dl_train, dl_val, verbose=0):
+    def _train(self, dl_train, dl_val, verbose=0):
         if verbose >= 1:
             print("Training model...")
 
@@ -414,11 +414,9 @@ class LitModel(pl.LightningModule):
             x, y, w = batch[:-2], batch[-2], batch[-1]
             losses = self.loss_func(self(*x), y, reduction="none")
             loss = torch.mean(w * losses)
-        elif len(batch) == self._n_in + 1:
+        else:
             x, y = batch[:-1], batch[-1]
             loss = self.loss_func(self(*x), y)
-        else:
-            raise ValueError
 
         return loss
 
@@ -543,7 +541,7 @@ class LitScheduler(Base):
         super().reset()
         self.trainer = pl.Trainer(**deepcopy(self.trainer_kwargs))
 
-    def _fit(self, dl_train, dl_val, verbose=0):
+    def _train(self, dl_train, dl_val, verbose=0):
         if verbose >= 1:
             print("Training model...")
 

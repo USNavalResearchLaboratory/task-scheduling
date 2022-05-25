@@ -11,7 +11,7 @@ import numpy as np
 from gym import Env
 from gym.spaces import Box, Dict, MultiDiscrete
 from matplotlib import pyplot as plt
-from tqdm import tqdm
+from tqdm import trange
 
 import task_scheduling.spaces as spaces_tasking
 from task_scheduling.mdp.features import normalize as normalize_features
@@ -373,16 +373,14 @@ class Base(Env, ABC):
         """Optimal action based on current state."""
         raise NotImplementedError
 
-    def data_gen(self, n_batch, batch_size=1, weight_func=None, verbose=0, rng=None):
+    def data_gen(self, n_gen, weight_func=None, verbose=0, rng=None):
         """
         Generate observation-action data for learner training and evaluation.
 
         Parameters
         ----------
-        n_batch : int
-            Number of batches of observation-action pair data to generate.
-        batch_size : int
-            Number of scheduling problems to make data from per yielded batch.
+        n_gen : int, optional
+            Number of scheduling problems to generate data from.
         weight_func : callable, optional
             Function mapping environment object to a training weight.
         verbose : {0, 1, 2}, optional
@@ -400,87 +398,53 @@ class Base(Env, ABC):
             Sample weights.
 
         """
-
         # TODO: refactor SL data gen to `mdp.supervised.Base`?
 
-        pbar = tqdm(
-            total=n_batch * batch_size * self.n_tasks,
-            desc="Creating tensors",
-            disable=(verbose == 0),
-        )
-        for __ in range(n_batch):
-            # if verbose >= 1:
-            #     print(f'Batch: {i_batch + 1}/{n_batch}', end='\n')
+        n_steps = n_gen * self.n_tasks
+        if isinstance(self.observation_space, Dict):
+            # data = list(zip(*(np.empty((steps_total, *space.shape), dtype=space.dtype)
+            #                 for space in self.observation_space.spaces.values())))
+            # dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
+            # x_set = np.array(data, dtype=dtype)
 
-            steps_total = batch_size * self.n_tasks
+            # x_set = OrderedDict([(key, np.empty((steps_total, *space.shape), dtype=space.dtype))
+            #                      for key, space in self.observation_space.spaces.items()])
+            x = {
+                key: np.empty((n_steps, *space.shape), dtype=space.dtype)
+                for key, space in self.observation_space.spaces.items()
+            }
+        else:
+            x = np.empty(
+                (n_steps, *self.observation_space.shape),
+                dtype=self.observation_space.dtype,
+            )
+        y = np.empty((n_steps, *self.action_space.shape), dtype=self.action_space.dtype)
+        w = np.empty(n_steps, dtype=float)
 
-            if isinstance(self.observation_space, Dict):
-                # data = list(zip(*(np.empty((steps_total, *space.shape), dtype=space.dtype)
-                #                 for space in self.observation_space.spaces.values())))
-                # dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
-                # x_set = np.array(data, dtype=dtype)
+        for i_gen in trange(n_gen, desc="Creating tensors", disable=(verbose == 0)):
+            obs = self.reset(solve=True, rng=rng)  # generates new scheduling problem
 
-                # x_set = OrderedDict([(key, np.empty((steps_total, *space.shape), dtype=space.dtype))
-                #                      for key, space in self.observation_space.spaces.items()])
-                x_set = {
-                    key: np.empty((steps_total, *space.shape), dtype=space.dtype)
-                    for key, space in self.observation_space.spaces.items()
-                }
-            else:
-                x_set = np.empty(
-                    (steps_total, *self.observation_space.shape),
-                    dtype=self.observation_space.dtype,
-                )
+            for i_step in range(self.n_tasks):
+                i = i_gen * self.n_tasks + i_step
 
-            y_set = np.empty((steps_total, *self.action_space.shape), dtype=self.action_space.dtype)
-            w_set = np.empty(steps_total, dtype=float)
+                action = self.opt_action()
 
-            for i_gen in range(batch_size):
-                # if verbose >= 2:
-                #     print(f'  Problem: {i_gen + 1}/{batch_size}', end='\r')
-                # if verbose >= 1:
-                #     print(
-                #         f"Problem: {batch_size * i_batch + i_gen + 1}/{n_batch * batch_size}",
-                #         end="\r",
-                #     )
+                # x_set[i] = obs
+                for key in self.observation_space:
+                    x[key][i] = obs[key]
+                y[i] = action
 
-                obs = self.reset(solve=True, rng=rng)  # generates new scheduling problem
+                obs, reward, done, info = self.step(action)  # updates environment state
+                if callable(weight_func):
+                    w[i] = weight_func(obs, action, reward)
+                    # TODO: use rewards for weighting!?!
 
-                done = False
-                i_step = 0
-                while not done:
-                    i = i_gen * self.n_tasks + i_step
+                i_step += 1
 
-                    action = self.opt_action()
-
-                    # x_set[i] = obs
-                    for key in self.observation_space:
-                        x_set[key][i] = obs[key]
-                    y_set[i] = action
-
-                    obs, reward, done, info = self.step(action)  # updates environment state
-                    if callable(weight_func):
-                        w_set[i] = weight_func(
-                            obs, action, reward
-                        )  # TODO: use rewards for weighting!?!
-
-                    i_step += 1
-
-                    pbar.update()
-
-            if callable(weight_func):
-                yield x_set, y_set, w_set
-            else:
-                yield x_set, y_set
-
-        pbar.close()
-
-    def data_gen_full(self, n_gen, weight_func=None, verbose=0):
-        """Generate observation-action data, return in single feature/class arrays."""
-        (data,) = self.data_gen(
-            n_batch=1, batch_size=n_gen, weight_func=weight_func, verbose=verbose
-        )
-        return data
+        if callable(weight_func):
+            return x, y, w
+        else:
+            return x, y
 
 
 class Index(Base):
