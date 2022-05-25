@@ -1,14 +1,6 @@
 task\_scheduling.mdp package
 ============================
 
-Subpackages
------------
-
-.. toctree::
-   :maxdepth: 4
-
-   task_scheduling.mdp.supervised
-
 Submodules
 ----------
 
@@ -36,10 +28,26 @@ task\_scheduling.mdp.features module
    :undoc-members:
    :show-inheritance:
 
+task\_scheduling.mdp.modules module
+-----------------------------------
+
+.. automodule:: task_scheduling.mdp.modules
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 task\_scheduling.mdp.reinforcement module
 -----------------------------------------
 
 .. automodule:: task_scheduling.mdp.reinforcement
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+task\_scheduling.mdp.supervised module
+--------------------------------------
+
+.. automodule:: task_scheduling.mdp.supervised
    :members:
    :undoc-members:
    :show-inheritance:
