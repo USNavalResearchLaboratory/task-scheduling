@@ -33,6 +33,7 @@ def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
     Parameters
     ----------
     tasks : Collection of task_scheduling.tasks.Base
+        Tasks.
     t_plot : numpy.ndarray
         Loss evaluation times.
     ax : matplotlib.axes.Axes, optional
@@ -41,7 +42,6 @@ def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
         Additional Axes keyword parameters.
 
     """
-
     if t_plot is None:
         x_lim = min(task.plot_lim[0] for task in tasks), max(task.plot_lim[1] for task in tasks)
         t_plot = np.arange(*x_lim, 1e-3)
@@ -68,18 +68,18 @@ def check_schedule(tasks, sch, tol=1e-12):
     Parameters
     ----------
     tasks : Collection of task_scheduling.tasks.Base
+        Tasks.
     sch : numpy.ndarray
         Task execution schedule.
     tol : float, optional
         Time tolerance for validity conditions.
 
     Raises
-    -------
+    ------
     ValueError
         If tasks overlap in time.
 
     """
-
     for c in np.unique(sch["c"]):
         tasks_ch = np.array(tasks)[sch["c"] == c].tolist()
         t_ch = sch["t"][sch["c"] == c]
@@ -123,6 +123,7 @@ def plot_schedule(tasks, sch, ch_avail=None, loss=None, name=None, ax=None, ax_k
     Parameters
     ----------
     tasks : Collection of task_scheduling.tasks.Base
+        Tasks.
     sch : numpy.ndarray
         Task execution schedule.
     ch_avail : Collection of float, optional
@@ -188,7 +189,7 @@ def plot_schedule(tasks, sch, ch_avail=None, loss=None, name=None, ax=None, ax_k
 
 
 def eval_wrapper(scheduler):
-    """Wraps a scheduler, creates a function that outputs runtime in addition to schedule."""
+    """Wrap a scheduler, creating a function that outputs runtime in addition to schedule."""
 
     @wraps(scheduler)
     def timed_scheduler(tasks, ch_avail):
@@ -211,6 +212,7 @@ def plot_losses_and_schedule(tasks, sch, ch_avail, loss=None, name=None, fig_kwa
     Parameters
     ----------
     tasks : Collection of task_scheduling.tasks.Base
+        Tasks.
     sch : numpy.ndarray
         Task execution schedule.
     ch_avail : Collection of float, optional
@@ -223,7 +225,6 @@ def plot_losses_and_schedule(tasks, sch, ch_avail, loss=None, name=None, fig_kwa
         `matplotlib.Figure` arguments.
 
     """
-
     if fig_kwargs is None:
         fig_kwargs = {}
 

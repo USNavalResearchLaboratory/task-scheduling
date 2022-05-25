@@ -49,7 +49,6 @@ def _file_logger(file, file_format):
 
 def _log_and_fig(message, log_path, fig, img_path):
     """Save figure, add figure to message format and log."""
-
     file_format = "\n# %(asctime)s\n%(message)s\n"
     if img_path is not None:
         img_path = Path(img_path)
@@ -191,42 +190,49 @@ def _scatter_loss_runtime(t_run, loss, ax=None, ax_kwargs=None):
     ax.set(**ax_kwargs)
 
 
-# def _scatter_results(t_run, loss, label='Results', do_relative=False):
+# def _scatter_results(t_run, loss, label="Results", do_relative=False):
 #     if do_relative:  # relative to B&B
-#         figsize = plt.rcParams['figure.figsize']
-#         with plt.rc_context({'figure.figsize': [figsize[0], 2 * figsize[1]]}):
+#         figsize = plt.rcParams["figure.figsize"]
+#         with plt.rc_context({"figure.figsize": [figsize[0], 2 * figsize[1]]}):
 #             fig, ax = plt.subplots(2, num=label, clear=True)
-#
-#         _scatter_loss_runtime(t_run, loss,
-#                               ax=ax[0],
-#                               # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
-#                               )
-#
+
+#         _scatter_loss_runtime(
+#             t_run,
+#             loss,
+#             ax=ax[0],
+#             # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
+#         )
+
 #         normalize = True
-#
+
 #         loss_rel = _relative_loss(loss, normalize)
-#
+
 #         names = list(loss.dtype.names)
 #         names.remove(opt_name)
-#         ylabel = 'Excess Loss'
+#         ylabel = "Excess Loss"
 #         if normalize:
-#             if plt.rcParams['text.usetex']:
-#                 ylabel += r' (\%)'
+#             if plt.rcParams["text.usetex"]:
+#                 ylabel += r" (\%)"
 #             else:
-#                 ylabel += r' (%)'
-#         _scatter_loss_runtime(t_run[names], loss_rel[names],
-#                               ax=ax[1],
-#                               ax_kwargs={'ylabel': ylabel,
-#                                          # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
-#                                          }
-#                               )
+#                 ylabel += r" (%)"
+#         _scatter_loss_runtime(
+#             t_run[names],
+#             loss_rel[names],
+#             ax=ax[1],
+#             ax_kwargs={
+#                 "ylabel": ylabel,
+#                 # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
+#             },
+#         )
 #     else:
 #         fig, ax = plt.subplots(num=label, clear=True)
-#         _scatter_loss_runtime(t_run, loss,
-#                               ax=ax,
-#                               # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
-#                               )
-#
+#         _scatter_loss_runtime(
+#             t_run,
+#             loss,
+#             ax=ax,
+#             # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
+#         )
+
 #     return fig
 
 
@@ -290,7 +296,11 @@ def _print_averages(loss, t_run, do_relative=False):
 
 # RNG handling
 def _set_algorithm_rng(algorithms, rng):
-    """Makes algorithms into `functools.partial` objects, overwrites any existing `rng` arguments."""
+    """
+    Make algorithms into `functools.partial` objects.
+
+    Overwrites any existing `rng` arguments.
+    """
     for algorithm in algorithms:
         if isinstance(algorithm["func"], partial):
             func_code = algorithm["func"].func.__code__
@@ -310,8 +320,12 @@ def _set_algorithm_rng(algorithms, rng):
 
 
 def _seed_to_rng(algorithms):
-    """Convert algorithm `rng` arguments to NumPy `Generator` objects. Repeated calls to algorithms will use the RNG
-    in-place, avoiding exact reproduction and ensuring new output for Monte Carlo evaluation."""
+    """
+    Convert algorithm `rng` arguments to NumPy `Generator` objects.
+
+    Repeated calls to algorithms will use the RNG in-place, avoiding exact reproduction and
+    ensuring new output for Monte Carlo evaluation.
+    """
     for func in algorithms["func"]:
         if isinstance(func, partial) and "rng" in func.keywords:
             func.keywords["rng"] = RNGMix.make_rng(func.keywords["rng"])
@@ -336,10 +350,12 @@ def evaluate_algorithms_single(
     algorithms: Collection of callable
         Scheduling algorithms
     problem : SchedulingProblem
+        The tasks and channel availability.
     solution_opt : SchedulingSolution, optional
         Optimal scheduling solution.
     verbose : int, optional
-        Print level. '0' is silent; '1' prints current algorithm and logs results; '2' adds iteration count.
+        Print level. '0' is silent; '1' prints current algorithm and logs results;
+        '2' adds iteration count.
     plotting : int, optional
         Plotting level. '0' plots nothing; '1' plots loss-runtime results; '2' adds every schedule.
     log_path : os.PathLike or str, optional
@@ -357,7 +373,6 @@ def evaluate_algorithms_single(
         Algorithm scheduling runtimes.
 
     """
-
     learners = algorithms[[isinstance(alg["func"], BaseLearningScheduler) for alg in algorithms]]
 
     # RNG control
@@ -475,7 +490,6 @@ def evaluate_algorithms_gen(
         Algorithm scheduling runtimes.
 
     """
-
     learners = algorithms[[isinstance(alg["func"], BaseLearningScheduler) for alg in algorithms]]
     _do_learn = bool(len(learners)) and bool(n_gen_learn)
     if not _do_learn:
@@ -598,9 +612,11 @@ def evaluate_algorithms_train(
     solve : bool, optional
         Enables generation of Branch & Bound optimal solutions.
     verbose : int, optional
-        Print level. '0' is silent, '1' prints iteration and logs results, '2' adds info from each problem set.
+        Print level. '0' is silent, '1' prints iteration and logs results, '2' adds info from each
+        problem set.
     plotting : int, optional
-        Plotting level. '0' plots nothing, '1' plots average results, '2' adds plots for each problem set.
+        Plotting level. '0' plots nothing, '1' plots average results, '2' adds plots for each
+        problem set.
     log_path : os.PathLike or str, optional
         File path for logging of algorithm performance.
     img_path : os.PathLike or str, optional
@@ -616,7 +632,6 @@ def evaluate_algorithms_train(
         Algorithm scheduling runtimes.
 
     """
-
     learners = algorithms[[isinstance(alg["func"], BaseLearningScheduler) for alg in algorithms]]
     if len(learners) == 0:
         n_gen_learn = 0

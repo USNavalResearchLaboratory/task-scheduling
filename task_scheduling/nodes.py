@@ -24,6 +24,7 @@ class ScheduleNode(RandomGeneratorMixin):
     Parameters
     ----------
     tasks : Collection
+        Tasks.
     ch_avail : Collection of float
         Channel availability times.
     seq : Collection of int
@@ -98,7 +99,7 @@ class ScheduleNode(RandomGeneratorMixin):
 
     def seq_extend(self, seq_ext, check_valid=True):
         """
-        Extends node sequence and updates attributes using sequence-to-schedule approach.
+        Extend node sequence and update attributes using sequence-to-schedule approach.
 
         Parameters
         ----------
@@ -108,7 +109,6 @@ class ScheduleNode(RandomGeneratorMixin):
             Perform check of index sequence validity.
 
         """
-
         if not isinstance(seq_ext, Collection):
             seq_ext = [seq_ext]
         if check_valid:
@@ -123,7 +123,7 @@ class ScheduleNode(RandomGeneratorMixin):
 
     def seq_append(self, n, check_valid=True):
         """
-        Extends node sequence and updates attributes using sequence-to-schedule approach.
+        Append node sequence and update attributes using sequence-to-schedule approach.
 
         Parameters
         ----------
@@ -133,7 +133,6 @@ class ScheduleNode(RandomGeneratorMixin):
             Perform check of index validity.
 
         """
-
         if check_valid and n in self.seq:
             raise ValueError("Appended index must not be in the current node sequence.")
 
@@ -172,12 +171,11 @@ class ScheduleNode(RandomGeneratorMixin):
             NumPy random number generator or seed. Instance RNG if None.
 
         Yields
-        -------
+        ------
         ScheduleNode
             Descendant node with one additional task scheduled.
 
         """
-
         seq_iter = list(self._seq_rem)
         if permute:
             rng = self._get_rng(rng)
@@ -203,7 +201,6 @@ class ScheduleNode(RandomGeneratorMixin):
             Only if `inplace` is False.
 
         """
-
         rng = self._get_rng(rng)
         seq_ext = rng.permutation(list(self._seq_rem)).tolist()
 
@@ -243,7 +240,8 @@ class ScheduleNode(RandomGeneratorMixin):
         c_explore : float, optional
             Exploration weight. Higher values prioritize less frequently visited notes.
         th_visit : int, optional
-            Nodes with up to this number of visits will select children using the `expansion` method.
+            Nodes with up to this number of visits will select children using the `expansion`
+            method.
         inplace : bool, optional
             If True, self.seq is completed. Otherwise, a new node object is returned.
         verbose : bool, optional
@@ -258,10 +256,10 @@ class ScheduleNode(RandomGeneratorMixin):
 
         Notes
         -----
-        Reproducibility using `rng` argument may not be guaranteed due to differing code execution times.
+        Reproducibility using `rng` argument may not be guaranteed due to differing code execution
+        times.
 
         """
-
         t_run = perf_counter()
 
         if max_runtime is None and max_rollouts is None:
@@ -322,7 +320,6 @@ class ScheduleNode(RandomGeneratorMixin):
             Only if `inplace` is False.
 
         """
-
         node_best, loss_best = None, np.inf
 
         n_perms = factorial(len(self.seq_rem))
@@ -348,6 +345,7 @@ class ScheduleNodeBound(ScheduleNode):
     Parameters
     ----------
     tasks : Collection
+        Tasks.
     ch_avail : Collection of float
         Channel availability times.
     seq : Collection of int
@@ -370,7 +368,7 @@ class ScheduleNodeBound(ScheduleNode):
 
     def seq_extend(self, seq_ext, check_valid=True):
         """
-        Sets node sequence and iteratively updates all dependent attributes.
+        Set node sequence and iteratively updates all dependent attributes.
 
         Parameters
         ----------
@@ -380,7 +378,6 @@ class ScheduleNodeBound(ScheduleNode):
             Perform check of index sequence validity.
 
         """
-
         super().seq_extend(seq_ext, check_valid)
         self._update_bounds()
 
@@ -421,7 +418,6 @@ class ScheduleNodeBound(ScheduleNode):
             Only if `inplace` is False.
 
         """
-
         rng = self._get_rng(rng)
 
         if self.bounds[0] == self.bounds[1]:  # trivial problem, any roll-out is optimal
@@ -448,8 +444,10 @@ class ScheduleNodeBound(ScheduleNode):
                         )  # roll-out a new best node
 
             if verbose:
-                # progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(self.n_tasks)
-                # print(f'Search progress: {progress:.3f}, Loss < {node_best.loss:.3f}', end='\r')
+                # progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(
+                #     self.n_tasks
+                # )
+                # print(f"Search progress: {progress:.3f}, Loss < {node_best.loss:.3f}", end="\r")
                 print(
                     f"# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}",
                     end="\r",
@@ -470,7 +468,8 @@ class ScheduleNodeBound(ScheduleNode):
         Parameters
         ----------
         priority_func : callable, optional
-            Key function that maps `ScheduleNode` objects to priority values. Defaults to negative lower bound.
+            Key function that maps `ScheduleNode` objects to priority values. Defaults to negative
+            lower bound.
         heuristic : callable, optional
             Uses a partial node to generate a complete sequence node.
         inplace : bool, optional
@@ -484,7 +483,6 @@ class ScheduleNodeBound(ScheduleNode):
             Only if `inplace` is False.
 
         """
-
         if self.bounds[0] == self.bounds[1]:  # trivial problem, any roll-out is optimal
             return self.roll_out(inplace)
 
@@ -515,8 +513,10 @@ class ScheduleNodeBound(ScheduleNode):
                         node_best = heuristic(node_new)
 
             if verbose:
-                # progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(self.n_tasks)
-                # print(f'Search progress: {progress:.3f}, Loss < {node_best.loss:.3f}', end='\r')
+                # progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(
+                #     self.n_tasks
+                # )
+                # print(f"Search progress: {progress:.3f}, Loss < {node_best.loss:.3f}", end="\r")
                 print(
                     f"# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}",
                     end="\r",
@@ -536,6 +536,7 @@ class ScheduleNodeShift(ScheduleNode):
     Parameters
     ----------
     tasks : Collection
+        Tasks.
     ch_avail : Collection of float
         Channel availability times.
     seq : Collection of int
@@ -562,9 +563,11 @@ class ScheduleNodeShift(ScheduleNode):
         self.shift_origin()
 
     def shift_origin(self):
-        """Shifts the time origin to the earliest channel availability and invokes shift method of each task,
-        adding each incurred loss to the total."""
+        """
+        Shifts the time origin to the earliest channel availability.
 
+        Invokes shift method of each task, adding each incurred loss to the total.
+        """
         ch_avail_min = min(self._ch_avail)
 
         self.t_origin += ch_avail_min
@@ -586,6 +589,7 @@ class MCTSNode(RandomGeneratorMixin):
     Parameters
     ----------
     n_tasks : int
+        Number of tasks.
     bounds : Collection of float
         Lower and upper loss bounds for node value normalization
     seq : Collection of int
@@ -593,7 +597,8 @@ class MCTSNode(RandomGeneratorMixin):
     c_explore : float, optional
         Exploration weight. Higher values prioritize searching new branches.
     th_visit : int, optional
-        Once node has been visited this many times, UCT is used for child selection, not random choice.
+        Once node has been visited this many times, UCT is used for child selection, not random
+        choice.
     parent : MCTSNode, optional
     rng : int or RandomState or Generator, optional
         NumPy random number generator or seed. Instance RNG if None.
@@ -644,7 +649,6 @@ class MCTSNode(RandomGeneratorMixin):
     @property
     def weight(self):
         """Weight for child selection. Combines average loss with a visit count bonus."""
-
         # TODO: use parent policy eval to influence weighting
 
         value_loss = (self._bounds[1] - self._l_avg) / (self._bounds[1] - self._bounds[0])
@@ -653,8 +657,11 @@ class MCTSNode(RandomGeneratorMixin):
         return value_loss + self._c_explore * value_explore
 
     def select_child(self):
-        """Select child node. Under the threshold, the expansion method is used. Above, the weight property is used."""
+        """
+        Select child node.
 
+        Under the threshold, the expansion method is used. Above, the weight property is used.
+        """
         if self._n_visits <= self._th_visit:
             return self.expansion()
         else:
@@ -665,8 +672,7 @@ class MCTSNode(RandomGeneratorMixin):
             return self.children[n]
 
     def selection(self):
-        """Iteratively select descendant nodes until a leaf is reached."""
-
+        """Repeatedly select descendant nodes until a leaf is reached."""
         node = self
         while not node.is_leaf:
             node = node.select_child()
@@ -688,7 +694,6 @@ class MCTSNode(RandomGeneratorMixin):
 
     def expansion(self):
         """Pseudo-random expansion, potentially creating a new child node."""
-
         n = self.rng.choice(list(self._seq_rem))  # TODO: pseudo-random w/ policy?
         if n not in self._children:
             self._add_child(n)
@@ -699,7 +704,6 @@ class MCTSNode(RandomGeneratorMixin):
 
     def backup(self, loss):
         """Update loss and visit statistics for the node and all ancestors."""
-
         node = self
         node.update_stats(loss)
         while not node.is_root:
@@ -716,7 +720,6 @@ class MCTSNode(RandomGeneratorMixin):
             Loss of a complete solution descending from the node.
 
         """
-
         loss_total = self._l_avg * self._n_visits + loss
         self._n_visits += 1
         self._l_avg = loss_total / self._n_visits

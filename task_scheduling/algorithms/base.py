@@ -10,6 +10,7 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
     Parameters
     ----------
     tasks : Collection of task_scheduling.tasks.Base
+        Tasks.
     ch_avail : Collection of float
         Channel availability times.
     verbose : bool
@@ -23,7 +24,6 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
         Task schedule.
 
     """
-
     node = ScheduleNodeBound(tasks, ch_avail, rng=rng)
     node_best = node.branch_bound(inplace=False, verbose=verbose)
 
@@ -37,10 +37,12 @@ def branch_bound_priority(tasks, ch_avail, priority_func=None, heuristic=None, v
     Parameters
     ----------
     tasks : Collection of task_scheduling.tasks.Base
+        Tasks.
     ch_avail : Collection of float
         Channel availability times.
     priority_func : callable, optional
-        Key function that maps `ScheduleNode` objects to priority values. Defaults to negative lower bound.
+        Key function that maps `ScheduleNode` objects to priority values. Defaults to negative
+        lower bound.
     heuristic : callable, optional
         Uses a partial node to generate a complete sequence node.
     verbose : bool
@@ -52,7 +54,6 @@ def branch_bound_priority(tasks, ch_avail, priority_func=None, heuristic=None, v
         Task schedule.
 
     """
-
     node = ScheduleNodeBound(tasks, ch_avail)
     node_best = node.branch_bound_priority(priority_func, heuristic, False, verbose)
 
@@ -75,6 +76,7 @@ def mcts(
     Parameters
     ----------
     tasks : Collection of task_scheduling.tasks.Base
+        Tasks.
     ch_avail : Collection of float
         Channel availability times.
     max_runtime : float, optional
@@ -96,7 +98,6 @@ def mcts(
         Task schedule.
 
     """
-
     node = ScheduleNode(tasks, ch_avail, rng=rng)
     node = node.mcts(max_runtime, max_rollouts, c_explore, th_visit, inplace=False, verbose=verbose)
 
@@ -105,11 +106,12 @@ def mcts(
 
 def random_sequencer(tasks, ch_avail, rng=None):
     """
-    Generates a random task sequence, determines execution times and channels.
+    Generate a random task sequence, determine execution times and channels.
 
     Parameters
     ----------
     tasks : Collection of task_scheduling.tasks.Base
+        Tasks.
     ch_avail : Collection of float
         Channel availability times.
     rng : int or RandomState or Generator, optional
@@ -121,7 +123,6 @@ def random_sequencer(tasks, ch_avail, rng=None):
         Task schedule.
 
     """
-
     node = ScheduleNode(tasks, ch_avail, rng=rng)
     node.roll_out()
 
@@ -135,6 +136,7 @@ def priority_sorter(tasks, ch_avail, func, reverse=True):
     Parameters
     ----------
     tasks : Collection of task_scheduling.tasks.Base
+        Tasks.
     ch_avail : Collection of float
         Channel availability times.
     func : callable
@@ -148,7 +150,6 @@ def priority_sorter(tasks, ch_avail, func, reverse=True):
         Task schedule.
 
     """
-
     node = ScheduleNode(tasks, ch_avail)
     node.priority_sorter(func, reverse)
 
@@ -162,6 +163,7 @@ def earliest_release(tasks, ch_avail):
     Parameters
     ----------
     tasks : Collection of task_scheduling.tasks.Base
+        Tasks.
     ch_avail : Collection of float
         Channel availability times.
 
@@ -171,7 +173,6 @@ def earliest_release(tasks, ch_avail):
         Task schedule.
 
     """
-
     node = ScheduleNode(tasks, ch_avail)
     node.earliest_release()
 
@@ -185,6 +186,7 @@ def earliest_drop(tasks, ch_avail):
     Parameters
     ----------
     tasks : Collection of task_scheduling.tasks.Base
+        Tasks.
     ch_avail : Collection of float
         Channel availability times.
 
@@ -194,7 +196,6 @@ def earliest_drop(tasks, ch_avail):
         Task schedule.
 
     """
-
     node = ScheduleNode(tasks, ch_avail)
     node.earliest_drop()
 
@@ -208,6 +209,7 @@ def brute_force(tasks, ch_avail, verbose=False):
     Parameters
     ----------
     tasks : Collection of task_scheduling.tasks.Base
+        Tasks.
     ch_avail : Collection of float
         Channel availability times.
     verbose : bool
@@ -219,7 +221,6 @@ def brute_force(tasks, ch_avail, verbose=False):
         Task schedule.
 
     """
-
     node = ScheduleNode(tasks, ch_avail)
     node_best = node.brute_force(inplace=False, verbose=verbose)
 

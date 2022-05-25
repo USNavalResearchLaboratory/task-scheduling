@@ -207,7 +207,8 @@ class MultiExtractor(BaseFeaturesExtractor):
         c, s, t = observations.values()
         t = t.permute(0, 2, 1)
         # s = s[:, ::2]  # override SB3 one-hot encoding
-        # t = torch.cat((t.permute(0, 2, 1), s.unsqueeze(1)), dim=1)  # reshape task features, combine w/ sequence mask
+        # t = torch.cat((t.permute(0, 2, 1), s.unsqueeze(1)), dim=1)
+        # # reshape task features, combine w/ sequence mask
 
         c = self.net_ch(c)
         t = self.net_tasks(t)

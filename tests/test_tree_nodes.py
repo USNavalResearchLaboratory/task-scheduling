@@ -26,7 +26,6 @@ problem_gen = problem_gens.Random.continuous_linear_drop(
 
 def test_argsort():
     """Check that seq=np.argsort(sch['t']) maps to an optimal schedule."""
-
     for i, (tasks, ch_avail) in enumerate(problem_gen(10)):
         print(f"{i}", end="\n")
 
@@ -41,7 +40,6 @@ def test_argsort():
 
 def test_shift():
     """Check accuracy of ScheduleNodeShift solution."""
-
     for i, (tasks, ch_avail) in enumerate(problem_gen(1000)):
         print(f"{i}", end="\n")
 

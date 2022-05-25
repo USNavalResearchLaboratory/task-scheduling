@@ -15,11 +15,13 @@ def sort_wrapper(scheduler, sort_func):
     Parameters
     ----------
     scheduler : callable
+        Task scheduler.
     sort_func : function or str, optional
         Method that returns a sorting value for re-indexing given a task index 'n'.
 
     Returns
     -------
+    callable
 
     """
     if isinstance(sort_func, str):

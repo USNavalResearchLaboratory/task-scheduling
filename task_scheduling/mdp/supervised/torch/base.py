@@ -3,7 +3,6 @@
 import math
 from abc import abstractmethod
 from copy import deepcopy
-from faulthandler import disable
 from functools import partial
 from inspect import signature
 from pathlib import Path
@@ -17,7 +16,6 @@ from torch.nn import functional
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import trange
 
-from task_scheduling.mdp.environments import Base as BaseEnv
 from task_scheduling.mdp.environments import Index
 from task_scheduling.mdp.supervised.base import Base as BaseSupervisedScheduler
 from task_scheduling.mdp.supervised.torch.modules import MultiNet
@@ -36,7 +34,7 @@ class Base(BaseSupervisedScheduler):
 
     Parameters
     ----------
-    env : BaseEnv
+    env : Index
         OpenAi gym environment.
     model : torch.nn.Module
         The learning network.
@@ -94,7 +92,6 @@ class Base(BaseSupervisedScheduler):
             Action probabilities.
 
         """
-
         input_ = (torch.from_numpy(o).float().unsqueeze(0) for o in self._obs_to_tuple(obs))
         with torch.no_grad():
             out = self.model(*input_)
@@ -153,7 +150,9 @@ class Base(BaseSupervisedScheduler):
         Parameters
         ----------
         dl_train : torch.utils.data.DataLoader
+            Training data loader.
         dl_val : torch.utils.data.DataLoader
+            Validation data loader.
         verbose : {0, 1}, optional
             Enables progress print-out. 0: silent, 1: progress
 
@@ -251,7 +250,7 @@ class TorchScheduler(Base):
 
     Parameters
     ----------
-    env : BaseEnv
+    env : Index
         OpenAi gym environment.
     module : torch.nn.Module
         The PyTorch network.
@@ -440,7 +439,7 @@ class LitScheduler(Base):
 
     Parameters
     ----------
-    env : BaseEnv
+    env : Index
         OpenAi gym environment.
     model : torch.nn.Module
         The PyTorch-Lightning network.
@@ -458,19 +457,15 @@ class LitScheduler(Base):
             trainer_kwargs = {}
         self.trainer_kwargs = trainer_kwargs
 
-        # Note: the kwargs below are specified in `learn_params` for consistency with `TorchScheduler`
-        self.trainer_kwargs.update(
-            {
-                "max_epochs": self.learn_params["max_epochs"],
-            }
-        )
+        # Note: "max_epochs" is specified in `learn_params` for consistency with `TorchScheduler`
+        self.trainer_kwargs.update({"max_epochs": self.learn_params["max_epochs"]})
         self.trainer = pl.Trainer(
             **self.trainer_kwargs
         )  # TODO: store init kwargs, use for `reset`?
 
     @classmethod
     def from_module(cls, env, module, model_kwargs=None, trainer_kwargs=None, learn_params=None):
-        """Construct scheduler from a `nn.Module`"""
+        """Construct scheduler from a `nn.Module`."""
         if model_kwargs is None:
             model_kwargs = {}
         model = LitModel(module, **model_kwargs)

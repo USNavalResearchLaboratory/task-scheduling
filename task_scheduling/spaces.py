@@ -1,16 +1,16 @@
 """Additional OpenAI Gym spaces and utilities."""
 
 from math import factorial
-from typing import Collection
 
 import numpy as np
 from gym.spaces import Box, Discrete, MultiDiscrete, Space
+
+# from typing import Collection
 
 
 # Utilities
 def broadcast_to(space, shape):
     """Broadcast space to new shape."""
-
     if isinstance(space, Box):
         low, high = np.broadcast_to(space.low, shape), np.broadcast_to(space.high, shape)
         return Box(low, high, dtype=space.dtype)
@@ -22,7 +22,6 @@ def broadcast_to(space, shape):
 
 def get_space_lims(space):
     """Get minimum and maximum values of a space."""
-
     if isinstance(space, Box):
         return np.stack((space.low, space.high))
     elif isinstance(space, Discrete):
@@ -37,7 +36,6 @@ def get_space_lims(space):
 
 def stack(spaces, axis=0):
     """Join a sequence of spaces along a new axis, 'upcasting' to superset spaces when required."""
-
     if len(spaces) == 1:
         return spaces[0]
 
@@ -54,8 +52,11 @@ def stack(spaces, axis=0):
 
 
 def concatenate(spaces, axis=0):
-    """Join a sequence of spaces along an existing axis, 'upcasting' to superset spaces when required."""
+    """
+    Join a sequence of spaces along an existing axis.
 
+    'Upcasts' to superset spaces when required.
+    """
     if len(spaces) == 1:
         return spaces[0]
 
@@ -70,7 +71,6 @@ def concatenate(spaces, axis=0):
 
 def reshape(space, newshape):
     """Reshape space."""
-
     if isinstance(space, Box):
         low, high = space.low.reshape(newshape), space.high.reshape(newshape)
         return Box(low, high, dtype=float)
@@ -156,6 +156,7 @@ class DiscreteMasked(Discrete):
         Space assumes values in :math:`\{ 0, 1, \\dots, n-1 \}`.
     mask : Sequence of bool, optional
         Length `n` array where `True` elements indicate invalid actions.
+
     """
 
     def __init__(self, n, mask=np.ma.nomask):

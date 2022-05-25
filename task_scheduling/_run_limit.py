@@ -20,6 +20,7 @@ def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng
     Parameters
     ----------
     tasks : Collection of tasks.Base
+        Tasks.
     ch_avail : Collection of float
         Channel availability times.
     runtimes : Collection of float

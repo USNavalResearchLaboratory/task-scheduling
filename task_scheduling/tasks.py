@@ -1,4 +1,4 @@
-"""Task objects."""
+"""Task classes."""
 
 from abc import ABC, abstractmethod
 from operator import itemgetter
@@ -19,6 +19,7 @@ class Base(ABC):
     t_release : float
         The earliest time the task may be scheduled.
     name : str, optional
+        Name of the task.
 
     """
 
@@ -38,7 +39,7 @@ class Base(ABC):
     @abstractmethod
     def __call__(self, t):
         """
-        The loss function versus time.
+        Loss function versus time.
 
         Parameters
         ----------
@@ -55,8 +56,11 @@ class Base(ABC):
 
     def __str__(self):
         # params_str = rf"$d={self.duration:.3f}$, $\rho={self.t_release:.3f}$"
-        # # params_str = ", ".join([f"{name}: {getattr(self, name):.3f}" for name in ("duration", "t_release")])
-        # # params_str = ", ".join([f"{name}: {getattr(self, name):.3f}" for name in self.param_names])
+        # params_str = ", ".join(
+        #     [f"{name}: {getattr(self, name):.3f}" for name in ("duration", "t_release")]
+        # )
+        # params_str = ", ".join([f"{name}: {getattr(self, name):.3f}"
+        #                         for name in self.param_names])
         # return f"{self.__class__.__name__}({params_str})"
         return self.name
 
@@ -101,7 +105,6 @@ class Base(ABC):
             Loss function line
 
         """
-
         if t_plot is None:
             t_plot = np.arange(*self.plot_lim, 1e-3)
 
@@ -141,7 +144,7 @@ class Generic(Base):
 
     def __call__(self, t):
         """
-        The loss function versus time.
+        Loss function versus time.
 
         Parameters
         ----------
@@ -163,7 +166,7 @@ class Shift(Base):
     @abstractmethod
     def __call__(self, t):
         """
-        The loss function versus time.
+        Loss function versus time.
 
         Parameters
         ----------
@@ -239,7 +242,7 @@ class Shift(Base):
 #         self._check_params()
 #
 #     def __call__(self, t):
-#         """The loss function versus time."""
+#         """Loss function versus time."""
 #
 #         t = np.array(t, dtype=float)
 #         t -= self.t_release  # relative time
@@ -359,7 +362,7 @@ class PiecewiseLinear(Shift):
 
     def __call__(self, t):
         """
-        The loss function versus time.
+        Loss function versus time.
 
         Parameters
         ----------
@@ -372,7 +375,6 @@ class PiecewiseLinear(Shift):
             Execution loss.
 
         """
-
         t = np.array(t, dtype=float)
         t -= self.t_release  # relative time
 
@@ -689,8 +691,7 @@ class Exponential(Shift):
         # TODO: add positive param checks?
 
     def __call__(self, t):
-        """The loss function versus time."""
-
+        """Loss function versus time."""
         t = np.array(t, dtype=float)
         t -= self.t_release  # relative time
 

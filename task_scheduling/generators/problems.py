@@ -60,7 +60,8 @@ class Base(RandomGeneratorMixin, ABC):
         solve : bool, optional
             Enables generation of Branch & Bound optimal solutions.
         verbose : int, optional
-            Progress print-out level. '0' is silent, '1' prints iteration number, '2' prints solver progress.
+            Progress print-out level. '0' is silent, '1' prints iteration number, '2' prints solver
+            progress.
         save_path : os.PathLike or str, optional
             File path for saving data.
         rng : int or RandomState or Generator, optional
@@ -74,7 +75,6 @@ class Base(RandomGeneratorMixin, ABC):
             Scheduling solution namedtuple.
 
         """
-
         problems = []
         solutions = [] if solve else None
 
@@ -131,7 +131,6 @@ class Base(RandomGeneratorMixin, ABC):
             File location relative to data/schedules/
 
         """
-
         save_dict = {
             "n_tasks": self.n_tasks,
             "n_ch": self.n_ch,
@@ -266,10 +265,12 @@ class Random(Base):
         return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
 
     # @classmethod
-    # def search_track(cls, n_tasks, n_ch, p=None, t_release_lim=(0., .018), ch_avail_lim=(0., 0.), rng=None):
+    # def search_track(
+    #     cls, n_tasks, n_ch, p=None, t_release_lim=(0.0, 0.018), ch_avail_lim=(0.0, 0.0), rng=None
+    # ):
     #     task_gen = task_gens.SearchTrackIID(p, t_release_lim)
     #     return cls._task_gen_factory(n_tasks, task_gen, n_ch, ch_avail_lim, rng)
-    #
+
     # @classmethod
     # def radar(cls, n_tasks, n_ch, mode, ch_avail_lim=(0., 0.), rng=None):
     #     task_gen = task_gens.Radar(mode)
@@ -277,26 +278,27 @@ class Random(Base):
 
 
 class FixedTasks(Base, ABC):
+    """
+    Problem generators with fixed set of tasks.
+
+    Parameters
+    ----------
+    n_tasks : int
+        Number of tasks.
+    n_ch: int
+        Number of channels.
+    task_gen : generators.tasks.Permutation
+        Task generation object.
+    ch_avail_gen : generators.channels.Deterministic
+        Returns random initial channel availabilities.
+    rng : int or RandomState or Generator, optional
+        Random number generator seed or object.
+
+    """
+
     cls_task_gen = None
 
     def __init__(self, n_tasks, n_ch, task_gen, ch_avail_gen, rng=None):
-        """
-        Problem generators with fixed set of tasks.
-
-        Parameters
-        ----------
-        n_tasks : int
-            Number of tasks.
-        n_ch: int
-            Number of channels.
-        task_gen : generators.tasks.Permutation
-            Task generation object.
-        ch_avail_gen : generators.channels.Deterministic
-            Returns random initial channel availabilities.
-        rng : int or RandomState or Generator, optional
-            Random number generator seed or object.
-
-        """
 
         super().__init__(n_tasks, n_ch, task_gen, ch_avail_gen, rng)
 
@@ -313,7 +315,11 @@ class FixedTasks(Base, ABC):
 
     @property
     def solution(self):
-        """Solution for the fixed task set. Performs Branch-and-Bound the first time the property is accessed."""
+        """
+        Solution for the fixed task set.
+
+        Performs Branch-and-Bound the first time the property is accessed.
+        """
         if self._solution is None:
             self._solution = super()._gen_solution(self.problem, verbose=True)
         return self._solution
@@ -433,7 +439,6 @@ class Dataset(Base):
     @classmethod
     def load(cls, file_path, shuffle=False, repeat=False, rng=None):
         """Load problems/solutions from memory."""
-
         with Path(file_path).open(mode="rb") as fid:
             dict_gen = dill.load(fid)
 
@@ -451,7 +456,6 @@ class Dataset(Base):
 
     def split(self, n, shuffle=False, repeat=False, rng=None):
         """Create a new Dataset from elements of own queue."""
-
         if isinstance(n, float):  # interpret as fraction of total problems
             n *= self.n_problems
 
@@ -461,7 +465,6 @@ class Dataset(Base):
 
     def add(self, problems, solutions=None):
         """Add problems and solutions to the data set."""
-
         if solutions is None:
             solutions = [None for __ in range(len(problems))]
         elif len(solutions) != len(problems):
@@ -471,7 +474,6 @@ class Dataset(Base):
 
     def shuffle(self, rng=None):
         """Shuffle problems and solutions in-place."""
-
         rng = self._get_rng(rng)
         _temp = rng.permutation(np.array(self.stack, dtype=object))
         self.stack = deque(map(tuple, _temp))

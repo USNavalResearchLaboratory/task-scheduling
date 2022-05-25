@@ -1,7 +1,5 @@
 """Custom PyTorch modules with multiple inputs and valid action enforcement."""
 
-from typing import Collection
-
 import torch
 from torch import nn
 from torch.nn import functional
@@ -16,6 +14,7 @@ def build_mlp(layer_sizes, activation=nn.ReLU, last_act=False):
     layer_sizes : Collection of int
         Hidden layer sizes.
     activation : nn.Module, optional
+        Non-linear activation function.
     last_act : bool, optional
         Include final activation function.
 
@@ -41,11 +40,14 @@ def build_cnn(layer_sizes, kernel_sizes, pooling_layers=None, activation=nn.ReLU
     layer_sizes : Collection of int
         Hidden layer sizes.
     kernel_sizes : int or tuple or Collection of tuple
-        Kernel sizes for convolutional layers. If only one value is provided, the same is used for all convolutional
+        Kernel sizes for convolutional layers. If only one value is provided, the same is used for
+        all convolutional
         layers.
     pooling_layers : nn.Module or Collection of nn.Module, optional
-        Pooling modules. If only one value is provided, the same is used after each convolutional layer.
+        Pooling modules. If only one value is provided, the same is used after each convolutional
+        layer.
     activation : nn.Module, optional
+        Non-linear activation function.
     last_act : bool, optional
         Include final activation function.
 
@@ -54,7 +56,6 @@ def build_cnn(layer_sizes, kernel_sizes, pooling_layers=None, activation=nn.ReLU
     nn.Sequential
 
     """
-
     if isinstance(kernel_sizes, int):
         kernel_sizes = (kernel_sizes,)
     if isinstance(kernel_sizes, tuple) and all([isinstance(item, int) for item in kernel_sizes]):
@@ -91,9 +92,10 @@ class MultiNet(nn.Module):
 
     Notes
     -----
-    Processes input tensors for channel availability, sequence masking, and tasks. The channel and task tensors are
-    separately processed by the respective modules before concatenation and further processing in `net_joint`. The
-    sequence mask blocks invalid logits at the output to ensure only valid actions are taken.
+    Processes input tensors for channel availability, sequence masking, and tasks. The channel and
+    task tensors are separately processed by the respective modules before concatenation and
+    further processing in `net_joint`. The sequence mask blocks invalid logits at the output to
+    ensure only valid actions are taken.
 
     """
 
@@ -106,7 +108,8 @@ class MultiNet(nn.Module):
     def forward(self, ch_avail, seq, tasks):
         c, s, t = ch_avail, seq, tasks
         t = t.permute(0, 2, 1)
-        # t = torch.cat((t.permute(0, 2, 1), s.unsqueeze(1)), dim=1)  # reshape task features, combine w/ sequence mask
+        # t = torch.cat((t.permute(0, 2, 1), s.unsqueeze(1)), dim=1)
+        # # reshape task features, combine w/ sequence mask
 
         c = self.net_ch(c)
         t = self.net_tasks(t)

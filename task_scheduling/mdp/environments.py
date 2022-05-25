@@ -1,7 +1,6 @@
 """Gym Environments."""
 
 from abc import ABC, abstractmethod
-from dis import dis
 
 # from collections import OrderedDict
 from math import factorial
@@ -157,7 +156,7 @@ class Base(Env, ABC):
 
     @property
     def sorted_index(self):
-        """Indices for re-ordering of observation rows."""
+        """Generate indices for re-ordering of observation rows."""
         if callable(self.sort_func):
             values = np.array([self.sort_func(task) for task in self.tasks])
             values[self.node.seq] = np.inf  # scheduled tasks to the end
@@ -192,11 +191,18 @@ class Base(Env, ABC):
 
     def obs(self):
         """Complete observation."""
-        # data = tuple(getattr(self, f"_obs_{key}")() for key in self.observation_space)  # invoke `_obs_tasks`, etc.
-        # dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
+        # data = tuple(
+        #     getattr(self, f"_obs_{key}")() for key in self.observation_space
+        # )  # invoke `_obs_tasks`, etc.
+        # dtype = [
+        #     (key, space.dtype, space.shape)
+        #     for key, space in self.observation_space.spaces.items()
+        # ]
         # return np.array(data, dtype=dtype)
 
-        # return OrderedDict([(key, getattr(self, f"_obs_{key}")()) for key in self.observation_space])
+        # return OrderedDict(
+        #     [(key, getattr(self, f"_obs_{key}")()) for key in self.observation_space]
+        # )
         return {key: getattr(self, f"_obs_{key}")() for key in self.observation_space}
 
     @staticmethod
@@ -216,12 +222,12 @@ class Base(Env, ABC):
 
     def reset(self, tasks=None, ch_avail=None, solve=False, rng=None):
         """
-        Reset environment by re-initializing node object with random (or user-specified) tasks/channels.
+        Reset environment by re-initializing node object with new tasks/channels.
 
         Parameters
         ----------
         tasks : Collection of task_scheduling.tasks.Base, optional
-            Task set for non-random reset.
+            Tasks for non-random reset.
         ch_avail : Collection of float, optional
             Initial channel availabilities for non-random reset.
         solve : bool
@@ -235,7 +241,6 @@ class Base(Env, ABC):
             Observation.
 
         """
-
         if tasks is None or ch_avail is None:  # generate new scheduling problem
             out = list(self.problem_gen(1, solve=solve, rng=rng))[0]
             if solve:
@@ -273,7 +278,7 @@ class Base(Env, ABC):
 
     def step(self, action):
         """
-        Updates environment state (node) based on task index input.
+        Update environment state (node) based on task index input.
 
         Parameters
         ----------
@@ -292,7 +297,6 @@ class Base(Env, ABC):
             Auxiliary diagnostic information (helpful for debugging, and sometimes learning).
 
         """
-
         action = self.sorted_index[action]  # decode task index to original order
         self.node.seq_extend(action)  # updates sequence, loss, task parameters, etc.
 
@@ -402,9 +406,18 @@ class Base(Env, ABC):
 
         n_steps = n_gen * self.n_tasks
         if isinstance(self.observation_space, Dict):
-            # data = list(zip(*(np.empty((steps_total, *space.shape), dtype=space.dtype)
-            #                 for space in self.observation_space.spaces.values())))
-            # dtype = [(key, space.dtype, space.shape) for key, space in self.observation_space.spaces.items()]
+            # data = list(
+            #     zip(
+            #         *(
+            #             np.empty((steps_total, *space.shape), dtype=space.dtype)
+            #             for space in self.observation_space.spaces.values()
+            #         )
+            #     )
+            # )
+            # dtype = [
+            #     (key, space.dtype, space.shape)
+            #     for key, space in self.observation_space.spaces.items()
+            # ]
             # x_set = np.array(data, dtype=dtype)
 
             # x_set = OrderedDict([(key, np.empty((steps_total, *space.shape), dtype=space.dtype))
@@ -526,8 +539,8 @@ def seq_to_int(seq, check_input=True):
     -------
     int
         Takes values in range(factorial(len(seq))).
-    """
 
+    """
     length = len(seq)
     seq_rem = list(range(length))  # remaining elements
     if check_input and set(seq) != set(seq_rem):
@@ -557,10 +570,10 @@ def int_to_seq(num, length, check_input=True):
 
     Returns
     -------
-    tuple
+    tuple of int
         Elements are unique in factorial(len(seq)).
-    """
 
+    """
     if check_input and num not in range(factorial(length)):
         raise ValueError(f"Input 'num' must be in range(factorial({length})).")
 
@@ -578,9 +591,21 @@ def int_to_seq(num, length, check_input=True):
 
 # TODO: deprecate environments below?
 
+
 # class IndexUni(Index):
-#     def __init__(self, problem_gen, features=None, normalize=True, sort_func=None, time_shift=False, masking=False):
-#         """`Index` environment with single tensor observations. Concatenates sequence and task feature tensors.
+#     def __init__(
+#         self,
+#         problem_gen,
+#         features=None,
+#         normalize=True,
+#         sort_func=None,
+#         time_shift=False,
+#         masking=False,
+#     ):
+#         """
+#         `Index` environment with single tensor observations.
+#
+#         Concatenates sequence and task feature tensors.
 #
 #         Parameters
 #         ----------
@@ -596,14 +621,16 @@ def int_to_seq(num, length, check_input=True):
 #             Enables task re-parameterization after sequence updates.
 #         masking : bool, optional
 #             If True, features are zeroed out for scheduled tasks.
-#
+
 #         """
 #         super().__init__(problem_gen, features, normalize, sort_func, time_shift, masking)
-#
+
 #         # Observation space
 #         _space_seq_reshape = spaces_tasking.reshape(self._obs_space_seq, (1, self.n_tasks, 1))
-#         self.observation_space = spaces_tasking.concatenate((_space_seq_reshape, self._obs_space_tasks), axis=-1)
-#
+#         self.observation_space = spaces_tasking.concatenate(
+#             (_space_seq_reshape, self._obs_space_tasks), axis=-1
+#         )
+
 #     def obs(self):
 #         """Complete observation."""
 #         _obs_seq_reshape = self._obs_seq().reshape((1, self.n_tasks, 1))
@@ -611,10 +638,18 @@ def int_to_seq(num, length, check_input=True):
 
 
 # class Seq(Base):
-#     def __init__(self, problem_gen, features=None, normalize=True, sort_func=None, time_shift=False, masking=False,
-#                  action_type='int'):
+#     def __init__(
+#         self,
+#         problem_gen,
+#         features=None,
+#         normalize=True,
+#         sort_func=None,
+#         time_shift=False,
+#         masking=False,
+#         action_type="int",
+#     ):
 #         """Tasking environment with single action of a complete task index sequence.
-#
+
 #         Parameters
 #         ----------
 #         problem_gen : generators.problems.Base
@@ -630,49 +665,50 @@ def int_to_seq(num, length, check_input=True):
 #         masking : bool, optional
 #             If True, features are zeroed out for scheduled tasks.
 #         action_type : {'seq', 'int'}, optional
-#             If 'seq', action type is index sequence `Permutation`; if 'int', action space is `Discrete` and
+#             If 'seq', action type is index sequence `Permutation`; if 'int', action space is
+#               `Discrete` and
 #             index sequences are mapped to integers.
-#
+
 #         """
 #         super().__init__(problem_gen, features, normalize, sort_func, time_shift, masking)
-#
+
 #         self.action_type = action_type  # 'seq' for sequences, 'int' for integers
-#         if self.action_type == 'int':
+#         if self.action_type == "int":
 #             self._action_space_map = lambda n: Discrete(factorial(n))
-#         elif self.action_type == 'seq':
+#         elif self.action_type == "seq":
 #             raise NotImplementedError("Deprecated.")
 #             # self._action_space_map = lambda n: spaces_tasking.Permutation(n)
 #         else:
 #             raise ValueError
-#
+
 #         # Action space
 #         self.steps_per_episode = 1
 #         self.action_space = self._action_space_map(self.n_tasks)
-#
+
 #     def summary(self):
 #         str_ = super().summary()
 #         str_ += f"\n- Action type: {self.action_type}"
 #         return str_
-#
+
 #     def step(self, action):
-#         if self.action_type == 'int':
+#         if self.action_type == "int":
 #             action = list(int_to_seq(action, self.n_tasks))  # decode integer to sequence
-#
+
 #         return super().step(action)
-#
+
 #     def opt_action(self):
 #         """Optimal action based on current state."""
 #         seq_action = self.sorted_index_inv[self._seq_opt]  # encode sequence to sorted actions
-#         if self.action_type == 'int':
+#         if self.action_type == "int":
 #             return seq_to_int(seq_action)
-#         elif self.action_type == 'seq':
+#         elif self.action_type == "seq":
 #             return seq_action
-#
+
 #     @staticmethod
 #     def infer_valid_mask(obs):
 #         """Create a binary valid action mask from an observation."""
 #         return np.ones(factorial(len(obs)))
-#
+
 #     # def infer_action_space(self, obs):
 #     #     """Determines the action Gym.Space from an observation."""
 #     #     return self._action_space_map(len(obs))

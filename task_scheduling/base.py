@@ -31,7 +31,7 @@ class RandomGeneratorMixin:
 
     @property
     def rng(self):
-        r"""The NumPy random number generator."""
+        r"""NumPy random number generator."""
         return self._rng
 
     @rng.setter

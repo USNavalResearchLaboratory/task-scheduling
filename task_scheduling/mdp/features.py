@@ -14,7 +14,6 @@ feature_dtype = [("name", "<U32"), ("func", object), ("space", object)]
 
 def _add_zero(space):
     """Modify space to include zero as a possible value."""
-
     if isinstance(space, Box):
         space.low = np.array(0.0)
         return space
@@ -31,7 +30,6 @@ def _add_zero(space):
 
 def _as_box(space):
     """Convert scalar space to Box with zero lower bound."""
-
     if isinstance(space, Box):
         high = space.high
     elif isinstance(space, Discrete):
@@ -66,7 +64,6 @@ def param_features(task_gen, time_shift=False, masking=False):
         Feature array with fields 'name', 'func', and 'space'.
 
     """
-
     if time_shift and issubclass(task_gen.cls_task, Shift):
         shift_params = task_gen.cls_task.shift_params
     else:
@@ -84,8 +81,7 @@ def param_features(task_gen, time_shift=False, masking=False):
 
 
 def encode_discrete_features(problem_gen):
-    """Create array of parameter features, encoding DiscreteSet-typed parameters to Discrete-type."""
-
+    """Create parameter features, encoding DiscreteSet-typed parameters to Discrete-type."""
     data = []
     for name, space in problem_gen.task_gen.param_spaces.items():
         if isinstance(space, DiscreteSet):  # use encoding feature func, change space to Discrete

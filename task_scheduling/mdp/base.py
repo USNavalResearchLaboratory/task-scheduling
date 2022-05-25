@@ -28,6 +28,7 @@ class Base(ABC):
         Parameters
         ----------
         tasks : Collection of task_scheduling.tasks.Base
+            Tasks.
         ch_avail : Collection of float
             Channel availability times.
 
@@ -37,8 +38,8 @@ class Base(ABC):
             Task execution times.
         ndarray
             Task execution channels.
-        """
 
+        """
         obs = self.env.reset(tasks=tasks, ch_avail=ch_avail)
 
         done = False
