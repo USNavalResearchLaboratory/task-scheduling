@@ -184,7 +184,9 @@ from task_scheduling.mdp.reinforcement import (
     ValidActorCriticPolicy,
 )
 from task_scheduling.mdp.supervised.torch import LitScheduler
-from task_scheduling.results import evaluate_algorithms_gen, evaluate_algorithms_train
+from task_scheduling.results import evaluate_algorithms_train
+
+# from task_scheduling.results import evaluate_algorithms_gen
 
 np.set_printoptions(precision=3)
 pd.options.display.float_format = "{:,.3f}".format
