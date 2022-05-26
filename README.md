@@ -3,7 +3,7 @@ This package provides a framework for implementing task scheduling algorithms an
 includes traditional schedulers as well as both supervised and reinforcement learning schedulers.
 
 ## Installation
-The `task_scheduling` package has not been published to public code repositories. The package can be installed locally using
+The `task_scheduling` package can be installed locally using
 ```
 pip install <path>
 ```
