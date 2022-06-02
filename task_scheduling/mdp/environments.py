@@ -1,8 +1,7 @@
 """Gym Environments."""
 
+import pickle
 from abc import ABC, abstractmethod
-
-# from collections import OrderedDict
 from math import factorial
 from operator import attrgetter
 
@@ -241,6 +240,7 @@ class Base(Env, ABC):
             Observation.
 
         """
+        rng = self.problem_gen._get_rng(rng)
         if tasks is None or ch_avail is None:  # generate new scheduling problem
             out = list(self.problem_gen(1, solve=solve, rng=rng))[0]
             if solve:
@@ -376,7 +376,7 @@ class Base(Env, ABC):
         """Optimal action based on current state."""
         raise NotImplementedError
 
-    def opt_rollouts(self, n_gen, verbose=0, rng=None):
+    def opt_rollouts(self, n_gen, verbose=0, save_path=None, rng=None):
         """
         Generate observation-action data for learner training and evaluation.
 
@@ -386,6 +386,8 @@ class Base(Env, ABC):
             Number of scheduling problems to generate data from.
         verbose : {0, 1, 2}, optional
             0: silent, 1: add batch info, 2: add problem info
+        save_path : os.PathLike or str, optional
+            File path for saving data.
         rng : int or RandomState or Generator, optional
             NumPy random number generator or seed. Instance RNG if None.
 
@@ -399,38 +401,39 @@ class Base(Env, ABC):
             Sample weights.
 
         """
-        n_steps = n_gen * self.n_tasks
+        collect_shape = (n_gen, self.n_tasks)
         if isinstance(self.observation_space, Dict):
             # x_set = OrderedDict([(key, np.empty((steps_total, *space.shape), dtype=space.dtype))
             #                      for key, space in self.observation_space.spaces.items()])
             o = {
-                key: np.empty((n_steps, *space.shape), dtype=space.dtype)
+                key: np.empty(collect_shape + space.shape, dtype=space.dtype)
                 for key, space in self.observation_space.spaces.items()
             }
         else:
             o = np.empty(
-                (n_steps, *self.observation_space.shape),
+                collect_shape + self.observation_space.shape,
                 dtype=self.observation_space.dtype,
             )
-        a = np.empty((n_steps, *self.action_space.shape), dtype=self.action_space.dtype)
-        r = np.empty(n_steps, dtype=float)
+        a = np.empty(collect_shape + self.action_space.shape, dtype=self.action_space.dtype)
+        r = np.empty(collect_shape, dtype=float)
 
+        rng = self.problem_gen._get_rng(rng)
         for i_gen in trange(n_gen, desc="Creating tensors", disable=(verbose == 0)):
             obs = self.reset(solve=True, rng=rng)  # generates new scheduling problem
 
             for i_step in range(self.n_tasks):
-                i = i_gen * self.n_tasks + i_step
-
                 action = self.opt_action()
 
                 for key in self.observation_space:
-                    o[key][i] = obs[key]
-                a[i] = action
+                    o[key][i_gen, i_step] = obs[key]
+                a[i_gen, i_step] = action
 
-                obs, reward, done, info = self.step(action)  # updates environment state
-                r[i] = reward
+                obs, reward, _done, _info = self.step(action)  # updates environment state
+                r[i_gen, i_step] = reward
 
-                i_step += 1
+        if save_path is not None:
+            with open(save_path, "wb") as f:
+                pickle.dump({"obs": o, "act": a, "rew": r}, f)
 
         return o, a, r
 

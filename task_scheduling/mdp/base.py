@@ -123,13 +123,13 @@ class BaseLearning(Base):
         self._learn_params.update(params)
 
     @abstractmethod
-    def learn(self, n_gen_learn, verbose=0):
+    def learn(self, n_gen, verbose=0):
         """
         Learn from the environment.
 
         Parameters
         ----------
-        n_gen_learn : int
+        n_gen : int
             Number of problems to generate data from.
         verbose : int, optional
             Progress print-out level.

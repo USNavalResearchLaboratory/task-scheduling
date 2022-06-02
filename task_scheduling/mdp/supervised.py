@@ -4,7 +4,6 @@ import math
 from abc import abstractmethod
 from copy import deepcopy
 from functools import partial
-from inspect import signature
 from pathlib import Path
 
 import dill
@@ -28,8 +27,40 @@ class BaseSupervised(BaseLearning):  # TODO: deprecate? Only used for type check
     def predict(self, obs):
         raise NotImplementedError
 
+    def learn(self, n_gen, verbose=0):
+        """
+        Learn from the environment.
+
+        Parameters
+        ----------
+        n_gen : int
+            Number of problems to generate data from.
+        verbose : {0, 1, 2}, optional
+            Progress print-out level. 0: silent, 1: add batch info, 2: add problem info
+
+        """
+        if verbose >= 1:
+            print("Generating training/validation data...")
+        obs, act, rew = self.env.opt_rollouts(n_gen, verbose=verbose)
+        self.train(obs, act, rew, verbose)
+
     @abstractmethod
-    def learn(self, n_gen_learn, verbose=0):
+    def train(self, obs, act, rew=None, verbose=0):
+        """
+        Train from observations, actions, and rewards.
+
+        Parameters
+        ----------
+        obs : nd.array
+            The observations. Shape: (n_rollouts, n_steps, ...).
+        act : nd.array
+            The optimal actions. Shape: (n_rollouts, n_steps, ...).
+        rew : nd.array, optional
+            The rewards. Shape: (n_rollouts, n_steps, ...).
+        verbose : {0, 1, 2}, optional
+            Progress print-out level. 0: silent, 1: verbose.
+
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -150,48 +181,34 @@ class BasePyTorch(BaseSupervised):
         """Reset the learner."""
         self.model.apply(reset_weights)
 
-    @abstractmethod
-    def _train(self, dl_train, dl_val, verbose=0):
-        """
-        Train the PyTorch network.
+    def make_dataloaders(self, obs, act):
+        """Create PyTorch `DataLoader` instances for training and validation."""
+        n_gen = len(act)
 
-        Parameters
-        ----------
-        dl_train : torch.utils.data.DataLoader
-            Training data loader.
-        dl_val : torch.utils.data.DataLoader
-            Validation data loader.
-        verbose : {0, 1}, optional
-            Enables progress print-out. 0: silent, 1: progress
-
-        """
-        raise NotImplementedError
-
-    def learn(self, n_gen_learn, verbose=0):
-        """
-        Learn from the environment.
-
-        Parameters
-        ----------
-        n_gen_learn : int
-            Number of problems to generate data from.
-        verbose : {0, 1, 2}, optional
-            Progress print-out level. 0: silent, 1: add batch info, 2: add problem info
-
-        """
+        # Train/validation split
         n_gen_val = self.learn_params["n_gen_val"]
         if isinstance(n_gen_val, float) and n_gen_val < 1:  # convert fraction to number of problems
-            n_gen_val = math.floor(n_gen_learn * n_gen_val)
-        n_gen_train = n_gen_learn - n_gen_val
+            n_gen_val = math.floor(n_gen * n_gen_val)
+        n_gen_train = n_gen - n_gen_val
 
-        if verbose >= 1:
-            print("Generating training data...")
-        x_train, y_train, *w_train = self.env.opt_rollouts(n_gen_train, verbose=verbose)
+        if isinstance(obs, dict):
+            arr_train, arr_val = zip(*(np.split(item, [n_gen_train]) for item in obs.values()))
+            x_train = dict(zip(obs.keys(), arr_train))
+            x_val = dict(zip(obs.keys(), arr_val))
+        else:
+            x_train, x_val = np.split(obs, [n_gen_train])
+        y_train, y_val = np.split(act, [n_gen_train])
 
-        if verbose >= 1:
-            print("Generating validation data...")
-        x_val, y_val, *w_val = self.env.opt_rollouts(n_gen_val, verbose=verbose)
+        # Flatten episode data
+        def flatten_rollouts(z):
+            if isinstance(z, dict):
+                return {key: flatten_rollouts(val) for key, val in z.items()}
+            else:
+                return z.reshape(-1, *z.shape[2:])
 
+        x_train, x_val, y_train, y_val = map(flatten_rollouts, (x_train, x_val, y_train, y_val))
+
+        # Unpack any `dict`, make tensors
         x_train = tuple(
             map(partial(torch.tensor, dtype=torch.float32), self._obs_to_tuple(x_train))
         )
@@ -202,11 +219,7 @@ class BasePyTorch(BaseSupervised):
         tensors_train = [*x_train, y_train]
         tensors_val = [*x_val, y_val]
 
-        # FIXME
-        # w_train, w_val = map(partial(torch.tensor, dtype=torch.float32), (w_train[0], w_val[0]))
-        # tensors_train.append(w_train)
-        # tensors_val.append(w_val)
-
+        # Create data loaders
         ds_train = TensorDataset(*tensors_train)
         dl_train = DataLoader(
             ds_train,
@@ -223,7 +236,7 @@ class BasePyTorch(BaseSupervised):
             **self.learn_params["dl_kwargs"],
         )
 
-        self._train(dl_train, dl_val, verbose)
+        return dl_train, dl_val
 
     def save(self, save_path):
         """Save the scheduler model and environment."""
@@ -332,20 +345,20 @@ class TorchScheduler(BasePyTorch):
             learn_params,
         )
 
-    def _train(self, dl_train, dl_val, verbose=0):
+    def train(self, obs, act, rew=None, verbose=0):
+        dl_train, dl_val = self.make_dataloaders(obs, act)
+
         if verbose >= 1:
             print("Training model...")
 
         def loss_batch(model, loss_func, batch_, opt=None):
             batch_ = [t.to(self.device) for t in batch_]
 
-            if callable(self.learn_params["weight_func"]):
-                xb_, yb_, wb_ = batch_[:-2], batch_[-2], batch_[-1]
-                losses_ = loss_func(model(*xb_), yb_, reduction="none")
-                loss = torch.mean(wb_ * losses_)
-            else:
-                xb_, yb_ = batch_[:-1], batch_[-1]
-                loss = loss_func(model(*xb_), yb_)
+            xb_, yb_ = batch_[:-1], batch_[-1]
+            loss = loss_func(model(*xb_), yb_)
+            # xb_, yb_, wb_ = batch_[:-2], batch_[-2], batch_[-1]
+            # losses_ = loss_func(model(*xb_), yb_, reduction="none")
+            # loss = torch.mean(wb_ * losses_)
 
             if opt is not None:
                 loss.backward()
@@ -369,12 +382,11 @@ class TorchScheduler(BasePyTorch):
 
                 pbar.set_postfix(val_loss=val_loss)
 
-    def learn(self, n_gen_learn, verbose=0):
+    def learn(self, n_gen, verbose=0):
         self.model = self.model.to(self.device)
-        super().learn(n_gen_learn, verbose)
-        self.model = self.model.to(
-            "cpu"
-        )  # move back to CPU for single sample evaluations in `__call__`
+        super().learn(n_gen, verbose)
+        self.model = self.model.to("cpu")
+        # move back to CPU for single sample evaluations in `__call__`
 
 
 class LitModel(pl.LightningModule):
@@ -406,20 +418,19 @@ class LitModel(pl.LightningModule):
             optim_params = {}
         self.optim_params = optim_params
 
-        _sig_fwd = signature(module.forward)
-        self._n_in = len(_sig_fwd.parameters)
+        # _sig_fwd = signature(module.forward)
+        # self._n_in = len(_sig_fwd.parameters)
 
     def forward(self, *args, **kwargs):
         return self.module(*args, **kwargs)
 
     def _process_batch(self, batch, _batch_idx):
-        if len(batch) > self._n_in + 1:  # includes sample weighting
-            x, y, w = batch[:-2], batch[-2], batch[-1]
-            losses = self.loss_func(self(*x), y, reduction="none")
-            loss = torch.mean(w * losses)
-        else:
-            x, y = batch[:-1], batch[-1]
-            loss = self.loss_func(self(*x), y)
+        x, y = batch[:-1], batch[-1]
+        loss = self.loss_func(self(*x), y)
+        # if len(batch) > self._n_in + 1:  # includes sample weighting
+        #     x, y, w = batch[:-2], batch[-2], batch[-1]
+        #     losses = self.loss_func(self(*x), y, reduction="none")
+        #     loss = torch.mean(w * losses)
 
         return loss
 
@@ -540,7 +551,9 @@ class LitScheduler(BasePyTorch):
         super().reset()
         self.trainer = pl.Trainer(**deepcopy(self.trainer_kwargs))
 
-    def _train(self, dl_train, dl_val, verbose=0):
+    def train(self, obs, act, rew=None, verbose=0):
+        dl_train, dl_val = self.make_dataloaders(obs, act)
+
         if verbose >= 1:
             print("Training model...")
 

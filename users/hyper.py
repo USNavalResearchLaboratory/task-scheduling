@@ -1,3 +1,4 @@
+import pickle
 from functools import partial
 from itertools import product
 from operator import attrgetter
@@ -51,8 +52,8 @@ if seed is not None:
 data_path = Path("data/")
 
 
-# dataset = "continuous_linear_drop_c1t8"
-dataset = "temp/continuous_linear_drop_c1t8_1e5"
+dataset = "continuous_linear_drop_c1t8"
+# dataset = "temp/continuous_linear_drop_c1t8_1e5"
 problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
 temp_path = "users/main_temp/optuna/"
@@ -85,6 +86,13 @@ env_params = dict(
 )
 
 
+env = Index(problem_gen, **env_params)
+obs, act, *__ = env.opt_rollouts(problem_gen.n_problems, verbose=1, rng=seed)
+# with open("data/rollouts/tensors", "rb") as f:
+#     load_dict = pickle.load(f)
+#     obs, act = load_dict["obs"], load_dict["act"]
+
+
 def objective(trial):
     trainer_kwargs = dict(
         logger=TensorBoardLogger(temp_path + "logs/lit/", name=get_now()),
@@ -100,7 +108,7 @@ def objective(trial):
         gpus=torch.cuda.device_count(),
     )
 
-    batch_size = trial.suggest_int("batch_size", 10, 210, step=20)
+    batch_size = trial.suggest_int("batch_size", 10, 210, step=50)
     learn_params_torch = {
         "batch_size_train": batch_size,
         "n_gen_val": 1 / 3,
@@ -111,12 +119,11 @@ def objective(trial):
     }
     model_kwargs = dict(
         optim_cls=optim.Adam,
-        optim_params=dict(lr=trial.suggest_float("lr", 1e-5, 1e-1, log=True)),
+        optim_params=dict(lr=1e-4),
+        # optim_params=dict(lr=trial.suggest_float("lr", 1e-5, 1e-3, log=True)),
     )
 
-    env = Index(problem_gen, **env_params)
-
-    n_layers = trial.suggest_int("n_layers", 1, 5)
+    n_layers = trial.suggest_int("n_layers", 3, 5)
     hidden_dims = [trial.suggest_int(f"n_units_l{i}", 10, 10000, log=True) for i in range(n_layers)]
     module = MultiNet.mlp(
         env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_sizes_joint=hidden_dims
@@ -129,31 +136,38 @@ def objective(trial):
         learn_params=learn_params_torch,
     )
 
-    algorithms = np.array(
-        [("Lit Policy", lit_scheduler, 10)],
-        dtype=[("name", "<U32"), ("func", object), ("n_iter", int)],
-    )
+    # loaded data
+    lit_scheduler.train(obs, act, verbose=1)
+    return lit_scheduler.trainer.callback_metrics["val_loss"].item()
+    # return lit_scheduler.trainer.callback_metrics["train_loss"].item()
+    # return lit_scheduler.trainer.callback_metrics["val_acc"].item()
+
+    # # original
+    # algorithms = np.array(
+    #     [("Lit Policy", lit_scheduler, 10)],
+    #     dtype=[("name", "<U32"), ("func", object), ("n_iter", int)],
+    # )
 
     # n_gen_learn, n_gen = 900, 100
-    n_gen_learn, n_gen = 80000, 20000
-    # log_path = None
-    log_path = temp_path + "log.md"
-    # img_path = temp_path + f'images/{now}'
-    img_path = None
-    loss_mean, t_run_mean = evaluate_algorithms_gen(
-        algorithms,
-        problem_gen,
-        n_gen,
-        n_gen_learn,
-        solve=True,
-        verbose=1,
-        plotting=0,
-        log_path=log_path,
-        img_path=img_path,
-        rng=seed,
-    )
+    # # n_gen_learn, n_gen = 80000, 20000
+    # # log_path = None
+    # log_path = temp_path + "log.md"
+    # # img_path = temp_path + f'images/{now}'
+    # img_path = None
+    # loss_mean, t_run_mean = evaluate_algorithms_gen(
+    #     algorithms,
+    #     problem_gen,
+    #     n_gen,
+    #     n_gen_learn,
+    #     solve=True,
+    #     verbose=1,
+    #     plotting=0,
+    #     log_path=log_path,
+    #     img_path=img_path,
+    #     rng=seed,
+    # )
 
-    return loss_mean["Lit Policy"].mean()
+    # return loss_mean["Lit Policy"].mean()
 
 
 if __name__ == "__main__":
@@ -164,7 +178,7 @@ if __name__ == "__main__":
     pruner = optuna.pruners.NopPruner()
     # pruner = optuna.pruners.MedianPruner()
 
-    study = optuna.create_study(sampler=sampler, pruner=pruner)
+    study = optuna.create_study(sampler=sampler, pruner=pruner, direction="minimize")
     study.optimize(objective, n_trials=100, timeout=3600 * 10, show_progress_bar=True)
 
     print(f"Number of finished trials: {len(study.trials)}")

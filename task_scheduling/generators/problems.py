@@ -9,12 +9,7 @@ import dill
 import numpy as np
 
 from task_scheduling.algorithms import branch_bound_priority
-from task_scheduling.base import (
-    RandomGeneratorMixin,
-    SchedulingProblem,
-    SchedulingSolution,
-    get_now,
-)
+from task_scheduling.base import RandomGeneratorMixin, SchedulingProblem, SchedulingSolution
 from task_scheduling.generators import channels as chan_gens
 from task_scheduling.generators import tasks as task_gens
 from task_scheduling.util import eval_wrapper
@@ -38,8 +33,6 @@ class Base(RandomGeneratorMixin, ABC):
         Random number generator seed or object.
 
     """
-
-    temp_path = None
 
     def __init__(self, n_tasks, n_ch, task_gen, ch_avail_gen, rng=None):
         super().__init__(rng)
@@ -78,9 +71,6 @@ class Base(RandomGeneratorMixin, ABC):
         problems = []
         solutions = [] if solve else None
 
-        if save_path is None and self.temp_path is not None:
-            save_path = Path(self.temp_path) / get_now()
-
         save = save_path is not None
 
         # Generate tasks and find optimal schedules
@@ -104,7 +94,7 @@ class Base(RandomGeneratorMixin, ABC):
                 yield problem
 
         if save:
-            self._save(problems, solutions, save_path)
+            self._save(save_path, problems, solutions)
 
     @abstractmethod
     def _gen_problem(self, rng):
@@ -117,18 +107,18 @@ class Base(RandomGeneratorMixin, ABC):
 
         return eval_wrapper(scheduler_opt)(*problem)
 
-    def _save(self, problems, solutions=None, file_path=None):
+    def _save(self, file_path, problems, solutions=None):
         """
         Serialize scheduling problems/solutions.
 
         Parameters
         ----------
+        file_path : os.PathLike or str
+            File location relative to data/schedules/
         problems : Collection of SchedulingProblem
             Named tuple with fields 'tasks' and 'ch_avail'.
         solutions : Collection of SchedulingSolution
             Named tuple with fields 'sch', 'loss', and 't_run'.
-        file_path : os.PathLike or str, optional
-            File location relative to data/schedules/
 
         """
         save_dict = {

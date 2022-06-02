@@ -95,13 +95,13 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         action, _state = self.model.predict(obs, deterministic=True)
         return action
 
-    def learn(self, n_gen_learn, verbose=0):
+    def learn(self, n_gen, verbose=0):
         """
         Learn from the environment.
 
         Parameters
         ----------
-        n_gen_learn : int
+        n_gen : int
             Number of problems to generate data from.
         verbose : int, optional
             Progress print-out level.
@@ -109,8 +109,8 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         """
         n_gen_val = self.learn_params["n_gen_val"]
         if isinstance(n_gen_val, float) and n_gen_val < 1:  # convert fraction to number of problems
-            n_gen_val = math.floor(n_gen_learn * n_gen_val)
-        n_gen_train = n_gen_learn - n_gen_val
+            n_gen_val = math.floor(n_gen * n_gen_val)
+        n_gen_train = n_gen - n_gen_val
 
         total_timesteps = self.learn_params["max_epochs"] * n_gen_train * self.env.action_space.n
 

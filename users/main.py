@@ -1,5 +1,6 @@
 # %%
 import os
+import pickle
 from functools import partial
 from itertools import product
 from operator import attrgetter
@@ -65,8 +66,8 @@ if seed is not None:
 data_path = Path("data/")
 
 
-# dataset = "continuous_linear_drop_c1t8"
-dataset = "temp/continuous_linear_drop_c1t8_1e5"
+dataset = "continuous_linear_drop_c1t8"
+# dataset = "temp/continuous_linear_drop_c1t8_1e5"
 problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
 save_dir = "users/main_temp/"
@@ -108,7 +109,7 @@ learn_params_torch = {
     "weight_func": None,  # TODO: use reward!?
     # 'weight_func': lambda o, a, r: r,
     # 'weight_func': lambda o, a, r: 1 - o['seq'].sum() / o['seq'].size,
-    "max_epochs": 5,
+    "max_epochs": 5000,
     "shuffle": True,
     "dl_kwargs": dict(
         num_workers=0,
@@ -254,9 +255,9 @@ algorithms = np.array(
         #   for c, t in product([0], [5, 10])),
         # ('MCTS', partial(mcts, max_runtime=6e-3, max_rollouts=None, c_explore=0, th_visit=5), 10),
         # ('Random Agent', random_agent, 10),
-        # ('Torch Policy', torch_scheduler, 10),
-        # ("Lit Policy", lit_scheduler, 10),
-        ("SB Agent", sb_scheduler, 10),
+        # ("Torch Policy", torch_scheduler, 10),
+        ("Lit Policy", lit_scheduler, 10),
+        # ("SB Agent", sb_scheduler, 10),
         # ('BC', bc_scheduler, 10),
     ],
     dtype=[("name", "<U32"), ("func", object), ("n_iter", int)],
@@ -288,9 +289,14 @@ eval_kwargs = dict(
 
 if __name__ == "__main__":
     # loss_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, **eval_kwargs)
-    loss_mean, t_run_mean = evaluate_algorithms_gen(
-        algorithms, problem_gen, n_gen, n_gen_learn, **eval_kwargs
-    )
+    # loss_mean, t_run_mean = evaluate_algorithms_gen(
+    #     algorithms, problem_gen, n_gen, n_gen_learn, **eval_kwargs
+    # )
+
+    with open("data/rollouts/tensors", "rb") as f:
+        load_dict = pickle.load(f)
+        obs, act = load_dict["obs"], load_dict["act"]
+    lit_scheduler.train(obs, act, verbose=1)
 
     # np.savez(temp_path + f'results/{now}.np', loss_mc=loss_mc, t_run_mc=t_run_mc)
 
