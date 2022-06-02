@@ -56,7 +56,6 @@ class BasePyTorch(BaseSupervised):
         "batch_size_train": 1,
         "n_gen_val": 0,
         "batch_size_val": 1,
-        "weight_func": None,
         "max_epochs": 1,
         "shuffle": False,
         "dl_kwargs": {},
@@ -187,15 +186,11 @@ class BasePyTorch(BaseSupervised):
 
         if verbose >= 1:
             print("Generating training data...")
-        x_train, y_train, *w_train = self.env.data_gen(
-            n_gen_train, weight_func=self.learn_params["weight_func"], verbose=verbose
-        )
+        x_train, y_train, *w_train = self.env.opt_rollouts(n_gen_train, verbose=verbose)
 
         if verbose >= 1:
             print("Generating validation data...")
-        x_val, y_val, *w_val = self.env.data_gen(
-            n_gen_val, weight_func=self.learn_params["weight_func"], verbose=verbose
-        )
+        x_val, y_val, *w_val = self.env.opt_rollouts(n_gen_val, verbose=verbose)
 
         x_train = tuple(
             map(partial(torch.tensor, dtype=torch.float32), self._obs_to_tuple(x_train))
@@ -207,10 +202,10 @@ class BasePyTorch(BaseSupervised):
         tensors_train = [*x_train, y_train]
         tensors_val = [*x_val, y_val]
 
-        if callable(self.learn_params["weight_func"]):
-            w_train, w_val = map(partial(torch.tensor, dtype=torch.float32), (w_train[0], w_val[0]))
-            tensors_train.append(w_train)
-            tensors_val.append(w_val)
+        # FIXME
+        # w_train, w_val = map(partial(torch.tensor, dtype=torch.float32), (w_train[0], w_val[0]))
+        # tensors_train.append(w_train)
+        # tensors_val.append(w_val)
 
         ds_train = TensorDataset(*tensors_train)
         dl_train = DataLoader(

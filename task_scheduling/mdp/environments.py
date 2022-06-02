@@ -245,9 +245,8 @@ class Base(Env, ABC):
             out = list(self.problem_gen(1, solve=solve, rng=rng))[0]
             if solve:
                 (tasks, ch_avail), (sch, *__) = out
-                self._seq_opt = np.argsort(
-                    sch["t"]
-                )  # optimal schedule (see `test_tree_nodes.test_argsort`)
+                self._seq_opt = np.argsort(sch["t"])
+                # optimal schedule (see `test_tree_nodes.test_argsort`)
             else:
                 tasks, ch_avail = out
                 self._seq_opt = None
@@ -377,7 +376,7 @@ class Base(Env, ABC):
         """Optimal action based on current state."""
         raise NotImplementedError
 
-    def data_gen(self, n_gen, weight_func=None, verbose=0, rng=None):
+    def opt_rollouts(self, n_gen, verbose=0, rng=None):
         """
         Generate observation-action data for learner training and evaluation.
 
@@ -385,8 +384,6 @@ class Base(Env, ABC):
         ----------
         n_gen : int, optional
             Number of scheduling problems to generate data from.
-        weight_func : callable, optional
-            Function mapping environment object to a training weight.
         verbose : {0, 1, 2}, optional
             0: silent, 1: add batch info, 2: add problem info
         rng : int or RandomState or Generator, optional
@@ -402,37 +399,21 @@ class Base(Env, ABC):
             Sample weights.
 
         """
-        # TODO: refactor SL data gen to `mdp.supervised.Base`?
-
         n_steps = n_gen * self.n_tasks
         if isinstance(self.observation_space, Dict):
-            # data = list(
-            #     zip(
-            #         *(
-            #             np.empty((steps_total, *space.shape), dtype=space.dtype)
-            #             for space in self.observation_space.spaces.values()
-            #         )
-            #     )
-            # )
-            # dtype = [
-            #     (key, space.dtype, space.shape)
-            #     for key, space in self.observation_space.spaces.items()
-            # ]
-            # x_set = np.array(data, dtype=dtype)
-
             # x_set = OrderedDict([(key, np.empty((steps_total, *space.shape), dtype=space.dtype))
             #                      for key, space in self.observation_space.spaces.items()])
-            x = {
+            o = {
                 key: np.empty((n_steps, *space.shape), dtype=space.dtype)
                 for key, space in self.observation_space.spaces.items()
             }
         else:
-            x = np.empty(
+            o = np.empty(
                 (n_steps, *self.observation_space.shape),
                 dtype=self.observation_space.dtype,
             )
-        y = np.empty((n_steps, *self.action_space.shape), dtype=self.action_space.dtype)
-        w = np.empty(n_steps, dtype=float)
+        a = np.empty((n_steps, *self.action_space.shape), dtype=self.action_space.dtype)
+        r = np.empty(n_steps, dtype=float)
 
         for i_gen in trange(n_gen, desc="Creating tensors", disable=(verbose == 0)):
             obs = self.reset(solve=True, rng=rng)  # generates new scheduling problem
@@ -442,22 +423,16 @@ class Base(Env, ABC):
 
                 action = self.opt_action()
 
-                # x_set[i] = obs
                 for key in self.observation_space:
-                    x[key][i] = obs[key]
-                y[i] = action
+                    o[key][i] = obs[key]
+                a[i] = action
 
                 obs, reward, done, info = self.step(action)  # updates environment state
-                if callable(weight_func):
-                    w[i] = weight_func(obs, action, reward)
-                    # TODO: use rewards for weighting!?!
+                r[i] = reward
 
                 i_step += 1
 
-        if callable(weight_func):
-            return x, y, w
-        else:
-            return x, y
+        return o, a, r
 
 
 class Index(Base):
