@@ -66,8 +66,8 @@ if seed is not None:
 data_path = Path("data/")
 
 
-dataset = "continuous_linear_drop_c1t8"
-# dataset = "temp/continuous_linear_drop_c1t8_1e5"
+# dataset = "continuous_linear_drop_c1t8"
+dataset = "temp/continuous_linear_drop_c1t8_1e5"
 problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
 save_dir = "users/main_temp/"
@@ -265,8 +265,8 @@ algorithms = np.array(
 
 
 # %% Evaluate and record results
-n_gen_learn, n_gen = 900, 100
-# n_gen_learn, n_gen = 80000, 20000
+# n_gen_learn, n_gen = 900, 100
+n_gen_learn, n_gen = 80000, 20000
 # n_gen_learn, n_gen = 500000, 100
 
 # n_gen_learn = 900  # the number of problems generated for learning, per iteration
@@ -288,16 +288,16 @@ eval_kwargs = dict(
 )
 
 if __name__ == "__main__":
-    # loss_mc, t_run_mc = evaluate_algorithms_train(algorithms, problem_gen, n_gen, n_gen_learn, n_mc, **eval_kwargs)
+    # loss_mc, t_run_mc = evaluate_algorithms_train(
+    #     algorithms, problem_gen, n_gen, n_gen_learn, n_mc, **eval_kwargs
+    # )
     # loss_mean, t_run_mean = evaluate_algorithms_gen(
     #     algorithms, problem_gen, n_gen, n_gen_learn, **eval_kwargs
     # )
 
-    with open("data/rollouts/tensors", "rb") as f:
+    with open("data/tensors", "rb") as f:
         load_dict = pickle.load(f)
         obs, act = load_dict["obs"], load_dict["act"]
     lit_scheduler.train(obs, act, verbose=1)
-
-    # np.savez(temp_path + f'results/{now}.np', loss_mc=loss_mc, t_run_mc=t_run_mc)
 
     plt.show()

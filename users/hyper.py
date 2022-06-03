@@ -52,8 +52,8 @@ if seed is not None:
 data_path = Path("data/")
 
 
-dataset = "continuous_linear_drop_c1t8"
-# dataset = "temp/continuous_linear_drop_c1t8_1e5"
+# dataset = "continuous_linear_drop_c1t8"
+dataset = "temp/continuous_linear_drop_c1t8_1e5"
 problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
 temp_path = "users/main_temp/optuna/"
@@ -87,10 +87,11 @@ env_params = dict(
 
 
 env = Index(problem_gen, **env_params)
-obs, act, *__ = env.opt_rollouts(problem_gen.n_problems, verbose=1, rng=seed)
-# with open("data/rollouts/tensors", "rb") as f:
-#     load_dict = pickle.load(f)
-#     obs, act = load_dict["obs"], load_dict["act"]
+
+# obs, act, *__ = env.opt_rollouts(problem_gen.n_problems, verbose=1, rng=seed)
+with open("data/temp/tensors_1e5", "rb") as f:
+    load_dict = pickle.load(f)
+    obs, act = load_dict["obs"], load_dict["act"]
 
 
 def objective(trial):
@@ -108,7 +109,7 @@ def objective(trial):
         gpus=torch.cuda.device_count(),
     )
 
-    batch_size = trial.suggest_int("batch_size", 10, 210, step=50)
+    batch_size = trial.suggest_int("batch_size", 20, 200, step=60)
     learn_params_torch = {
         "batch_size_train": batch_size,
         "n_gen_val": 1 / 3,
@@ -123,7 +124,7 @@ def objective(trial):
         # optim_params=dict(lr=trial.suggest_float("lr", 1e-5, 1e-3, log=True)),
     )
 
-    n_layers = trial.suggest_int("n_layers", 3, 5)
+    n_layers = trial.suggest_int("n_layers", 1, 4)
     hidden_dims = [trial.suggest_int(f"n_units_l{i}", 10, 10000, log=True) for i in range(n_layers)]
     module = MultiNet.mlp(
         env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_sizes_joint=hidden_dims
@@ -138,9 +139,9 @@ def objective(trial):
 
     # loaded data
     lit_scheduler.train(obs, act, verbose=1)
-    return lit_scheduler.trainer.callback_metrics["val_loss"].item()
+    # return lit_scheduler.trainer.callback_metrics["val_loss"].item()
     # return lit_scheduler.trainer.callback_metrics["train_loss"].item()
-    # return lit_scheduler.trainer.callback_metrics["val_acc"].item()
+    return lit_scheduler.trainer.callback_metrics["val_acc"].item()
 
     # # original
     # algorithms = np.array(
@@ -178,7 +179,8 @@ if __name__ == "__main__":
     pruner = optuna.pruners.NopPruner()
     # pruner = optuna.pruners.MedianPruner()
 
-    study = optuna.create_study(sampler=sampler, pruner=pruner, direction="minimize")
+    study = optuna.create_study(sampler=sampler, pruner=pruner)
+    # study = optuna.create_study(sampler=sampler, pruner=pruner, direction="minimize")
     study.optimize(objective, n_trials=100, timeout=3600 * 10, show_progress_bar=True)
 
     print(f"Number of finished trials: {len(study.trials)}")
