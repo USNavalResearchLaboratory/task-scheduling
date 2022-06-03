@@ -127,7 +127,7 @@ trainer_kwargs = dict(
     logger=TensorBoardLogger(save_dir + "logs/lit/", name=now),
     enable_checkpointing=False,
     log_every_n_steps=30,
-    callbacks=EarlyStopping("val_loss", min_delta=1e-3, patience=200),
+    callbacks=EarlyStopping("val_loss", patience=100),
     default_root_dir=save_dir + "logs/lit/",
     accelerator="auto",
     # strategy=DDPStrategy(find_unused_parameters=False),

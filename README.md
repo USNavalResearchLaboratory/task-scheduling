@@ -220,7 +220,7 @@ learn_params = {
 trainer_kwargs = {
     "logger": False,
     "enable_checkpointing": False,
-    "callbacks": EarlyStopping("val_loss", min_delta=0.0, patience=50),
+    "callbacks": EarlyStopping("val_loss", patience=100),
     "gpus": torch.cuda.device_count(),
 }
 lit_scheduler = LitScheduler.mlp(

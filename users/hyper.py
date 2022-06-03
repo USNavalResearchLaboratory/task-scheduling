@@ -99,10 +99,10 @@ def objective(trial):
         logger=TensorBoardLogger(temp_path + "logs/lit/", name=get_now()),
         enable_checkpointing=False,
         log_every_n_steps=30,
-        # callbacks=EarlyStopping('val_loss', min_delta=1e-3, patience=200),
+        # callbacks=EarlyStopping('val_loss', patience=100),
         # callbacks=PyTorchLightningPruningCallback(trial, monitor="val_acc"),
         callbacks=[
-            EarlyStopping("val_loss", min_delta=1e-3, patience=200),
+            EarlyStopping("val_loss", patience=100),
             PyTorchLightningPruningCallback(trial, monitor="val_acc"),
         ],
         default_root_dir=temp_path + "logs/lit/",

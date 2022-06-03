@@ -102,7 +102,7 @@ env_params = dict(
 env = Index(problem_gen, **env_params)
 
 
-batch_size = 200
+batch_size = 20
 learn_params_torch = {
     "batch_size_train": batch_size,
     "frac_val": 1 / 3,
@@ -112,7 +112,7 @@ learn_params_torch = {
     "dl_kwargs": dict(
         # num_workers=0,
         # persistent_workers=False,
-        num_workers=os.cpu_count(),
+        num_workers=4,
         persistent_workers=True,
         pin_memory=True,
     ),
@@ -141,7 +141,7 @@ trainer_kwargs = dict(
     logger=TensorBoardLogger(save_dir + "logs/lit/", name=now),
     enable_checkpointing=False,
     log_every_n_steps=30,
-    callbacks=EarlyStopping("val_loss", min_delta=1e-3, patience=200),
+    callbacks=EarlyStopping("val_loss", patience=100),
     default_root_dir=save_dir + "logs/lit/",
     # devices=torch.cuda.device_count(),
     accelerator="auto",
@@ -291,6 +291,11 @@ eval_kwargs = dict(
     rng=seed,
 )
 
+with open("data/temp/tensors_1e5", "rb") as f:
+    load_dict = pickle.load(f)
+    obs, act = load_dict["obs"], load_dict["act"]
+
+
 if __name__ == "__main__":
     # loss_mc, t_run_mc = evaluate_algorithms_train(
     #     algorithms, problem_gen, n_gen, n_gen_learn, n_mc, **eval_kwargs
@@ -298,10 +303,6 @@ if __name__ == "__main__":
     # loss_mean, t_run_mean = evaluate_algorithms_gen(
     #     algorithms, problem_gen, n_gen, n_gen_learn, **eval_kwargs
     # )
-
-    with open("data/temp/tensors_1e5", "rb") as f:
-        load_dict = pickle.load(f)
-        obs, act = load_dict["obs"], load_dict["act"]
 
     # torch_scheduler.train(obs, act, verbose=1)
     lit_scheduler.train(obs, act, verbose=1)
