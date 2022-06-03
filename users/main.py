@@ -102,10 +102,11 @@ env_params = dict(
 env = Index(problem_gen, **env_params)
 
 
+batch_size = 2000
 learn_params_torch = {
-    "batch_size_train": 20,
-    "n_gen_val": 1 / 3,
-    "batch_size_val": 30,
+    "batch_size_train": batch_size,
+    "frac_val": 1 / 3,
+    "batch_size_val": batch_size,
     "weight_func": None,  # TODO: use reward!?
     # 'weight_func': lambda o, a, r: r,
     # 'weight_func': lambda o, a, r: 1 - o['seq'].sum() / o['seq'].size,
@@ -164,7 +165,7 @@ random_agent = RandomAgent(env)
 # check_env(env)
 
 learn_params_sb = {
-    "n_gen_val": 1 / 3,
+    "frac_val": 1 / 3,
     # 'max_epochs': 2000,
     "max_epochs": 1,
     "eval_callback_kwargs": dict(
@@ -295,7 +296,7 @@ if __name__ == "__main__":
     #     algorithms, problem_gen, n_gen, n_gen_learn, **eval_kwargs
     # )
 
-    with open("data/tensors", "rb") as f:
+    with open("data/temp/tensors_1e5", "rb") as f:
         load_dict = pickle.load(f)
         obs, act = load_dict["obs"], load_dict["act"]
     lit_scheduler.train(obs, act, verbose=1)

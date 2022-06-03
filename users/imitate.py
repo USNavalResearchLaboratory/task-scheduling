@@ -92,7 +92,7 @@ env = Index(problem_gen, **env_params)
 
 learn_params_torch = {
     "batch_size_train": 20,
-    "n_gen_val": 1 / 3,
+    "frac_val": 1 / 3,
     "batch_size_val": 30,
     "weight_func": None,  # TODO: use reward!?
     # 'weight_func': lambda o, a, r: r,
@@ -146,7 +146,7 @@ random_agent = RandomAgent(env)
 # check_env(env)
 
 learn_params_sb = {
-    "n_gen_val": 1 / 3,
+    "frac_val": 1 / 3,
     # 'max_epochs': 2000,
     "max_epochs": 1,
     "eval_callback_kwargs": dict(

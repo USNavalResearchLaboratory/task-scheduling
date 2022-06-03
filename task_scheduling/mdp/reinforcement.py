@@ -43,7 +43,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
     """
 
     _learn_params_default = {
-        "n_gen_val": 0,
+        "frac_val": 0.,
         "max_epochs": 1,
         "eval_callback_kwargs": None,
     }
@@ -107,9 +107,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
             Progress print-out level.
 
         """
-        n_gen_val = self.learn_params["n_gen_val"]
-        if isinstance(n_gen_val, float) and n_gen_val < 1:  # convert fraction to number of problems
-            n_gen_val = math.floor(n_gen * n_gen_val)
+        n_gen_val = math.floor(n_gen * self.learn_params["frac_val"])
         n_gen_train = n_gen - n_gen_val
 
         total_timesteps = self.learn_params["max_epochs"] * n_gen_train * self.env.action_space.n

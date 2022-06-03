@@ -63,7 +63,7 @@ trainer_kwargs = dict(
 
 learn_params = {
     "batch_size_train": 20,
-    "n_gen_val": 1 / 3,
+    "frac_val": 1 / 3,
     "batch_size_val": 30,
     # 'max_epochs': 1000,
     "max_epochs": 2000,

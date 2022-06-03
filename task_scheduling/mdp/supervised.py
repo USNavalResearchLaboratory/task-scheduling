@@ -85,7 +85,7 @@ class BasePyTorch(BaseSupervised):
 
     _learn_params_default = {
         "batch_size_train": 1,
-        "n_gen_val": 0,
+        "frac_val": 0.0,
         "batch_size_val": 1,
         "max_epochs": 1,
         "shuffle": False,
@@ -186,9 +186,7 @@ class BasePyTorch(BaseSupervised):
         n_gen = len(act)
 
         # Train/validation split
-        n_gen_val = self.learn_params["n_gen_val"]
-        if isinstance(n_gen_val, float) and n_gen_val < 1:  # convert fraction to number of problems
-            n_gen_val = math.floor(n_gen * n_gen_val)
+        n_gen_val = math.floor(n_gen * self.learn_params["frac_val"])
         n_gen_train = n_gen - n_gen_val
 
         if isinstance(obs, dict):
