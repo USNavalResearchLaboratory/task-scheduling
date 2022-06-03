@@ -1,5 +1,4 @@
 # %%
-import os
 import pickle
 from functools import partial
 from itertools import product
@@ -105,7 +104,7 @@ learn_params_torch = {
     "dl_kwargs": dict(
         # num_workers=0,
         # persistent_workers=False,
-        num_workers=os.cpu_count(),
+        num_workers=4,
         persistent_workers=True,
         pin_memory=True,
     ),
