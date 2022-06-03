@@ -114,7 +114,6 @@ def objective(trial):
         "batch_size_train": batch_size,
         "frac_val": 1 / 3,
         "batch_size_val": batch_size,
-        "weight_func": None,
         "max_epochs": 5000,
         "shuffle": True,
     }

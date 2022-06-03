@@ -94,9 +94,6 @@ learn_params_torch = {
     "batch_size_train": 20,
     "frac_val": 1 / 3,
     "batch_size_val": 30,
-    "weight_func": None,  # TODO: use reward!?
-    # 'weight_func': lambda o, a, r: r,
-    # 'weight_func': lambda o, a, r: 1 - o['seq'].sum() / o['seq'].size,
     "max_epochs": 5000,
     "shuffle": True,
     "dl_kwargs": dict(num_workers=os.cpu_count(), persistent_workers=True, pin_memory=True),
