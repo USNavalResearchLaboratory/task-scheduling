@@ -13,7 +13,7 @@ import torch
 from torch import nn, optim
 from torch.nn import functional
 from torch.utils.data import DataLoader, TensorDataset
-from tqdm import trange
+from tqdm import tqdm, trange
 
 from task_scheduling.mdp.base import BaseLearning
 from task_scheduling.mdp.environments import Index
@@ -352,33 +352,38 @@ class TorchScheduler(BasePyTorch):
         def loss_batch(model, loss_func, batch_, opt=None):
             batch_ = [t.to(self.device) for t in batch_]
 
-            xb_, yb_ = batch_[:-1], batch_[-1]
-            loss = loss_func(model(*xb_), yb_)
-            # xb_, yb_, wb_ = batch_[:-2], batch_[-2], batch_[-1]
-            # losses_ = loss_func(model(*xb_), yb_, reduction="none")
-            # loss = torch.mean(wb_ * losses_)
+            xb, yb = batch_[:-1], batch_[-1]
+            loss = loss_func(model(*xb), yb)
+            # xb, yb, wb = batch_[:-2], batch_[-2], batch_[-1]
+            # losses_ = loss_func(model(*xb), yb, reduction="none")
+            # loss = torch.mean(wb * losses_)
 
             if opt is not None:
                 loss.backward()
                 opt.step()
                 opt.zero_grad()
 
-            return loss.item(), len(xb_)
+            return loss.item(), len(xb)
 
         self.model = self.model.to(self.device)
 
         with trange(self.learn_params["max_epochs"], desc="Epoch", disable=(verbose == 0)) as pbar:
             for __ in pbar:
                 self.model.train()
-                for batch in dl_train:
+                for batch in tqdm(dl_train, desc="Train"):
                     loss_batch(self.model, self.loss_func, batch, self.optimizer)
 
                 # if dl_val is not None:
                 self.model.eval()
                 with torch.no_grad():
-                    losses, nums = zip(
-                        *[loss_batch(self.model, self.loss_func, batch) for batch in dl_val]
-                    )
+                    # losses, nums = zip(
+                    #     *[loss_batch(self.model, self.loss_func, batch) for batch in dl_val]
+                    # )
+                    losses, nums = [], []
+                    for batch in tqdm(dl_val, desc="Validate"):
+                        loss_b, num_b = loss_batch(self.model, self.loss_func, batch)
+                        losses.append(loss_b)
+                        nums.append(num_b)
                 val_loss = np.sum(np.multiply(losses, nums)) / np.sum(nums)
 
                 pbar.set_postfix(val_loss=val_loss)
