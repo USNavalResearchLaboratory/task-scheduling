@@ -365,12 +365,15 @@ class TorchScheduler(BasePyTorch):
 
             return loss.item(), len(xb_)
 
+        self.model = self.model.to(self.device)
+
         with trange(self.learn_params["max_epochs"], desc="Epoch", disable=(verbose == 0)) as pbar:
             for __ in pbar:
                 self.model.train()
                 for batch in dl_train:
                     loss_batch(self.model, self.loss_func, batch, self.optimizer)
 
+                # if dl_val is not None:
                 self.model.eval()
                 with torch.no_grad():
                     losses, nums = zip(
@@ -380,11 +383,8 @@ class TorchScheduler(BasePyTorch):
 
                 pbar.set_postfix(val_loss=val_loss)
 
-    def learn(self, n_gen, verbose=0):
-        self.model = self.model.to(self.device)
-        super().learn(n_gen, verbose)
-        self.model = self.model.to("cpu")
         # move back to CPU for single sample evaluations in `__call__`
+        self.model = self.model.to("cpu")
 
 
 class LitModel(pl.LightningModule):
