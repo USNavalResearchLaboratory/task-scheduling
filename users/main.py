@@ -66,8 +66,8 @@ if seed is not None:
 data_path = Path("data/")
 
 
-# dataset = "continuous_linear_drop_c1t8"
-dataset = "temp/continuous_linear_drop_c1t8_1e5"
+dataset = "continuous_linear_drop_c1t8"
+# dataset = "temp/continuous_linear_drop_c1t8_1e5"
 problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
 save_dir = "users/main_temp/"
@@ -102,7 +102,7 @@ env_params = dict(
 env = Index(problem_gen, **env_params)
 
 
-batch_size = 2000
+batch_size = 200
 learn_params_torch = {
     "batch_size_train": batch_size,
     "frac_val": 1 / 3,
@@ -110,23 +110,28 @@ learn_params_torch = {
     "max_epochs": 5000,
     "shuffle": True,
     "dl_kwargs": dict(
-        num_workers=0,
-        persistent_workers=False,
-        # num_workers=os.cpu_count(),
-        # persistent_workers=True,
+        # num_workers=0,
+        # persistent_workers=False,
+        num_workers=os.cpu_count(),
+        persistent_workers=True,
         pin_memory=True,
     ),
 }
 
 model_kwargs = dict(
     optim_cls=optim.Adam,
-    # optim_params={'lr': 1e-3},
     optim_params={"lr": 1e-4},
 )
 
 module = MultiNet.mlp(env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_sizes_joint=[400])
-# module = MultiNet.cnn(env, hidden_sizes_ch=[], hidden_sizes_tasks=[400], kernel_sizes=2,
-#                       cnn_kwargs=dict(pooling_layers=[nn.AdaptiveMaxPool1d(1)]), hidden_sizes_joint=[])
+# module = MultiNet.cnn(
+#     env,
+#     hidden_sizes_ch=[],
+#     hidden_sizes_tasks=[400],
+#     kernel_sizes=2,
+#     cnn_kwargs=dict(pooling_layers=[nn.AdaptiveMaxPool1d(1)]),
+#     hidden_sizes_joint=[],
+# )
 # module = VaryCNN(env, kernel_len=2)
 
 torch_scheduler = TorchScheduler(env, module, **model_kwargs, learn_params=learn_params_torch)
@@ -213,8 +218,9 @@ class SLPolicy(nn.Module):
 
 
 # bc_module = SLPolicy(sb_scheduler.model.policy)
-# bc_scheduler = LitScheduler.from_module(env, bc_module, model_kwargs, trainer_kwargs=trainer_kwargs,
-#                                         learn_params=learn_params_torch)
+# bc_scheduler = LitScheduler.from_module(
+#     env, bc_module, model_kwargs, trainer_kwargs=trainer_kwargs, learn_params=learn_params_torch
+# )
 
 # # FIXME: train/test leakage?
 # bc_scheduler = StableBaselinesScheduler.make_model(env, 'PPO', sb_model_kwargs, learn_params_sb)
@@ -263,8 +269,8 @@ algorithms = np.array(
 
 
 # %% Evaluate and record results
-# n_gen_learn, n_gen = 900, 100
-n_gen_learn, n_gen = 80000, 20000
+n_gen_learn, n_gen = 900, 100
+# n_gen_learn, n_gen = 80000, 20000
 # n_gen_learn, n_gen = 500000, 100
 
 # n_gen_learn = 900  # the number of problems generated for learning, per iteration
@@ -296,6 +302,8 @@ if __name__ == "__main__":
     with open("data/temp/tensors_1e5", "rb") as f:
         load_dict = pickle.load(f)
         obs, act = load_dict["obs"], load_dict["act"]
+
+    # torch_scheduler.train(obs, act, verbose=1)
     lit_scheduler.train(obs, act, verbose=1)
 
     plt.show()
