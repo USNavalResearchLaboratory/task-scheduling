@@ -424,24 +424,29 @@ class LitModel(pl.LightningModule):
     def forward(self, *args, **kwargs):
         return self.module(*args, **kwargs)
 
-    def _process_batch(self, batch, _batch_idx):
+    def _process_batch(self, batch):
         x, y = batch[:-1], batch[-1]
-        loss = self.loss_func(self(*x), y)
+        logits = self(*x)
+        loss = self.loss_func(logits, y)
+        pred = logits.argmax(dim=1)
+        acc = torch.eq(pred, y).float().mean()
         # if len(batch) > self._n_in + 1:  # includes sample weighting
         #     x, y, w = batch[:-2], batch[-2], batch[-1]
         #     losses = self.loss_func(self(*x), y, reduction="none")
         #     loss = torch.mean(w * losses)
 
-        return loss
+        return loss, acc
 
     def training_step(self, batch, batch_idx):
-        loss = self._process_batch(batch, batch_idx)
+        loss, acc = self._process_batch(batch)
         self.log("train_loss", loss)
+        self.log("train_acc", acc)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        loss = self._process_batch(batch, batch_idx)
+        loss, acc = self._process_batch(batch)
         self.log("val_loss", loss)
+        self.log("val_acc", acc)
         return loss
 
     def configure_optimizers(self):
