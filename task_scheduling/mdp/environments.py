@@ -433,7 +433,7 @@ class Base(Env, ABC):
 
         if save_path is not None:
             with open(save_path, "wb") as f:
-                pickle.dump({"obs": o, "act": a, "rew": r}, f)
+                pickle.dump({"obs": o, "act": a, "rew": r, "env_summary": self.summary()}, f)
 
         return o, a, r
 
