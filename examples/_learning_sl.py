@@ -36,7 +36,7 @@ trainer_kwargs = {
     "logger": False,
     "enable_checkpointing": False,
     "callbacks": EarlyStopping("val_loss", min_delta=0.0, patience=50),
-    "gpus": torch.cuda.device_count(),
+    "accelerator": "auto",
 }
 
 learn_params = {
@@ -44,7 +44,7 @@ learn_params = {
     "n_gen_val": 1 / 3,
     "batch_size_val": 30,
     "max_epochs": 500,
-    "shuffle": True,
+    "dl_kwargs": dict(shuffle=True),
 }
 
 lit_scheduler = LitScheduler.from_gen_mlp(

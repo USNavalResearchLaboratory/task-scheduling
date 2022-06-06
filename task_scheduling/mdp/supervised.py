@@ -88,7 +88,6 @@ class BasePyTorch(BaseSupervised):
         "frac_val": 0.0,
         "batch_size_val": 1,
         "max_epochs": 1,
-        "shuffle": False,
         "dl_kwargs": {},
     }
 
@@ -222,7 +221,6 @@ class BasePyTorch(BaseSupervised):
         dl_train = DataLoader(
             ds_train,
             batch_size=self.learn_params["batch_size_train"] * self.env.n_tasks,
-            shuffle=self.learn_params["shuffle"],
             **self.learn_params["dl_kwargs"],
         )
 
@@ -230,8 +228,7 @@ class BasePyTorch(BaseSupervised):
         dl_val = DataLoader(
             ds_val,
             batch_size=self.learn_params["batch_size_val"] * self.env.n_tasks,
-            shuffle=False,
-            **self.learn_params["dl_kwargs"],
+            **(self.learn_params["dl_kwargs"] | dict(shuffle=False)),
         )
 
         return dl_train, dl_val

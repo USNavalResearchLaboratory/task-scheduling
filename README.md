@@ -221,7 +221,7 @@ trainer_kwargs = {
     "logger": False,
     "enable_checkpointing": False,
     "callbacks": EarlyStopping("val_loss", patience=100),
-    "gpus": torch.cuda.device_count(),
+    "accelerator": "auto",
 }
 lit_scheduler = LitScheduler.mlp(
     env,

@@ -107,8 +107,16 @@ def objective(trial):
         "frac_val": 0.3,
         "batch_size_val": batch_size,
         "max_epochs": 5000,
-        "shuffle": True,
+        "dl_kwargs": dict(
+            shuffle=True,
+            # num_workers=0,
+            # persistent_workers=False,
+            num_workers=4,
+            persistent_workers=True,
+            pin_memory=True,
+        ),
     }
+
     model_kwargs = dict(
         optim_cls=optim.Adam,
         optim_params=dict(lr=1e-4),

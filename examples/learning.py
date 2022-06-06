@@ -46,16 +46,16 @@ env = Index(problem_gen, **env_params)
 
 learn_params = {
     "batch_size_train": 20,
-    "frac_val": .3,
+    "frac_val": 0.3,
     "batch_size_val": 30,
     "max_epochs": 2000,
-    "shuffle": True,
+    "dl_kwargs": dict(shuffle=True),
 }
 trainer_kwargs = {
     "logger": False,
     "enable_checkpointing": False,
     "callbacks": EarlyStopping("val_loss", patience=100),
-    "gpus": torch.cuda.device_count(),
+    "accelerator": "auto",
 }
 lit_scheduler = LitScheduler.mlp(
     env,
@@ -67,7 +67,7 @@ lit_scheduler = LitScheduler.mlp(
 
 
 learn_params_sb = {
-    "frac_val": .3,
+    "frac_val": 0.3,
     "max_epochs": 2000,
     "eval_callback_kwargs": dict(
         callback_after_eval=StopTrainingOnNoModelImprovement(1000, min_evals=0, verbose=1),

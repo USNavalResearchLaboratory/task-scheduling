@@ -108,8 +108,8 @@ learn_params_torch = {
     "frac_val": 0.3,
     "batch_size_val": batch_size,
     "max_epochs": 5000,
-    "shuffle": True,
     "dl_kwargs": dict(
+        shuffle=True,
         # num_workers=0,
         # persistent_workers=False,
         num_workers=4,
