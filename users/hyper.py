@@ -12,6 +12,7 @@ from matplotlib import pyplot as plt
 from optuna.integration import PyTorchLightningPruningCallback
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.strategies import DDPSpawnStrategy, DDPStrategy
 from pytorch_lightning.utilities.seed import seed_everything
 from torch import nn, optim
 
@@ -38,6 +39,8 @@ seed = 12345
 if seed is not None:
     seed_everything(seed)
 
+now = get_now()
+
 
 # %% Define scheduling problem and algorithms
 
@@ -50,6 +53,8 @@ if seed is not None:
 # problem_gen = problem_gens.PermutedTasks.search_track(n_tasks=12, n_ch=1, t_release_lim=(0., 0.2), rng=seed)
 
 data_path = Path("data/")
+
+data_tensors = data_path / "temp/tensors_1e5"
 
 
 # dataset = "continuous_linear_drop_c1t8"
@@ -89,30 +94,17 @@ env_params = dict(
 env = Index(problem_gen, **env_params)
 
 # obs, act, *__ = env.opt_rollouts(problem_gen.n_problems, verbose=1, rng=seed)
-with open("data/temp/tensors_1e5", "rb") as f:
+with open(data_tensors, "rb") as f:
     load_dict = pickle.load(f)
     obs, act = load_dict["obs"], load_dict["act"]
 
 
 def objective(trial):
-    trainer_kwargs = dict(
-        logger=TensorBoardLogger(temp_path + "logs/lit/", name=get_now()),
-        enable_checkpointing=False,
-        log_every_n_steps=30,
-        # callbacks=EarlyStopping('val_loss', patience=100),
-        # callbacks=PyTorchLightningPruningCallback(trial, monitor="val_acc"),
-        callbacks=[
-            EarlyStopping("val_loss", patience=100),
-            PyTorchLightningPruningCallback(trial, monitor="val_acc"),
-        ],
-        default_root_dir=temp_path + "logs/lit/",
-        gpus=torch.cuda.device_count(),
-    )
-
+    # batch_size = 200
     batch_size = trial.suggest_int("batch_size", 20, 200, step=60)
     learn_params_torch = {
         "batch_size_train": batch_size,
-        "frac_val": 1 / 3,
+        "frac_val": 0.3,
         "batch_size_val": batch_size,
         "max_epochs": 5000,
         "shuffle": True,
@@ -123,11 +115,32 @@ def objective(trial):
         # optim_params=dict(lr=trial.suggest_float("lr", 1e-5, 1e-3, log=True)),
     )
 
-    n_layers = trial.suggest_int("n_layers", 1, 4)
-    hidden_dims = [trial.suggest_int(f"n_units_l{i}", 10, 10000, log=True) for i in range(n_layers)]
+    n_layers = 3
+    # n_layers = trial.suggest_int("n_layers", 1, 4)
+    hidden_dim = 1000
+    # hidden_dim = trial.suggest_inf("n_units", 10, 10000, log=True)
+    hidden_dims = n_layers * [hidden_dim]
+    # hidden_dims = [trial.suggest_int(f"n_units_l{i}", 10, 10000, log=True) for i in range(n_layers)]
     module = MultiNet.mlp(
         env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_sizes_joint=hidden_dims
     )
+
+    trainer_kwargs = dict(
+        logger=TensorBoardLogger(temp_path + "logs/lit/", name=f"{now}_batch-{batch_size}"),
+        # logger=TensorBoardLogger(temp_path + "logs/lit/", name=f"{now}_{trial.number}"),
+        enable_checkpointing=False,
+        # callbacks=EarlyStopping('val_loss', patience=100),
+        # callbacks=PyTorchLightningPruningCallback(trial, monitor="val_acc"),
+        callbacks=[
+            EarlyStopping("val_loss", patience=100),
+            PyTorchLightningPruningCallback(trial, monitor="val_acc"),
+        ],
+        default_root_dir=temp_path + "logs/lit/",
+        accelerator="auto",
+        # strategy=DDPStrategy(find_unused_parameters=False),
+        strategy=DDPSpawnStrategy(find_unused_parameters=False),
+    )
+
     lit_scheduler = LitScheduler.from_module(
         env,
         module,

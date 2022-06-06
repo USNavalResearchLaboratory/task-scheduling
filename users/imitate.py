@@ -92,7 +92,7 @@ env = Index(problem_gen, **env_params)
 
 learn_params_torch = {
     "batch_size_train": 20,
-    "frac_val": 1 / 3,
+    "frac_val": 0.3,
     "batch_size_val": 30,
     "max_epochs": 5000,
     "shuffle": True,
@@ -121,8 +121,8 @@ trainer_kwargs = dict(
     default_root_dir=temp_path + "logs/lit/",
     # devices=torch.cuda.device_count(),
     accelerator="auto",
-    strategy=DDPStrategy(find_unused_parameters=False),
-    # strategy=DDPSpawnStrategy(find_unused_parameters=False),
+    # strategy=DDPStrategy(find_unused_parameters=False),
+    strategy=DDPSpawnStrategy(find_unused_parameters=False),
 )
 
 lit_scheduler = LitScheduler.from_module(
@@ -143,7 +143,7 @@ random_agent = RandomAgent(env)
 # check_env(env)
 
 learn_params_sb = {
-    "frac_val": 1 / 3,
+    "frac_val": 0.3,
     # 'max_epochs': 2000,
     "max_epochs": 1,
     "eval_callback_kwargs": dict(

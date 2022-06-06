@@ -102,10 +102,10 @@ env_params = dict(
 env = Index(problem_gen, **env_params)
 
 
-batch_size = 20
+batch_size = 200
 learn_params_torch = {
     "batch_size_train": batch_size,
-    "frac_val": 1 / 3,
+    "frac_val": 0.3,
     "batch_size_val": batch_size,
     "max_epochs": 5000,
     "shuffle": True,
@@ -134,19 +134,19 @@ module = MultiNet.mlp(env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_siz
 # )
 # module = VaryCNN(env, kernel_len=2)
 
-torch_scheduler = TorchScheduler(env, module, **model_kwargs, learn_params=learn_params_torch)
+# torch_scheduler = TorchScheduler(env, module, **model_kwargs, learn_params=learn_params_torch)
 
 
 trainer_kwargs = dict(
     logger=TensorBoardLogger(save_dir + "logs/lit/", name=now),
     enable_checkpointing=False,
-    log_every_n_steps=30,
+    # log_every_n_steps=30,
     callbacks=EarlyStopping("val_loss", patience=100),
     default_root_dir=save_dir + "logs/lit/",
     # devices=torch.cuda.device_count(),
     accelerator="auto",
     # strategy=DDPStrategy(find_unused_parameters=False),
-    # strategy=DDPSpawnStrategy(find_unused_parameters=False),
+    strategy=DDPSpawnStrategy(find_unused_parameters=False),
 )
 
 lit_scheduler = LitScheduler.from_module(
@@ -161,60 +161,60 @@ lit_scheduler = LitScheduler.from_module(
 # lit_scheduler = LitScheduler.load('models/c1t8.pth', trainer_kwargs={'logger': False})  # FIXME
 
 
-random_agent = RandomAgent(env)
+# random_agent = RandomAgent(env)
 
 
 # check_env(env)
 
-learn_params_sb = {
-    "frac_val": 1 / 3,
-    # 'max_epochs': 2000,
-    "max_epochs": 1,
-    "eval_callback_kwargs": dict(
-        callback_after_eval=StopTrainingOnNoModelImprovement(1000, min_evals=0, verbose=1),
-        n_eval_episodes=100,
-        eval_freq=1000,
-        verbose=1,
-    ),
-}
+# learn_params_sb = {
+#     "frac_val": 0.3,
+#     # 'max_epochs': 2000,
+#     "max_epochs": 1,
+#     "eval_callback_kwargs": dict(
+#         callback_after_eval=StopTrainingOnNoModelImprovement(1000, min_evals=0, verbose=1),
+#         n_eval_episodes=100,
+#         eval_freq=1000,
+#         verbose=1,
+#     ),
+# }
+#
+# sb_model_kwargs = dict(
+#     policy=ValidActorCriticPolicy,
+#     policy_kwargs=dict(
+#         features_extractor_class=MultiExtractor.mlp,
+#         features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[]),
+#         net_arch=[400],
+#         # features_extractor_class=MultiExtractor.cnn,
+#         # features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[400]),
+#         # net_arch=[],
+#         activation_fn=nn.ReLU,
+#         normalize_images=False,
+#         infer_valid_mask=env.infer_valid_mask,
+#     ),
+#     learning_rate=3e-4,
+#     # learning_rate=3e-5,
+#     # n_steps=2048,  # TODO: investigate problem reuse
+#     n_steps=env.n_tasks * 20 * 15,
+#     batch_size=env.n_tasks * 20,
+#     tensorboard_log=save_dir + "logs/sb/",
+#     verbose=1,
+# )
+# sb_scheduler = StableBaselinesScheduler.make_model(env, "PPO", sb_model_kwargs, learn_params_sb)
 
-sb_model_kwargs = dict(
-    policy=ValidActorCriticPolicy,
-    policy_kwargs=dict(
-        features_extractor_class=MultiExtractor.mlp,
-        features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[]),
-        net_arch=[400],
-        # features_extractor_class=MultiExtractor.cnn,
-        # features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[400]),
-        # net_arch=[],
-        activation_fn=nn.ReLU,
-        normalize_images=False,
-        infer_valid_mask=env.infer_valid_mask,
-    ),
-    learning_rate=3e-4,
-    # learning_rate=3e-5,
-    # n_steps=2048,  # TODO: investigate problem reuse
-    n_steps=env.n_tasks * 20 * 15,
-    batch_size=env.n_tasks * 20,
-    tensorboard_log=save_dir + "logs/sb/",
-    verbose=1,
-)
-sb_scheduler = StableBaselinesScheduler.make_model(env, "PPO", sb_model_kwargs, learn_params_sb)
 
+# # Behavioral cloning attempt
+# class SLPolicy(nn.Module):
+#     def __init__(self, policy):
+#         super().__init__()
+#         self.policy = policy
 
-# Behavioral cloning attempt
-class SLPolicy(nn.Module):
-    def __init__(self, policy):
-        super().__init__()
-        self.policy = policy
-
-    def forward(self, ch_avail, seq, tasks):
-        obs = dict(ch_avail=ch_avail, seq=seq, tasks=tasks)
-        features_ = self.policy.extract_features(obs)
-        latent_pi, _latent_vf = self.policy.mlp_extractor(features_)
-        mean_actions = self.policy.action_net(latent_pi)
-        mean_actions = valid_logits(mean_actions, self.policy.infer_valid_mask(obs))
-        return mean_actions
+#     def forward(self, ch_avail, seq, tasks):
+#         obs = dict(ch_avail=ch_avail, seq=seq, tasks=tasks)
+#         features_ = self.policy.extract_features(obs)
+#         latent_pi, _latent_vf = self.policy.mlp_extractor(features_)
+#         mean_actions = self.policy.action_net(latent_pi)
+#         mean_actions = valid_logits(mean_actions, self.policy.infer_valid_mask(obs))
+#         return mean_actions
 
 
 # bc_module = SLPolicy(sb_scheduler.model.policy)
@@ -297,14 +297,16 @@ with open("data/temp/tensors_1e5", "rb") as f:
 
 
 if __name__ == "__main__":
+    # TODO: better to instantiate models here for distributed training?
+
     # loss_mc, t_run_mc = evaluate_algorithms_train(
     #     algorithms, problem_gen, n_gen, n_gen_learn, n_mc, **eval_kwargs
     # )
-    # loss_mean, t_run_mean = evaluate_algorithms_gen(
-    #     algorithms, problem_gen, n_gen, n_gen_learn, **eval_kwargs
-    # )
+    loss_mean, t_run_mean = evaluate_algorithms_gen(
+        algorithms, problem_gen, n_gen, n_gen_learn, **eval_kwargs
+    )
 
     # torch_scheduler.train(obs, act, verbose=1)
-    lit_scheduler.train(obs, act, verbose=1)
+    # lit_scheduler.train(obs, act, verbose=1)
 
     plt.show()
