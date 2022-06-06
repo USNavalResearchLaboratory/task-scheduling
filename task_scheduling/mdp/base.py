@@ -114,6 +114,8 @@ class BaseLearning(Base):
             learn_params = {}
         self.learn_params = learn_params  # invoke property setter
 
+        self.frozen = False  # set `True` to disable learning in `results` subpackage
+
     @property
     def learn_params(self):
         return self._learn_params

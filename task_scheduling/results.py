@@ -72,7 +72,7 @@ def _log_and_fig(message, log_path, fig, img_path):
 
 def _log_helper(
     problem_obj,
-    learners,
+    algorithms,
     loss,
     t_run,
     solve,
@@ -95,11 +95,11 @@ def _log_helper(
     else:
         message += f"\n\n## Problem:\n{problem_obj}"
 
-    if len(learners) > 0:
-        message += "\n\n## Learners"
-        for learner in learners:
-            message += f"\n\n### {learner['name']}"
-            message += f"\n{learner['func'].summary()}"
+    message += "\n\n## Algorithms"
+    for alg in algorithms:
+        if hasattr(alg["func"], "summary"):
+            message += f"\n\n### {alg['name']}"
+            message += f"\n{alg['func'].summary()}"
 
     message += "\n\n## Results"
     message += f"\n{_print_averages(loss, t_run, do_relative=solve)}"
@@ -373,8 +373,6 @@ def evaluate_algorithms_single(
         Algorithm scheduling runtimes.
 
     """
-    learners = algorithms[[isinstance(alg["func"], BaseLearning) for alg in algorithms]]
-
     # RNG control
     if rng is not None:
         _set_algorithm_rng(algorithms, rng)
@@ -430,7 +428,7 @@ def evaluate_algorithms_single(
     if verbose >= 1:
         _log_helper(
             problem,
-            learners,
+            algorithms,
             loss_iter,
             t_run_iter,
             solve,
@@ -490,7 +488,9 @@ def evaluate_algorithms_gen(
         Algorithm scheduling runtimes.
 
     """
-    learners = algorithms[[isinstance(alg["func"], BaseLearning) for alg in algorithms]]
+    learners = algorithms[
+        [isinstance(fn, BaseLearning) and not fn.frozen for fn in algorithms["func"]]
+    ]
     _do_learn = bool(len(learners)) and bool(n_gen_learn)
     if not _do_learn:
         n_gen_learn = 0
@@ -567,7 +567,7 @@ def evaluate_algorithms_gen(
     if verbose >= 1:
         _log_helper(
             problem_gen,
-            learners,
+            algorithms,
             loss_mean,
             t_run_mean,
             solve,
@@ -632,7 +632,9 @@ def evaluate_algorithms_train(
         Algorithm scheduling runtimes.
 
     """
-    learners = algorithms[[isinstance(alg["func"], BaseLearning) for alg in algorithms]]
+    learners = algorithms[
+        [isinstance(fn, BaseLearning) and not fn.frozen for fn in algorithms["func"]]
+    ]
     if len(learners) == 0:
         n_gen_learn = 0
 
@@ -694,7 +696,7 @@ def evaluate_algorithms_train(
     if verbose >= 1:
         _log_helper(
             problem_gen,
-            learners,
+            algorithms,
             loss_mc,
             t_run_mc,
             solve,
