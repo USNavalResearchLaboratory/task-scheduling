@@ -43,7 +43,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
     """
 
     _learn_params_default = {
-        "frac_val": 0.,
+        "frac_val": 0.0,
         "max_epochs": 1,
         "eval_callback_kwargs": None,
     }

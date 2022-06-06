@@ -239,7 +239,7 @@ algorithms = np.array(
         # ('SB Agent', sb_scheduler, 10),
         # ('BC', bc_scheduler, 10),
     ],
-    dtype=[("name", "<U32"), ("func", object), ("n_iter", int)],
+    dtype=[("name", "<U32"), ("obj", object), ("n_iter", int)],
 )
 
 

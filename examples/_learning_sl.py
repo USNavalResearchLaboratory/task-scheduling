@@ -67,7 +67,7 @@ algorithms = np.array(
         ),
         ("SL Policy", lit_scheduler, 10),
     ],
-    dtype=[("name", "<U32"), ("func", object), ("n_iter", int)],
+    dtype=[("name", "<U32"), ("obj", object), ("n_iter", int)],
 )
 
 

@@ -158,7 +158,7 @@ def objective(trial):
     # # original
     # algorithms = np.array(
     #     [("Lit Policy", lit_scheduler, 10)],
-    #     dtype=[("name", "<U32"), ("func", object), ("n_iter", int)],
+    #     dtype=[("name", "<U32"), ("obj", object), ("n_iter", int)],
     # )
 
     # n_gen_learn, n_gen = 900, 100

@@ -49,7 +49,7 @@ algorithms_base = np.array(
             for c, t in product([0], [5, 10])
         ),
     ],
-    dtype=[("name", "<U32"), ("func", object), ("n_iter", int)],
+    dtype=[("name", "<U32"), ("obj", object), ("n_iter", int)],
 )
 
 
@@ -151,7 +151,7 @@ for dataset in datasets:
         algorithms_data.append((name, lit_scheduler, 10))
 
     algorithms_learn = np.array(
-        algorithms_data, dtype=[("name", "<U32"), ("func", object), ("n_iter", int)]
+        algorithms_data, dtype=[("name", "<U32"), ("obj", object), ("n_iter", int)]
     )
     algorithms = np.concatenate((algorithms_base, algorithms_learn))
 

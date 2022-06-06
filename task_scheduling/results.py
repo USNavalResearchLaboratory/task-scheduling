@@ -97,9 +97,9 @@ def _log_helper(
 
     message += "\n\n## Algorithms"
     for alg in algorithms:
-        if hasattr(alg["func"], "summary"):
+        if hasattr(alg["obj"], "summary"):
             message += f"\n\n### {alg['name']}"
-            message += f"\n{alg['func'].summary()}"
+            message += f"\n{alg['obj'].summary()}"
 
     message += "\n\n## Results"
     message += f"\n{_print_averages(loss, t_run, do_relative=solve)}"
@@ -125,7 +125,7 @@ def _add_opt(algorithms):
     if opt_name not in algorithms["name"]:
         _opt = np.array(
             [(opt_name, None, 1)],
-            dtype=[("name", "<U32"), ("func", object), ("n_iter", int)],
+            dtype=[("name", "<U32"), ("obj", object), ("n_iter", int)],
         )
         algorithms = np.concatenate((_opt, algorithms))
 
@@ -302,21 +302,21 @@ def _set_algorithm_rng(algorithms, rng):
     Overwrites any existing `rng` arguments.
     """
     for algorithm in algorithms:
-        if isinstance(algorithm["func"], partial):
-            func_code = algorithm["func"].func.__code__
+        if isinstance(algorithm["obj"], partial):
+            func_code = algorithm["obj"].func.__code__
             arg_names = func_code.co_varnames[: func_code.co_argcount]
             if "rng" in arg_names:  # algorithm takes `rng` argument, can be seeded
-                algorithm["func"].keywords["rng"] = rng
+                algorithm["obj"].keywords["rng"] = rng
         else:
             try:  # FIXME: hack. should be able to inspect `__call__` signature
-                func_code = algorithm["func"].__code__
+                func_code = algorithm["obj"].__code__
             except AttributeError:
                 warn(f"RNG cannot be set for algorithm: {algorithm['name']}")
                 continue
             arg_names = func_code.co_varnames[: func_code.co_argcount]
             if "rng" in arg_names:  # algorithm takes `rng` argument, can be seeded
-                algorithm["func"] = partial(algorithm["func"])
-                algorithm["func"].keywords["rng"] = rng
+                algorithm["obj"] = partial(algorithm["obj"])
+                algorithm["obj"].keywords["rng"] = rng
 
 
 def _seed_to_rng(algorithms):
@@ -326,7 +326,7 @@ def _seed_to_rng(algorithms):
     Repeated calls to algorithms will use the RNG in-place, avoiding exact reproduction and
     ensuring new output for Monte Carlo evaluation.
     """
-    for func in algorithms["func"]:
+    for func in algorithms["obj"]:
         if isinstance(func, partial) and "rng" in func.keywords:
             func.keywords["rng"] = RNGMix.make_rng(func.keywords["rng"])
 
@@ -489,7 +489,7 @@ def evaluate_algorithms_gen(
 
     """
     learners = algorithms[
-        [isinstance(fn, BaseLearning) and not fn.frozen for fn in algorithms["func"]]
+        [isinstance(fn, BaseLearning) and not fn.frozen for fn in algorithms["obj"]]
     ]
     _do_learn = bool(len(learners)) and bool(n_gen_learn)
     if not _do_learn:
@@ -513,9 +513,7 @@ def evaluate_algorithms_gen(
 
     if _do_learn:
         # Get training problems, make solutions if needed for SL
-        supervised_learners = learners[
-            [isinstance(alg["func"], BaseSupervised) for alg in learners]
-        ]
+        supervised_learners = learners[[isinstance(alg["obj"], BaseSupervised) for alg in learners]]
         _do_sl = bool(len(supervised_learners))
 
         out_gen = list(problem_gen(n_gen_learn, solve=_do_sl, verbose=verbose))
@@ -529,11 +527,11 @@ def evaluate_algorithms_gen(
             if verbose >= 1:
                 print(f"\nTraining learner: {learner['name']}")
 
-            func = learner["func"]
-            # func.reset()
+            obj = learner["obj"]
+            # obj.reset()
 
             # instantiate new generator for each learner
-            func.env.problem_gen = Dataset(
+            obj.env.problem_gen = Dataset(
                 problems,
                 solutions,
                 shuffle=True,
@@ -541,7 +539,7 @@ def evaluate_algorithms_gen(
                 task_gen=problem_gen.task_gen,
                 ch_avail_gen=problem_gen.ch_avail_gen,
             )
-            func.learn(n_gen_learn, verbose=verbose)  # calls `problem_gen` via environment `reset`
+            obj.learn(n_gen_learn, verbose=verbose)  # calls `problem_gen` via environment `reset`
 
     loss_mean, t_run_mean = _empty_result(algorithms, n_gen), _empty_result(algorithms, n_gen)
     if verbose >= 1:
@@ -633,7 +631,7 @@ def evaluate_algorithms_train(
 
     """
     learners = algorithms[
-        [isinstance(fn, BaseLearning) and not fn.frozen for fn in algorithms["func"]]
+        [isinstance(fn, BaseLearning) and not fn.frozen for fn in algorithms["obj"]]
     ]
     if len(learners) == 0:
         n_gen_learn = 0
@@ -672,7 +670,7 @@ def evaluate_algorithms_train(
             problem_gen.shuffle()  # random train/test split
 
         for learner in learners:  # reset learned policies
-            learner["func"].reset()
+            learner["obj"].reset()
 
         # Evaluate performance
         loss_mean, t_run_mean = evaluate_algorithms_gen(

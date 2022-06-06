@@ -5,12 +5,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from task_scheduling.nodes import ScheduleNodeBound
-from task_scheduling.util import (
-    check_schedule,
-    evaluate_schedule,
-    plot_schedule,
-    plot_task_losses,
-)
+from task_scheduling.util import check_schedule, evaluate_schedule, plot_schedule, plot_task_losses
 
 
 def branch_bound(tasks: list, ch_avail: list, runtimes: list, verbose=False, rng=None):
@@ -350,7 +345,7 @@ def evaluate_algorithms_runtime(
 #     ('MCTS', partial(algs.limit.mcts, verbose=False), 5),
 #     ('Policy', runtime_wrapper(policy_model), 5),
 #     # ('DQN Agent', dqn_agent, 5),
-# ], dtype=[('name', '<U32'), ('func', object), ('n_iter', int)])
+# ], dtype=[('name', '<U32'), ('obj', object), ('n_iter', int)])
 #
 # runtimes = np.logspace(-2, -1, 20, endpoint=False)
 # evaluate_algorithms_runtime(algorithms, runtimes, problem_gen, n_gen=40, solve=True, verbose=2, plotting=1,
