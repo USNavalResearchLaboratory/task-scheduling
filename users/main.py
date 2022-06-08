@@ -141,7 +141,7 @@ trainer_kwargs = dict(
     logger=TensorBoardLogger(save_dir + "logs/lit/", name=now),
     enable_checkpointing=False,
     # log_every_n_steps=30,
-    callbacks=EarlyStopping("val_loss", patience=100),
+    callbacks=EarlyStopping("val_loss", patience=50),
     default_root_dir=save_dir + "logs/lit/",
     # devices=torch.cuda.device_count(),
     accelerator="auto",

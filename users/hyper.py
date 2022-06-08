@@ -98,6 +98,8 @@ with open(data_tensors, "rb") as f:
     load_dict = pickle.load(f)
     obs, act = load_dict["obs"], load_dict["act"]
 
+# obs, act = {key: val[:1000] for key, val in obs.items()}, act[:1000]
+
 
 def objective(trial):
     # batch_size = 200
@@ -117,13 +119,14 @@ def objective(trial):
         ),
     }
 
+    lr = 1e-4
+    # lr = trial.suggest_float("lr", 1e-6, 1e-3, log=True)
     model_kwargs = dict(
         optim_cls=optim.Adam,
-        optim_params=dict(lr=1e-4),
-        # optim_params=dict(lr=trial.suggest_float("lr", 1e-5, 1e-3, log=True)),
+        optim_params=dict(lr=lr),
     )
 
-    n_layers = 3
+    n_layers = 4
     # n_layers = trial.suggest_int("n_layers", 1, 4)
     hidden_dim = 1000
     # hidden_dim = trial.suggest_inf("n_units", 10, 10000, log=True)
@@ -134,14 +137,17 @@ def objective(trial):
     )
 
     trainer_kwargs = dict(
-        logger=TensorBoardLogger(temp_path + "logs/lit/", name=f"{now}_batch-{batch_size}"),
         # logger=TensorBoardLogger(temp_path + "logs/lit/", name=f"{now}_{trial.number}"),
+        logger=TensorBoardLogger(temp_path + "logs/lit/", name=f"{now}_batch-{batch_size}"),
+        # logger=TensorBoardLogger(temp_path + "logs/lit/", name=f"{now}_lr-{lr}"),
         enable_checkpointing=False,
         # callbacks=EarlyStopping('val_loss', patience=100),
         # callbacks=PyTorchLightningPruningCallback(trial, monitor="val_acc"),
         callbacks=[
-            EarlyStopping("val_loss", patience=100),
-            PyTorchLightningPruningCallback(trial, monitor="val_acc"),
+            # EarlyStopping("val_loss", patience=50),
+            # PyTorchLightningPruningCallback(trial, monitor="val_acc"),
+            # EarlyStopping("train_loss", patience=50),
+            PyTorchLightningPruningCallback(trial, monitor="train_loss"),
         ],
         default_root_dir=temp_path + "logs/lit/",
         accelerator="auto",
@@ -160,8 +166,8 @@ def objective(trial):
     # loaded data
     lit_scheduler.train(obs, act, verbose=1)
     # return lit_scheduler.trainer.callback_metrics["val_loss"].item()
-    # return lit_scheduler.trainer.callback_metrics["train_loss"].item()
-    return lit_scheduler.trainer.callback_metrics["val_acc"].item()
+    return lit_scheduler.trainer.callback_metrics["train_loss"].item()
+    # return lit_scheduler.trainer.callback_metrics["val_acc"].item()
 
     # # original
     # algorithms = np.array(
@@ -199,8 +205,8 @@ if __name__ == "__main__":
     pruner = optuna.pruners.NopPruner()
     # pruner = optuna.pruners.MedianPruner()
 
-    study = optuna.create_study(sampler=sampler, pruner=pruner)
-    # study = optuna.create_study(sampler=sampler, pruner=pruner, direction="minimize")
+    # study = optuna.create_study(sampler=sampler, pruner=pruner)
+    study = optuna.create_study(sampler=sampler, pruner=pruner, direction="minimize")
     study.optimize(objective, n_trials=100, timeout=3600 * 10, show_progress_bar=True)
 
     print(f"Number of finished trials: {len(study.trials)}")
