@@ -2,24 +2,33 @@
 
 import math
 from collections import namedtuple
+from functools import partial
 from pathlib import Path
 
 import dill
 import numpy as np
-import torch
+import torch as th
 from gym import spaces
 from stable_baselines3 import A2C, DQN, PPO
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+from stable_baselines3.common.utils import obs_as_tensor
 from stable_baselines3.dqn.policies import DQNPolicy, QNetwork
 from torch import nn
+from torch.nn import functional
 
 from task_scheduling.base import get_now
 from task_scheduling.mdp.base import BaseLearning as BaseLearningScheduler
 from task_scheduling.mdp.environments import Index
-from task_scheduling.mdp.modules import build_cnn, build_mlp, reset_weights, valid_logits
+from task_scheduling.mdp.modules import (
+    build_cnn,
+    build_mlp,
+    flatten_rollouts,
+    reset_weights,
+    valid_logits,
+)
 
 _default_tuple = namedtuple("ModelDefault", ["cls", "params"], defaults={})
 
@@ -133,6 +142,95 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         # total_timesteps = self.learn_params['max_epochs'] * n_gen_learn * self.env.action_space.n
         # self.model.learn(total_timesteps, tb_log_name=log_name)
 
+    def imitate(self, obs, act, rew) -> None:  # TODO: rename `train` for consistency?
+        alg = self.model
+        if not isinstance(alg.policy, ActorCriticPolicy):
+            raise ValueError("Only ActorCriticPolicy can be used with this method.")
+
+        batch_size = 200 * self.env.action_space.n
+        max_epochs = 5000
+
+        ret = rew  # finite horizon undiscounted return (i.e. reward-to-go)
+        for i in reversed(range(rew.shape[-1] - 1)):
+            ret[:, i] += ret[:, i + 1]
+
+        obs, act, ret = map(flatten_rollouts, (obs, act, ret))
+        obs, act, ret = map(partial(obs_as_tensor, device=alg.device), (obs, act, ret))
+
+        # Switch to train mode (this affects batch norm / dropout)
+        alg.policy.set_training_mode(True)
+
+        # Update optimizer learning rate
+        alg._update_learning_rate(alg.policy.optimizer)
+
+        # FIXME: use `DataLoader`?
+        # FIXME: need validation and tqdm!
+        # FIXME: move training params (batch size, etc.) -> `imitation_params`
+
+        def get_batch(a, indices):
+            if isinstance(a, dict):
+                return {key: get_batch(val) for key, val in a.items()}
+            else:
+                return a[indices]
+
+        for epoch in range(max_epochs):
+            idx_win = np.lib.stride_tricks.sliding_window_view(
+                self.rng.permutation(len(ret)), batch_size
+            )[::batch_size]
+            # TODO: partial last batch?
+
+            for batch_indices in idx_win:
+                observations = get_batch(obs, batch_indices)
+                actions = get_batch(act, batch_indices)
+                returns = get_batch(rew, batch_indices)
+
+                if isinstance(alg.action_space, spaces.Discrete):
+                    # Convert discrete action from float to long
+                    actions = actions.long().flatten()
+
+                values, log_prob, entropy = alg.policy.evaluate_actions(observations, actions)
+                values = values.flatten()
+
+                # Normalize advantage (not present in the original implementation)
+                advantages = returns - values
+                if alg.normalize_advantage:
+                    advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+
+                # Policy gradient loss
+                policy_loss = -(advantages * log_prob).mean()
+
+                # Value loss using the TD(gae_lambda) target
+                value_loss = functional.mse_loss(returns, values)
+
+                # Entropy loss favor exploration
+                if entropy is None:
+                    # Approximate entropy when no analytical form
+                    entropy_loss = -th.mean(-log_prob)
+                else:
+                    entropy_loss = -th.mean(entropy)
+
+                loss = policy_loss + alg.ent_coef * entropy_loss + alg.vf_coef * value_loss
+
+                # Optimization step
+                alg.policy.optimizer.zero_grad()
+                loss.backward()
+
+                # Clip grad norm
+                th.nn.utils.clip_grad_norm_(alg.policy.parameters(), alg.max_grad_norm)
+                alg.policy.optimizer.step()
+
+                # Logging
+                alg.logger.record("epoch", epoch)
+
+                alg._n_updates += 1
+                alg.logger.record("train/n_updates", alg._n_updates, exclude="tensorboard")
+                # alg.logger.record("train/explained_variance", explained_var)
+                alg.logger.record("train/entropy_loss", entropy_loss.item())
+                alg.logger.record("train/policy_loss", policy_loss.item())
+                alg.logger.record("train/value_loss", value_loss.item())
+                if hasattr(alg.policy, "log_std"):
+                    alg.logger.record("train/std", th.exp(alg.policy.log_std).mean().item())
+
     def reset(self):
         self.model.policy.apply(reset_weights)
 
@@ -196,21 +294,21 @@ class MultiExtractor(BaseFeaturesExtractor):
         sample["seq"] = np.stack((sample["seq"], 1 - sample["seq"])).flatten(
             order="F"
         )  # workaround SB3 encoding
-        sample = {key: torch.tensor(sample[key]).float().unsqueeze(0) for key in sample}
-        with torch.no_grad():
+        sample = {key: th.tensor(sample[key]).float().unsqueeze(0) for key in sample}
+        with th.no_grad():
             self._features_dim = self.forward(sample).shape[1]  # SB3's workaround
 
     def forward(self, observations: dict):
         c, s, t = observations.values()
         t = t.permute(0, 2, 1)
         # s = s[:, ::2]  # override SB3 one-hot encoding
-        # t = torch.cat((t.permute(0, 2, 1), s.unsqueeze(1)), dim=1)
+        # t = th.cat((t.permute(0, 2, 1), s.unsqueeze(1)), dim=1)
         # # reshape task features, combine w/ sequence mask
 
         c = self.net_ch(c)
         t = self.net_tasks(t)
 
-        return torch.cat((c, t), dim=-1)
+        return th.cat((c, t), dim=-1)
 
     @classmethod
     def mlp(cls, observation_space, hidden_sizes_ch=(), hidden_sizes_tasks=()):

@@ -10,6 +10,17 @@ def reset_weights(model):
         model.reset_parameters()
 
 
+def flatten_rollouts(a):
+    if isinstance(a, dict):
+        return {key: flatten_rollouts(val) for key, val in a.items()}
+    else:
+        return a.reshape(-1, *a.shape[2:])
+
+
+def valid_logits(x, seq):
+    return x - 1e8 * seq
+
+
 def build_mlp(layer_sizes, activation=nn.ReLU, last_act=False):
     """
     PyTorch sequential MLP.
@@ -79,10 +90,6 @@ def build_cnn(layer_sizes, kernel_sizes, pooling_layers=None, activation=nn.ReLU
         if pooling is not None:
             layers.append(pooling)
     return nn.Sequential(*layers)
-
-
-def valid_logits(x, seq):
-    return x - 1e8 * seq
 
 
 class MultiNet(nn.Module):

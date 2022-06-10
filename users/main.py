@@ -166,40 +166,40 @@ lit_scheduler = LitScheduler.from_module(
 
 # check_env(env)
 
-# learn_params_sb = {
-#     "frac_val": 0.3,
-#     # 'max_epochs': 2000,
-#     "max_epochs": 1,
-#     "eval_callback_kwargs": dict(
-#         callback_after_eval=StopTrainingOnNoModelImprovement(1000, min_evals=0, verbose=1),
-#         n_eval_episodes=100,
-#         eval_freq=1000,
-#         verbose=1,
-#     ),
-# }
-#
-# sb_model_kwargs = dict(
-#     policy=ValidActorCriticPolicy,
-#     policy_kwargs=dict(
-#         features_extractor_class=MultiExtractor.mlp,
-#         features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[]),
-#         net_arch=[400],
-#         # features_extractor_class=MultiExtractor.cnn,
-#         # features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[400]),
-#         # net_arch=[],
-#         activation_fn=nn.ReLU,
-#         normalize_images=False,
-#         infer_valid_mask=env.infer_valid_mask,
-#     ),
-#     learning_rate=3e-4,
-#     # learning_rate=3e-5,
-#     # n_steps=2048,  # TODO: investigate problem reuse
-#     n_steps=env.n_tasks * 20 * 15,
-#     batch_size=env.n_tasks * 20,
-#     tensorboard_log=save_dir + "logs/sb/",
-#     verbose=1,
-# )
-# sb_scheduler = StableBaselinesScheduler.make_model(env, "PPO", sb_model_kwargs, learn_params_sb)
+learn_params_sb = {
+    "frac_val": 0.3,
+    # 'max_epochs': 2000,
+    "max_epochs": 1,
+    "eval_callback_kwargs": dict(
+        callback_after_eval=StopTrainingOnNoModelImprovement(1000, min_evals=0, verbose=1),
+        n_eval_episodes=100,
+        eval_freq=1000,
+        verbose=1,
+    ),
+}
+
+sb_model_kwargs = dict(
+    policy=ValidActorCriticPolicy,
+    policy_kwargs=dict(
+        features_extractor_class=MultiExtractor.mlp,
+        features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[]),
+        net_arch=[400],
+        # features_extractor_class=MultiExtractor.cnn,
+        # features_extractor_kwargs=dict(hidden_sizes_ch=[], hidden_sizes_tasks=[400]),
+        # net_arch=[],
+        activation_fn=nn.ReLU,
+        normalize_images=False,
+        infer_valid_mask=env.infer_valid_mask,
+    ),
+    learning_rate=3e-4,
+    # learning_rate=3e-5,
+    # n_steps=2048,  # TODO: investigate problem reuse
+    n_steps=env.n_tasks * 20 * 15,
+    batch_size=env.n_tasks * 20,
+    tensorboard_log=save_dir + "logs/sb/",
+    verbose=1,
+)
+sb_scheduler = StableBaselinesScheduler.make_model(env, "PPO", sb_model_kwargs, learn_params_sb)
 
 
 # # Behavioral cloning attempt
@@ -260,8 +260,8 @@ algorithms = np.array(
         # ('MCTS', partial(mcts, max_runtime=6e-3, max_rollouts=None, c_explore=0, th_visit=5), 10),
         # ('Random Agent', random_agent, 10),
         # ("Torch Policy", torch_scheduler, 10),
-        ("Lit Policy", lit_scheduler, 10),
-        # ("SB Agent", sb_scheduler, 10),
+        # ("Lit Policy", lit_scheduler, 10),
+        ("SB Agent", sb_scheduler, 10),
         # ('BC', bc_scheduler, 10),
     ],
     dtype=[("name", "<U32"), ("obj", object), ("n_iter", int)],
@@ -293,7 +293,7 @@ eval_kwargs = dict(
 
 with open("data/temp/tensors_1e5", "rb") as f:
     load_dict = pickle.load(f)
-    obs, act = load_dict["obs"], load_dict["act"]
+    obs, act, rew = load_dict["obs"], load_dict["act"], load_dict["rew"]
 
 
 if __name__ == "__main__":
@@ -306,7 +306,7 @@ if __name__ == "__main__":
         algorithms, problem_gen, n_gen, n_gen_learn, **eval_kwargs
     )
 
-    # torch_scheduler.train(obs, act, verbose=1)
-    # lit_scheduler.train(obs, act, verbose=1)
+    # torch_scheduler.train(obs, act, rew, verbose=1)
+    # lit_scheduler.train(obs, act, rew, verbose=1)
 
     plt.show()

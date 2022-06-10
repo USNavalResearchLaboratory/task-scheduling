@@ -17,7 +17,7 @@ from tqdm import tqdm, trange
 
 from task_scheduling.mdp.base import BaseLearning
 from task_scheduling.mdp.environments import Index
-from task_scheduling.mdp.modules import MultiNet, reset_weights
+from task_scheduling.mdp.modules import MultiNet, flatten_rollouts, reset_weights
 
 # TODO: use reward!? Add task loss to NLL loss for backprop?
 
@@ -197,12 +197,6 @@ class BasePyTorch(BaseSupervised):
         y_train, y_val = np.split(act, [n_gen_train])
 
         # Flatten episode data
-        def flatten_rollouts(z):
-            if isinstance(z, dict):
-                return {key: flatten_rollouts(val) for key, val in z.items()}
-            else:
-                return z.reshape(-1, *z.shape[2:])
-
         x_train, x_val, y_train, y_val = map(flatten_rollouts, (x_train, x_val, y_train, y_val))
 
         # Unpack any `dict`, make tensors
