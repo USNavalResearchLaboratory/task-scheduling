@@ -7,6 +7,7 @@ from pathlib import Path
 
 import dill
 import numpy as np
+from tqdm import trange
 
 from task_scheduling.algorithms import branch_bound_priority
 from task_scheduling.base import RandomGeneratorMixin, SchedulingProblem, SchedulingSolution
@@ -75,11 +76,7 @@ class Base(RandomGeneratorMixin, ABC):
 
         # Generate tasks and find optimal schedules
         rng = self._get_rng(rng)
-        for i_gen in range(n_gen):
-            if verbose >= 1:
-                end = "\r" if verbose == 1 else "\n"
-                print(f"Problem: {i_gen + 1}/{n_gen}", end=end)
-
+        for __ in trange(n_gen, desc="Generating problems", disable=not verbose):
             problem = self._gen_problem(rng)
             if save:
                 problems.append(problem)
