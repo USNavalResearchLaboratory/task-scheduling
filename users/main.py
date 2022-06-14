@@ -104,9 +104,8 @@ env = Index(problem_gen, **env_params)
 
 batch_size = 200
 learn_params_torch = {
-    "batch_size_train": batch_size,
+    "batch_size": batch_size,
     "frac_val": 0.3,
-    "batch_size_val": batch_size,
     "max_epochs": 5000,
     "dl_kwargs": dict(
         shuffle=True,
@@ -134,7 +133,7 @@ module = MultiNet.mlp(env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_siz
 # )
 # module = VaryCNN(env, kernel_len=2)
 
-# torch_scheduler = TorchScheduler(env, module, **model_kwargs, learn_params=learn_params_torch)
+torch_scheduler = TorchScheduler(env, module, **model_kwargs, learn_params=learn_params_torch)
 
 
 trainer_kwargs = dict(
@@ -199,7 +198,7 @@ sb_model_kwargs = dict(
     tensorboard_log=save_dir + "logs/sb/",
     verbose=1,
 )
-sb_scheduler = StableBaselinesScheduler.make_model(env, "PPO", sb_model_kwargs, learn_params_sb)
+# sb_scheduler = StableBaselinesScheduler.make_model(env, "PPO", sb_model_kwargs, learn_params_sb)
 
 
 # # Behavioral cloning attempt
@@ -259,9 +258,9 @@ algorithms = np.array(
         #   for c, t in product([0], [5, 10])),
         # ('MCTS', partial(mcts, max_runtime=6e-3, max_rollouts=None, c_explore=0, th_visit=5), 10),
         # ('Random Agent', random_agent, 10),
-        # ("Torch Policy", torch_scheduler, 10),
+        ("Torch Policy", torch_scheduler, 10),
         # ("Lit Policy", lit_scheduler, 10),
-        ("SB Agent", sb_scheduler, 10),
+        # ("SB Agent", sb_scheduler, 10),
         # ('BC', bc_scheduler, 10),
     ],
     dtype=[("name", "<U32"), ("obj", object), ("n_iter", int)],

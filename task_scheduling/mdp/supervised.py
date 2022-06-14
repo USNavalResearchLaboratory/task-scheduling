@@ -84,9 +84,9 @@ class BasePyTorch(BaseSupervised):
     """
 
     _learn_params_default = {
-        "batch_size_train": 1,
+        "batch_size": 1,
         "frac_val": 0.0,
-        "batch_size_val": 1,
+        "batch_size_val": None,
         "max_epochs": 1,
         "dl_kwargs": {},
     }
@@ -96,6 +96,9 @@ class BasePyTorch(BaseSupervised):
             raise TypeError("Argument `model` must be a `torch.nn.Module` instance.")
 
         super().__init__(env, model, learn_params)
+
+        if self.learn_params["batch_size_val"] is None:
+            self.learn_params["batch_size_val"] = self.learn_params["batch_size"]
 
     @classmethod
     def from_gen(cls, problem_gen, env_cls=Index, env_params=None, *args, **kwargs):
@@ -214,7 +217,7 @@ class BasePyTorch(BaseSupervised):
         ds_train = TensorDataset(*tensors_train)
         dl_train = DataLoader(
             ds_train,
-            batch_size=self.learn_params["batch_size_train"] * self.env.n_tasks,
+            batch_size=self.learn_params["batch_size"] * self.env.n_tasks,
             **self.learn_params["dl_kwargs"],
         )
 
@@ -340,21 +343,16 @@ class TorchScheduler(BasePyTorch):
         if verbose >= 1:
             print("Training model...")
 
-        def loss_batch(model, loss_func, batch_, opt=None):
+        def loss_batch(batch_):
             batch_ = [t.to(self.device) for t in batch_]
-
             xb, yb = batch_[:-1], batch_[-1]
-            loss = loss_func(model(*xb), yb)
+            yb_pred = self.model(*xb)
+            loss = self.loss_func(yb_pred, yb)
             # xb, yb, wb = batch_[:-2], batch_[-2], batch_[-1]
             # losses_ = loss_func(model(*xb), yb, reduction="none")
             # loss = torch.mean(wb * losses_)
 
-            if opt is not None:
-                loss.backward()
-                opt.step()
-                opt.zero_grad()
-
-            return loss.item(), len(xb)
+            return loss
 
         self.model = self.model.to(self.device)
 
@@ -362,20 +360,19 @@ class TorchScheduler(BasePyTorch):
             for __ in pbar:
                 self.model.train()
                 for batch in tqdm(dl_train, desc="Train"):
-                    loss_batch(self.model, self.loss_func, batch, self.optimizer)
+                    loss = loss_batch(batch)
+
+                    self.optimizer.zero_grad()
+                    loss.backward()
+                    self.optimizer.step()
 
                 # if dl_val is not None:
                 self.model.eval()
                 with torch.no_grad():
-                    # losses, nums = zip(
-                    #     *[loss_batch(self.model, self.loss_func, batch) for batch in dl_val]
-                    # )
-                    losses, nums = [], []
+                    val_loss = 0.0
                     for batch in tqdm(dl_val, desc="Validate"):
-                        loss_b, num_b = loss_batch(self.model, self.loss_func, batch)
-                        losses.append(loss_b)
-                        nums.append(num_b)
-                val_loss = np.sum(np.multiply(losses, nums)) / np.sum(nums)
+                        val_loss += loss_batch(batch).item()
+                    val_loss /= len(dl_val)
 
                 pbar.set_postfix(val_loss=val_loss)
 
@@ -566,7 +563,7 @@ class LitScheduler(BasePyTorch):
         return (
             f"{super()._print_model()}\n"
             f"- Loader:\n"
-            f"  - Batch size: train={self.learn_params['batch_size_train']}, "
+            f"  - Batch size: train={self.learn_params['batch_size']}, "
             f"val={self.learn_params['batch_size_val']}\n"
             f"- Optimizer: {self.model.optim_cls.__name__}{self.model.optim_params}\n"
             f"- TB log: `{self.trainer.log_dir}`"

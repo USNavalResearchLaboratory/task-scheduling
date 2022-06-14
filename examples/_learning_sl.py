@@ -40,9 +40,8 @@ trainer_kwargs = {
 }
 
 learn_params = {
-    "batch_size_train": 20,
+    "batch_size": 20,
     "n_gen_val": 1 / 3,
-    "batch_size_val": 30,
     "max_epochs": 500,
     "dl_kwargs": dict(shuffle=True),
 }

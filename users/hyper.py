@@ -105,9 +105,8 @@ def objective(trial):
     # batch_size = 200
     batch_size = trial.suggest_int("batch_size", 20, 200, step=60)
     learn_params_torch = {
-        "batch_size_train": batch_size,
+        "batch_size": batch_size,
         "frac_val": 0.3,
-        "batch_size_val": batch_size,
         "max_epochs": 5000,
         "dl_kwargs": dict(
             shuffle=True,

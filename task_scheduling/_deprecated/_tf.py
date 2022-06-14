@@ -34,9 +34,9 @@ class Scheduler(BasePyTorch):
     log_dir = Path.cwd()
 
     _learn_params_default = {
-        "batch_size_train": 1,
+        "batch_size": 1,
         "n_gen_val": 0,
-        "batch_size_val": 1,
+        "batch_size_val": None,
         "weight_func": None,
         "callbacks": None,
         "do_tensorboard": False,
@@ -117,7 +117,7 @@ class Scheduler(BasePyTorch):
         plot_history = self.learn_params["plot_history"]
 
         fit_params = {
-            "batch_size": self.learn_params["batch_size_train"] * self.env.n_tasks,
+            "batch_size": self.learn_params["batch_size"] * self.env.n_tasks,
             "validation_batch_size": self.learn_params["batch_size_val"] * self.env.n_tasks,
             "epochs": self.learn_params["epochs"],
             "shuffle": self.learn_params["shuffle"],

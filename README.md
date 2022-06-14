@@ -211,9 +211,8 @@ env = Index(problem_gen, **env_params)
 
 
 learn_params = {
-    "batch_size_train": 20,
+    "batch_size": 20,
     "frac_val": 1 / 3,
-    "batch_size_val": 30,
     "max_epochs": 2000,
     "shuffle": True,
 }
