@@ -22,7 +22,7 @@ from torch.nn import functional
 from task_scheduling.base import get_now
 from task_scheduling.mdp.base import BaseLearning as BaseLearningScheduler
 from task_scheduling.mdp.environments import Index
-from task_scheduling.mdp.modules import (
+from task_scheduling.mdp.util import (
     build_cnn,
     build_mlp,
     flatten_rollouts,

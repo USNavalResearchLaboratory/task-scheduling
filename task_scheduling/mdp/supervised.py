@@ -17,7 +17,7 @@ from tqdm import tqdm, trange
 
 from task_scheduling.mdp.base import BaseLearning
 from task_scheduling.mdp.environments import Index
-from task_scheduling.mdp.modules import MultiNet, flatten_rollouts, reset_weights
+from task_scheduling.mdp.util import MultiNet, flatten_rollouts, reset_weights
 
 # TODO: use reward!? Add task loss to NLL loss for backprop?
 

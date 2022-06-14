@@ -26,7 +26,7 @@ from task_scheduling.generators import problems as problem_gens
 from task_scheduling.mdp.base import RandomAgent
 from task_scheduling.mdp.environments import Index
 from task_scheduling.mdp.features import encode_discrete_features, param_features
-from task_scheduling.mdp.modules import MultiNet, VaryCNN, build_mlp, valid_logits
+from task_scheduling.mdp.util import MultiNet, VaryCNN, build_mlp, valid_logits
 from task_scheduling.mdp.reinforcement import (
     MultiExtractor,
     StableBaselinesScheduler,
