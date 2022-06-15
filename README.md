@@ -184,9 +184,8 @@ from task_scheduling.mdp.reinforcement import (
     ValidActorCriticPolicy,
 )
 from task_scheduling.mdp.supervised import LitScheduler
-from task_scheduling.results import evaluate_algorithms_train
+from task_scheduling.results import evaluate_algorithms_train, evaluate_algorithms_gen
 
-# from task_scheduling.results import evaluate_algorithms_gen
 
 np.set_printoptions(precision=3)
 pd.options.display.float_format = "{:,.3f}".format
@@ -211,10 +210,9 @@ env = Index(problem_gen, **env_params)
 
 
 learn_params = {
-    "batch_size": 160,
     "frac_val": 0.3,
     "max_epochs": 2000,
-    "shuffle": True,
+    "dl_kwargs": dict(batch_size=160, shuffle=True),
 }
 trainer_kwargs = {
     "logger": False,
@@ -267,7 +265,7 @@ algorithms = np.array(
         ("SL Policy", lit_scheduler, 10),
         ("RL Agent", sb_scheduler, 10),
     ],
-    dtype=[("name", "<U32"), ("func", object), ("n_iter", int)],
+    dtype=[("name", "<U32"), ("obj", object), ("n_iter", int)],
 )
 
 

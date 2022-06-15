@@ -103,10 +103,10 @@ env = Index(problem_gen, **env_params)
 
 
 learn_params_torch = {
-    "batch_size": 1600,
     "frac_val": 0.3,
     "max_epochs": 5000,
     "dl_kwargs": dict(
+        batch_size=160,
         shuffle=True,
         # num_workers=0,
         # persistent_workers=False,
@@ -144,7 +144,7 @@ trainer_kwargs = dict(
     # devices=torch.cuda.device_count(),
     accelerator="auto",
     # strategy=DDPStrategy(find_unused_parameters=False),
-    strategy=DDPSpawnStrategy(find_unused_parameters=False),
+    # strategy=DDPSpawnStrategy(find_unused_parameters=False),
 )
 
 lit_scheduler = LitScheduler.from_module(

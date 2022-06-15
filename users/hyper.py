@@ -105,13 +105,12 @@ with open(data_tensors, "rb") as f:
 
 
 def objective(trial):
-    # batch_size = 1600
     batch_size = trial.suggest_int("batch_size", 160, 1600, step=320)
     learn_params_torch = {
-        "batch_size": batch_size,
         "frac_val": 0.3,
         "max_epochs": 5000,
         "dl_kwargs": dict(
+            batch_size=batch_size,
             shuffle=True,
             # num_workers=0,
             # persistent_workers=False,

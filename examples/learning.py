@@ -45,10 +45,9 @@ env = Index(problem_gen, **env_params)
 
 
 learn_params = {
-    "batch_size": 160,
     "frac_val": 0.3,
     "max_epochs": 2000,
-    "dl_kwargs": dict(shuffle=True),
+    "dl_kwargs": dict(batch_size=160, shuffle=True),
 }
 trainer_kwargs = {
     "logger": False,
