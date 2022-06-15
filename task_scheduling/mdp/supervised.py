@@ -88,7 +88,7 @@ class BasePyTorch(BaseSupervised):
         "frac_val": 0.0,
         "batch_size_val": None,
         "max_epochs": 1,
-        "dl_kwargs": {},
+        "dl_kwargs": None,
     }
 
     def __init__(self, env, model, learn_params=None):
@@ -99,6 +99,8 @@ class BasePyTorch(BaseSupervised):
 
         if self.learn_params["batch_size_val"] is None:
             self.learn_params["batch_size_val"] = self.learn_params["batch_size"]
+        if self.learn_params["dl_kwargs"] is None:
+            self.learn_params["dl_kwargs"] = {}
 
     @classmethod
     def from_gen(cls, problem_gen, env_cls=Index, env_params=None, *args, **kwargs):

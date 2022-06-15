@@ -63,6 +63,12 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         "PPO": _default_tuple(PPO, {"policy": "MlpPolicy", "verbose": 1}),
     }
 
+    def __init__(self, env, model, learn_params=None):
+        super().__init__(env, model, learn_params)
+
+        if self.learn_params["eval_callback_kwargs"] is None:
+            self.learn_params["eval_callback_kwargs"] = {}
+
     @classmethod
     def make_model(cls, env, model_cls, model_kwargs=None, learn_params=None):
         """Construct scheduler from Stable-Baselines3 model specification."""
