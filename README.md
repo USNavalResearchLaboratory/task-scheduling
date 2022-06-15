@@ -211,8 +211,8 @@ env = Index(problem_gen, **env_params)
 
 
 learn_params = {
-    "batch_size": 20,
-    "frac_val": 1 / 3,
+    "batch_size": 160,
+    "frac_val": 0.3,
     "max_epochs": 2000,
     "shuffle": True,
 }
@@ -232,7 +232,7 @@ lit_scheduler = LitScheduler.mlp(
 
 
 learn_params_sb = {
-    "frac_val": 1 / 3,
+    "frac_val": 0.3,
     "max_epochs": 2000,
     "eval_callback_kwargs": dict(
         callback_after_eval=StopTrainingOnNoModelImprovement(1000, min_evals=0, verbose=1),

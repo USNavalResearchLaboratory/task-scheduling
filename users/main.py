@@ -102,7 +102,7 @@ env_params = dict(
 env = Index(problem_gen, **env_params)
 
 
-batch_size = 200
+batch_size = 1600
 learn_params_torch = {
     "batch_size": batch_size,
     "frac_val": 0.3,
@@ -193,8 +193,8 @@ sb_model_kwargs = dict(
     learning_rate=3e-4,
     # learning_rate=3e-5,
     # n_steps=2048,  # TODO: investigate problem reuse
-    n_steps=env.n_tasks * 20 * 15,
-    batch_size=env.n_tasks * 20,
+    n_steps=160 * 15,
+    batch_size=160,
     tensorboard_log=save_dir + "logs/sb/",
     verbose=1,
 )

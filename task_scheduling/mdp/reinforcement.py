@@ -153,7 +153,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         if not isinstance(alg.policy, ActorCriticPolicy):
             raise ValueError("Only ActorCriticPolicy can be used with this method.")
 
-        batch_size = 200 * self.env.action_space.n
+        batch_size = 1600
         max_epochs = 5000
 
         ret = rew  # finite horizon undiscounted return (i.e. reward-to-go)

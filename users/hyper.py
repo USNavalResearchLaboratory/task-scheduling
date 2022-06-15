@@ -21,8 +21,8 @@ from task_scheduling.base import get_now
 from task_scheduling.generators import problems as problem_gens
 from task_scheduling.mdp.environments import Index
 from task_scheduling.mdp.features import encode_discrete_features, param_features
-from task_scheduling.mdp.util import MultiNet, VaryCNN, build_mlp, valid_logits
 from task_scheduling.mdp.supervised import LitScheduler, TorchScheduler
+from task_scheduling.mdp.util import MultiNet, VaryCNN, build_mlp, valid_logits
 from task_scheduling.results import evaluate_algorithms_gen, evaluate_algorithms_train
 
 # from math import factorial
@@ -101,9 +101,12 @@ with open(data_tensors, "rb") as f:
 # obs, act = {key: val[:1000] for key, val in obs.items()}, act[:1000]
 
 
+# FIXME: see https://github.com/optuna/optuna-examples/blob/main/pytorch/pytorch_lightning_ddp.py
+
+
 def objective(trial):
-    # batch_size = 200
-    batch_size = trial.suggest_int("batch_size", 20, 200, step=60)
+    # batch_size = 1600
+    batch_size = trial.suggest_int("batch_size", 160, 1600, step=320)
     learn_params_torch = {
         "batch_size": batch_size,
         "frac_val": 0.3,

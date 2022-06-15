@@ -84,11 +84,10 @@ class BasePyTorch(BaseSupervised):
     """
 
     _learn_params_default = {
-        "batch_size": 1,
         "frac_val": 0.0,
-        "batch_size_val": None,
         "max_epochs": 1,
         "dl_kwargs": None,
+        "dl_kwargs_val": None,
     }
 
     def __init__(self, env, model, learn_params=None):
@@ -97,10 +96,15 @@ class BasePyTorch(BaseSupervised):
 
         super().__init__(env, model, learn_params)
 
-        if self.learn_params["batch_size_val"] is None:
-            self.learn_params["batch_size_val"] = self.learn_params["batch_size"]
         if self.learn_params["dl_kwargs"] is None:
             self.learn_params["dl_kwargs"] = {}
+
+        # Update training `DataLoader` kwargs with validation kwargs
+        dl_kwargs_val = self.learn_params["dl_kwargs"] | dict(shuffle=False)
+        if self.learn_params["dl_kwargs_val"] is None:
+            self.learn_params["dl_kwargs_val"] = dl_kwargs_val
+        else:
+            self.learn_params["dl_kwargs_val"] = dl_kwargs_val | self.learn_params["dl_kwargs_val"]
 
     @classmethod
     def from_gen(cls, problem_gen, env_cls=Index, env_params=None, *args, **kwargs):
@@ -217,18 +221,10 @@ class BasePyTorch(BaseSupervised):
 
         # Create data loaders
         ds_train = TensorDataset(*tensors_train)
-        dl_train = DataLoader(
-            ds_train,
-            batch_size=self.learn_params["batch_size"] * self.env.n_tasks,
-            **self.learn_params["dl_kwargs"],
-        )
+        dl_train = DataLoader(ds_train, **self.learn_params["dl_kwargs"])
 
         ds_val = TensorDataset(*tensors_val)
-        dl_val = DataLoader(
-            ds_val,
-            batch_size=self.learn_params["batch_size_val"] * self.env.n_tasks,
-            **(self.learn_params["dl_kwargs"] | dict(shuffle=False)),
-        )
+        dl_val = DataLoader(ds_val, **self.learn_params["dl_kwargs_val"])
 
         return dl_train, dl_val
 
@@ -564,9 +560,7 @@ class LitScheduler(BasePyTorch):
     def _print_model(self):
         return (
             f"{super()._print_model()}\n"
-            f"- Loader:\n"
-            f"  - Batch size: train={self.learn_params['batch_size']}, "
-            f"val={self.learn_params['batch_size_val']}\n"
+            f"- Loader: {self.learn_params['dl_kwargs']}\n"
             f"- Optimizer: {self.model.optim_cls.__name__}{self.model.optim_params}\n"
             f"- TB log: `{self.trainer.log_dir}`"
         )
