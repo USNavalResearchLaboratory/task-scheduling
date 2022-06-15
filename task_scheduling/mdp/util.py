@@ -35,7 +35,7 @@ def obs_to_tuple(obs):
         return (obs,)
 
 
-def make_dataloaders(obs, act, dl_kwargs=None, frac_val=0.0, dl_kwargs_val=None):
+def make_dataloaders(obs, act, rew, dl_kwargs=None, frac_val=0.0, dl_kwargs_val=None):
     """Create PyTorch `DataLoader` instances for training and validation."""
     n_gen = len(act)
 
@@ -45,23 +45,27 @@ def make_dataloaders(obs, act, dl_kwargs=None, frac_val=0.0, dl_kwargs_val=None)
 
     if isinstance(obs, dict):
         arr_train, arr_val = zip(*(np.split(item, [n_gen_train]) for item in obs.values()))
-        x_train = dict(zip(obs.keys(), arr_train))
-        x_val = dict(zip(obs.keys(), arr_val))
+        obs_train = dict(zip(obs.keys(), arr_train))
+        obs_val = dict(zip(obs.keys(), arr_val))
     else:
-        x_train, x_val = np.split(obs, [n_gen_train])
-    y_train, y_val = np.split(act, [n_gen_train])
+        obs_train, obs_val = np.split(obs, [n_gen_train])
+    act_train, act_val = np.split(act, [n_gen_train])
+    rew_train, rew_val = np.split(rew, [n_gen_train])
 
     # Flatten episode data
-    x_train, x_val, y_train, y_val = map(flatten_rollouts, (x_train, x_val, y_train, y_val))
+    obs_train, obs_val, act_train, act_val, rew_train, rew_val = map(
+        flatten_rollouts, (obs_train, obs_val, act_train, act_val, rew_train, rew_val)
+    )
 
     # Unpack any `dict`, make tensors
-    x_train = tuple(map(partial(torch.tensor, dtype=torch.float32), obs_to_tuple(x_train)))
-    x_val = tuple(map(partial(torch.tensor, dtype=torch.float32), obs_to_tuple(x_val)))
+    obs_train = tuple(map(partial(torch.tensor, dtype=torch.float32), obs_to_tuple(obs_train)))
+    obs_val = tuple(map(partial(torch.tensor, dtype=torch.float32), obs_to_tuple(obs_val)))
 
-    y_train, y_val = map(partial(torch.tensor, dtype=torch.int64), (y_train, y_val))
+    act_train, act_val = map(partial(torch.tensor, dtype=torch.int64), (act_train, act_val))
+    rew_train, rew_val = map(partial(torch.tensor, dtype=torch.float32), (rew_train, rew_val))
 
-    tensors_train = [*x_train, y_train]
-    tensors_val = [*x_val, y_val]
+    tensors_train = [*obs_train, act_train, rew_train]
+    tensors_val = [*obs_val, act_val, rew_val]
 
     # Create data loaders
     ds_train = TensorDataset(*tensors_train)

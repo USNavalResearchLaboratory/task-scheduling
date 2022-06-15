@@ -41,7 +41,7 @@ class BaseSupervised(BaseLearning):  # TODO: deprecate? Only used for type check
         self.train(obs, act, rew, verbose)
 
     @abstractmethod
-    def train(self, obs, act, rew=None, verbose=0):
+    def train(self, obs, act, rew, verbose=0):
         """
         Train from observations, actions, and rewards.
 
@@ -51,7 +51,7 @@ class BaseSupervised(BaseLearning):  # TODO: deprecate? Only used for type check
             The observations. Shape: (n_rollouts, n_steps, ...).
         act : nd.array
             The optimal actions. Shape: (n_rollouts, n_steps, ...).
-        rew : nd.array, optional
+        rew : nd.array
             The rewards. Shape: (n_rollouts, n_steps, ...).
         verbose : {0, 1, 2}, optional
             Progress print-out level. 0: silent, 1: verbose.
@@ -287,6 +287,7 @@ class TorchScheduler(BasePyTorch):
         dl_train, dl_val = make_dataloaders(
             obs,
             act,
+            rew,
             dl_kwargs=self.learn_params["dl_kwargs"],
             frac_val=self.learn_params["frac_val"],
             dl_kwargs_val=self.learn_params["dl_kwargs_val"],
@@ -297,7 +298,8 @@ class TorchScheduler(BasePyTorch):
 
         def loss_batch(batch_):
             batch_ = [t.to(self.device) for t in batch_]
-            xb, yb = batch_[:-1], batch_[-1]
+            # xb, yb = batch_[:-1], batch_[-1]
+            xb, yb, _rb = batch_[:-2], batch_[-2], batch_[-1]
             yb_pred = self.model(*xb)
             loss = self.loss_func(yb_pred, yb)
             # xb, yb, wb = batch_[:-2], batch_[-2], batch_[-1]
@@ -368,7 +370,8 @@ class LitModel(pl.LightningModule):
         return self.module(*args, **kwargs)
 
     def _process_batch(self, batch):
-        x, y = batch[:-1], batch[-1]
+        # x, y = batch[:-1], batch[-1]
+        x, y, _r = batch[:-2], batch[-2], batch[-1]
         logits = self(*x)
         loss = self.loss_func(logits, y)
         pred = logits.argmax(dim=1)
@@ -503,6 +506,7 @@ class LitScheduler(BasePyTorch):
         dl_train, dl_val = make_dataloaders(
             obs,
             act,
+            rew,
             dl_kwargs=self.learn_params["dl_kwargs"],
             frac_val=self.learn_params["frac_val"],
             dl_kwargs_val=self.learn_params["dl_kwargs_val"],
