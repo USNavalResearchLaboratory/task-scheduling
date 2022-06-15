@@ -26,7 +26,6 @@ from task_scheduling.generators import problems as problem_gens
 from task_scheduling.mdp.base import RandomAgent
 from task_scheduling.mdp.environments import Index
 from task_scheduling.mdp.features import encode_discrete_features, param_features
-from task_scheduling.mdp.util import MultiNet, VaryCNN, build_mlp, valid_logits
 from task_scheduling.mdp.reinforcement import (
     MultiExtractor,
     StableBaselinesScheduler,
@@ -34,6 +33,7 @@ from task_scheduling.mdp.reinforcement import (
     ValidDQNPolicy,
 )
 from task_scheduling.mdp.supervised import LitScheduler, TorchScheduler
+from task_scheduling.mdp.util import MultiNet, VaryCNN, build_mlp, valid_logits
 from task_scheduling.results import evaluate_algorithms_gen, evaluate_algorithms_train
 
 # from math import factorial
@@ -102,9 +102,8 @@ env_params = dict(
 env = Index(problem_gen, **env_params)
 
 
-batch_size = 1600
 learn_params_torch = {
-    "batch_size": batch_size,
+    "batch_size": 1600,
     "frac_val": 0.3,
     "max_epochs": 5000,
     "dl_kwargs": dict(
@@ -133,7 +132,7 @@ module = MultiNet.mlp(env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_siz
 # )
 # module = VaryCNN(env, kernel_len=2)
 
-torch_scheduler = TorchScheduler(env, module, **model_kwargs, learn_params=learn_params_torch)
+# torch_scheduler = TorchScheduler(env, module, **model_kwargs, learn_params=learn_params_torch)
 
 
 trainer_kwargs = dict(
@@ -194,7 +193,7 @@ sb_model_kwargs = dict(
     # learning_rate=3e-5,
     # n_steps=2048,  # TODO: investigate problem reuse
     n_steps=160 * 15,
-    batch_size=160,
+    batch_size=1600,
     tensorboard_log=save_dir + "logs/sb/",
     verbose=1,
 )
@@ -258,8 +257,8 @@ algorithms = np.array(
         #   for c, t in product([0], [5, 10])),
         # ('MCTS', partial(mcts, max_runtime=6e-3, max_rollouts=None, c_explore=0, th_visit=5), 10),
         # ('Random Agent', random_agent, 10),
-        ("Torch Policy", torch_scheduler, 10),
-        # ("Lit Policy", lit_scheduler, 10),
+        # ("Torch Policy", torch_scheduler, 10),
+        ("Lit Policy", lit_scheduler, 10),
         # ("SB Agent", sb_scheduler, 10),
         # ('BC', bc_scheduler, 10),
     ],

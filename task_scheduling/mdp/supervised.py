@@ -1,23 +1,19 @@
 """SL schedulers using PyTorch."""
 
-import math
 from abc import abstractmethod
 from copy import deepcopy
-from functools import partial
 from pathlib import Path
 
 import dill
-import numpy as np
 import pytorch_lightning as pl
 import torch
 from torch import nn, optim
 from torch.nn import functional
-from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm, trange
 
 from task_scheduling.mdp.base import BaseLearning
 from task_scheduling.mdp.environments import Index
-from task_scheduling.mdp.util import MultiNet, flatten_rollouts, reset_weights
+from task_scheduling.mdp.util import MultiNet, make_dataloaders, obs_to_tuple, reset_weights
 
 # TODO: use reward!? Add task loss to NLL loss for backprop?
 
@@ -113,15 +109,6 @@ class BasePyTorch(BaseSupervised):
         env = env_cls(problem_gen, **env_params)
         return cls(env, *args, **kwargs)
 
-    @staticmethod
-    def _obs_to_tuple(obs):
-        if isinstance(obs, dict):
-            return tuple(obs.values())
-        # if obs.dtype.names is not None:
-        #     return tuple(obs[key] for key in obs.dtype.names)
-        else:
-            return (obs,)
-
     def _process_obs(self, obs, softmax=False):
         """
         Estimate action probabilities given an observation.
@@ -139,7 +126,7 @@ class BasePyTorch(BaseSupervised):
             Action probabilities.
 
         """
-        input_ = (torch.from_numpy(o).float().unsqueeze(0) for o in self._obs_to_tuple(obs))
+        input_ = (torch.from_numpy(o).float().unsqueeze(0) for o in obs_to_tuple(obs))
         with torch.no_grad():
             out = self.model(*input_)
 
@@ -188,45 +175,6 @@ class BasePyTorch(BaseSupervised):
     def reset(self):
         """Reset the learner."""
         self.model.apply(reset_weights)
-
-    def make_dataloaders(self, obs, act):
-        """Create PyTorch `DataLoader` instances for training and validation."""
-        n_gen = len(act)
-
-        # Train/validation split
-        n_gen_val = math.floor(n_gen * self.learn_params["frac_val"])
-        n_gen_train = n_gen - n_gen_val
-
-        if isinstance(obs, dict):
-            arr_train, arr_val = zip(*(np.split(item, [n_gen_train]) for item in obs.values()))
-            x_train = dict(zip(obs.keys(), arr_train))
-            x_val = dict(zip(obs.keys(), arr_val))
-        else:
-            x_train, x_val = np.split(obs, [n_gen_train])
-        y_train, y_val = np.split(act, [n_gen_train])
-
-        # Flatten episode data
-        x_train, x_val, y_train, y_val = map(flatten_rollouts, (x_train, x_val, y_train, y_val))
-
-        # Unpack any `dict`, make tensors
-        x_train = tuple(
-            map(partial(torch.tensor, dtype=torch.float32), self._obs_to_tuple(x_train))
-        )
-        x_val = tuple(map(partial(torch.tensor, dtype=torch.float32), self._obs_to_tuple(x_val)))
-
-        y_train, y_val = map(partial(torch.tensor, dtype=torch.int64), (y_train, y_val))
-
-        tensors_train = [*x_train, y_train]
-        tensors_val = [*x_val, y_val]
-
-        # Create data loaders
-        ds_train = TensorDataset(*tensors_train)
-        dl_train = DataLoader(ds_train, **self.learn_params["dl_kwargs"])
-
-        ds_val = TensorDataset(*tensors_val)
-        dl_val = DataLoader(ds_val, **self.learn_params["dl_kwargs_val"])
-
-        return dl_train, dl_val
 
     def save(self, save_path):
         """Save the scheduler model and environment."""
@@ -336,7 +284,13 @@ class TorchScheduler(BasePyTorch):
         )
 
     def train(self, obs, act, rew=None, verbose=0):
-        dl_train, dl_val = self.make_dataloaders(obs, act)
+        dl_train, dl_val = make_dataloaders(
+            obs,
+            act,
+            dl_kwargs=self.learn_params["dl_kwargs"],
+            frac_val=self.learn_params["frac_val"],
+            dl_kwargs_val=self.learn_params["dl_kwargs_val"],
+        )
 
         if verbose >= 1:
             print("Training model...")

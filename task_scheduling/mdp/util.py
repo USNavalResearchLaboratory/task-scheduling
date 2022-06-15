@@ -1,8 +1,13 @@
-"""Custom PyTorch modules with multiple inputs and valid action enforcement."""
+"""PyTorch utilities and custom modules with multiple inputs and valid action enforcement."""
 
+import math
+from functools import partial
+
+import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional
+from torch.utils.data import DataLoader, TensorDataset
 
 
 def reset_weights(model):
@@ -19,6 +24,57 @@ def flatten_rollouts(a):
 
 def valid_logits(x, seq):
     return x - 1e8 * seq
+
+
+def obs_to_tuple(obs):
+    if isinstance(obs, dict):
+        return tuple(obs.values())
+    # if obs.dtype.names is not None:
+    #     return tuple(obs[key] for key in obs.dtype.names)
+    else:
+        return (obs,)
+
+
+def make_dataloaders(obs, act, dl_kwargs=None, frac_val=0.0, dl_kwargs_val=None):
+    """Create PyTorch `DataLoader` instances for training and validation."""
+    n_gen = len(act)
+
+    # Train/validation split
+    n_gen_val = math.floor(n_gen * frac_val)
+    n_gen_train = n_gen - n_gen_val
+
+    if isinstance(obs, dict):
+        arr_train, arr_val = zip(*(np.split(item, [n_gen_train]) for item in obs.values()))
+        x_train = dict(zip(obs.keys(), arr_train))
+        x_val = dict(zip(obs.keys(), arr_val))
+    else:
+        x_train, x_val = np.split(obs, [n_gen_train])
+    y_train, y_val = np.split(act, [n_gen_train])
+
+    # Flatten episode data
+    x_train, x_val, y_train, y_val = map(flatten_rollouts, (x_train, x_val, y_train, y_val))
+
+    # Unpack any `dict`, make tensors
+    x_train = tuple(map(partial(torch.tensor, dtype=torch.float32), obs_to_tuple(x_train)))
+    x_val = tuple(map(partial(torch.tensor, dtype=torch.float32), obs_to_tuple(x_val)))
+
+    y_train, y_val = map(partial(torch.tensor, dtype=torch.int64), (y_train, y_val))
+
+    tensors_train = [*x_train, y_train]
+    tensors_val = [*x_val, y_val]
+
+    # Create data loaders
+    ds_train = TensorDataset(*tensors_train)
+    if dl_kwargs is None:
+        dl_kwargs = {}
+    dl_train = DataLoader(ds_train, **dl_kwargs)
+
+    ds_val = TensorDataset(*tensors_val)
+    if dl_kwargs_val is None:
+        dl_kwargs_val = {}
+    dl_val = DataLoader(ds_val, **dl_kwargs_val)
+
+    return dl_train, dl_val
 
 
 def build_mlp(layer_sizes, activation=nn.ReLU, last_act=False):

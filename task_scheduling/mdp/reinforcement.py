@@ -151,7 +151,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
     def imitate(self, obs, act, rew) -> None:  # TODO: rename `train` for consistency?
         alg = self.model
         if not isinstance(alg.policy, ActorCriticPolicy):
-            raise ValueError("Only ActorCriticPolicy can be used with this method.")
+            raise ValueError("Only `ActorCriticPolicy` can be used with this method.")
 
         batch_size = 1600
         max_epochs = 5000
