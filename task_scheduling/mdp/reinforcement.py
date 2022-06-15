@@ -26,7 +26,10 @@ from task_scheduling.mdp.util import (
     build_cnn,
     build_mlp,
     flatten_rollouts,
+    make_dataloaders,
+    make_dataloaders_dict,
     reset_weights,
+    reward_to_go,
     valid_logits,
 )
 
@@ -156,11 +159,18 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         batch_size = 1600
         max_epochs = 5000
 
-        ret = rew  # finite horizon undiscounted return (i.e. reward-to-go)
-        for i in reversed(range(rew.shape[-1] - 1)):
-            ret[:, i] += ret[:, i + 1]
+        ret = reward_to_go(rew, gamma=1.0)
 
-        obs, act, ret = map(flatten_rollouts, (obs, act, ret))
+        dl_train, dl_val = make_dataloaders(
+            obs,
+            act,
+            ret,
+            dl_kwargs=self.learn_params["dl_kwargs"],
+            frac_val=self.learn_params["frac_val"],
+            dl_kwargs_val=self.learn_params["dl_kwargs_val"],
+        )
+
+        # obs, act, ret = map(flatten_rollouts, (obs, act, ret))
         obs, act, ret = map(partial(obs_as_tensor, device=alg.device), (obs, act, ret))
 
         # Switch to train mode (this affects batch norm / dropout)

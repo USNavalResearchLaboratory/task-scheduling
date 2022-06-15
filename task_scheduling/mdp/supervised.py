@@ -13,9 +13,15 @@ from tqdm import tqdm, trange
 
 from task_scheduling.mdp.base import BaseLearning
 from task_scheduling.mdp.environments import Index
-from task_scheduling.mdp.util import MultiNet, make_dataloaders, obs_to_tuple, reset_weights
+from task_scheduling.mdp.util import (
+    MultiNet,
+    make_dataloaders,
+    obs_to_tuple,
+    reset_weights,
+    reward_to_go,
+)
 
-# TODO: use reward!? Add task loss to NLL loss for backprop?
+# TODO: Add task loss to NLL loss for backprop?
 
 
 class BaseSupervised(BaseLearning):  # TODO: deprecate? Only used for type checking??
@@ -283,11 +289,13 @@ class TorchScheduler(BasePyTorch):
             learn_params,
         )
 
-    def train(self, obs, act, rew=None, verbose=0):
+    def train(self, obs, act, rew, verbose=0):
+        ret = reward_to_go(rew, gamma=1.0)
+
         dl_train, dl_val = make_dataloaders(
             obs,
             act,
-            rew,
+            ret,
             dl_kwargs=self.learn_params["dl_kwargs"],
             frac_val=self.learn_params["frac_val"],
             dl_kwargs_val=self.learn_params["dl_kwargs_val"],
@@ -502,11 +510,13 @@ class LitScheduler(BasePyTorch):
         super().reset()
         self.trainer = pl.Trainer(**deepcopy(self.trainer_kwargs))
 
-    def train(self, obs, act, rew=None, verbose=0):
+    def train(self, obs, act, rew, verbose=0):
+        ret = reward_to_go(rew, gamma=1.0)
+
         dl_train, dl_val = make_dataloaders(
             obs,
             act,
-            rew,
+            ret,
             dl_kwargs=self.learn_params["dl_kwargs"],
             frac_val=self.learn_params["frac_val"],
             dl_kwargs_val=self.learn_params["dl_kwargs_val"],

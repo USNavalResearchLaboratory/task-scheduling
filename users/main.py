@@ -142,7 +142,9 @@ trainer_kwargs = dict(
     callbacks=EarlyStopping("val_loss", patience=50),
     default_root_dir=save_dir + "logs/lit/",
     # devices=torch.cuda.device_count(),
-    accelerator="auto",
+    devices=1,
+    accelerator="gpu",
+    # accelerator="auto",
     # strategy=DDPStrategy(find_unused_parameters=False),
     # strategy=DDPSpawnStrategy(find_unused_parameters=False),
 )

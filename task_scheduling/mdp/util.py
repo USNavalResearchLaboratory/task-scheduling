@@ -7,12 +7,18 @@ import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, Dataset, TensorDataset
 
 
 def reset_weights(model):
     if hasattr(model, "reset_parameters"):
         model.reset_parameters()
+
+
+def to_tensor(arr, dtype=torch.float32):  # TODO: D.R.Y with SB3?
+    if isinstance(arr, dict):
+        return {key: to_tensor(val, dtype) for key, val in arr.items()}
+    return torch.tensor(arr, dtype=dtype)
 
 
 def flatten_rollouts(a):
@@ -26,6 +32,24 @@ def valid_logits(x, seq):
     return x - 1e8 * seq
 
 
+def reward_to_go(rew, gamma=1.0):
+    """
+    Compute discounted infinite-horizontal reward-to-go (i.e. return).
+
+    Parameters
+    ----------
+    rew : np.ndarray
+        Rewards. Shape (n_ep, n_step).
+    gamma : float, optional
+        Discount factor.
+
+    """
+    ret = rew  # finite horizon undiscounted return (i.e. reward-to-go)
+    for i in reversed(range(rew.shape[-1] - 1)):
+        ret[:, i] += gamma * ret[:, i + 1]
+    return ret
+
+
 def obs_to_tuple(obs):
     if isinstance(obs, dict):
         return tuple(obs.values())
@@ -35,7 +59,7 @@ def obs_to_tuple(obs):
         return (obs,)
 
 
-def make_dataloaders(obs, act, rew, dl_kwargs=None, frac_val=0.0, dl_kwargs_val=None):
+def make_dataloaders(obs, act, ret, dl_kwargs=None, frac_val=0.0, dl_kwargs_val=None):
     """Create PyTorch `DataLoader` instances for training and validation."""
     n_gen = len(act)
 
@@ -50,11 +74,11 @@ def make_dataloaders(obs, act, rew, dl_kwargs=None, frac_val=0.0, dl_kwargs_val=
     else:
         obs_train, obs_val = np.split(obs, [n_gen_train])
     act_train, act_val = np.split(act, [n_gen_train])
-    rew_train, rew_val = np.split(rew, [n_gen_train])
+    ret_train, ret_val = np.split(ret, [n_gen_train])
 
     # Flatten episode data
-    obs_train, obs_val, act_train, act_val, rew_train, rew_val = map(
-        flatten_rollouts, (obs_train, obs_val, act_train, act_val, rew_train, rew_val)
+    obs_train, obs_val, act_train, act_val, ret_train, ret_val = map(
+        flatten_rollouts, (obs_train, obs_val, act_train, act_val, ret_train, ret_val)
     )
 
     # Unpack any `dict`, make tensors
@@ -62,21 +86,82 @@ def make_dataloaders(obs, act, rew, dl_kwargs=None, frac_val=0.0, dl_kwargs_val=
     obs_val = tuple(map(partial(torch.tensor, dtype=torch.float32), obs_to_tuple(obs_val)))
 
     act_train, act_val = map(partial(torch.tensor, dtype=torch.int64), (act_train, act_val))
-    rew_train, rew_val = map(partial(torch.tensor, dtype=torch.float32), (rew_train, rew_val))
-
-    tensors_train = [*obs_train, act_train, rew_train]
-    tensors_val = [*obs_val, act_val, rew_val]
+    ret_train, ret_val = map(partial(torch.tensor, dtype=torch.float32), (ret_train, ret_val))
 
     # Create data loaders
-    ds_train = TensorDataset(*tensors_train)
+    ds_train = TensorDataset(*obs_train, act_train, ret_train)
     if dl_kwargs is None:
         dl_kwargs = {}
     dl_train = DataLoader(ds_train, **dl_kwargs)
 
-    ds_val = TensorDataset(*tensors_val)
+    ds_val = TensorDataset(*obs_val, act_val, ret_val)
     if dl_kwargs_val is None:
         dl_kwargs_val = {}
     dl_val = DataLoader(ds_val, **dl_kwargs_val)
+
+    return dl_train, dl_val
+
+
+class DictObsDataset(Dataset):
+    def __init__(self, obs, act, ret) -> None:
+        assert all(act.size(0) == val.size(0) for val in obs.values()), "Size mismatch"
+        assert act.size(0) == ret.size(0), "Size mismatch"
+        self.obs = obs
+        self.act = act
+        self.ret = ret
+
+    def __getitem__(self, index):
+        return {key: val[index] for key, val in self.obs.items()}, self.act[index], self.ret[index]
+
+    def __len__(self):
+        return self.ret.size(0)
+
+
+def collate_dict_obs(batch):
+    obs, act, ret = zip(*batch)
+    obs = {key: torch.stack([val[key] for val in obs]) for key in obs[0].keys()}
+    act = torch.stack(act)
+    ret = torch.stack(ret)
+    return obs, act, ret
+
+
+def make_dataloaders_dict(obs, act, ret, dl_kwargs=None, frac_val=0.0, dl_kwargs_val=None):
+    n_gen = len(act)
+
+    # Train/validation split
+    n_gen_val = math.floor(n_gen * frac_val)
+    n_gen_train = n_gen - n_gen_val
+
+    if isinstance(obs, dict):
+        arr_train, arr_val = zip(*(np.split(item, [n_gen_train]) for item in obs.values()))
+        obs_train = dict(zip(obs.keys(), arr_train))
+        obs_val = dict(zip(obs.keys(), arr_val))
+    else:
+        obs_train, obs_val = np.split(obs, [n_gen_train])
+    act_train, act_val = np.split(act, [n_gen_train])
+    ret_train, ret_val = np.split(ret, [n_gen_train])
+
+    # Flatten episode data
+    obs_train, obs_val, act_train, act_val, ret_train, ret_val = map(
+        flatten_rollouts, (obs_train, obs_val, act_train, act_val, ret_train, ret_val)
+    )
+
+    # Make tensors
+    obs_train, obs_val, ret_train, ret_val = map(
+        partial(to_tensor, dtype=torch.float32), (obs_train, obs_val, ret_train, ret_val)
+    )
+    act_train, act_val = map(partial(to_tensor, dtype=torch.int64), (act_train, act_val))
+
+    # Create data loaders
+    ds_train = DictObsDataset(obs_train, act_train, ret_train)
+    if dl_kwargs is None:
+        dl_kwargs = {}
+    dl_train = DataLoader(ds_train, collate_fn=collate_dict_obs, **dl_kwargs)
+
+    ds_val = DictObsDataset(obs_val, act_val, ret_val)
+    if dl_kwargs_val is None:
+        dl_kwargs_val = {}
+    dl_val = DataLoader(ds_val, collate_fn=collate_dict_obs, **dl_kwargs_val)
 
     return dl_train, dl_val
 
