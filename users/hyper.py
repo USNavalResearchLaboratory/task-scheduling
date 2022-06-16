@@ -150,7 +150,7 @@ def objective(trial):
             # EarlyStopping("train_loss", patience=50),
             PyTorchLightningPruningCallback(trial, monitor="train_loss"),
         ],
-        default_root_dir=temp_path + "logs/lit/",
+        # default_root_dir=temp_path + "logs/lit/",
         accelerator="auto",
         # strategy=DDPStrategy(find_unused_parameters=False),
         strategy=DDPSpawnStrategy(find_unused_parameters=False),

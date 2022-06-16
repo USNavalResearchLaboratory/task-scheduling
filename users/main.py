@@ -18,6 +18,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnNoModelImprovement
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.utils import configure_logger
 from torch import nn, optim
 
 from task_scheduling.algorithms import earliest_release, mcts, priority_sorter, random_sequencer
@@ -132,19 +133,17 @@ module = MultiNet.mlp(env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_siz
 # )
 # module = VaryCNN(env, kernel_len=2)
 
-# torch_scheduler = TorchScheduler(env, module, **model_kwargs, learn_params=learn_params_torch)
+torch_scheduler = TorchScheduler(env, module, **model_kwargs, learn_params=learn_params_torch)
 
 
 trainer_kwargs = dict(
     logger=TensorBoardLogger(save_dir + "logs/lit/", name=now),
+    callbacks=EarlyStopping("val_loss", patience=50),
     enable_checkpointing=False,
     # log_every_n_steps=30,
-    callbacks=EarlyStopping("val_loss", patience=50),
-    default_root_dir=save_dir + "logs/lit/",
-    # devices=torch.cuda.device_count(),
+    # default_root_dir=save_dir + "logs/lit/",
     devices=1,
-    accelerator="gpu",
-    # accelerator="auto",
+    accelerator="auto",
     # strategy=DDPStrategy(find_unused_parameters=False),
     # strategy=DDPSpawnStrategy(find_unused_parameters=False),
 )
@@ -168,8 +167,8 @@ lit_scheduler = LitScheduler.from_module(
 
 learn_params_sb = {
     "frac_val": 0.3,
-    # 'max_epochs': 2000,
-    "max_epochs": 1,
+    "max_epochs": 2000,
+    # "max_epochs": 1,
     "eval_callback_kwargs": dict(
         callback_after_eval=StopTrainingOnNoModelImprovement(1000, min_evals=0, verbose=1),
         n_eval_episodes=100,
@@ -191,15 +190,14 @@ sb_model_kwargs = dict(
         normalize_images=False,
         infer_valid_mask=env.infer_valid_mask,
     ),
-    learning_rate=3e-4,
-    # learning_rate=3e-5,
+    learning_rate=1e-4,
     # n_steps=2048,  # TODO: investigate problem reuse
     n_steps=160 * 15,
-    batch_size=1600,
+    batch_size=160,
     tensorboard_log=save_dir + "logs/sb/",
     verbose=1,
 )
-# sb_scheduler = StableBaselinesScheduler.make_model(env, "PPO", sb_model_kwargs, learn_params_sb)
+sb_scheduler = StableBaselinesScheduler.make_model(env, "PPO", sb_model_kwargs, learn_params_sb)
 
 
 # # Behavioral cloning attempt
@@ -291,7 +289,9 @@ eval_kwargs = dict(
     rng=seed,
 )
 
-with open("data/temp/tensors_1e5", "rb") as f:
+tensor_data = data_path / "tensors"
+# tensor_data = data_path / "temp/tensors_1e5"
+with open(tensor_data, "rb") as f:
     load_dict = pickle.load(f)
     obs, act, rew = load_dict["obs"], load_dict["act"], load_dict["rew"]
 
@@ -302,11 +302,15 @@ if __name__ == "__main__":
     # loss_mc, t_run_mc = evaluate_algorithms_train(
     #     algorithms, problem_gen, n_gen, n_gen_learn, n_mc, **eval_kwargs
     # )
-    loss_mean, t_run_mean = evaluate_algorithms_gen(
-        algorithms, problem_gen, n_gen, n_gen_learn, **eval_kwargs
-    )
+    # loss_mean, t_run_mean = evaluate_algorithms_gen(
+    #     algorithms, problem_gen, n_gen, n_gen_learn, **eval_kwargs
+    # )
 
     # torch_scheduler.train(obs, act, rew, verbose=1)
     # lit_scheduler.train(obs, act, rew, verbose=1)
+
+    # sb_logger = configure_logger(verbose=1, tensorboard_log=save_dir + "logs/sb/", tb_log_name=now)
+    # sb_scheduler.model.set_logger(sb_logger)
+    sb_scheduler.imitate(obs, act, rew, verbose=1)
 
     plt.show()

@@ -328,15 +328,15 @@ class TorchScheduler(BasePyTorch):
                     loss.backward()
                     self.optimizer.step()
 
-                # if dl_val is not None:
-                self.model.eval()
-                with torch.no_grad():
-                    val_loss = 0.0
-                    for batch in tqdm(dl_val, desc="Validate"):
-                        val_loss += loss_batch(batch).item()
-                    val_loss /= len(dl_val)
+                if dl_val is not None:
+                    self.model.eval()
+                    with torch.no_grad():
+                        val_loss = 0.0
+                        for batch in tqdm(dl_val, desc="Validate"):
+                            val_loss += loss_batch(batch).item()
+                        val_loss /= len(dl_val)
 
-                pbar.set_postfix(val_loss=val_loss)
+                    pbar.set_postfix(val_loss=val_loss)
 
         # move back to CPU for single sample evaluations in `__call__`
         self.model = self.model.to("cpu")
@@ -393,14 +393,13 @@ class LitModel(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         loss, acc = self._process_batch(batch)
-        self.log("train_loss", loss)
-        self.log("train_acc", acc)
+        self.log_dict(dict(train_loss=loss, train_acc=acc))
+        # self.log_dict(dict(train_loss=loss, train_acc=acc), on_step=False, on_epoch=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         loss, acc = self._process_batch(batch)
-        self.log("val_loss", loss)
-        self.log("val_acc", acc)
+        self.log_dict(dict(val_loss=loss, val_acc=acc))
         return loss
 
     def configure_optimizers(self):

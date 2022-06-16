@@ -15,10 +15,10 @@ def reset_weights(model):
         model.reset_parameters()
 
 
-def to_tensor(arr, dtype=torch.float32):  # TODO: D.R.Y with SB3?
+def to_tensor(arr, dtype=torch.float32, device="cpu"):  # TODO: D.R.Y with SB3?
     if isinstance(arr, dict):
-        return {key: to_tensor(val, dtype) for key, val in arr.items()}
-    return torch.tensor(arr, dtype=dtype)
+        return {key: to_tensor(val, dtype, device) for key, val in arr.items()}
+    return torch.tensor(arr, dtype=dtype).to(device)
 
 
 def flatten_rollouts(a):
@@ -61,6 +61,8 @@ def obs_to_tuple(obs):
 
 def make_dataloaders(obs, act, ret, dl_kwargs=None, frac_val=0.0, dl_kwargs_val=None):
     """Create PyTorch `DataLoader` instances for training and validation."""
+    # TODO: RNG control
+
     n_gen = len(act)
 
     # Train/validation split
@@ -82,11 +84,14 @@ def make_dataloaders(obs, act, ret, dl_kwargs=None, frac_val=0.0, dl_kwargs_val=
     )
 
     # Unpack any `dict`, make tensors
-    obs_train = tuple(map(partial(torch.tensor, dtype=torch.float32), obs_to_tuple(obs_train)))
-    obs_val = tuple(map(partial(torch.tensor, dtype=torch.float32), obs_to_tuple(obs_val)))
-
-    act_train, act_val = map(partial(torch.tensor, dtype=torch.int64), (act_train, act_val))
-    ret_train, ret_val = map(partial(torch.tensor, dtype=torch.float32), (ret_train, ret_val))
+    obs_train = tuple(map(partial(to_tensor, dtype=torch.float32), obs_to_tuple(obs_train)))
+    obs_val = tuple(map(partial(to_tensor, dtype=torch.float32), obs_to_tuple(obs_val)))
+    act_train, act_val = map(partial(to_tensor, dtype=torch.int64), (act_train, act_val))
+    ret_train, ret_val = map(partial(to_tensor, dtype=torch.float32), (ret_train, ret_val))
+    # obs_train = tuple(map(partial(torch.tensor, dtype=torch.float32), obs_to_tuple(obs_train)))
+    # obs_val = tuple(map(partial(torch.tensor, dtype=torch.float32), obs_to_tuple(obs_val)))
+    # act_train, act_val = map(partial(torch.tensor, dtype=torch.int64), (act_train, act_val))
+    # ret_train, ret_val = map(partial(torch.tensor, dtype=torch.float32), (ret_train, ret_val))
 
     # Create data loaders
     ds_train = TensorDataset(*obs_train, act_train, ret_train)
@@ -94,10 +99,13 @@ def make_dataloaders(obs, act, ret, dl_kwargs=None, frac_val=0.0, dl_kwargs_val=
         dl_kwargs = {}
     dl_train = DataLoader(ds_train, **dl_kwargs)
 
-    ds_val = TensorDataset(*obs_val, act_val, ret_val)
-    if dl_kwargs_val is None:
-        dl_kwargs_val = {}
-    dl_val = DataLoader(ds_val, **dl_kwargs_val)
+    if len(ret_val) > 0:
+        ds_val = TensorDataset(*obs_val, act_val, ret_val)
+        if dl_kwargs_val is None:
+            dl_kwargs_val = {}
+        dl_val = DataLoader(ds_val, **dl_kwargs_val)
+    else:
+        dl_val = None
 
     return dl_train, dl_val
 
@@ -126,6 +134,8 @@ def collate_dict_obs(batch):
 
 
 def make_dataloaders_dict(obs, act, ret, dl_kwargs=None, frac_val=0.0, dl_kwargs_val=None):
+    # TODO: RNG control
+
     n_gen = len(act)
 
     # Train/validation split

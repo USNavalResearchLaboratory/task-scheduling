@@ -14,10 +14,10 @@ from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
-from stable_baselines3.common.utils import obs_as_tensor
 from stable_baselines3.dqn.policies import DQNPolicy, QNetwork
 from torch import nn
 from torch.nn import functional
+from tqdm import tqdm, trange
 
 from task_scheduling.base import get_now
 from task_scheduling.mdp.base import BaseLearning as BaseLearningScheduler
@@ -151,101 +151,184 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         # total_timesteps = self.learn_params['max_epochs'] * n_gen_learn * self.env.action_space.n
         # self.model.learn(total_timesteps, tb_log_name=log_name)
 
-    def imitate(self, obs, act, rew) -> None:  # TODO: rename `train` for consistency?
+    def imitate(self, obs, act, rew, verbose=0) -> None:  # TODO: rename `train` for consistency?
         alg = self.model
         if not isinstance(alg.policy, ActorCriticPolicy):
             raise ValueError("Only `ActorCriticPolicy` can be used with this method.")
 
-        batch_size = 1600
-        max_epochs = 5000
+        dl_kwargs = dict(
+            batch_size=160,  # TODO: use `alg` param?
+            shuffle=True,
+            num_workers=0,
+            persistent_workers=False,
+            # num_workers=4,
+            # persistent_workers=True,
+            pin_memory=True,
+        )
+
+        # TODO: setup_learn?
 
         ret = reward_to_go(rew, gamma=1.0)
 
-        dl_train, dl_val = make_dataloaders(
+        dl_train, dl_val = make_dataloaders_dict(
             obs,
             act,
             ret,
-            dl_kwargs=self.learn_params["dl_kwargs"],
+            dl_kwargs=dl_kwargs,
             frac_val=self.learn_params["frac_val"],
-            dl_kwargs_val=self.learn_params["dl_kwargs_val"],
+            dl_kwargs_val=dl_kwargs,
         )
 
         # obs, act, ret = map(flatten_rollouts, (obs, act, ret))
-        obs, act, ret = map(partial(obs_as_tensor, device=alg.device), (obs, act, ret))
+        # obs, act, ret = map(partial(obs_as_tensor, device=alg.device), (obs, act, ret))
 
-        # Switch to train mode (this affects batch norm / dropout)
-        alg.policy.set_training_mode(True)
-
-        # Update optimizer learning rate
-        alg._update_learning_rate(alg.policy.optimizer)
-
-        # FIXME: use `DataLoader`?
-        # FIXME: need validation and tqdm!
-        # FIXME: move training params (batch size, etc.) -> `imitation_params`
-
-        def get_batch(a, indices):
-            if isinstance(a, dict):
-                return {key: get_batch(val) for key, val in a.items()}
+        def set_device(t, device="cpu"):
+            if isinstance(t, dict):
+                return {key: set_device(val, device) for key, val in t.items()}
             else:
-                return a[indices]
+                return t.to(device)
 
-        for epoch in range(max_epochs):
-            idx_win = np.lib.stride_tricks.sliding_window_view(
-                self.rng.permutation(len(ret)), batch_size
-            )[::batch_size]
-            # TODO: partial last batch?
+        def loss_batch(batch_):
+            ob, ab, rb = batch_
+            ob, ab, rb = map(partial(set_device, device=alg.device), (ob, ab, rb))
 
-            for batch_indices in idx_win:
-                observations = get_batch(obs, batch_indices)
-                actions = get_batch(act, batch_indices)
-                returns = get_batch(rew, batch_indices)
+            # xb, yb, wb = batch_[:-2], batch_[-2], batch_[-1]
+            # losses_ = loss_func(model(*xb), yb, reduction="none")
+            # loss = torch.mean(wb * losses_)
 
-                if isinstance(alg.action_space, spaces.Discrete):
-                    # Convert discrete action from float to long
-                    actions = actions.long().flatten()
+            values, log_prob, entropy = alg.policy.evaluate_actions(ob, ab)
+            values = values.flatten()
 
-                values, log_prob, entropy = alg.policy.evaluate_actions(observations, actions)
-                values = values.flatten()
+            policy_loss = -log_prob.mean()
 
-                # Normalize advantage (not present in the original implementation)
-                advantages = returns - values
-                if alg.normalize_advantage:
-                    advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+            # # Normalize advantage (not present in the original implementation)
+            # advantages = rb - values
+            # if alg.normalize_advantage:
+            #     advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-                # Policy gradient loss
-                policy_loss = -(advantages * log_prob).mean()
+            # # Policy gradient loss
+            # policy_loss = -(advantages * log_prob).mean()
 
-                # Value loss using the TD(gae_lambda) target
-                value_loss = functional.mse_loss(returns, values)
+            # # Value loss using the TD(gae_lambda) target
+            # value_loss = functional.mse_loss(returns, values)
 
-                # Entropy loss favor exploration
-                if entropy is None:
-                    # Approximate entropy when no analytical form
-                    entropy_loss = -th.mean(-log_prob)
-                else:
-                    entropy_loss = -th.mean(entropy)
+            # # Entropy loss favor exploration
+            # if entropy is None:
+            #     # Approximate entropy when no analytical form
+            #     entropy_loss = -th.mean(-log_prob)
+            # else:
+            #     entropy_loss = -th.mean(entropy)
 
-                loss = policy_loss + alg.ent_coef * entropy_loss + alg.vf_coef * value_loss
+            loss = policy_loss
+            # loss = policy_loss + alg.ent_coef * entropy_loss + alg.vf_coef * value_loss
 
-                # Optimization step
-                alg.policy.optimizer.zero_grad()
-                loss.backward()
+            return loss
 
-                # Clip grad norm
-                th.nn.utils.clip_grad_norm_(alg.policy.parameters(), alg.max_grad_norm)
-                alg.policy.optimizer.step()
+        with trange(self.learn_params["max_epochs"], desc="Epoch", disable=(verbose == 0)) as pbar:
+            step = 0
+            for __ in pbar:
+                alg.policy.set_training_mode(True)
+                for batch in tqdm(dl_train, desc="Train"):
+                    loss = loss_batch(batch)
 
-                # Logging
-                alg.logger.record("epoch", epoch)
+                    alg.policy.optimizer.zero_grad()
+                    loss.backward()
+                    # th.nn.utils.clip_grad_norm_(alg.policy.parameters(), alg.max_grad_norm)
+                    alg.policy.optimizer.step()
 
-                alg._n_updates += 1
-                alg.logger.record("train/n_updates", alg._n_updates, exclude="tensorboard")
-                # alg.logger.record("train/explained_variance", explained_var)
-                alg.logger.record("train/entropy_loss", entropy_loss.item())
-                alg.logger.record("train/policy_loss", policy_loss.item())
-                alg.logger.record("train/value_loss", value_loss.item())
-                if hasattr(alg.policy, "log_std"):
-                    alg.logger.record("train/std", th.exp(alg.policy.log_std).mean().item())
+                    alg.logger.record("train_loss", loss.item())
+
+                if dl_val is not None:
+                    alg.policy.set_training_mode(False)
+                    with th.no_grad():
+                        val_loss = 0.0
+                        for batch in tqdm(dl_val, desc="Validate"):
+                            val_loss += loss_batch(batch).item()
+                        val_loss /= len(dl_val)
+
+                    pbar.set_postfix(val_loss=val_loss)
+
+                    alg.logger.record("val_loss", val_loss)
+
+                step += len(dl_train)
+                alg.logger.dump(step)
+
+                # alg.logger.record("train/entropy_loss", entropy_loss.item())
+                # alg.logger.record("train/policy_loss", policy_loss.item())
+                # alg.logger.record("train/value_loss", value_loss.item())
+
+        # # Switch to train mode (this affects batch norm / dropout)
+        # alg.policy.set_training_mode(True)
+
+        # # Update optimizer learning rate
+        # alg._update_learning_rate(alg.policy.optimizer)
+
+        # # FIXME: use `DataLoader`?
+        # # FIXME: need validation and tqdm!
+        # # FIXME: move training params (batch size, etc.) -> `imitation_params`
+
+        # def get_batch(a, indices):
+        #     if isinstance(a, dict):
+        #         return {key: get_batch(val) for key, val in a.items()}
+        #     else:
+        #         return a[indices]
+
+        # rng = np.random.default_rng()  # TODO
+        # for epoch in range(max_epochs):
+        #     idx_win = np.lib.stride_tricks.sliding_window_view(
+        #         rng.permutation(len(ret)), batch_size
+        #     )[::batch_size]
+        #     # TODO: partial last batch?
+
+        #     for batch_indices in idx_win:
+        #         observations = get_batch(obs, batch_indices)
+        #         actions = get_batch(act, batch_indices)
+        #         returns = get_batch(rew, batch_indices)
+
+        #         if isinstance(alg.action_space, spaces.Discrete):
+        #             # Convert discrete action from float to long
+        #             actions = actions.long().flatten()
+
+        #         values, log_prob, entropy = alg.policy.evaluate_actions(observations, actions)
+        #         values = values.flatten()
+
+        #         # Normalize advantage (not present in the original implementation)
+        #         advantages = returns - values
+        #         if alg.normalize_advantage:
+        #             advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+
+        #         # Policy gradient loss
+        #         policy_loss = -(advantages * log_prob).mean()
+
+        #         # Value loss using the TD(gae_lambda) target
+        #         value_loss = functional.mse_loss(returns, values)
+
+        #         # Entropy loss favor exploration
+        #         if entropy is None:
+        #             # Approximate entropy when no analytical form
+        #             entropy_loss = -th.mean(-log_prob)
+        #         else:
+        #             entropy_loss = -th.mean(entropy)
+
+        #         loss = policy_loss + alg.ent_coef * entropy_loss + alg.vf_coef * value_loss
+
+        #         # Optimization step
+        #         alg.policy.optimizer.zero_grad()
+        #         loss.backward()
+
+        #         # Clip grad norm
+        #         th.nn.utils.clip_grad_norm_(alg.policy.parameters(), alg.max_grad_norm)
+        #         alg.policy.optimizer.step()
+
+        #         # Logging
+        #         alg._n_updates += 1
+        #         alg.logger.record("train/n_updates", alg._n_updates, exclude="tensorboard")
+        #         # alg.logger.record("train/explained_variance", explained_var)
+        #         alg.logger.record("train/entropy_loss", entropy_loss.item())
+        #         alg.logger.record("train/policy_loss", policy_loss.item())
+        #         alg.logger.record("train/value_loss", value_loss.item())
+        #         if hasattr(alg.policy, "log_std"):
+        #             alg.logger.record("train/std", th.exp(alg.policy.log_std).mean().item())
 
     def reset(self):
         self.model.policy.apply(reset_weights)
