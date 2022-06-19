@@ -100,9 +100,8 @@ class Base(RandomGeneratorMixin, ABC):
 
     @staticmethod
     def _gen_solution(problem, verbose=False):
-        scheduler_opt = partial(branch_bound_priority, verbose=verbose)
-
-        return eval_wrapper(scheduler_opt)(*problem)
+        scheduler_opt = eval_wrapper(partial(branch_bound_priority, verbose=verbose))
+        return scheduler_opt(*problem)
 
     def _save(self, file_path, problems, solutions=None):
         """

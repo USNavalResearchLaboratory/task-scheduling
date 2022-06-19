@@ -1,6 +1,7 @@
 """Reinforcement learning schedulers and custom policies."""
 
 import math
+import time
 from collections import namedtuple
 from functools import partial
 from pathlib import Path
@@ -14,6 +15,7 @@ from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+from stable_baselines3.common.utils import configure_logger, obs_as_tensor, safe_mean
 from stable_baselines3.dqn.policies import DQNPolicy, QNetwork
 from torch import nn
 from torch.nn import functional
@@ -145,8 +147,8 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         else:
             callback = None
 
-        log_name = get_now() + "_" + self.model.__class__.__name__
-        self.model.learn(total_timesteps, callback=callback, tb_log_name=log_name)
+        tb_log_name = get_now() + "_" + self.model.__class__.__name__
+        self.model.learn(total_timesteps, callback=callback, tb_log_name=tb_log_name)
 
         # total_timesteps = self.learn_params['max_epochs'] * n_gen_learn * self.env.action_space.n
         # self.model.learn(total_timesteps, tb_log_name=log_name)
@@ -167,6 +169,11 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         )
 
         # TODO: setup_learn?
+
+        sb_logger = configure_logger(
+            verbose=1, tensorboard_log=alg.tensorboard_log, tb_log_name=get_now()
+        )
+        alg.set_logger(sb_logger)
 
         ret = reward_to_go(rew, gamma=1.0)
 
@@ -228,6 +235,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
             step = 0
             for __ in pbar:
                 alg.policy.set_training_mode(True)
+                train_loss = 0.0
                 for batch in tqdm(dl_train, desc="Train"):
                     loss = loss_batch(batch)
 
@@ -236,7 +244,10 @@ class StableBaselinesScheduler(BaseLearningScheduler):
                     # th.nn.utils.clip_grad_norm_(alg.policy.parameters(), alg.max_grad_norm)
                     alg.policy.optimizer.step()
 
+                    train_loss += loss.item()
                     alg.logger.record("train_loss", loss.item())
+                # train_loss /= len(dl_train)
+                # alg.logger.record("train_loss", train_loss)
 
                 if dl_val is not None:
                     alg.policy.set_training_mode(False)
@@ -329,6 +340,196 @@ class StableBaselinesScheduler(BaseLearningScheduler):
         #         alg.logger.record("train/value_loss", value_loss.item())
         #         if hasattr(alg.policy, "log_std"):
         #             alg.logger.record("train/std", th.exp(alg.policy.log_std).mean().item())
+
+    def learn_imitate(self, n_gen, verbose=0):
+        # TODO: D.R.Y. w/ supervised. Inheritance fix?
+
+        # n_gen_val = math.floor(n_gen * self.learn_params["frac_val"])
+        # n_gen_train = n_gen - n_gen_val
+        # total_timesteps = self.learn_params["max_epochs"] * n_gen_train * self.env.action_space.n
+        total_timesteps = 10000
+
+        # if n_gen_val > 0:
+        #     problem_gen_val = self.env.problem_gen.split(n_gen_val, shuffle=True, repeat=True)
+        #     eval_env = Index(
+        #         problem_gen_val,
+        #         self.env.features,
+        #         self.env.normalize,
+        #         self.env.sort_func,
+        #         self.env.time_shift,
+        #         self.env.masking,
+        #     )
+        #     eval_env = Monitor(eval_env)
+        #     callback = EvalCallback(eval_env, **self.learn_params["eval_callback_kwargs"])
+        # else:
+        #     callback = None
+
+        callback = None
+        log_interval = 1
+        eval_env = None
+        eval_freq = -1
+        n_eval_episodes: int = (5,)
+        eval_log_path = None
+        reset_num_timesteps = True
+        tb_log_name = get_now() + "_" + self.model.__class__.__name__
+
+        #
+        alg = self.model
+        if not isinstance(alg.policy, ActorCriticPolicy):
+            raise ValueError("Only `ActorCriticPolicy` can be used with this method.")
+
+        #
+        iteration = 0
+
+        total_timesteps, callback = alg._setup_learn(
+            total_timesteps,
+            eval_env,
+            callback,
+            eval_freq,
+            n_eval_episodes,
+            eval_log_path,
+            reset_num_timesteps,
+            tb_log_name,
+        )
+
+        callback.on_training_start(locals(), globals())
+
+        while alg.num_timesteps < total_timesteps:
+
+            # continue_training = alg.collect_rollouts(
+            #     alg.env, callback, alg.rollout_buffer, n_rollout_steps=alg.n_steps
+            # )
+            continue_training = self.collect_opt_rollouts(
+                alg.env, callback, alg.rollout_buffer, n_rollout_steps=alg.n_steps
+            )
+
+            if continue_training is False:
+                break
+
+            iteration += 1
+            alg._update_current_progress_remaining(alg.num_timesteps, total_timesteps)
+
+            # Display training infos
+            if log_interval is not None and iteration % log_interval == 0:
+                fps = int(
+                    (alg.num_timesteps - alg._num_timesteps_at_start)
+                    / (time.time() - alg.start_time)
+                )
+                alg.logger.record("time/iterations", iteration, exclude="tensorboard")
+                if len(alg.ep_info_buffer) > 0 and len(alg.ep_info_buffer[0]) > 0:
+                    alg.logger.record(
+                        "rollout/ep_rew_mean",
+                        safe_mean([ep_info["r"] for ep_info in alg.ep_info_buffer]),
+                    )
+                    alg.logger.record(
+                        "rollout/ep_len_mean",
+                        safe_mean([ep_info["l"] for ep_info in alg.ep_info_buffer]),
+                    )
+                alg.logger.record("time/fps", fps)
+                alg.logger.record(
+                    "time/time_elapsed", int(time.time() - alg.start_time), exclude="tensorboard"
+                )
+                alg.logger.record("time/total_timesteps", alg.num_timesteps, exclude="tensorboard")
+                alg.logger.dump(step=alg.num_timesteps)
+
+            alg.train()
+
+        callback.on_training_end()
+
+        return alg
+
+    def collect_opt_rollouts(
+        self,
+        env,
+        callback,
+        rollout_buffer,
+        n_rollout_steps,
+    ):
+
+        # # if verbose >= 1:
+        # #     print("Generating training/validation data...")
+        # obs, act, rew = self.env.opt_rollouts(n_gen, verbose=verbose)
+
+        alg = self.model
+
+        #
+        assert alg._last_obs is not None, "No previous observation was provided"
+        # Switch to eval mode (this affects batch norm / dropout)
+        alg.policy.set_training_mode(False)
+
+        n_steps = 0
+        rollout_buffer.reset()
+        # Sample new weights for the state dependent exploration
+        if alg.use_sde:
+            alg.policy.reset_noise(env.num_envs)
+
+        callback.on_rollout_start()
+
+        while n_steps < n_rollout_steps:
+            if alg.use_sde and alg.sde_sample_freq > 0 and n_steps % alg.sde_sample_freq == 0:
+                # Sample a new noise matrix
+                alg.policy.reset_noise(env.num_envs)
+
+            # with th.no_grad():
+            #     # Convert to pytorch tensor or to TensorDict
+            #     obs_tensor = obs_as_tensor(alg._last_obs, alg.device)
+            #     actions, values, log_probs = alg.policy(obs_tensor)
+            # actions = actions.cpu().numpy()
+
+            actions = env.envs[0].opt_action()
+            values = th.zeros(env.num_envs)
+            log_probs = th.zeros(env.num_envs)
+
+            # Rescale and perform action
+            clipped_actions = actions
+            # Clip the actions to avoid out of bound error
+            if isinstance(alg.action_space, spaces.Box):
+                clipped_actions = np.clip(actions, alg.action_space.low, alg.action_space.high)
+
+            new_obs, rewards, dones, infos = env.step(clipped_actions)
+
+            alg.num_timesteps += env.num_envs
+
+            # Give access to local variables
+            callback.update_locals(locals())
+            if callback.on_step() is False:
+                return False
+
+            alg._update_info_buffer(infos)
+            n_steps += 1
+
+            if isinstance(alg.action_space, spaces.Discrete):
+                # Reshape in case of discrete action
+                actions = actions.reshape(-1, 1)
+
+            # Handle timeout by bootstraping with value function
+            # see GitHub issue #633
+            for idx, done in enumerate(dones):
+                if (
+                    done
+                    and infos[idx].get("terminal_observation") is not None
+                    and infos[idx].get("TimeLimit.truncated", False)
+                ):
+                    terminal_obs = alg.policy.obs_to_tensor(infos[idx]["terminal_observation"])[0]
+                    with th.no_grad():
+                        terminal_value = alg.policy.predict_values(terminal_obs)[0]
+                    rewards[idx] += alg.gamma * terminal_value
+
+            rollout_buffer.add(
+                alg._last_obs, actions, rewards, alg._last_episode_starts, values, log_probs
+            )
+            alg._last_obs = new_obs
+            alg._last_episode_starts = dones
+
+        with th.no_grad():
+            # Compute value for the last timestep
+            values = self.policy.predict_values(obs_as_tensor(new_obs, self.device))
+
+        rollout_buffer.compute_returns_and_advantage(last_values=values, dones=dones)
+
+        callback.on_rollout_end()
+
+        return True
 
     def reset(self):
         self.model.policy.apply(reset_weights)

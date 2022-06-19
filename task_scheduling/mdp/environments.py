@@ -257,19 +257,16 @@ class Base(Env, ABC):
                 f"Input `ch_avail` must be None or an array of {self.n_ch} channel availabilities"
             )
 
-        self._tasks_init, self._ch_avail_init = (
-            tasks,
-            ch_avail,
-        )  # store problem before any in-place operations
+        # store problem before any in-place operations
+        self._tasks_init, self._ch_avail_init = tasks, ch_avail
 
         if self.time_shift:
             self.node = ScheduleNodeShift(tasks, ch_avail)
         else:
             self.node = ScheduleNode(tasks, ch_avail)
 
-        self._loss_agg = (
-            self.node.loss
-        )  # Loss can be non-zero due to time origin shift during node initialization
+        # loss can be non-zero due to time origin shift during node initialization
+        self._loss_agg = self.node.loss
 
         self._update_spaces()
 

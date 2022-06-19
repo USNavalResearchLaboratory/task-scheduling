@@ -311,6 +311,8 @@ if __name__ == "__main__":
 
     # sb_logger = configure_logger(verbose=1, tensorboard_log=save_dir + "logs/sb/", tb_log_name=now)
     # sb_scheduler.model.set_logger(sb_logger)
-    sb_scheduler.imitate(obs, act, rew, verbose=1)
+    # sb_scheduler.imitate(obs, act, rew, verbose=1)
+
+    sb_scheduler.learn_imitate(1)
 
     plt.show()
