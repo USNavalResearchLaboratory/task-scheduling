@@ -116,7 +116,7 @@ def evaluate_schedule(tasks, sch):
     return sum(task(t) for task, t in zip(tasks, sch["t"]))
 
 
-def plot_schedule(tasks, sch, ch_avail=None, loss=None, name=None, ax=None, ax_kwargs=None):
+def plot_schedule(tasks, sch, n_ch=None, loss=None, name=None, ax=None, ax_kwargs=None):
     """
     Plot task schedule.
 
@@ -126,8 +126,8 @@ def plot_schedule(tasks, sch, ch_avail=None, loss=None, name=None, ax=None, ax_k
         Tasks.
     sch : numpy.ndarray
         Task execution schedule.
-    ch_avail : Collection of float, optional
-        Channel availability times.
+    n_ch : int, optional
+        Number of channels.
     loss : float or None
         Total loss of scheduled tasks.
     name : str or None
@@ -165,9 +165,7 @@ def plot_schedule(tasks, sch, ch_avail=None, loss=None, name=None, ax=None, ax_k
         _temp.append(f"$L = {loss:.3f}$")
     title = ", ".join(_temp)
 
-    if ch_avail is not None:
-        n_ch = len(ch_avail)
-    else:
+    if n_ch is None:
         n_ch = sch["c"].max() + 1  # infer from `sch`
 
     if ax_kwargs is None:
@@ -205,7 +203,7 @@ def eval_wrapper(scheduler):
     return timed_scheduler
 
 
-def plot_losses_and_schedule(tasks, sch, ch_avail, loss=None, name=None, fig_kwargs=None):
+def plot_losses_and_schedule(tasks, sch, n_ch=None, loss=None, name=None, fig_kwargs=None):
     """
     Plot task loss functions with schedule, including partial losses.
 
@@ -215,8 +213,8 @@ def plot_losses_and_schedule(tasks, sch, ch_avail, loss=None, name=None, fig_kwa
         Tasks.
     sch : numpy.ndarray
         Task execution schedule.
-    ch_avail : Collection of float, optional
-        Channel availability times.
+    n_ch : int, optional
+        Number of channels.
     loss : float or None
         Total loss of scheduled tasks.
     name : str or None
@@ -239,7 +237,7 @@ def plot_losses_and_schedule(tasks, sch, ch_avail, loss=None, name=None, fig_kwa
         _temp.append(f"$L = {loss:.3f}$")
     fig.suptitle(", ".join(_temp), y=0.95)
 
-    plot_schedule(tasks, sch, ch_avail, loss, name=None, ax=axes[1], ax_kwargs=dict(title=""))
+    plot_schedule(tasks, sch, n_ch, loss, name=None, ax=axes[1], ax_kwargs=dict(title=""))
 
     lows, highs = zip(axes[1].get_xlim(), *(task.plot_lim for task in tasks))
     t_plot = np.arange(min(*lows), max(*highs), 1e-3)

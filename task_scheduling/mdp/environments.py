@@ -322,7 +322,7 @@ class Base(Env, ABC):
         plot_schedule(
             self._tasks_init,
             self.node.sch,
-            self._ch_avail_init,
+            self.n_ch,
             self._loss_agg,
             ax=axes[1],
             ax_kwargs=dict(title=""),

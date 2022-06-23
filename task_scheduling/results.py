@@ -412,7 +412,7 @@ def evaluate_algorithms_single(
                 plot_schedule(
                     problem.tasks,
                     solution.sch,
-                    problem.ch_avail,
+                    len(problem.ch_avail),
                     solution.loss,
                     name,
                     ax=None,

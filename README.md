@@ -168,7 +168,6 @@ from functools import partial
 
 import numpy as np
 import pandas as pd
-import torch
 from matplotlib import pyplot as plt
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.utilities.seed import seed_everything
