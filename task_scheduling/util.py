@@ -239,7 +239,8 @@ def plot_losses_and_schedule(
         fig_kwargs = {}
         # fig_kwargs = dict(gridspec_kw=dict(left=0.1, right=0.85))
 
-    fig, axes = plt.subplots(2, clear=True, **fig_kwargs)
+    with plt.rc_context({"axes.xmargin": 0}):
+        fig, axes = plt.subplots(2, clear=True, **fig_kwargs)
 
     _temp = []
     if isinstance(name, str):
@@ -251,8 +252,6 @@ def plot_losses_and_schedule(
     plot_schedule(
         tasks, sch, n_ch, loss, name=None, ax=axes[1], ax_kwargs=dict(title=""), legend=legend
     )
-
-    # axes[1].plot(ch_avail, np.arange(n_ch), "ko")  # plot channel availabilities
 
     lows, highs = zip(axes[1].get_xlim(), *(task.plot_lim for task in tasks))
     t_plot = np.arange(min(*lows), max(*highs), 1e-3)
