@@ -14,7 +14,7 @@ from task_scheduling.util import (
     summarize_tasks,
 )
 
-plt.style.use(r"/images/style.mplstyle")
+plt.style.use("images/style.mplstyle")
 plt.rc("text", usetex=False)
 
 
@@ -52,7 +52,7 @@ for name, algorithm in algorithms.items():
         plot_losses_and_schedule(
             tasks,
             sch,
-            ch_avail,
+            len(ch_avail),
             loss,
             f"{name}_{i_b}",
             fig_kwargs=dict(figsize=[6.4, 4.8]),
@@ -79,3 +79,5 @@ for name, algorithm in algorithms.items():
 
     print(losses)
     print(loss_total)
+
+plt.show()

@@ -8,14 +8,13 @@ from operator import attrgetter
 import numpy as np
 from gym import Env
 from gym.spaces import Box, Dict, MultiDiscrete
-from matplotlib import pyplot as plt
 from tqdm import trange
 
 import task_scheduling.spaces as spaces_tasking
 from task_scheduling.mdp.features import normalize as normalize_features
 from task_scheduling.mdp.features import param_features
 from task_scheduling.nodes import ScheduleNode, ScheduleNodeShift
-from task_scheduling.util import plot_schedule, plot_task_losses
+from task_scheduling.util import plot_losses_and_schedule
 
 # TODO: move masking op to policies?
 
@@ -309,58 +308,21 @@ class Base(Env, ABC):
         if mode != "human":
             raise NotImplementedError("Render `mode` must be 'human'")
 
-        fig, axes = plt.subplots(
-            2,
-            num=f"render_{id(self)}",
-            clear=True,
-            figsize=[12.8, 6.4],
-            gridspec_kw={"left": 0.05, "right": 0.7},
-        )
+        # TODO: use shifted visualization?
 
-        fig.suptitle(", ".join((str(self), f"Loss = {self._loss_agg:.3f}")), y=0.95)
-
-        plot_schedule(
+        return plot_losses_and_schedule(
             self._tasks_init,
             self.node.sch,
             self.n_ch,
-            self._loss_agg,
-            ax=axes[1],
-            ax_kwargs=dict(title=""),
+            loss=self._loss_agg,
+            name=str(self),
+            fig_kwargs=dict(
+                num=f"render_{id(self)}",
+                # figsize=[12.8, 6.4],
+                # gridspec_kw={"left": 0.05, "right": 0.7},
+            ),
+            legend=False,
         )
-
-        axes[1].plot(self.ch_avail, np.arange(self.n_ch), "ko")  # plot channel availabilities
-
-        lows, highs = zip(axes[1].get_xlim(), *(task.plot_lim for task in self._tasks_init))
-        t_plot = np.arange(min(*lows), max(*highs), 1e-3)
-        plot_task_losses(self._tasks_init, t_plot, ax=axes[0], ax_kwargs=dict(xlabel=""))
-
-        # Mark loss functions with execution times
-        for task, (t_ex, _c_ex), line in zip(self._tasks_init, self.node.sch, axes[0].get_lines()):
-            axes[0].plot(
-                [t_ex],
-                [task(t_ex)],
-                color=line.get_color(),
-                marker="o",
-                linestyle="",
-                label=None,
-            )
-
-        # Match x-axis limits
-        lows, highs = zip(*(ax.get_xlim() for ax in axes))
-        x_lims = min(lows), max(highs)
-        for ax in axes:
-            ax.set(xlim=x_lims)
-
-        # Use single `Figure` legend
-        fig.legend(
-            *axes[0].get_legend_handles_labels(),
-            loc="center right",
-            bbox_to_anchor=(1.0, 0.5),
-        )
-        for ax in axes:
-            ax.get_legend().remove()
-
-        return fig
 
     def close(self):
         self.node = None

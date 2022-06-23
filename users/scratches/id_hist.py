@@ -27,3 +27,5 @@ for trk in tracks:
 
 # plt.hist(diffs, bins=100)
 plt.hist(diffs, bins=np.arange(100))
+
+plt.show()

@@ -26,7 +26,7 @@ def summarize_tasks(tasks, **tabulate_kwargs):
     return str_
 
 
-def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
+def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None, legend=False):
     """
     Plot loss functions for various tasks.
 
@@ -40,6 +40,8 @@ def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
         Matplotlib axes target object.
     ax_kwargs : dict, optional
         Additional Axes keyword parameters.
+    legend : bool, optional
+        Add legend to plot.
 
     """
     if t_plot is None:
@@ -58,7 +60,8 @@ def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None):
     ax.set(**ax_kwargs)
     ax.set_ylim(bottom=0.0)
 
-    ax.legend()
+    if legend:
+        ax.legend()
 
 
 def check_schedule(tasks, sch, tol=1e-12):
@@ -116,7 +119,9 @@ def evaluate_schedule(tasks, sch):
     return sum(task(t) for task, t in zip(tasks, sch["t"]))
 
 
-def plot_schedule(tasks, sch, n_ch=None, loss=None, name=None, ax=None, ax_kwargs=None):
+def plot_schedule(
+    tasks, sch, n_ch=None, loss=None, name=None, ax=None, ax_kwargs=None, legend=False
+):
     """
     Plot task schedule.
 
@@ -136,6 +141,8 @@ def plot_schedule(tasks, sch, n_ch=None, loss=None, name=None, ax=None, ax_kwarg
         Matplotlib axes target object.
     ax_kwargs : dict
         Additional Axes keyword parameters.
+    legend : bool, optional
+        Add legend to plot.
 
     """
     if ax is None:
@@ -183,7 +190,8 @@ def plot_schedule(tasks, sch, n_ch=None, loss=None, name=None, ax=None, ax_kwarg
     )
     ax.set(**ax_kwargs)
 
-    ax.legend()
+    if legend:
+        ax.legend()
 
 
 def eval_wrapper(scheduler):
@@ -203,7 +211,9 @@ def eval_wrapper(scheduler):
     return timed_scheduler
 
 
-def plot_losses_and_schedule(tasks, sch, n_ch=None, loss=None, name=None, fig_kwargs=None):
+def plot_losses_and_schedule(
+    tasks, sch, n_ch=None, loss=None, name=None, fig_kwargs=None, legend=False
+):
     """
     Plot task loss functions with schedule, including partial losses.
 
@@ -221,14 +231,15 @@ def plot_losses_and_schedule(tasks, sch, n_ch=None, loss=None, name=None, fig_kw
         Algorithm string representation
     fig_kwargs : dict, optional
         `matplotlib.Figure` arguments.
+    legend : bool, optional
+        Add legend to plot.
 
     """
     if fig_kwargs is None:
         fig_kwargs = {}
+        # fig_kwargs = dict(gridspec_kw=dict(left=0.1, right=0.85))
 
-    gridspec_kwargs = dict(left=0.1, right=0.85)
-
-    fig, axes = plt.subplots(2, clear=True, gridspec_kw=gridspec_kwargs, **fig_kwargs)
+    fig, axes = plt.subplots(2, clear=True, **fig_kwargs)
 
     _temp = []
     if isinstance(name, str):
@@ -237,11 +248,15 @@ def plot_losses_and_schedule(tasks, sch, n_ch=None, loss=None, name=None, fig_kw
         _temp.append(f"$L = {loss:.3f}$")
     fig.suptitle(", ".join(_temp), y=0.95)
 
-    plot_schedule(tasks, sch, n_ch, loss, name=None, ax=axes[1], ax_kwargs=dict(title=""))
+    plot_schedule(
+        tasks, sch, n_ch, loss, name=None, ax=axes[1], ax_kwargs=dict(title=""), legend=legend
+    )
+
+    # axes[1].plot(ch_avail, np.arange(n_ch), "ko")  # plot channel availabilities
 
     lows, highs = zip(axes[1].get_xlim(), *(task.plot_lim for task in tasks))
     t_plot = np.arange(min(*lows), max(*highs), 1e-3)
-    plot_task_losses(tasks, t_plot, ax=axes[0], ax_kwargs=dict(xlabel=""))
+    plot_task_losses(tasks, t_plot, ax=axes[0], ax_kwargs=dict(xlabel=""), legend=legend)
 
     # Mark loss functions with execution times
     for task, (t_ex, _c_ex), line in zip(tasks, sch, axes[0].get_lines()):
@@ -260,13 +275,14 @@ def plot_losses_and_schedule(tasks, sch, n_ch=None, loss=None, name=None, fig_kw
     for ax in axes:
         ax.set(xlim=x_lims)
 
-    # Use single `Figure` legend
-    fig.legend(
-        *axes[0].get_legend_handles_labels(),
-        loc="center right",
-        bbox_to_anchor=(1.0, 0.5),
-    )
-    for ax in axes:
-        ax.get_legend().remove()
+    if legend:
+        # Use single `Figure` legend
+        fig.legend(
+            *axes[0].get_legend_handles_labels(),
+            loc="center right",
+            bbox_to_anchor=(1.0, 0.5),
+        )
+        for ax in axes:
+            ax.get_legend().remove()
 
     return fig

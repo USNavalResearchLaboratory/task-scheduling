@@ -4,7 +4,7 @@ from operator import attrgetter
 from matplotlib import pyplot as plt
 
 from task_scheduling import algorithms
-from task_scheduling.tasks import Linear, LinearDrop, LinearLinear
+from task_scheduling.tasks import Linear, LinearDrop
 from task_scheduling.util import (
     check_schedule,
     evaluate_schedule,
@@ -12,7 +12,7 @@ from task_scheduling.util import (
     summarize_tasks,
 )
 
-plt.style.use(r"/images/style.mplstyle")
+plt.style.use("images/style.mplstyle")
 plt.rc("text", usetex=False)
 # plt.rc('figure', autolayout=True)
 
@@ -47,5 +47,9 @@ for name, algorithm in algorithms.items():
 
     check_schedule(tasks, sch)
     loss = evaluate_schedule(tasks, sch)
-    plot_losses_and_schedule(tasks, sch, ch_avail, loss, name, fig_kwargs=dict(figsize=[6.4, 4.8]))
+    plot_losses_and_schedule(
+        tasks, sch, len(ch_avail), loss, name, fig_kwargs=dict(figsize=[6.4, 4.8])
+    )
     print(f"{name}: {loss}")
+
+plt.show()
