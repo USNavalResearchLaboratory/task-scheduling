@@ -96,7 +96,7 @@ env = Index(problem_gen, **env_params)
 # obs, act, *__ = env.opt_rollouts(problem_gen.n_problems, verbose=1, rng=seed)
 with open(data_tensors, "rb") as f:
     load_dict = pickle.load(f)
-    obs, act = load_dict["obs"], load_dict["act"]
+    obs, act, rew = load_dict["obs"], load_dict["act"], load_dict["rew"]
 
 # obs, act = {key: val[:1000] for key, val in obs.items()}, act[:1000]
 
@@ -105,7 +105,8 @@ with open(data_tensors, "rb") as f:
 
 
 def objective(trial):
-    batch_size = trial.suggest_int("batch_size", 160, 1600, step=320)
+    batch_size = 160
+    # batch_size = trial.suggest_int("batch_size", 160, 1600, step=320)
     learn_params_torch = {
         "frac_val": 0.3,
         "max_epochs": 5000,
@@ -122,25 +123,25 @@ def objective(trial):
 
     lr = 1e-4
     # lr = trial.suggest_float("lr", 1e-6, 1e-3, log=True)
+    # weight_decay = 0.
+    weight_decay = trial.suggest_float("weight_decay", 1e-10, 1e-2, log=True)
+
     model_kwargs = dict(
         optim_cls=optim.Adam,
-        optim_params=dict(lr=lr),
+        optim_params=dict(lr=lr, weight_decay=weight_decay),
     )
 
-    n_layers = 4
-    # n_layers = trial.suggest_int("n_layers", 1, 4)
-    hidden_dim = 1000
-    # hidden_dim = trial.suggest_inf("n_units", 10, 10000, log=True)
-    hidden_dims = n_layers * [hidden_dim]
+    # n_layers = 4
+    n_layers = trial.suggest_int("n_layers", 1, 4)
+    hidden_dims = n_layers * [1000]
+    # hidden_dims = n_layers * [trial.suggest_inf("n_units", 10, 10000, log=True)]
     # hidden_dims = [trial.suggest_int(f"n_units_l{i}", 10, 10000, log=True) for i in range(n_layers)]
     module = MultiNet.mlp(
         env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_sizes_joint=hidden_dims
     )
 
     trainer_kwargs = dict(
-        # logger=TensorBoardLogger(temp_path + "logs/lit/", name=f"{now}_{trial.number}"),
-        logger=TensorBoardLogger(temp_path + "logs/lit/", name=f"{now}_batch-{batch_size}"),
-        # logger=TensorBoardLogger(temp_path + "logs/lit/", name=f"{now}_lr-{lr}"),
+        logger=TensorBoardLogger(temp_path + "logs/lit/", name=f"{now}__T{trial.number}"),
         enable_checkpointing=False,
         # callbacks=EarlyStopping('val_loss', patience=100),
         # callbacks=PyTorchLightningPruningCallback(trial, monitor="val_acc"),
@@ -165,7 +166,7 @@ def objective(trial):
     )
 
     # loaded data
-    lit_scheduler.train(obs, act, verbose=1)
+    lit_scheduler.train(obs, act, rew, verbose=1)
     # return lit_scheduler.trainer.callback_metrics["val_loss"].item()
     return lit_scheduler.trainer.callback_metrics["train_loss"].item()
     # return lit_scheduler.trainer.callback_metrics["val_acc"].item()

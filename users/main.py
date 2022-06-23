@@ -119,7 +119,10 @@ learn_params_torch = {
 
 model_kwargs = dict(
     optim_cls=optim.Adam,
-    optim_params={"lr": 1e-4},
+    optim_params=dict(
+        lr=1e-4,
+        weight_decay=1e-8,
+    ),
 )
 
 module = MultiNet.mlp(env, hidden_sizes_ch=[], hidden_sizes_tasks=[], hidden_sizes_joint=[400])
