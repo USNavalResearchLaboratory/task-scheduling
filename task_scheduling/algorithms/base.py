@@ -30,7 +30,9 @@ def branch_bound(tasks, ch_avail, verbose=False, rng=None):
     return node_best.sch  # optimal
 
 
-def branch_bound_priority(tasks, ch_avail, priority_func=None, heuristic=None, verbose=False):
+def branch_bound_priority(
+    tasks, ch_avail, priority_func=None, heuristic=None, verbose=False, rng=None
+):
     """
     Branch-and-Bound with priority queueing and variable heuristic.
 
@@ -47,6 +49,8 @@ def branch_bound_priority(tasks, ch_avail, priority_func=None, heuristic=None, v
         Uses a partial node to generate a complete sequence node.
     verbose : bool
         Enables printing of algorithm state information.
+    rng : int or RandomState or Generator, optional
+        NumPy random number generator or seed. Instance RNG if None.
 
     Returns
     -------
@@ -54,7 +58,7 @@ def branch_bound_priority(tasks, ch_avail, priority_func=None, heuristic=None, v
         Task schedule.
 
     """
-    node = ScheduleNodeBound(tasks, ch_avail)
+    node = ScheduleNodeBound(tasks, ch_avail, rng=rng)
     node_best = node.branch_bound_priority(priority_func, heuristic, False, verbose)
 
     return node_best.sch  # optimal

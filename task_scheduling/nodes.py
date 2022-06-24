@@ -145,9 +145,7 @@ class ScheduleNode(RandomGeneratorMixin):
 
         self._sch[n] = (max(self._tasks[n].t_release, self._ch_avail[c_min]), c_min)
         self._loss += self._tasks[n](self.sch["t"][n])  # add task execution loss
-        self._ch_avail[c_min] = (
-            self.sch["t"][n] + self._tasks[n].duration
-        )  # new channel availability
+        self._ch_avail[c_min] = self.sch["t"][n] + self._tasks[n].duration
 
     def _extend_util(self, seq_ext, inplace=True):
         node = self
@@ -573,13 +571,12 @@ class ScheduleNodeShift(ScheduleNode):
         self.t_origin += ch_avail_min
         self._ch_avail -= ch_avail_min
         for n, task in enumerate(self._tasks):
-            loss_inc = task.shift_origin(
-                ch_avail_min
-            )  # re-parameterize task, return any incurred loss
+            # re-parameterize task, return any incurred loss
+            loss_inc = task.shift_origin(ch_avail_min)
+
+            # add loss incurred due to origin shift for any unscheduled tasks
             if n in self._seq_rem:
-                self._loss += (
-                    loss_inc  # add loss incurred due to origin shift for any unscheduled tasks
-                )
+                self._loss += loss_inc
 
 
 class MCTSNode(RandomGeneratorMixin):

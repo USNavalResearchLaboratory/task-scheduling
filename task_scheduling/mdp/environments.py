@@ -308,8 +308,6 @@ class Base(Env, ABC):
         if mode != "human":
             raise NotImplementedError("Render `mode` must be 'human'")
 
-        # TODO: use shifted visualization?
-
         return plot_losses_and_schedule(
             self._tasks_init,
             self.node.sch,
@@ -317,7 +315,7 @@ class Base(Env, ABC):
             loss=self._loss_agg,
             name=str(self),
             fig_kwargs=dict(
-                num=f"render_{id(self)}",
+                # num=f"render_{id(self)}",
                 # figsize=[12.8, 6.4],
                 # gridspec_kw={"left": 0.05, "right": 0.7},
             ),

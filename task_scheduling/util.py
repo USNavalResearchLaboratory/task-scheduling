@@ -45,8 +45,8 @@ def plot_task_losses(tasks, t_plot=None, ax=None, ax_kwargs=None, legend=False):
 
     """
     if t_plot is None:
-        x_lim = min(task.plot_lim[0] for task in tasks), max(task.plot_lim[1] for task in tasks)
-        t_plot = np.arange(*x_lim, 1e-3)
+        lows, highs = zip(*(task.plot_lim for task in tasks))
+        t_plot = np.arange(min(lows), max(highs), 1e-3)
 
     with plt.rc_context({"axes.xmargin": 0}):
         if ax is None:
@@ -175,19 +175,17 @@ def plot_schedule(
     if n_ch is None:
         n_ch = sch["c"].max() + 1  # infer from `sch`
 
+    ax_kwargs_base = dict(
+        xlim=x_lim,
+        ylim=(-0.5, n_ch - 1 + 0.5),
+        xlabel="$t$",
+        yticks=list(range(n_ch)),
+        ylabel="$c$",
+        title=title,
+    )
     if ax_kwargs is None:
         ax_kwargs = {}
-    ax_kwargs = (
-        dict(
-            xlim=x_lim,
-            ylim=(-0.5, n_ch - 1 + 0.5),
-            xlabel="$t$",
-            yticks=list(range(n_ch)),
-            ylabel="$c$",
-            title=title,
-        )
-        | ax_kwargs
-    )
+    ax_kwargs = ax_kwargs_base | ax_kwargs
     ax.set(**ax_kwargs)
 
     if legend:
@@ -254,7 +252,7 @@ def plot_losses_and_schedule(
     )
 
     lows, highs = zip(axes[1].get_xlim(), *(task.plot_lim for task in tasks))
-    t_plot = np.arange(min(*lows), max(*highs), 1e-3)
+    t_plot = np.arange(min(lows), max(highs), 1e-3)
     plot_task_losses(tasks, t_plot, ax=axes[0], ax_kwargs=dict(xlabel=""), legend=legend)
 
     # Mark loss functions with execution times

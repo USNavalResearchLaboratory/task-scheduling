@@ -109,14 +109,10 @@ class Base(ABC):
             t_plot = np.arange(*self.plot_lim, 1e-3)
 
         if ax is None:
-            _, ax = plt.subplots()
+            __, ax = plt.subplots()
+            ax.set(xlabel="t", ylabel="Loss", title=str(self))
 
-            ax.set(xlabel="t", ylabel="Loss")
-            plt.title(self)
-
-        plot_data = ax.plot(t_plot, self(t_plot), label=str(self))
-
-        return plot_data
+        return ax.plot(t_plot, self(t_plot), label=str(self))
 
 
 class Generic(Base):
@@ -446,7 +442,7 @@ class PiecewiseLinear(Shift):
     #         return 0.  # no loss incurred
 
     def _shift(self, t_excess, loss_inc):
-        for i, c in enumerate(self.corners):
+        for c in self.corners:
             c[0] = max(0.0, c[0] - t_excess)
             c[1] = max(0.0, c[1] - loss_inc)
 
