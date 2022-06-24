@@ -5,8 +5,6 @@ from math import factorial
 import numpy as np
 from gym.spaces import Box, Discrete, MultiDiscrete, Space
 
-# from typing import Collection
-
 
 # Utilities
 def broadcast_to(space, shape):

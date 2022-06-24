@@ -40,6 +40,7 @@ def _file_logger(file, file_format):
         file_handler = logging.FileHandler(file)
         file_formatter = logging.Formatter(file_format, datefmt="%Y-%m-%d %H:%M:%S")
         file_handler.setFormatter(file_formatter)
+
         logger.addHandler(file_handler)
         yield logger
         logger.removeHandler(file_handler)
@@ -124,8 +125,7 @@ def _struct_mean(array):
 def _add_opt(algorithms):
     if opt_name not in algorithms["name"]:
         _opt = np.array(
-            [(opt_name, None, 1)],
-            dtype=[("name", "<U32"), ("obj", object), ("n_iter", int)],
+            [(opt_name, None, 1)], dtype=[("name", "<U32"), ("obj", object), ("n_iter", int)]
         )
         algorithms = np.concatenate((_opt, algorithms))
 
@@ -134,8 +134,7 @@ def _add_opt(algorithms):
 
 def _empty_result(algorithms, n):
     return np.array(
-        [(np.nan,) * len(algorithms)] * n,
-        dtype=[(alg["name"], float) for alg in algorithms],
+        [(np.nan,) * len(algorithms)] * n, dtype=[(alg["name"], float) for alg in algorithms]
     )
 
 
@@ -238,12 +237,7 @@ def _scatter_loss_runtime(t_run, loss, ax=None, ax_kwargs=None):
 
 def _scatter_results(t_run, loss, label="Results", do_relative=False):
     fig, ax = plt.subplots(num=label, clear=True)
-    _scatter_loss_runtime(
-        t_run,
-        loss,
-        ax=ax,
-        # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
-    )
+    _scatter_loss_runtime(t_run, loss, ax=ax)
 
     if do_relative:  # relative to B&B
         normalize = True
@@ -260,13 +254,7 @@ def _scatter_results(t_run, loss, label="Results", do_relative=False):
             else:
                 ylabel += r" (%)"
         _scatter_loss_runtime(
-            t_run[names],
-            loss_rel[names],
-            ax=ax_rel,
-            ax_kwargs={
-                "ylabel": ylabel,
-                # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
-            },
+            t_run[names], loss_rel[names], ax=ax_rel, ax_kwargs={"ylabel": ylabel}
         )
 
         return fig_rel  # TODO
@@ -390,10 +378,7 @@ def evaluate_algorithms_single(
 
     for i_alg, (name, func, n_iter) in enumerate(algorithms):
         if verbose >= 1:
-            print(
-                f"{name} ({i_alg + 1}/{len(algorithms)})",
-                end=("\r" if verbose == 1 else "\n"),
-            )
+            print(f"{name} ({i_alg + 1}/{len(algorithms)})", end=("\r" if verbose == 1 else "\n"))
 
         for iter_ in range(n_iter):  # perform new algorithm runs
             if verbose >= 2:
@@ -410,12 +395,7 @@ def evaluate_algorithms_single(
 
             if plotting >= 2:
                 plot_schedule(
-                    problem.tasks,
-                    solution.sch,
-                    len(problem.ch_avail),
-                    solution.loss,
-                    name,
-                    ax=None,
+                    problem.tasks, solution.sch, len(problem.ch_avail), solution.loss, name, ax=None
                 )
 
     # Results
@@ -426,17 +406,7 @@ def evaluate_algorithms_single(
 
     # Logging
     if verbose >= 1:
-        _log_helper(
-            problem,
-            algorithms,
-            loss_iter,
-            t_run_iter,
-            solve,
-            log_path,
-            fig,
-            img_path,
-            rng,
-        )
+        _log_helper(problem, algorithms, loss_iter, t_run_iter, solve, log_path, fig, img_path, rng)
 
     return loss_iter, t_run_iter
 

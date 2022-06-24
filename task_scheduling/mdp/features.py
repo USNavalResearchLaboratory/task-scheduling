@@ -115,9 +115,6 @@ def normalize(features):
     data = []
     for name, func, space in features:
         func = _make_norm_func(func, space)
-        space = Box(
-            0, 1, shape=space.shape, dtype=float
-        )  # all features are `float` in unit interval
-
+        space = Box(0, 1, shape=space.shape, dtype=float)
         data.append((name, func, space))
     return np.array(data, dtype=feature_dtype)

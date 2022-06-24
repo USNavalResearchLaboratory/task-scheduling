@@ -13,9 +13,8 @@ from task_scheduling.base import SchedulingSolution
 def summarize_tasks(tasks, **tabulate_kwargs):
     """Create and print a Pandas DataFrame detailing tasks."""
     cls_task = tasks[0].__class__
-    if all(
-        isinstance(task, cls_task) for task in tasks[1:]
-    ):  # TODO: do grouping even if not all are same type
+    if all(isinstance(task, cls_task) for task in tasks[1:]):
+        # TODO: do grouping even if not all are same type
         df = pd.DataFrame([task.to_series() for task in tasks])
         tabulate_kwargs_ = dict(tablefmt="github", floatfmt=".3f")
         tabulate_kwargs_.update(tabulate_kwargs)
@@ -161,8 +160,9 @@ def plot_schedule(
     if np.isnan(sch["t"]).all():
         x_lim = (0, plt.rcParams["axes.xmargin"])
     else:
-        x_lim = np.nanmin(sch["t"]), np.nanmax(
-            [task.duration + t for task, t in zip(tasks, sch["t"])]
+        x_lim = (
+            np.nanmin(sch["t"]),
+            np.nanmax([task.duration + t for task, t in zip(tasks, sch["t"])]),
         )
 
     _temp = []
@@ -256,14 +256,9 @@ def plot_losses_and_schedule(
     plot_task_losses(tasks, t_plot, ax=axes[0], ax_kwargs=dict(xlabel=""), legend=legend)
 
     # Mark loss functions with execution times
-    for task, (t_ex, _c_ex), line in zip(tasks, sch, axes[0].get_lines()):
+    for task, (t_ex, _), line in zip(tasks, sch, axes[0].get_lines()):
         axes[0].plot(
-            [t_ex],
-            [task(t_ex)],
-            color=line.get_color(),
-            marker="o",
-            linestyle="",
-            label=None,
+            [t_ex], [task(t_ex)], color=line.get_color(), marker="o", linestyle="", label=None
         )
 
     # Match x-axis limits

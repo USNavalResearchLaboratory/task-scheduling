@@ -56,11 +56,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
 
     """
 
-    _learn_params_default = {
-        "frac_val": 0.0,
-        "max_epochs": 1,
-        "eval_callback_kwargs": None,
-    }
+    _learn_params_default = {"frac_val": 0.0, "max_epochs": 1, "eval_callback_kwargs": None}
 
     model_defaults = {
         "DQN": _default_tuple(DQN, {"policy": "MlpPolicy", "verbose": 1}),
@@ -365,13 +361,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
 
         return alg
 
-    def collect_opt_rollouts(
-        self,
-        env,
-        callback,
-        rollout_buffer,
-        n_rollout_steps,
-    ):
+    def collect_opt_rollouts(self, env, callback, rollout_buffer, n_rollout_steps):
 
         # # if verbose >= 1:
         # #     print("Generating training/validation data...")
@@ -518,9 +508,8 @@ class MultiExtractor(BaseFeaturesExtractor):
 
         # Determine `features_dim` with single forward pass
         sample = observation_space.sample()
-        sample["seq"] = np.stack((sample["seq"], 1 - sample["seq"])).flatten(
-            order="F"
-        )  # workaround SB3 encoding
+        # workaround SB3 encoding
+        sample["seq"] = np.stack((sample["seq"], 1 - sample["seq"])).flatten(order="F")
         sample = {key: th.tensor(sample[key]).float().unsqueeze(0) for key in sample}
         with th.no_grad():
             self._features_dim = self.forward(sample).shape[1]  # SB3's workaround
@@ -590,9 +579,8 @@ class ValidActorCriticPolicy(ActorCriticPolicy):
 
     def _get_action_dist_from_latent_valid(self, obs, latent_pi):  # added `obs` to signature
         mean_actions = self.action_net(latent_pi)
-        mean_actions = valid_logits(
-            mean_actions, self.infer_valid_mask(obs)
-        )  # mask out invalid actions
+        # mask out invalid actions
+        mean_actions = valid_logits(mean_actions, self.infer_valid_mask(obs))
         return self.action_dist.proba_distribution(action_logits=mean_actions)
 
     def forward(self, obs, deterministic=False):

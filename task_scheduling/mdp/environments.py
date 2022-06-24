@@ -107,10 +107,9 @@ class Base(Env, ABC):
             _obs_space_features, shape=(self.n_tasks, len(self.features))
         )
 
-        self.observation_space = Dict(  # note: `spaces` attribute is `OrderedDict` with sorted keys
-            ch_avail=self._obs_space_ch,
-            seq=self._obs_space_seq,
-            tasks=self._obs_space_tasks,
+        # note: `spaces` attribute is `OrderedDict` with sorted keys
+        self.observation_space = Dict(
+            ch_avail=self._obs_space_ch, seq=self._obs_space_seq, tasks=self._obs_space_tasks
         )
 
         # Action space
@@ -243,7 +242,7 @@ class Base(Env, ABC):
         if tasks is None or ch_avail is None:  # generate new scheduling problem
             out = list(self.problem_gen(1, solve=solve, rng=rng))[0]
             if solve:
-                (tasks, ch_avail), (sch, *__) = out
+                (tasks, ch_avail), (sch, *_) = out
                 self._seq_opt = np.argsort(sch["t"])
                 # optimal schedule (see `test_tree_nodes.test_argsort`)
             else:
@@ -368,8 +367,7 @@ class Base(Env, ABC):
             }
         else:
             o = np.empty(
-                collect_shape + self.observation_space.shape,
-                dtype=self.observation_space.dtype,
+                collect_shape + self.observation_space.shape, dtype=self.observation_space.dtype
             )
         a = np.empty(collect_shape + self.action_space.shape, dtype=self.action_space.dtype)
         r = np.empty(collect_shape, dtype=float)

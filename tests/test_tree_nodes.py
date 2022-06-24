@@ -52,7 +52,7 @@ def test_shift():
 
 
 def main():
-    # test_argsort()
+    test_argsort()
     test_shift()
 
 

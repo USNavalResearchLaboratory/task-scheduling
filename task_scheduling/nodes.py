@@ -44,8 +44,7 @@ class ScheduleNode(RandomGeneratorMixin):
         self._seq_rem = set(range(self.n_tasks))
 
         self._sch = np.array(
-            [(np.nan, -1) for __ in range(self.n_tasks)],
-            dtype=[("t", float), ("c", int)],
+            [(np.nan, -1) for __ in range(self.n_tasks)], dtype=[("t", float), ("c", int)]
         )
         self._loss = 0.0  # incurred loss
 
@@ -56,11 +55,7 @@ class ScheduleNode(RandomGeneratorMixin):
 
     def __eq__(self, other):
         if isinstance(other, ScheduleNode):
-            return (self.tasks, self.ch_avail, self.seq) == (
-                other.tasks,
-                other.ch_avail,
-                other.seq,
-            )
+            return (self.tasks, self.ch_avail, self.seq) == (other.tasks, other.ch_avail, other.seq)
         else:
             return NotImplemented
 
@@ -93,9 +88,8 @@ class ScheduleNode(RandomGeneratorMixin):
             self.seq_extend(seq_ext)
         else:
             # self.__init__(self.tasks, self.ch_avail, seq, rng=self.rng)  # initialize from scratch
-            raise ValueError(
-                f"Sequence must be an extension of {self._seq}"
-            )  # shift nodes cannot recover tasks
+            raise ValueError(f"Sequence must be an extension of {self._seq}")
+            # shift nodes cannot recover tasks
 
     def seq_extend(self, seq_ext, check_valid=True):
         """
@@ -436,20 +430,15 @@ class ScheduleNodeBound(ScheduleNode):
                 if node_new.l_lo < node_best.loss:
                     stack.append(node_new)  # new node is not dominated, add to stack (LIFO)
 
-                    if node_new.l_up < node_best.loss:
-                        node_best = node_new.roll_out(
-                            inplace=False, rng=rng
-                        )  # roll-out a new best node
+                    if node_new.l_up < node_best.loss:  # roll-out a new best node
+                        node_best = node_new.roll_out(inplace=False, rng=rng)
 
             if verbose:
                 # progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(
                 #     self.n_tasks
                 # )
                 # print(f"Search progress: {progress:.3f}, Loss < {node_best.loss:.3f}", end="\r")
-                print(
-                    f"# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}",
-                    end="\r",
-                )
+                print(f"# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}", end="\r")
 
         if inplace:
             seq_ext = node_best.seq[len(self.seq) :]
@@ -515,10 +504,7 @@ class ScheduleNodeBound(ScheduleNode):
                 #     self.n_tasks
                 # )
                 # print(f"Search progress: {progress:.3f}, Loss < {node_best.loss:.3f}", end="\r")
-                print(
-                    f"# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}",
-                    end="\r",
-                )
+                print(f"# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}", end="\r")
 
         if inplace:
             seq_ext = node_best.seq[len(self.seq) :]
@@ -662,9 +648,7 @@ class MCTSNode(RandomGeneratorMixin):
         if self._n_visits <= self._th_visit:
             return self.expansion()
         else:
-            w = {
-                n: child.weight for (n, child) in self._children.items()
-            }  # descendant node weights
+            w = {n: child.weight for (n, child) in self._children.items()}
             n = max(w, key=w.__getitem__)
             return self.children[n]
 

@@ -432,9 +432,8 @@ class LitScheduler(BasePyTorch):
 
         # Note: "max_epochs" is specified in `learn_params` for consistency with `TorchScheduler`
         self.trainer_kwargs.update({"max_epochs": self.learn_params["max_epochs"]})
-        self.trainer = pl.Trainer(
-            **self.trainer_kwargs
-        )  # TODO: store init kwargs, use for `reset`?
+        self.trainer = pl.Trainer(**self.trainer_kwargs)
+        # TODO: store init kwargs, use for `reset`?
 
     @classmethod
     def from_module(cls, env, module, model_kwargs=None, trainer_kwargs=None, learn_params=None):

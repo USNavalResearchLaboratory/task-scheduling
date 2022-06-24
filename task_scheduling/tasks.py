@@ -109,7 +109,7 @@ class Base(ABC):
             t_plot = np.arange(*self.plot_lim, 1e-3)
 
         if ax is None:
-            __, ax = plt.subplots()
+            _, ax = plt.subplots()
             ax.set(xlabel="t", ylabel="Loss", title=str(self))
 
         return ax.plot(t_plot, self(t_plot), label=str(self))
@@ -344,9 +344,8 @@ class PiecewiseLinear(Shift):
     """
 
     param_names = Base.param_names + ("corners",)
-    shift_params = (
-        Shift.shift_params
-    )  # TODO: Add shift params. Handle `list` parameters for `space` shifts?!?
+    shift_params = Shift.shift_params
+    # TODO: Add shift params. Handle `list` parameters for `space` shifts?!?
 
     prune = True
 

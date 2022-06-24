@@ -254,8 +254,7 @@ class DiscreteIID(BaseIID):
         """Randomly generate task parameters."""
         return {
             name: rng.choice(
-                list(self.param_probs[name].keys()),
-                p=list(self.param_probs[name].values()),
+                list(self.param_probs[name].keys()), p=list(self.param_probs[name].values())
             )
             for name in self.cls_task.param_names
         }
@@ -273,10 +272,7 @@ class DiscreteIID(BaseIID):
             # s = pd.Series(self.param_probs[name], name='Pr')
             # s = pd.DataFrame(self.param_probs[name], index=pd.CategoricalIndex(['Pr']))
             s = pd.DataFrame(
-                {
-                    name: self.param_probs[name].keys(),
-                    "Pr": self.param_probs[name].values(),
-                }
+                {name: self.param_probs[name].keys(), "Pr": self.param_probs[name].values()}
             )
             str_ += f"\n\n{s.to_markdown(tablefmt='github', floatfmt='.3f', index=False)}"
 
