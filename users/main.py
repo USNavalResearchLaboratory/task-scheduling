@@ -37,9 +37,6 @@ from task_scheduling.mdp.supervised import LitScheduler, TorchScheduler
 from task_scheduling.mdp.util import MultiNet, VaryCNN, build_mlp, valid_logits
 from task_scheduling.results import evaluate_algorithms_gen, evaluate_algorithms_train
 
-# from math import factorial
-
-
 np.set_printoptions(precision=3)
 pd.options.display.float_format = "{:,.3f}".format
 plt.style.use("images/style.mplstyle")

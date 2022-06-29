@@ -3,11 +3,17 @@ This package provides a framework for implementing task scheduling algorithms an
 includes traditional schedulers as well as both supervised and reinforcement learning schedulers.
 
 ## Installation
-The `task_scheduling` package can be installed locally using
+The `task_scheduling` package can installed directly from GitHub using
 ```
-pip install <path>
+pip install git+https://github.com/USNavalResearchLaboratory/task-scheduling.git
 ```
-where `<path>` is the top-level directory containing `setup.cfg` (and this README). Note that the [editable option](https://pip.pypa.io/en/stable/cli/pip_install/) can be used to track any package modifications.
+To install a specific version or branch, specify a ref as detailed [here](https://pip.pypa.io/en/stable/topics/vcs-support/). Alternatively, the package can be installed locally using
+```
+git clone https://github.com/USNavalResearchLaboratory/task-scheduling.git
+pip install .
+```
+Note that with both methods, the [editable option](https://pip.pypa.io/en/stable/cli/pip_install/) can be included to track any package modifications.
+
 
 ## Documentation
 API documentation can be generated using the `sphinx` package and the `sphinx-rtd-theme`, both installable using `pip`. To build the HTML documentation, run `make html` from the `docs/` folder; the top level document will be `docs/build/html/index.html`
