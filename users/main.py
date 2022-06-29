@@ -200,7 +200,7 @@ sb_model_kwargs = dict(
     tensorboard_log=save_dir + "logs/sb/",
     verbose=1,
 )
-sb_scheduler = StableBaselinesScheduler.make_model(env, "PPO", sb_model_kwargs, learn_params_sb)
+# sb_scheduler = StableBaselinesScheduler.make_model(env, "PPO", sb_model_kwargs, learn_params_sb)
 
 
 # # Behavioral cloning attempt
@@ -261,7 +261,7 @@ algorithms = np.array(
         # ('MCTS', partial(mcts, max_runtime=6e-3, max_rollouts=None, c_explore=0, th_visit=5), 10),
         # ('Random Agent', random_agent, 10),
         # ("Torch Policy", torch_scheduler, 10),
-        ("Lit Policy", lit_scheduler, 10),
+        # ("Lit Policy", lit_scheduler, 10),
         # ("SB Agent", sb_scheduler, 10),
         # ('BC', bc_scheduler, 10),
     ],
@@ -305,9 +305,9 @@ if __name__ == "__main__":
     # loss_mc, t_run_mc = evaluate_algorithms_train(
     #     algorithms, problem_gen, n_gen, n_gen_learn, n_mc, **eval_kwargs
     # )
-    # loss_mean, t_run_mean = evaluate_algorithms_gen(
-    #     algorithms, problem_gen, n_gen, n_gen_learn, **eval_kwargs
-    # )
+    loss_mean, t_run_mean = evaluate_algorithms_gen(
+        algorithms, problem_gen, n_gen, n_gen_learn, **eval_kwargs
+    )
 
     # torch_scheduler.train(obs, act, rew, verbose=1)
     # lit_scheduler.train(obs, act, rew, verbose=1)
@@ -316,6 +316,6 @@ if __name__ == "__main__":
     # sb_scheduler.model.set_logger(sb_logger)
     # sb_scheduler.imitate(obs, act, rew, verbose=1)
 
-    sb_scheduler.learn_imitate(1)
+    # sb_scheduler.learn_imitate(1)
 
     plt.show()
