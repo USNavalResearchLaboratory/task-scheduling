@@ -258,7 +258,7 @@ algorithms = np.array(
         # ('MCTS', partial(mcts, max_runtime=6e-3, max_rollouts=None, c_explore=0, th_visit=5), 10),
         # ('Random Agent', random_agent, 10),
         # ("Torch Policy", torch_scheduler, 10),
-        # ("Lit Policy", lit_scheduler, 10),
+        ("Lit Policy", lit_scheduler, 10),
         # ("SB Agent", sb_scheduler, 10),
         # ('BC', bc_scheduler, 10),
     ],

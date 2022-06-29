@@ -397,7 +397,7 @@ class LitModel(pl.LightningModule):
         return self._process_batch(batch, "train")
 
     def validation_step(self, batch, batch_idx):
-        return self._process_batch(batch, "train")
+        return self._process_batch(batch, "val")
 
     def configure_optimizers(self):
         return self.optim_cls(self.parameters(), **self.optim_params)
