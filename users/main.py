@@ -142,8 +142,8 @@ trainer_kwargs = dict(
     enable_checkpointing=False,
     # log_every_n_steps=30,
     # default_root_dir=save_dir + "logs/lit/",
-    devices=1,
     accelerator="auto",
+    devices=1,
     # strategy=DDPStrategy(find_unused_parameters=False),
     # strategy=DDPSpawnStrategy(find_unused_parameters=False),
 )
