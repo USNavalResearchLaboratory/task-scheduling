@@ -257,7 +257,7 @@ def _scatter_results(t_run, loss, label="Results", do_relative=False):
             t_run[names], loss_rel[names], ax=ax_rel, ax_kwargs={"ylabel": ylabel}
         )
 
-        return fig_rel  # TODO
+        # return fig_rel  # TODO
 
     return fig
 

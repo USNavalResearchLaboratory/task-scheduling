@@ -1,3 +1,4 @@
+from copy import deepcopy
 from functools import partial
 from itertools import product
 from pathlib import Path
@@ -40,11 +41,7 @@ algorithms_base = np.array(
         ("Random", random_sequencer, 10),
         ("ERT", earliest_release, 10),
         *(
-            (
-                f"MCTS: c={c}, t={t}",
-                partial(mcts, max_runtime=np.inf, max_rollouts=10, c_explore=c, th_visit=t),
-                10,
-            )
+            (f"MCTS: c={c}, t={t}", partial(mcts, max_rollouts=10, c_explore=c, th_visit=t), 10)
             for c, t in product([0], [5, 10])
         ),
     ],
@@ -52,26 +49,58 @@ algorithms_base = np.array(
 )
 
 
+# trainer_kwargs = dict(
+#     logger=TensorBoardLogger(save_dir + "logs/", name=now),
+#     enable_checkpointing=False,
+#     callbacks=EarlyStopping("val_loss", min_delta=1e-3, patience=100),
+#     default_root_dir=save_dir + "logs/",
+#     gpus=torch.cuda.device_count(),
+# )
 trainer_kwargs = dict(
-    logger=TensorBoardLogger(save_dir + "logs/", name=now),
+    # logger=None,
+    logger=TensorBoardLogger(save_dir + "logs/lit/", name=now),
+    # callbacks=None,
+    callbacks=EarlyStopping("val_loss", patience=50),
     enable_checkpointing=False,
-    callbacks=EarlyStopping("val_loss", min_delta=1e-3, patience=100),
-    default_root_dir=save_dir + "logs/",
-    gpus=torch.cuda.device_count(),
+    # log_every_n_steps=30,
+    # default_root_dir=save_dir + "logs/lit/",
+    devices=1,
+    accelerator="auto",
+    # strategy=DDPStrategy(find_unused_parameters=False),
+    # strategy=DDPSpawnStrategy(find_unused_parameters=False),
 )
 
+# learn_params = {
+#     "batch_size_train": 20,
+#     "n_gen_val": 1 / 3,
+#     "batch_size_val": 30,
+#     # 'max_epochs': 1000,
+#     "max_epochs": 2000,
+#     "shuffle": True,
+# }
 learn_params = {
-    "batch_size_train": 20,
-    "n_gen_val": 1 / 3,
-    "batch_size_val": 30,
-    # 'max_epochs': 1000,
-    "max_epochs": 2000,
-    "shuffle": True,
+    "frac_val": 0.3,
+    "max_epochs": 5000,
+    "dl_kwargs": dict(
+        batch_size=160,
+        shuffle=True,
+        # num_workers=0,
+        # persistent_workers=False,
+        num_workers=4,
+        persistent_workers=True,
+        pin_memory=True,
+    ),
 }
 
+# model_kwargs = dict(
+#     # optim_params={'lr': 1e-3},
+#     optim_params={"lr": 1e-4},
+# )
 model_kwargs = dict(
-    # optim_params={'lr': 1e-3},
-    optim_params={"lr": 1e-4},
+    optim_params=dict(
+        lr=1e-4,
+        # weight_decay=1e-8,
+    ),
 )
 
 module_constructors = [
@@ -119,67 +148,73 @@ datasets = [
 # %%
 env_params_set = [env_params_base | env_params for env_params in env_params_set]
 
-for dataset in datasets:
-    save_dir_ds = save_dir + f"{dataset}/"
-    log_path = save_dir_ds + "log.md"
-    img_path = save_dir_ds + f"images/{now}"
-    trainer_kwargs["logger"] = TensorBoardLogger(save_dir_ds + "logs/", name=now)
 
-    problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
+def main():
+    for dataset in datasets:
+        save_dir_ds = save_dir + f"{dataset}/"
+        log_path = save_dir_ds + "log.md"
+        img_path = save_dir_ds + f"images/{now}"
+        # trainer_kwargs["logger"] = TensorBoardLogger(save_dir_ds + "logs/lit/", name=now)
 
-    algorithms_data = []
-    for (i_env, env_params), (i_net, module_constructor) in product(
-        enumerate(env_params_set), enumerate(module_constructors)
-    ):
-        if seed is not None:
-            seed_everything(seed)
+        problem_gen = problem_gens.Dataset.load(data_path / dataset, repeat=True)
 
-        env = Index(problem_gen, **env_params)
-        module = module_constructor(env)
-        lit_scheduler = LitScheduler.from_module(
-            env,
-            module,
-            model_kwargs,
-            trainer_kwargs=trainer_kwargs,
-            learn_params=learn_params,
+        algorithms_data = []
+        for (i_env, env_params), (i_net, module_constructor) in product(
+            enumerate(env_params_set), enumerate(module_constructors)
+        ):
+            if seed is not None:
+                seed_everything(seed)
+
+            env = Index(problem_gen, **env_params)
+            module = module_constructor(env)
+            # trainer_kwargs["logger"] = TensorBoardLogger(save_dir_ds + "logs/lit/", name=now)
+            # trainer_kwargs["callbacks"] = EarlyStopping("val_loss", patience=50)
+            lit_scheduler = LitScheduler.from_module(
+                env,
+                module,
+                model_kwargs,
+                trainer_kwargs=deepcopy(trainer_kwargs),
+                learn_params=learn_params,
+            )
+
+            # name = f"Policy: Env {i_env}, Net {i_net}"
+            name = f"Policy: Env {i_env}"
+
+            algorithms_data.append((name, lit_scheduler, 10))
+
+        algorithms_learn = np.array(
+            algorithms_data, dtype=[("name", "<U32"), ("obj", object), ("n_iter", int)]
+        )
+        algorithms = np.concatenate((algorithms_base, algorithms_learn))
+
+        loss_mc, t_run_mc = evaluate_algorithms_train(
+            algorithms,
+            problem_gen,
+            n_gen,
+            n_gen_learn,
+            n_mc,
+            solve=True,
+            verbose=1,
+            plotting=1,
+            log_path=log_path,
+            img_path=img_path,
+            rng=seed,
         )
 
-        # name = f"Policy: Env {i_env}, Net {i_net}"
-        name = f"Policy: Env {i_env}"
+        # loss_mean, t_run_mean = evaluate_algorithms_gen(
+        #     algorithms,
+        #     problem_gen,
+        #     n_gen,
+        #     n_gen_learn,
+        #     solve=True,
+        #     verbose=1,
+        #     plotting=1,
+        #     log_path=log_path,
+        #     img_path=img_path,
+        #     rng=seed,
+        # )
 
-        algorithms_data.append((name, lit_scheduler, 10))
 
-    algorithms_learn = np.array(
-        algorithms_data, dtype=[("name", "<U32"), ("obj", object), ("n_iter", int)]
-    )
-    # algorithms = np.concatenate((algorithms_base, algorithms_learn))
-    algorithms = algorithms_base
-
-    # loss_mc, t_run_mc = evaluate_algorithms_train(
-    #     algorithms,
-    #     problem_gen,
-    #     n_gen,
-    #     n_gen_learn,
-    #     n_mc,
-    #     solve=True,
-    #     verbose=1,
-    #     plotting=1,
-    #     log_path=log_path,
-    #     img_path=img_path,
-    #     rng=seed,
-    # )
-
-    loss_mean, t_run_mean = evaluate_algorithms_gen(
-        algorithms,
-        problem_gen,
-        n_gen,
-        n_gen_learn,
-        solve=True,
-        verbose=1,
-        plotting=1,
-        log_path=log_path,
-        img_path=img_path,
-        rng=seed,
-    )
-
-plt.show()
+if __name__ == "__main__":
+    main()
+    plt.show()
