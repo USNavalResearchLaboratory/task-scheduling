@@ -5,6 +5,24 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Paper Example",
+            "type": "python",
+            "request": "launch",
+            "program": "users/ex_paper.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--data",
+                "data/continuous_linear_drop_c1t8",
+                "--mc",
+                "10",
+                "--style",
+                "images/style.mplstyle",
+                "--seed",
+                "12345",
+            ],
+        },
+        {
             "name": "Python -i: Current File",
             "type": "python",
             "request": "launch",

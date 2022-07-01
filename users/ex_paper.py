@@ -1,3 +1,4 @@
+import argparse
 from copy import deepcopy
 from functools import partial
 
@@ -9,7 +10,6 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.seed import seed_everything
 
 from task_scheduling.algorithms import earliest_release, mcts, random_sequencer
-from task_scheduling.base import get_now
 from task_scheduling.generators import problems as problem_gens
 from task_scheduling.mdp.environments import Index
 from task_scheduling.mdp.supervised import LitScheduler
@@ -18,18 +18,26 @@ from task_scheduling.results import evaluate_algorithms_train
 
 np.set_printoptions(precision=3)
 pd.options.display.float_format = "{:,.3f}".format
-plt.style.use("images/style.mplstyle")
-
-now = get_now()
-
-# seed = None
-seed = 12345
-
-data_path = "data/continuous_linear_drop_c1t8"
-save_path = "users/paper_temp/"
 
 
-# %% Algorithms
+parser = argparse.ArgumentParser(
+    description="""Reproduction of results from
+    'Markov Decision Process Design for Imitation of Optimal Task Schedulers'."""
+)
+parser.add_argument("--data", default=None, help="Path to `Dataset`")
+parser.add_argument("--mc", type=int, default=1, help="Number of Monte Carlo iterations")
+parser.add_argument("--style", default=None, help="Path to .mplstyle Matplotlib style")
+parser.add_argument("--seed", type=int, default=None, help="RNG seed")
+
+args = parser.parse_args()
+
+data_path = args.data
+n_mc = args.mc
+if args.style is not None:
+    plt.style.use(args.style)
+seed = args.seed
+
+
 algorithms_base = np.array(
     [
         ("Random", random_sequencer, 10),
@@ -42,7 +50,7 @@ algorithms_base = np.array(
 
 model_kwargs = dict(optim_params=dict(lr=1e-4))
 trainer_kwargs = dict(
-    logger=TensorBoardLogger(save_path + "logs/", name=now),
+    logger=TensorBoardLogger("."),
     callbacks=EarlyStopping("val_loss", patience=50),
     enable_checkpointing=False,
     log_every_n_steps=10,
@@ -68,7 +76,10 @@ def main():
     if seed is not None:
         seed_everything(seed)
 
-    problem_gen = problem_gens.Dataset.load(data_path, repeat=True)
+    if data_path is not None:
+        problem_gen = problem_gens.Dataset.load(data_path, repeat=True)
+    else:
+        problem_gen = problem_gens.Random.continuous_linear_drop(n_tasks=8, n_ch=1)
 
     policy_data = []
     for i_env, env_params in enumerate(env_params_set):
@@ -93,12 +104,10 @@ def main():
         problem_gen,
         n_gen=100,
         n_gen_learn=900,
-        n_mc=10,
+        n_mc=n_mc,
         solve=True,
         verbose=1,
         plotting=1,
-        log_path=save_path + "log.md",
-        img_path=save_path + f"images/{now}.png",
         rng=seed,
     )
 
