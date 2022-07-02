@@ -34,7 +34,7 @@ def valid_logits(x, seq):
 
 def reward_to_go(rew, gamma=1.0):
     """
-    Compute discounted infinite-horizontal reward-to-go (i.e. return).
+    Compute discounted infinite-horizon reward-to-go (i.e. return).
 
     Parameters
     ----------
@@ -44,7 +44,7 @@ def reward_to_go(rew, gamma=1.0):
         Discount factor.
 
     """
-    ret = rew  # finite horizon undiscounted return (i.e. reward-to-go)
+    ret = rew
     for i in reversed(range(rew.shape[-1] - 1)):
         ret[:, i] += gamma * ret[:, i + 1]
     return ret

@@ -14,8 +14,6 @@ from sortedcontainers import SortedKeyList
 
 from task_scheduling.base import RandomGeneratorMixin
 
-# TODO: make problem a shared class attribute? Make a class constructor?
-
 
 class ScheduleNode(RandomGeneratorMixin):
     """
@@ -89,7 +87,6 @@ class ScheduleNode(RandomGeneratorMixin):
         else:
             # self.__init__(self.tasks, self.ch_avail, seq, rng=self.rng)  # initialize from scratch
             raise ValueError(f"Sequence must be an extension of {self._seq}")
-            # shift nodes cannot recover tasks
 
     def seq_extend(self, seq_ext, check_valid=True):
         """
@@ -434,10 +431,6 @@ class ScheduleNodeBound(ScheduleNode):
                         node_best = node_new.roll_out(inplace=False, rng=rng)
 
             if verbose:
-                # progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(
-                #     self.n_tasks
-                # )
-                # print(f"Search progress: {progress:.3f}, Loss < {node_best.loss:.3f}", end="\r")
                 print(f"# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}", end="\r")
 
         if inplace:
@@ -500,10 +493,6 @@ class ScheduleNodeBound(ScheduleNode):
                         node_best = heuristic(node_new)
 
             if verbose:
-                # progress = 1 - sum(factorial(len(node.seq_rem)) for node in stack) / factorial(
-                #     self.n_tasks
-                # )
-                # print(f"Search progress: {progress:.3f}, Loss < {node_best.loss:.3f}", end="\r")
                 print(f"# Remaining Nodes = {len(stack)}, Loss <= {node_best.loss:.3f}", end="\r")
 
         if inplace:

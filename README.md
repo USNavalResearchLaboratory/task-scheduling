@@ -89,7 +89,7 @@ The primary metrics used to evaluate a scheduling algorithm are its achieved los
 any scheduler to be timed and assessed.
 
 While these functions can be invoked directly, the package provides a number of convenient functions in the
-`util.results` subpackage that automate this functionality, allow printing result tables to file, provide visuals, etc.
+`results` submodule that automate this functionality, allow printing result tables to file, provide visuals, etc.
 The functions `evaluate_algorithms_single` and `evaluate_algorithms_gen` assess for single scheduling problems and
 across a set of generated problems, respectively. The function `evaluate_algorithms_train` adds an additional level of
 Monte Carlo iteration by re-training any learning schedulers a number of times.

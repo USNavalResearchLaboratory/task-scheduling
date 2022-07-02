@@ -55,13 +55,6 @@ class Base(ABC):
         raise NotImplementedError
 
     def __str__(self):
-        # params_str = rf"$d={self.duration:.3f}$, $\rho={self.t_release:.3f}$"
-        # params_str = ", ".join(
-        #     [f"{name}: {getattr(self, name):.3f}" for name in ("duration", "t_release")]
-        # )
-        # params_str = ", ".join([f"{name}: {getattr(self, name):.3f}"
-        #                         for name in self.param_names])
-        # return f"{self.__class__.__name__}({params_str})"
         return self.name
 
     def __eq__(self, other):
@@ -207,126 +200,6 @@ class Shift(Base):
         raise NotImplementedError
 
 
-# class LinearDrop(Shift):
-#     """
-#     Tasks with a rectified linear loss function and a constant drop penalty.
-#
-#     Parameters
-#     ----------
-#     duration : float
-#         Time duration of the task.
-#     t_release : float
-#         Earliest time the task may be scheduled.
-#     slope : float
-#         Function slope between release and drop times. Loss at release time is zero.
-#     t_drop : float
-#         Drop time relative to release time.
-#     l_drop : float
-#         Constant loss after drop time.
-#
-#     """
-#
-#     param_names = Base.param_names + ('slope', 't_drop', 'l_drop')
-#     shift_params = ('t_release', 't_drop', 'l_drop')
-#
-#     def __init__(self, duration, t_release, slope, t_drop, l_drop, name=None):
-#         super().__init__(duration, t_release, name)
-#         self._slope = float(slope)
-#         self._t_drop = float(t_drop)
-#         self._l_drop = float(l_drop)
-#
-#         self._check_params()
-#
-#     def __call__(self, t):
-#         """Loss function versus time."""
-#
-#         t = np.array(t, dtype=float)
-#         t -= self.t_release  # relative time
-#
-#         loss = np.full(t.shape, np.nan)
-#         loss[t >= 0] = self.slope * t[t >= 0]
-#         loss[t >= self.t_drop] = self.l_drop
-#
-#         if loss.ndim == 0:
-#             loss = loss.item()
-#
-#         return loss
-#
-#     @property
-#     def slope(self):
-#         return self._slope
-#
-#     @slope.setter
-#     def slope(self, slope):
-#         # self._check_non_decreasing(slope, self.t_drop, self.l_drop)
-#         self._slope = slope
-#         self._check_params()
-#
-#     @property
-#     def t_drop(self):
-#         return self._t_drop
-#
-#     @t_drop.setter
-#     def t_drop(self, t_drop):
-#         # self._check_non_decreasing(self.slope, t_drop, self.l_drop)
-#         self._t_drop = t_drop
-#         self._check_params()
-#
-#     @property
-#     def l_drop(self):
-#         return self._l_drop
-#
-#     @l_drop.setter
-#     def l_drop(self, l_drop):
-#         # self._check_non_decreasing(self.slope, self.t_drop, l_drop)
-#         self._l_drop = l_drop
-#         self._check_params()
-#
-#     # @staticmethod
-#     # def _check_non_decreasing(slope, t_drop, l_drop):
-#     #     if l_drop < slope * t_drop:
-#     #         raise ValueError("Loss function must be monotonically non-decreasing.")
-#
-#     def _check_params(self):
-#         if self.slope < 0:
-#             raise ValueError("Slope must be non-negative.")
-#         if self.t_drop < 0:
-#             raise ValueError("Drop time must be non-negative.")
-#         if self.slope * self.t_drop > self.l_drop:
-#             raise ValueError("Loss function must be monotonically non-decreasing.")
-#
-#     def shift_origin(self, t):
-#         """
-#         Shift the time origin, return any incurred loss, and re-parameterize the task.
-#
-#         Parameters
-#         ----------
-#         t : float
-#             Positive value to shift the time origin by.
-#
-#         Returns
-#         -------
-#         float
-#             Loss value of the task at the new time origin, before it is re-parameterized.
-#
-#         """
-#
-#         t_excess = t - self.t_release
-#         self.t_release = max(0., -t_excess)
-#         if self.t_release == 0.:  # loss is incurred, drop time and loss are updated
-#             loss_inc = self(t_excess)
-#             self._t_drop = max(0., self._t_drop - t_excess)
-#             self._l_drop = self._l_drop - loss_inc
-#             return loss_inc
-#         else:
-#             return 0.  # no loss incurred
-#
-#     @property
-#     def plot_lim(self):
-#         """2-tuple of limits for automatic plotting."""
-#         return self.t_release, self.t_release + self.t_drop + 1.
-
-
 class PiecewiseLinear(Shift):
     """
     Task with a piecewise linear loss function.
@@ -420,25 +293,6 @@ class PiecewiseLinear(Shift):
                 l_d = l_prev + s_prev * (t_c - t_prev)
             if l_c < l_d:
                 raise ValueError(f"Loss decreases from {l_d} to {l_c} at discontinuity.")
-
-    # def shift_origin(self, t):
-    #     t_excess = t - self.t_release
-    #     self.t_release = max(0., -t_excess)
-    #     if self.t_release == 0.:  # loss is incurred, drop time and loss are updated
-    #         loss_inc = self(t_excess)
-    #         for i, c in enumerate(self.corners):
-    #             c[0] = max(0., c[0] - t_excess)
-    #             c[1] = max(0., c[1] - loss_inc)
-    #
-    #             # if not self.prune and c[0] == 0. and i >= 1:  # zero out unused slope
-    #             #     self.corners[i - 1][2] = 0.
-    #
-    #         if self.prune:
-    #             self._prune_corners()
-    #
-    #         return loss_inc
-    #     else:
-    #         return 0.  # no loss incurred
 
     def _shift(self, t_excess, loss_inc):
         for c in self.corners:
@@ -564,99 +418,6 @@ class LinearDrop(PiecewiseLinear):
         self.corners[1][1] = val
 
 
-class LinearLinear(PiecewiseLinear):  # TODO: delete, and generators
-    param_names = Base.param_names + ("slope", "t_drop", "l_drop", "slope_2")
-    shift_params = Shift.shift_params + ("t_drop", "l_drop")
-
-    prune = False
-
-    def __init__(
-        self,
-        duration,
-        t_release=0.0,
-        slope=1.0,
-        t_drop=1.0,
-        l_drop=None,
-        slope_2=1.0,
-        name=None,
-    ):
-        corners = [[0.0, 0.0, slope]]
-        if l_drop is not None:
-            corners.append([t_drop, l_drop, slope_2])
-        else:
-            corners.append([t_drop, slope_2])
-        super().__init__(duration, t_release, corners, name)
-
-    @property
-    def slope(self):
-        return self.corners[0][2]
-
-    @slope.setter
-    def slope(self, val):
-        self.corners[0][2] = val
-
-    @property
-    def t_drop(self):
-        return self.corners[1][0]
-
-    @t_drop.setter
-    def t_drop(self, val):
-        self.corners[1][0] = val
-
-    @property
-    def l_drop(self):
-        return self.corners[1][1]
-
-    @l_drop.setter
-    def l_drop(self, val):
-        self.corners[1][1] = val
-
-    @property
-    def slope_2(self):
-        return self.corners[1][2]
-
-    @slope_2.setter
-    def slope_2(self, val):
-        self.corners[1][2] = val
-
-
-# class Radar(LinearDrop):
-#     def __init__(self, duration, t_release, t_revisit, dwell_type=None):
-#         self.t_revisit = t_revisit
-#         self.dwell_type = dwell_type
-#
-#         linear_drop_params = dict(
-#             slope=1 / self.t_revisit,
-#             t_drop=self.t_revisit + 0.1,
-#             l_drop=300,
-#         )
-#         super().__init__(duration, t_release, **linear_drop_params)
-#
-#     @classmethod
-#     def search(cls, t_release, dwell_type):
-#         t_dwell = 0.36
-#         # t_revisit = dict(HS=2.5, AHS=5)[dwell_type]
-#         t_revisit = dict(HS=5.88, AHS=11.76)[dwell_type]
-#         return cls(t_dwell, t_release, t_revisit, dwell_type)
-#
-#     @classmethod
-#     def track(cls, t_release, dwell_type):
-#         # t_dwell = 0.18
-#         # t_revisit = dict(low=4, med=2, high=1)[dwell_type]
-#         t_dwell = 0.36
-#         t_revisit = dict(low=1, high=.5)[dwell_type]
-#         return cls(t_dwell, t_release, t_revisit, 'track_' + dwell_type)
-#
-#     # @classmethod
-#     # def from_kinematics(cls, slant_range, rate_range):
-#     #     if slant_range <= 50:
-#     #         return cls.track('high')
-#     #     elif slant_range > 50 and abs(rate_range) >= 100:
-#     #         return cls.track('med')
-#     #     else:
-#     #         return cls.track('low')
-
-
 class Exponential(Shift):
     """
     Task with an exponential loss function.
@@ -698,17 +459,6 @@ class Exponential(Shift):
             loss = loss.item()
 
         return loss
-
-    # def shift_origin(self, t):  # TODO: D.R.Y. with `PiecewiseLinear`!?
-    #     t_excess = t - self.t_release
-    #     self.t_release = max(0., -t_excess)
-    #     if self.t_release == 0.:  # loss is incurred, drop time and loss are updated
-    #         loss_inc = self(t_excess)
-    #         self.a *= self.b ** t_excess
-    #
-    #         return loss_inc
-    #     else:
-    #         return 0.  # no loss incurred
 
     def _shift(self, t_excess, loss_inc):
         self.a *= self.b**t_excess

@@ -79,7 +79,6 @@ class Base(Env, ABC):
         self.masking = masking
 
         self.reward_range = (-np.inf, 0)
-        # self._loss_agg = None
         self._loss_agg = 0.0
 
         self.node = None  # MDP state
@@ -523,51 +522,6 @@ def int_to_seq(num, length, check_input=True):
 
 
 # TODO: deprecate environments below?
-
-
-# class IndexUni(Index):
-#     def __init__(
-#         self,
-#         problem_gen,
-#         features=None,
-#         normalize=True,
-#         sort_func=None,
-#         time_shift=False,
-#         masking=False,
-#     ):
-#         """
-#         `Index` environment with single tensor observations.
-#
-#         Concatenates sequence and task feature tensors.
-#
-#         Parameters
-#         ----------
-#         problem_gen : generators.problems.Base
-#             Scheduling problem generation object.
-#         features : numpy.ndarray, optional
-#             Structured numpy array of features with fields 'name', 'func', and 'space'.
-#         normalize : bool, optional
-#             Rescale task features to unit interval.
-#         sort_func : function or str, optional
-#             Method that returns a sorting value for re-indexing given a task index 'n'.
-#         time_shift : bool, optional
-#             Enables task re-parameterization after sequence updates.
-#         masking : bool, optional
-#             If True, features are zeroed out for scheduled tasks.
-
-#         """
-#         super().__init__(problem_gen, features, normalize, sort_func, time_shift, masking)
-
-#         # Observation space
-#         _space_seq_reshape = spaces_tasking.reshape(self._obs_space_seq, (1, self.n_tasks, 1))
-#         self.observation_space = spaces_tasking.concatenate(
-#             (_space_seq_reshape, self._obs_space_tasks), axis=-1
-#         )
-
-#     def obs(self):
-#         """Complete observation."""
-#         _obs_seq_reshape = self._obs_seq().reshape((1, self.n_tasks, 1))
-#         return np.concatenate((_obs_seq_reshape, self._obs_tasks()), axis=-1)
 
 
 # class Seq(Base):

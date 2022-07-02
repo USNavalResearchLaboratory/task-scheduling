@@ -21,8 +21,6 @@ from task_scheduling.mdp.util import (
     reward_to_go,
 )
 
-# TODO: Add task loss to NLL loss for backprop?
-
 
 class BaseSupervised(BaseLearning):  # TODO: deprecate? Only used for type checking??
     @abstractmethod
@@ -306,13 +304,9 @@ class TorchScheduler(BasePyTorch):
 
         def loss_batch(batch_):
             batch_ = [t.to(self.device) for t in batch_]
-            # xb, yb = batch_[:-1], batch_[-1]
-            xb, yb, _rb = batch_[:-2], batch_[-2], batch_[-1]
-            yb_pred = self.model(*xb)
-            loss = self.loss_func(yb_pred, yb)
-            # xb, yb, wb = batch_[:-2], batch_[-2], batch_[-1]
-            # losses_ = loss_func(model(*xb), yb, reduction="none")
-            # loss = torch.mean(wb * losses_)
+            o, a, _r = batch_[:-2], batch_[-2], batch_[-1]
+            logits = self.model(*o)
+            loss = self.loss_func(logits, a)
 
             return loss
 
@@ -371,23 +365,15 @@ class LitModel(pl.LightningModule):
             optim_params = {}
         self.optim_params = optim_params
 
-        # _sig_fwd = signature(module.forward)
-        # self._n_in = len(_sig_fwd.parameters)
-
     def forward(self, *args, **kwargs):
         return self.module(*args, **kwargs)
 
     def _process_batch(self, batch, key):
-        # x, y = batch[:-1], batch[-1]
-        x, y, _r = batch[:-2], batch[-2], batch[-1]
-        logits = self(*x)
-        loss = self.loss_func(logits, y)
-        pred = logits.argmax(dim=1)
-        acc = torch.eq(pred, y).float().mean()
-        # if len(batch) > self._n_in + 1:  # includes sample weighting
-        #     x, y, w = batch[:-2], batch[-2], batch[-1]
-        #     losses = self.loss_func(self(*x), y, reduction="none")
-        #     loss = torch.mean(w * losses)
+        o, a, _r = batch[:-2], batch[-2], batch[-1]
+        logits = self(*o)
+        loss = self.loss_func(logits, a)
+        a_pred = logits.argmax(dim=1)
+        acc = torch.eq(a_pred, a).float().mean()
         self.log_dict({f"{key}_loss": loss, f"{key}_acc": acc})
 
         return loss
