@@ -1,4 +1,6 @@
 # Task Scheduling
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6811866.svg)](https://doi.org/10.5281/zenodo.6811866)
+
 This package provides a framework for implementing task scheduling algorithms and assessing their performance. It
 includes traditional schedulers as well as both supervised and reinforcement learning schedulers.
 
