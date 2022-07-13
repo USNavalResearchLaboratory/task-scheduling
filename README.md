@@ -1,18 +1,17 @@
 # Task Scheduling
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6811866.svg)](https://doi.org/10.5281/zenodo.6811866)
 
-This package provides a framework for implementing task scheduling algorithms and assessing their performance. It
-includes traditional schedulers as well as both supervised and reinforcement learning schedulers.
+This Python package provides a framework for implementing task scheduling algorithms and assessing their performance. It includes traditional schedulers as well as both supervised and reinforcement learning schedulers.
 
 ## Installation
-The `task_scheduling` package can installed directly from GitHub using
+The `task_scheduling` package is developed for Python 3.9. It can installed directly from GitHub using
 ```
-pip install git+https://github.com/USNavalResearchLaboratory/task-scheduling.git
+pip install git+https://github.com/USNavalResearchLaboratory/task-scheduling.git#egg=task_scheduling
 ```
 To install a specific version or branch, specify a ref as detailed [here](https://pip.pypa.io/en/stable/topics/vcs-support/). Alternatively, the package can be installed locally using
 ```
 git clone https://github.com/USNavalResearchLaboratory/task-scheduling.git
-pip install .
+pip install task-scheduling/
 ```
 Note that with both methods, the [editable option](https://pip.pypa.io/en/stable/cli/pip_install/) can be included to track any package modifications.
 
