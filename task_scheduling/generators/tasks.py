@@ -204,6 +204,14 @@ class ContinuousUniformIID(BaseIID):
         )
         return cls(task_types.LinearDrop, param_lims, rng)
 
+    @classmethod
+    def exp(
+        cls, duration_lim=(1, 2), t_release_lim=(-1, 1), a_lim=(0.5, 1.5), b_lim=(1, 5), rng=None
+    ):
+        """Construct `Exponential` task objects."""
+        param_lims = dict(duration=duration_lim, t_release=t_release_lim, a=a_lim, b=b_lim)
+        return cls(task_types.Exponential, param_lims, rng)
+
 
 class DiscreteIID(BaseIID):
     """
