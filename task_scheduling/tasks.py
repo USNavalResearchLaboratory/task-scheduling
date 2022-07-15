@@ -170,33 +170,42 @@ class Shift(Base):
         """
         raise NotImplementedError
 
-    def shift_origin(self, t):
+    def shift(self, t):
         """
-        Shift the loss function origin, return incurred loss, and re-parameterize.
+        Shift the release time and loss function.
 
         Parameters
         ----------
         t : float
-            Temporal shift to advance the time origin.
+            Temporal shift to advance the task.
+
+        """
+        self.t_release -= t
+
+    def reparam(self, t):
+        """
+        Reparameterize the task, return any incurred loss.
+
+        Parameters
+        ----------
+        t : float
+            Time at which to evaluate the task.
 
         Returns
         -------
         float
-            Incurred loss.
+            Partial execution loss.
 
         """
-        t_excess = t - self.t_release
-        self.t_release = max(0.0, -t_excess)
-        if self.t_release == 0.0:  # loss is incurred, drop time and loss are updated
-            loss_inc = self(t_excess)
-            self._shift(t_excess, loss_inc)
-
+        if self.t_release < t:
+            loss_inc = self(t)
+            self._reparam(t)
             return loss_inc
         else:
-            return 0.0  # no loss incurred
+            return 0.0
 
     @abstractmethod
-    def _shift(self, t_excess, loss_inc):
+    def _reparam(self, t):
         raise NotImplementedError
 
 
@@ -211,7 +220,8 @@ class PiecewiseLinear(Shift):
     t_release : float
         The earliest time the task may be scheduled.
     corners : Sequence of Sequence, optional
-        Each element is a 3-tuple of the corner time, loss, and proceeding slope.
+        Each element is a 3-tuple of the corner time (relative to release time), loss,
+        and proceeding slope.
     name : str, optional
 
     """
@@ -294,16 +304,19 @@ class PiecewiseLinear(Shift):
             if l_c < l_d:
                 raise ValueError(f"Loss decreases from {l_d} to {l_c} at discontinuity.")
 
-    def _shift(self, t_excess, loss_inc):
+    def _reparam(self, t):
+        loss = self(t)
         for c in self.corners:
-            c[0] = max(0.0, c[0] - t_excess)
-            c[1] = max(0.0, c[1] - loss_inc)
+            c[0] = max(0.0, c[0] - (t - self.t_release))
+            c[1] = max(0.0, c[1] - loss)
 
             # if not self.prune and c[0] == 0. and i >= 1:  # zero out unused slope
             #     self.corners[i - 1][2] = 0.
 
         if self.prune:
             self._prune_corners()
+
+        self.t_release = t
 
     def _prune_corners(self):
         corners = np.array(self.corners)
@@ -373,7 +386,7 @@ class LinearDrop(PiecewiseLinear):
         The earliest time the task may be scheduled.
     slope : float, optional
     t_drop : float, optional
-        Drop time.
+        Drop time, relative to release time.
     l_drop : float, optional
         Drop loss.
     name : str, optional
@@ -460,5 +473,6 @@ class Exponential(Shift):
 
         return loss
 
-    def _shift(self, t_excess, loss_inc):
-        self.a *= self.b**t_excess
+    def _reparam(self, t):
+        self.a *= self.b ** (t - self.t_release)
+        self.t_release = t

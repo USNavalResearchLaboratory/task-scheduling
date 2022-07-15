@@ -4,10 +4,15 @@ import numpy as np
 
 from task_scheduling.algorithms import branch_bound
 from task_scheduling.generators import problems as problem_gens
-from task_scheduling.nodes import ScheduleNode, ScheduleNodeShift
+from task_scheduling.nodes import (
+    ScheduleNode,
+    ScheduleNodeReparam,
+    ScheduleNodeShift,
+    ScheduleNodeShifter,
+)
 from task_scheduling.util import evaluate_schedule
 
-n_ch = 1
+n_ch = 2
 n_tasks = 8
 
 ch_avail_lim = (-1, 1)
@@ -52,12 +57,13 @@ def test_shift():
 
             seq = np.random.permutation(problem_gen.n_tasks)
             node = ScheduleNode(tasks, ch_avail, seq)
-            node_s = ScheduleNodeShift(tasks, ch_avail, seq)
+            for cls_ in [ScheduleNodeShift, ScheduleNodeReparam, ScheduleNodeShifter]:
+                node_s = cls_(tasks, ch_avail, seq)
 
-            assert np.allclose(node.sch["t"], node_s.sch["t"])
-            assert abs(node.loss - node_s.loss) < 1e-9
+                assert np.allclose(node.sch["t"], node_s.sch["t"])
+                assert np.isclose(node.loss, node_s.loss)
 
 
 if __name__ == "__main__":
-    test_argsort()
+    # test_argsort()
     test_shift()

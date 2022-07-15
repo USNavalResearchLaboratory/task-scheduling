@@ -521,11 +521,11 @@ class ScheduleNodeShift(ScheduleNode):
 
     def __init__(self, tasks, ch_avail, seq=(), rng=None):
         self.t_origin = 0.0
-        tasks = deepcopy(tasks)  # tasks modified in-place during `shift_origin`
+        tasks = deepcopy(tasks)  # tasks are modified in-place
         super().__init__(tasks, ch_avail, seq, rng)
 
         if len(seq) == 0:
-            self.shift_origin()  # performs initial shift when initialized with empty sequence
+            self.shift_and_reparam()  # performs initial shift when initialized with empty sequence
 
     def __str__(self):
         return f"ScheduleNodeShift(sequence: {self.seq}, loss incurred:{self.loss:.3f})"
@@ -533,25 +533,70 @@ class ScheduleNodeShift(ScheduleNode):
     def _update_sch(self, n):
         super()._update_sch(n)
         self._sch["t"][n] += self.t_origin  # convert from relative to absolute
-        self.shift_origin()
+        self.shift_and_reparam()
 
-    def shift_origin(self):
-        """
-        Shifts the time origin to the earliest channel availability.
+    def shift_and_reparam(self):
+        """Temporally shift and reparameterize tasks, update total loss."""
+        ch_avail_min = min(self._ch_avail)
 
-        Invokes shift method of each task, adding each incurred loss to the total.
-        """
+        self.t_origin += ch_avail_min
+        self._ch_avail -= ch_avail_min  # new minimum channel availability is zero
+        for n, task in enumerate(self._tasks):
+            task.shift(ch_avail_min)
+            loss_inc = task.reparam(0.0)
+            if n in self._seq_rem:
+                # add partial exescution loss if unscheduled
+                self._loss += loss_inc
+
+
+class ScheduleNodeReparam(ScheduleNode):  # TODO: as mixin classes?
+    def __init__(self, tasks, ch_avail, seq=(), rng=None):
+        tasks = deepcopy(tasks)
+        super().__init__(tasks, ch_avail, seq, rng)
+
+        if len(seq) == 0:
+            self.reparam()
+
+    def __str__(self):
+        return f"ScheduleNodeReparam(sequence: {self.seq}, loss incurred:{self.loss:.3f})"
+
+    def _update_sch(self, n):
+        super()._update_sch(n)
+        self.reparam()
+
+    def reparam(self):
+        ch_avail_min = min(self._ch_avail)
+        for n, task in enumerate(self._tasks):
+            loss_inc = task.reparam(ch_avail_min)
+            if n in self._seq_rem:
+                # add partial exescution loss if unscheduled
+                self._loss += loss_inc
+
+
+class ScheduleNodeShifter(ScheduleNode):
+    def __init__(self, tasks, ch_avail, seq=(), rng=None):
+        self.t_origin = 0.0
+        tasks = deepcopy(tasks)  # tasks are modified in-place
+        super().__init__(tasks, ch_avail, seq, rng)
+
+        if len(seq) == 0:
+            self.shift()  # performs initial shift when initialized with empty sequence
+
+    def __str__(self):
+        return f"ScheduleNodeShifter(sequence: {self.seq}, loss incurred:{self.loss:.3f})"
+
+    def _update_sch(self, n):
+        super()._update_sch(n)
+        self._sch["t"][n] += self.t_origin  # convert from relative to absolute
+        self.shift()
+
+    def shift(self):
         ch_avail_min = min(self._ch_avail)
 
         self.t_origin += ch_avail_min
         self._ch_avail -= ch_avail_min
-        for n, task in enumerate(self._tasks):
-            # re-parameterize task, return any incurred loss
-            loss_inc = task.shift_origin(ch_avail_min)
-
-            # add loss incurred due to origin shift for any unscheduled tasks
-            if n in self._seq_rem:
-                self._loss += loss_inc
+        for task in self._tasks:
+            task.shift(ch_avail_min)
 
 
 class MCTSNode(RandomGeneratorMixin):
