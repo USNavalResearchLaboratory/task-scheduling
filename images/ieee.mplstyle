@@ -2,6 +2,8 @@
 figure.figsize : 3.8, 2.85
 
 font.size: 7
+font.serif : Times New Roman
+mathtext.fontset : stix
 
 axes.linewidth : 0.5
 grid.linewidth : 0.5
