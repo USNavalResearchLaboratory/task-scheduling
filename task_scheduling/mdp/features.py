@@ -12,20 +12,20 @@ from task_scheduling.tasks import Shift
 feature_dtype = [("name", "<U32"), ("func", object), ("space", object)]
 
 
-def _add_zero(space):
-    """Modify space to include zero as a possible value."""
-    if isinstance(space, Box):
-        space.low = np.array(0.0)
-        return space
-    elif isinstance(space, Discrete):
-        return space
-    elif isinstance(space, MultiDiscrete):
-        return space
-    elif isinstance(space, DiscreteSet):
-        space.add_elements(0)
-        return space
-    else:
-        raise NotImplementedError
+# def _add_zero(space):
+#     """Modify space to include zero as a possible value."""
+#     if isinstance(space, Box):
+#         space.low = np.array(0.0)
+#         return space
+#     elif isinstance(space, Discrete):
+#         return space
+#     elif isinstance(space, MultiDiscrete):
+#         return space
+#     elif isinstance(space, DiscreteSet):
+#         space.add_elements(0)
+#         return space
+#     else:
+#         raise NotImplementedError
 
 
 def _as_box(space):
@@ -45,7 +45,7 @@ def _as_box(space):
     return Box(low, high, shape=space.shape, dtype=float)
 
 
-def param_features(task_gen, time_shift=False, masking=False):
+def param_features(task_gen, time_shift=False):
     """
     Create array of parameter features from task parameter spaces.
 
@@ -55,8 +55,6 @@ def param_features(task_gen, time_shift=False, masking=False):
         Scheduling problem generation object.
     time_shift : bool, optional
         Enables modification of feature `space` to reflect shifted parameters.
-    masking : bool, optional
-        Enables modification of feature `space` to account for masking.
 
     Returns
     -------
@@ -71,8 +69,6 @@ def param_features(task_gen, time_shift=False, masking=False):
 
     data = []
     for name, space in task_gen.param_spaces.items():
-        if masking:
-            space = _add_zero(space)
         if name in shift_params:
             space = _as_box(space)
         data.append((name, attrgetter(name), space))

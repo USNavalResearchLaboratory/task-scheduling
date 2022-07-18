@@ -16,8 +16,6 @@ from task_scheduling.mdp.features import param_features
 from task_scheduling.nodes import ScheduleNode, ScheduleNodeShift
 from task_scheduling.util import plot_losses_and_schedule
 
-# TODO: move masking op to policies?
-
 
 class Base(Env, ABC):
     """Base environment for task scheduling.
@@ -34,8 +32,6 @@ class Base(Env, ABC):
         Method that returns a sorting value for re-indexing given a task index 'n'.
     time_shift : bool, optional
         Enables task re-parameterization after sequence updates.
-    masking : bool, optional
-        If True, features are zeroed out for scheduled tasks.
 
     """
 
@@ -46,7 +42,6 @@ class Base(Env, ABC):
         normalize=True,
         sort_func=None,
         time_shift=False,
-        masking=False,
     ):
         self._problem_gen = problem_gen
 
@@ -55,7 +50,7 @@ class Base(Env, ABC):
         if features is not None:
             self.features = features
         else:
-            self.features = param_features(self.problem_gen.task_gen, time_shift, masking)
+            self.features = param_features(self.problem_gen.task_gen, time_shift)
 
         if any(space.shape != () for space in self.features["space"]):
             raise NotImplementedError("Features must be scalar valued")
@@ -76,7 +71,6 @@ class Base(Env, ABC):
             self._sort_func_str = None
 
         self.time_shift = time_shift
-        self.masking = masking
 
         self.reward_range = (-np.inf, 0)
         self._loss_agg = 0.0
@@ -134,7 +128,6 @@ class Base(Env, ABC):
         str_ += f"\n- Features: {self.features['name'].tolist()}"
         str_ += f"\n- Sorting: {self._sort_func_str}"
         str_ += f"\n- Task shifting: {self.time_shift}"
-        str_ += f"\n- Masking: {self.masking}"
         return str_
 
     @property
@@ -180,9 +173,6 @@ class Base(Env, ABC):
         obs_tasks = np.array(
             [[func(task) for func in self.features["func"]] for task in self.tasks]
         )
-        if self.masking:
-            obs_tasks[self.node.seq] = 0.0  # zero out observation rows for scheduled tasks
-
         return obs_tasks[self.sorted_index]  # sort individual task observations
 
     def obs(self):
@@ -407,8 +397,6 @@ class Index(Base):
         Method that returns a sorting value for re-indexing given a task index 'n'.
     time_shift : bool, optional
         Enables task re-parameterization after sequence updates.
-    masking : bool, optional
-        If True, features are zeroed out for scheduled tasks.
 
     """
 
@@ -419,9 +407,8 @@ class Index(Base):
         normalize=True,
         sort_func=None,
         time_shift=False,
-        masking=False,
     ):
-        super().__init__(problem_gen, features, normalize, sort_func, time_shift, masking)
+        super().__init__(problem_gen, features, normalize, sort_func, time_shift)
 
         # Action space
         self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)
@@ -532,7 +519,6 @@ def int_to_seq(num, length, check_input=True):
 #         normalize=True,
 #         sort_func=None,
 #         time_shift=False,
-#         masking=False,
 #         action_type="int",
 #     ):
 #         """Tasking environment with single action of a complete task index sequence.
@@ -549,15 +535,13 @@ def int_to_seq(num, length, check_input=True):
 #             Method that returns a sorting value for re-indexing given a task index 'n'.
 #         time_shift : bool, optional
 #             Enables task re-parameterization after sequence updates.
-#         masking : bool, optional
-#             If True, features are zeroed out for scheduled tasks.
 #         action_type : {'seq', 'int'}, optional
 #             If 'seq', action type is index sequence `Permutation`; if 'int', action space is
 #               `Discrete` and
 #             index sequences are mapped to integers.
 
 #         """
-#         super().__init__(problem_gen, features, normalize, sort_func, time_shift, masking)
+#         super().__init__(problem_gen, features, normalize, sort_func, time_shift)
 
 #         self.action_type = action_type  # 'seq' for sequences, 'int' for integers
 #         if self.action_type == "int":

@@ -29,7 +29,6 @@ env_params = {
     "features": None,  # defaults to task parameters
     "sort_func": "t_release",
     "time_shift": True,
-    "masking": True,
 }
 
 trainer_kwargs = {

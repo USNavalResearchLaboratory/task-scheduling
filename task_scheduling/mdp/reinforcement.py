@@ -135,7 +135,6 @@ class StableBaselinesScheduler(BaseLearningScheduler):
                 self.env.normalize,
                 self.env.sort_func,
                 self.env.time_shift,
-                self.env.masking,
             )
             eval_env = Monitor(eval_env)
             callback = EvalCallback(eval_env, **self.learn_params["eval_callback_kwargs"])
@@ -272,7 +271,7 @@ class ValidActorCriticPolicy(ActorCriticPolicy):
         if callable(infer_valid_mask):
             self.infer_valid_mask = infer_valid_mask
         else:
-            self.infer_valid_mask = lambda obs: np.ones(self.observation_space.shape)
+            self.infer_valid_mask = lambda obs: np.zeros(self.observation_space.shape)
 
     def _get_action_dist_from_latent_valid(self, obs, latent_pi):  # added `obs` to signature
         mean_actions = self.action_net(latent_pi)
@@ -318,7 +317,7 @@ class ValidDQNPolicy(DQNPolicy):
         if callable(infer_valid_mask):
             self.infer_valid_mask = infer_valid_mask
         else:
-            self.infer_valid_mask = lambda obs: np.ones(self.observation_space.shape)
+            self.infer_valid_mask = lambda obs: np.zeros(self.observation_space.shape)
 
         super().__init__(*args, **kwargs)
 

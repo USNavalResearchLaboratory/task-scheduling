@@ -259,7 +259,7 @@ class MultiNet(nn.Module):
 
     Notes
     -----
-    Processes input tensors for channel availability, sequence masking, and tasks. The channel and
+    Processes input tensors for channel availability, sequence mask, and tasks. The channel and
     task tensors are separately processed by the respective modules before concatenation and
     further processing in `net_joint`. The sequence mask blocks invalid logits at the output to
     ensure only valid actions are taken.
@@ -274,9 +274,10 @@ class MultiNet(nn.Module):
 
     def forward(self, ch_avail, seq, tasks):
         c, s, t = ch_avail, seq, tasks
+
         t = t.permute(0, 2, 1)
-        # t = torch.cat((t.permute(0, 2, 1), s.unsqueeze(1)), dim=1)
-        # # reshape task features, combine w/ sequence mask
+        t = t * (1 - s).unsqueeze(1)  # masking
+        # t = torch.cat((t, (1 - s).unsqueeze(1)), dim=1)
 
         c = self.net_ch(c)
         t = self.net_tasks(t)
@@ -346,9 +347,10 @@ class VaryCNN(nn.Module):
 
     def forward(self, ch_avail, seq, tasks):
         c, s, t = ch_avail, seq, tasks
-        t = torch.cat(
-            (t.permute(0, 2, 1), s.unsqueeze(1)), dim=1
-        )  # reshape task features, combine w/ sequence mask
+
+        t = t.permute(0, 2, 1)
+        t = t * (1 - s).unsqueeze(1)  # masking
+        t = torch.cat((t, (1 - s).unsqueeze(1)), dim=1)
 
         t = functional.pad(t, (0, self.conv_t.kernel_size[0] - 1))
         t = self.conv_t(t)
