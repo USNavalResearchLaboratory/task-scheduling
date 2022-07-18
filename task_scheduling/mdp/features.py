@@ -7,7 +7,6 @@ import numpy as np
 from gym.spaces import Box, Discrete, MultiDiscrete
 
 from task_scheduling.spaces import DiscreteSet, get_space_lims
-from task_scheduling.tasks import Shift
 
 feature_dtype = [("name", "<U32"), ("func", object), ("space", object)]
 
@@ -62,7 +61,9 @@ def param_features(task_gen, time_shift=False):
         Feature array with fields 'name', 'func', and 'space'.
 
     """
-    if time_shift and issubclass(task_gen.cls_task, Shift):
+    # TODO: space mods are insufficent for general parameters. Move to task classes?
+
+    if time_shift:
         shift_params = task_gen.cls_task.shift_params
     else:
         shift_params = ()

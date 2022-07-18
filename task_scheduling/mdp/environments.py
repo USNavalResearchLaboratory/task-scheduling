@@ -127,7 +127,7 @@ class Base(Env, ABC):
         str_ = f"{self.__class__.__name__}"
         str_ += f"\n- Features: {self.features['name'].tolist()}"
         str_ += f"\n- Sorting: {self._sort_func_str}"
-        str_ += f"\n- Task shifting: {self.time_shift}"
+        str_ += f"\n- Shifting: {self.time_shift}"
         return str_
 
     @property

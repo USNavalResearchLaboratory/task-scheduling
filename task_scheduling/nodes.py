@@ -525,7 +525,7 @@ class ScheduleNodeShift(ScheduleNode):
         super().__init__(tasks, ch_avail, seq, rng)
 
         if len(seq) == 0:
-            self.shift_and_reparam()  # performs initial shift when initialized with empty sequence
+            self.shift_and_reparam()  # ensure initial update
 
     def __str__(self):
         return f"ScheduleNodeShift(sequence: {self.seq}, loss incurred:{self.loss:.3f})"
@@ -545,8 +545,7 @@ class ScheduleNodeShift(ScheduleNode):
             task.shift(ch_avail_min)
             loss_inc = task.reparam(0.0)
             if n in self._seq_rem:
-                # add partial exescution loss if unscheduled
-                self._loss += loss_inc
+                self._loss += loss_inc  # add partial exescution loss if unscheduled
 
 
 class ScheduleNodeReparam(ScheduleNode):  # TODO: as mixin classes?
@@ -580,7 +579,7 @@ class ScheduleNodeShifter(ScheduleNode):
         super().__init__(tasks, ch_avail, seq, rng)
 
         if len(seq) == 0:
-            self.shift()  # performs initial shift when initialized with empty sequence
+            self.shift()  # ensure initial shift
 
     def __str__(self):
         return f"ScheduleNodeShifter(sequence: {self.seq}, loss incurred:{self.loss:.3f})"
