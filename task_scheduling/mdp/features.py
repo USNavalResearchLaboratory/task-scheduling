@@ -4,7 +4,7 @@ from operator import attrgetter
 from warnings import warn
 
 import numpy as np
-from gym.spaces import Box, Discrete, MultiDiscrete
+from gym.spaces import Box, Discrete
 
 from task_scheduling.spaces import DiscreteSet, get_space_lims
 
@@ -27,33 +27,31 @@ feature_dtype = [("name", "<U32"), ("func", object), ("space", object)]
 #         raise NotImplementedError
 
 
-def _as_box(space):
-    """Convert scalar space to Box with zero lower bound."""
-    if isinstance(space, Box):
-        high = space.high
-    elif isinstance(space, Discrete):
-        high = space.n - 1
-    elif isinstance(space, MultiDiscrete):
-        high = space.nvec - 1
-    elif isinstance(space, DiscreteSet):
-        high = space.elements[-1]
-    else:
-        raise NotImplementedError
+# def _as_box(space):
+#     """Convert scalar space to Box with zero lower bound."""
+#     if isinstance(space, Box):
+#         high = space.high
+#     elif isinstance(space, Discrete):
+#         high = space.n - 1
+#     elif isinstance(space, MultiDiscrete):
+#         high = space.nvec - 1
+#     elif isinstance(space, DiscreteSet):
+#         high = space.elements[-1]
+#     else:
+#         raise NotImplementedError
 
-    low = np.zeros(space.shape)
-    return Box(low, high, shape=space.shape, dtype=float)
+#     low = np.zeros(space.shape)
+#     return Box(low, high, shape=space.shape, dtype=float)
 
 
-def param_features(task_gen, time_shift=False):
+def param_features(param_spaces):
     """
     Create array of parameter features from task parameter spaces.
 
     Parameters
     ----------
-    task_gen : generators.tasks.Base
-        Scheduling problem generation object.
-    time_shift : bool, optional
-        Enables modification of feature `space` to reflect shifted parameters.
+    param_spaces : dict, optional
+        Mapping of parameter name strings to gym.spaces.Space objects
 
     Returns
     -------
@@ -61,17 +59,8 @@ def param_features(task_gen, time_shift=False):
         Feature array with fields 'name', 'func', and 'space'.
 
     """
-    # TODO: space mods are insufficent for general parameters. Move to task classes?
-
-    if time_shift:
-        shift_params = task_gen.cls_task.shift_params
-    else:
-        shift_params = ()
-
     data = []
-    for name, space in task_gen.param_spaces.items():
-        if name in shift_params:
-            space = _as_box(space)
+    for name, space in param_spaces.items():
         data.append((name, attrgetter(name), space))
 
     return np.array(data, dtype=feature_dtype)

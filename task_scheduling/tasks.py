@@ -108,6 +108,56 @@ class Base(ABC):
         return ax.plot(t_plot, self(t_plot), label=str(self))
 
 
+class ShiftMixin(ABC):
+    def shift(self, t):
+        """
+        Shift the release time and loss function.
+
+        Parameters
+        ----------
+        t : float
+            Temporal shift to advance the task.
+
+        """
+        self.t_release -= t
+        self._shift(t)
+
+    @abstractmethod
+    def _shift(self, t):
+        raise NotImplementedError
+
+    def reparam(self, t):
+        """
+        Reparameterize the task, return any incurred loss.
+
+        Parameters
+        ----------
+        t : float
+            Time at which to evaluate the task.
+
+        Returns
+        -------
+        float
+            Partial execution loss.
+
+        """
+        if self.t_release < t:
+            loss_inc = self(t)
+            self._reparam(t)
+            return loss_inc
+        else:
+            return 0.0
+
+    @abstractmethod
+    def _reparam(self, t):
+        raise NotImplementedError
+
+    @staticmethod
+    def shift_param_lims(param_lims, ch_avail_lim, n_tasks):
+        param_lims["t_release"] = (0.0, param_lims["t_release"][1])
+        return param_lims
+
+
 class Generic(Base):
     """
     Generic task objects.
@@ -149,67 +199,7 @@ class Generic(Base):
         return self.loss_func(t)
 
 
-class Shift(Base):
-    shift_params = ("t_release",)
-
-    @abstractmethod
-    def __call__(self, t):
-        """
-        Loss function versus time.
-
-        Parameters
-        ----------
-        t : float
-            Execution time.
-
-        Returns
-        -------
-        float
-            Execution loss.
-
-        """
-        raise NotImplementedError
-
-    def shift(self, t):
-        """
-        Shift the release time and loss function.
-
-        Parameters
-        ----------
-        t : float
-            Temporal shift to advance the task.
-
-        """
-        self.t_release -= t
-
-    def reparam(self, t):
-        """
-        Reparameterize the task, return any incurred loss.
-
-        Parameters
-        ----------
-        t : float
-            Time at which to evaluate the task.
-
-        Returns
-        -------
-        float
-            Partial execution loss.
-
-        """
-        if self.t_release < t:
-            loss_inc = self(t)
-            self._reparam(t)
-            return loss_inc
-        else:
-            return 0.0
-
-    @abstractmethod
-    def _reparam(self, t):
-        raise NotImplementedError
-
-
-class PiecewiseLinear(Shift):
+class PiecewiseLinear(ShiftMixin, Base):
     """
     Task with a piecewise linear loss function.
 
@@ -223,11 +213,11 @@ class PiecewiseLinear(Shift):
         Each element is a 3-tuple of the corner time (relative to release time), loss,
         and proceeding slope.
     name : str, optional
+        Name of the task.
 
     """
 
     param_names = Base.param_names + ("corners",)
-    shift_params = Shift.shift_params
     # TODO: Add shift params. Handle `list` parameters for `space` shifts?!?
 
     prune = True
@@ -304,20 +294,6 @@ class PiecewiseLinear(Shift):
             if l_c < l_d:
                 raise ValueError(f"Loss decreases from {l_d} to {l_c} at discontinuity.")
 
-    def _reparam(self, t):
-        loss = self(t)
-        for c in self.corners:
-            c[0] = max(0.0, c[0] - (t - self.t_release))
-            c[1] = max(0.0, c[1] - loss)
-
-            # if not self.prune and c[0] == 0. and i >= 1:  # zero out unused slope
-            #     self.corners[i - 1][2] = 0.
-
-        if self.prune:
-            self._prune_corners()
-
-        self.t_release = t
-
     def _prune_corners(self):
         corners = np.array(self.corners)
         times = corners[:, 0]
@@ -341,6 +317,23 @@ class PiecewiseLinear(Shift):
             t_1 += self.duration
         return self.t_release, t_1
 
+    def _shift(self, t):
+        pass
+
+    def _reparam(self, t):
+        loss = self(t)
+        for c in self.corners:
+            c[0] = max(0.0, c[0] - (t - self.t_release))
+            c[1] = max(0.0, c[1] - loss)
+
+            # if not self.prune and c[0] == 0. and i >= 1:  # zero out unused slope
+            #     self.corners[i - 1][2] = 0.
+
+        if self.prune:
+            self._prune_corners()
+
+        self.t_release = t
+
 
 class Linear(PiecewiseLinear):
     """
@@ -354,11 +347,11 @@ class Linear(PiecewiseLinear):
         The earliest time the task may be scheduled.
     slope : float, optional
     name : str, optional
+        Name of the task.
 
     """
 
     param_names = Base.param_names + ("slope",)
-    shift_params = Shift.shift_params
 
     prune = False
 
@@ -390,11 +383,11 @@ class LinearDrop(PiecewiseLinear):
     l_drop : float, optional
         Drop loss.
     name : str, optional
+        Name of the task.
 
     """
 
     param_names = Base.param_names + ("slope", "t_drop", "l_drop")
-    shift_params = Shift.shift_params + ("t_drop", "l_drop")
 
     prune = False
 
@@ -430,8 +423,15 @@ class LinearDrop(PiecewiseLinear):
     def l_drop(self, val):
         self.corners[1][1] = val
 
+    @staticmethod
+    def shift_param_lims(param_lims, ch_avail_lim, n_tasks):
+        new_lims = super(LinearDrop, LinearDrop).shift_param_lims(param_lims, ch_avail_lim, n_tasks)
+        for param in ("t_drop", "l_drop"):
+            new_lims[param] = (0.0, param_lims[param][1])
+        return new_lims
 
-class Exponential(Shift):
+
+class Exponential(ShiftMixin, Base):
     """
     Task with an exponential loss function.
 
@@ -446,18 +446,21 @@ class Exponential(Shift):
     b : float, optional
         Exponent base.
     name : str, optional
+        Name of the task.
 
     """
 
     param_names = Base.param_names + ("a", "b")
-    shift_params = Shift.shift_params + ("a",)
 
     def __init__(self, duration, t_release=0.0, a=1.0, b=np.e, name=None):
         super().__init__(duration, t_release, name)
         self.a = float(a)
         self.b = float(b)
 
-        # TODO: add positive param checks?
+        if not a > 0.0:
+            raise ValueError("a must be positive.")
+        if not b >= 1.0:
+            raise ValueError("b must be equal to or greater than 1.")
 
     def __call__(self, t):
         """Loss function versus time."""
@@ -473,6 +476,23 @@ class Exponential(Shift):
 
         return loss
 
+    def _shift(self, t):
+        pass
+
     def _reparam(self, t):
         self.a *= self.b ** (t - self.t_release)
         self.t_release = t
+
+    @staticmethod
+    def shift_param_lims(param_lims, ch_avail_lim, n_tasks):
+        new_lims = super(Exponential, Exponential).shift_param_lims(
+            param_lims, ch_avail_lim, n_tasks
+        )
+
+        max_start = max(ch_avail_lim[1], param_lims["t_release"][1])
+        max_ch_avail = max_start + n_tasks * param_lims["duration"][1]
+        max_shift = max_ch_avail - param_lims["t_release"][0]
+
+        high = param_lims["a"][1] * param_lims["b"][1] ** max_shift
+        new_lims["a"] = (param_lims["a"][0], high)
+        return new_lims

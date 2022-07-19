@@ -16,6 +16,8 @@ from task_scheduling.mdp.features import param_features
 from task_scheduling.nodes import ScheduleNode, ScheduleNodeShift
 from task_scheduling.util import plot_losses_and_schedule
 
+# TODO: custom features combining release times and chan availabilities?
+
 
 class Base(Env, ABC):
     """Base environment for task scheduling.
@@ -39,18 +41,37 @@ class Base(Env, ABC):
         self,
         problem_gen,
         features=None,
-        normalize=True,
+        normalize=False,
         sort_func=None,
         time_shift=False,
     ):
         self._problem_gen = problem_gen
 
+        # Get and modify problem space
+        ch_avail_space = self.problem_gen.ch_avail_gen.space
+        param_spaces = self.problem_gen.task_gen.param_spaces
+        ch_avail_lim = spaces_tasking.get_space_lims(ch_avail_space)
+        param_lims = {key: spaces_tasking.get_space_lims(val) for key, val in param_spaces.items()}
+
+        if True:  # TODO: generalize
+            low = ch_avail_lim[0]
+            max_start = max(ch_avail_lim[1], param_lims["t_release"][1])
+            high = max_start + self.n_tasks * param_lims["duration"][1]
+            ch_avail_space = Box(low, high, shape=(self.n_ch,), dtype=float)
+
+        if time_shift:
+            param_lims = self.problem_gen.task_gen.cls_task.shift_param_lims(
+                param_lims, ch_avail_lim, self.n_tasks
+            )
+            param_spaces = {
+                key: Box(*val, shape=(), dtype=float) for key, val in param_lims.items()
+            }
+
         # Set features
-        # TODO: custom features combining release times and chan availabilities?
         if features is not None:
             self.features = features
         else:
-            self.features = param_features(self.problem_gen.task_gen, time_shift)
+            self.features = param_features(param_spaces)
 
         if any(space.shape != () for space in self.features["space"]):
             raise NotImplementedError("Features must be scalar valued")
@@ -70,7 +91,10 @@ class Base(Env, ABC):
             self.sort_func = None
             self._sort_func_str = None
 
-        self.time_shift = time_shift
+        if time_shift:
+            self.node_cls = ScheduleNodeShift
+        else:
+            self.node_cls = ScheduleNode
 
         self.reward_range = (-np.inf, 0)
         self._loss_agg = 0.0
@@ -81,17 +105,8 @@ class Base(Env, ABC):
 
         self._seq_opt = None
 
-        # Observation space
-        space_ch = self.problem_gen.ch_avail_gen.space
-        max_duration = spaces_tasking.get_space_lims(
-            self.problem_gen.task_gen.param_spaces["duration"]
-        )[1]
-        self._obs_space_ch = Box(
-            space_ch.low.item(),
-            space_ch.high + self.n_tasks * max_duration,
-            shape=(self.n_ch,),
-            dtype=float,
-        )
+        # Observation and action space
+        self._obs_space_ch = ch_avail_space
 
         self._obs_space_seq = MultiDiscrete(np.full(self.n_tasks, 2))
 
@@ -105,7 +120,6 @@ class Base(Env, ABC):
             ch_avail=self._obs_space_ch, seq=self._obs_space_seq, tasks=self._obs_space_tasks
         )
 
-        # Action space
         self.action_space = None
 
     n_tasks = property(lambda self: self.problem_gen.n_tasks)
@@ -127,7 +141,7 @@ class Base(Env, ABC):
         str_ = f"{self.__class__.__name__}"
         str_ += f"\n- Features: {self.features['name'].tolist()}"
         str_ += f"\n- Sorting: {self._sort_func_str}"
-        str_ += f"\n- Shifting: {self.time_shift}"
+        str_ += f"\n- Shifting: {self.node_cls == ScheduleNodeShift}"
         return str_
 
     @property
@@ -247,10 +261,7 @@ class Base(Env, ABC):
         # store problem before any in-place operations
         self._tasks_init, self._ch_avail_init = tasks, ch_avail
 
-        if self.time_shift:
-            self.node = ScheduleNodeShift(tasks, ch_avail)
-        else:
-            self.node = ScheduleNode(tasks, ch_avail)
+        self.node = self.node_cls(tasks, ch_avail)
 
         # loss can be non-zero due to time origin shift during node initialization
         self._loss_agg = self.node.loss
@@ -404,13 +415,11 @@ class Index(Base):
         self,
         problem_gen,
         features=None,
-        normalize=True,
+        normalize=False,
         sort_func=None,
         time_shift=False,
     ):
         super().__init__(problem_gen, features, normalize, sort_func, time_shift)
-
-        # Action space
         self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)
 
     def _update_spaces(self):
@@ -516,7 +525,7 @@ def int_to_seq(num, length, check_input=True):
 #         self,
 #         problem_gen,
 #         features=None,
-#         normalize=True,
+#         normalize=False,
 #         sort_func=None,
 #         time_shift=False,
 #         action_type="int",
