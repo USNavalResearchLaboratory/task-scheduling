@@ -1,9 +1,7 @@
 """Reinforcement learning schedulers and custom policies."""
 
 import math
-import time
 from collections import namedtuple
-from functools import partial
 from pathlib import Path
 
 import dill
@@ -15,25 +13,13 @@ from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
-from stable_baselines3.common.utils import configure_logger, obs_as_tensor, safe_mean
 from stable_baselines3.dqn.policies import DQNPolicy, QNetwork
 from torch import nn
-from torch.nn import functional
-from tqdm import tqdm, trange
 
 from task_scheduling.base import get_now
 from task_scheduling.mdp.base import BaseLearning as BaseLearningScheduler
 from task_scheduling.mdp.environments import Index
-from task_scheduling.mdp.util import (
-    build_cnn,
-    build_mlp,
-    flatten_rollouts,
-    make_dataloaders,
-    make_dataloaders_dict,
-    reset_weights,
-    reward_to_go,
-    valid_logits,
-)
+from task_scheduling.mdp.util import build_cnn, build_mlp, reset_weights, valid_logits
 
 _default_tuple = namedtuple("ModelDefault", ["cls", "params"], defaults={})
 

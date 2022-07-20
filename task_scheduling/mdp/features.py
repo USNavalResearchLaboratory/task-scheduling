@@ -11,39 +11,6 @@ from task_scheduling.spaces import DiscreteSet, get_space_lims
 feature_dtype = [("name", "<U32"), ("func", object), ("space", object)]
 
 
-# def _add_zero(space):
-#     """Modify space to include zero as a possible value."""
-#     if isinstance(space, Box):
-#         space.low = np.array(0.0)
-#         return space
-#     elif isinstance(space, Discrete):
-#         return space
-#     elif isinstance(space, MultiDiscrete):
-#         return space
-#     elif isinstance(space, DiscreteSet):
-#         space.add_elements(0)
-#         return space
-#     else:
-#         raise NotImplementedError
-
-
-# def _as_box(space):
-#     """Convert scalar space to Box with zero lower bound."""
-#     if isinstance(space, Box):
-#         high = space.high
-#     elif isinstance(space, Discrete):
-#         high = space.n - 1
-#     elif isinstance(space, MultiDiscrete):
-#         high = space.nvec - 1
-#     elif isinstance(space, DiscreteSet):
-#         high = space.elements[-1]
-#     else:
-#         raise NotImplementedError
-
-#     low = np.zeros(space.shape)
-#     return Box(low, high, shape=space.shape, dtype=float)
-
-
 def param_features(param_spaces):
     """
     Create array of parameter features from task parameter spaces.

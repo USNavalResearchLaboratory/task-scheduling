@@ -114,28 +114,6 @@ class Base(Env, ABC):
     tasks = property(lambda self: self.node.tasks)
     ch_avail = property(lambda self: self.node.ch_avail)
 
-    @staticmethod
-    def get_problem_spaces(problem_gen, reform=False):
-        ch_avail_space = problem_gen.ch_avail_gen.space
-        param_spaces = problem_gen.task_gen.param_spaces
-
-        ch_avail_lim = spaces_tasking.get_space_lims(ch_avail_space)
-        param_lims = {key: spaces_tasking.get_space_lims(val) for key, val in param_spaces.items()}
-        if True:  # TODO: generalize? Move to `ScheduleNode`?
-            low = ch_avail_lim[0]
-            max_start = max(ch_avail_lim[1], param_lims["t_release"][1])
-            high = max_start + problem_gen.n_tasks * param_lims["duration"][1]
-            ch_avail_space = Box(low, high, shape=(problem_gen.n_ch,), dtype=float)
-
-        if reform:
-            param_lims = problem_gen.task_gen.cls_task.reform_param_lims(
-                param_lims, ch_avail_lim, problem_gen.n_tasks
-            )
-            param_spaces = {
-                key: Box(*val, shape=(), dtype=float) for key, val in param_lims.items()
-            }
-        return ch_avail_space, param_spaces
-
     def __str__(self):
         if self.node is None:
             _status = "Initialized"
@@ -162,6 +140,28 @@ class Base(Env, ABC):
         ):
             raise ValueError("New generator must match.")
         self._problem_gen = value
+
+    @staticmethod
+    def get_problem_spaces(problem_gen, reform=False):
+        ch_avail_space = problem_gen.ch_avail_gen.space
+        param_spaces = problem_gen.task_gen.param_spaces
+
+        ch_avail_lim = spaces_tasking.get_space_lims(ch_avail_space)
+        param_lims = {key: spaces_tasking.get_space_lims(val) for key, val in param_spaces.items()}
+        if True:  # TODO: generalize? Move to `ScheduleNode`?
+            low = ch_avail_lim[0]
+            max_start = max(ch_avail_lim[1], param_lims["t_release"][1])
+            high = max_start + problem_gen.n_tasks * param_lims["duration"][1]
+            ch_avail_space = Box(low, high, shape=(problem_gen.n_ch,), dtype=float)
+
+        if reform:
+            param_lims = problem_gen.task_gen.cls_task.reform_param_lims(
+                param_lims, ch_avail_lim, problem_gen.n_tasks
+            )
+            param_spaces = {
+                key: Box(*val, shape=(), dtype=float) for key, val in param_lims.items()
+            }
+        return ch_avail_space, param_spaces
 
     @property
     def sorted_index(self):
@@ -522,9 +522,6 @@ def int_to_seq(num, length, check_input=True):
         seq.append(n)
 
     return tuple(seq)
-
-
-# TODO: deprecate environments below?
 
 
 # class Seq(Base):
