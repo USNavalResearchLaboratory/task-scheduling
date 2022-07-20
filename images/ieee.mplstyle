@@ -1,5 +1,5 @@
-# figure.figsize : 3.5, 2.625
-figure.figsize : 3.8, 2.85
+# figure.figsize : 4, 3
+figure.figsize : 3.6, 2.7
 
 font.size: 7
 font.serif : Times New Roman

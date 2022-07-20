@@ -4,12 +4,7 @@ import numpy as np
 
 from task_scheduling.algorithms import branch_bound
 from task_scheduling.generators import problems as problem_gens
-from task_scheduling.nodes import (
-    ScheduleNode,
-    ScheduleNodeReparam,
-    ScheduleNodeShift,
-    ScheduleNodeShifter,
-)
+from task_scheduling.nodes import ScheduleNode, ScheduleNodeReform
 from task_scheduling.util import evaluate_schedule
 
 n_ch = 2
@@ -49,21 +44,20 @@ def test_argsort():
             assert isclose(loss, node_sort.loss)
 
 
-def test_shift():
-    """Check accuracy of ScheduleNodeShift solution."""
+def test_reform():
+    """Check accuracy of ScheduleNodeReform solution."""
     for problem_gen in problem_gen_list:
         for i, (tasks, ch_avail) in enumerate(problem_gen(1000)):
             print(f"{i}", end="\n")
 
             seq = np.random.permutation(problem_gen.n_tasks)
             node = ScheduleNode(tasks, ch_avail, seq)
-            for cls_ in [ScheduleNodeShift, ScheduleNodeReparam, ScheduleNodeShifter]:
-                node_s = cls_(tasks, ch_avail, seq)
+            node_s = ScheduleNodeReform(tasks, ch_avail, seq)
 
-                assert np.allclose(node.sch["t"], node_s.sch["t"])
-                assert np.isclose(node.loss, node_s.loss)
+            assert np.allclose(node.sch["t"], node_s.sch["t"])
+            assert np.isclose(node.loss, node_s.loss)
 
 
 if __name__ == "__main__":
-    # test_argsort()
-    test_shift()
+    test_argsort()
+    test_reform()

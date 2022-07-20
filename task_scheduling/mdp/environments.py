@@ -13,14 +13,15 @@ from tqdm import trange
 import task_scheduling.spaces as spaces_tasking
 from task_scheduling.mdp.features import normalize as normalize_features
 from task_scheduling.mdp.features import param_features
-from task_scheduling.nodes import ScheduleNode, ScheduleNodeShift
+from task_scheduling.nodes import ScheduleNode, ScheduleNodeReform
 from task_scheduling.util import plot_losses_and_schedule
 
 # TODO: custom features combining release times and chan availabilities?
 
 
 class Base(Env, ABC):
-    """Base environment for task scheduling.
+    """
+    Base environment for task scheduling.
 
     Parameters
     ----------
@@ -32,7 +33,7 @@ class Base(Env, ABC):
         Rescale task features to unit interval.
     sort_func : function or str, optional
         Method that returns a sorting value for re-indexing given a task index 'n'.
-    time_shift : bool, optional
+    reform : bool, optional
         Enables task re-parameterization after sequence updates.
 
     """
@@ -43,29 +44,12 @@ class Base(Env, ABC):
         features=None,
         normalize=False,
         sort_func=None,
-        time_shift=False,
+        reform=False,
     ):
         self._problem_gen = problem_gen
 
         # Get and modify problem space
-        ch_avail_space = self.problem_gen.ch_avail_gen.space
-        param_spaces = self.problem_gen.task_gen.param_spaces
-        ch_avail_lim = spaces_tasking.get_space_lims(ch_avail_space)
-        param_lims = {key: spaces_tasking.get_space_lims(val) for key, val in param_spaces.items()}
-
-        if True:  # TODO: generalize
-            low = ch_avail_lim[0]
-            max_start = max(ch_avail_lim[1], param_lims["t_release"][1])
-            high = max_start + self.n_tasks * param_lims["duration"][1]
-            ch_avail_space = Box(low, high, shape=(self.n_ch,), dtype=float)
-
-        if time_shift:
-            param_lims = self.problem_gen.task_gen.cls_task.shift_param_lims(
-                param_lims, ch_avail_lim, self.n_tasks
-            )
-            param_spaces = {
-                key: Box(*val, shape=(), dtype=float) for key, val in param_lims.items()
-            }
+        ch_avail_space, param_spaces = Base.get_problem_spaces(self.problem_gen, reform=reform)
 
         # Set features
         if features is not None:
@@ -91,8 +75,8 @@ class Base(Env, ABC):
             self.sort_func = None
             self._sort_func_str = None
 
-        if time_shift:
-            self.node_cls = ScheduleNodeShift
+        if reform:
+            self.node_cls = ScheduleNodeReform
         else:
             self.node_cls = ScheduleNode
 
@@ -130,6 +114,28 @@ class Base(Env, ABC):
     tasks = property(lambda self: self.node.tasks)
     ch_avail = property(lambda self: self.node.ch_avail)
 
+    @staticmethod
+    def get_problem_spaces(problem_gen, reform=False):
+        ch_avail_space = problem_gen.ch_avail_gen.space
+        param_spaces = problem_gen.task_gen.param_spaces
+
+        ch_avail_lim = spaces_tasking.get_space_lims(ch_avail_space)
+        param_lims = {key: spaces_tasking.get_space_lims(val) for key, val in param_spaces.items()}
+        if True:  # TODO: generalize? Move to `ScheduleNode`?
+            low = ch_avail_lim[0]
+            max_start = max(ch_avail_lim[1], param_lims["t_release"][1])
+            high = max_start + problem_gen.n_tasks * param_lims["duration"][1]
+            ch_avail_space = Box(low, high, shape=(problem_gen.n_ch,), dtype=float)
+
+        if reform:
+            param_lims = problem_gen.task_gen.cls_task.reform_param_lims(
+                param_lims, ch_avail_lim, problem_gen.n_tasks
+            )
+            param_spaces = {
+                key: Box(*val, shape=(), dtype=float) for key, val in param_lims.items()
+            }
+        return ch_avail_space, param_spaces
+
     def __str__(self):
         if self.node is None:
             _status = "Initialized"
@@ -140,8 +146,8 @@ class Base(Env, ABC):
     def summary(self):
         str_ = f"{self.__class__.__name__}"
         str_ += f"\n- Features: {self.features['name'].tolist()}"
-        str_ += f"\n- Sorting: {self._sort_func_str}"
-        str_ += f"\n- Shifting: {self.node_cls == ScheduleNodeShift}"
+        str_ += f"\n- Sort: {self._sort_func_str}"
+        str_ += f"\n- Reform: {self.node_cls == ScheduleNodeReform}"
         return str_
 
     @property
@@ -263,7 +269,7 @@ class Base(Env, ABC):
 
         self.node = self.node_cls(tasks, ch_avail)
 
-        # loss can be non-zero due to time origin shift during node initialization
+        # loss can be non-zero due to problem reformation during node initialization
         self._loss_agg = self.node.loss
 
         self._update_spaces()
@@ -394,7 +400,8 @@ class Base(Env, ABC):
 
 
 class Index(Base):
-    """Tasking environment with actions of single task indices.
+    """
+    Tasking environment with actions of single task indices.
 
     Parameters
     ----------
@@ -406,7 +413,7 @@ class Index(Base):
         Rescale task features to unit interval.
     sort_func : function or str, optional
         Method that returns a sorting value for re-indexing given a task index 'n'.
-    time_shift : bool, optional
+    reform : bool, optional
         Enables task re-parameterization after sequence updates.
 
     """
@@ -417,9 +424,9 @@ class Index(Base):
         features=None,
         normalize=False,
         sort_func=None,
-        time_shift=False,
+        reform=False,
     ):
-        super().__init__(problem_gen, features, normalize, sort_func, time_shift)
+        super().__init__(problem_gen, features, normalize, sort_func, reform)
         self.action_space = spaces_tasking.DiscreteMasked(self.n_tasks)
 
     def _update_spaces(self):
@@ -527,7 +534,7 @@ def int_to_seq(num, length, check_input=True):
 #         features=None,
 #         normalize=False,
 #         sort_func=None,
-#         time_shift=False,
+#         reform=False,
 #         action_type="int",
 #     ):
 #         """Tasking environment with single action of a complete task index sequence.
@@ -542,7 +549,7 @@ def int_to_seq(num, length, check_input=True):
 #             Rescale task features to unit interval.
 #         sort_func : function or str, optional
 #             Method that returns a sorting value for re-indexing given a task index 'n'.
-#         time_shift : bool, optional
+#         reform : bool, optional
 #             Enables task re-parameterization after sequence updates.
 #         action_type : {'seq', 'int'}, optional
 #             If 'seq', action type is index sequence `Permutation`; if 'int', action space is
@@ -550,7 +557,7 @@ def int_to_seq(num, length, check_input=True):
 #             index sequences are mapped to integers.
 
 #         """
-#         super().__init__(problem_gen, features, normalize, sort_func, time_shift)
+#         super().__init__(problem_gen, features, normalize, sort_func, reform)
 
 #         self.action_type = action_type  # 'seq' for sequences, 'int' for integers
 #         if self.action_type == "int":

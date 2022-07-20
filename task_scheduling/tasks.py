@@ -108,7 +108,7 @@ class Base(ABC):
         return ax.plot(t_plot, self(t_plot), label=str(self))
 
 
-class ShiftMixin(ABC):
+class ReformMixin(ABC):
     def shift(self, t):
         """
         Shift the release time and loss function.
@@ -153,7 +153,7 @@ class ShiftMixin(ABC):
         raise NotImplementedError
 
     @staticmethod
-    def shift_param_lims(param_lims, ch_avail_lim, n_tasks):
+    def reform_param_lims(param_lims, ch_avail_lim, n_tasks):
         param_lims["t_release"] = (0.0, param_lims["t_release"][1])
         return param_lims
 
@@ -199,7 +199,7 @@ class Generic(Base):
         return self.loss_func(t)
 
 
-class PiecewiseLinear(ShiftMixin, Base):
+class PiecewiseLinear(ReformMixin, Base):
     """
     Task with a piecewise linear loss function.
 
@@ -218,7 +218,6 @@ class PiecewiseLinear(ShiftMixin, Base):
     """
 
     param_names = Base.param_names + ("corners",)
-    # TODO: Add shift params. Handle `list` parameters for `space` shifts?!?
 
     prune = True
 
@@ -424,14 +423,14 @@ class LinearDrop(PiecewiseLinear):
         self.corners[1][1] = val
 
     @staticmethod
-    def shift_param_lims(param_lims, ch_avail_lim, n_tasks):
-        new_lims = super(LinearDrop, LinearDrop).shift_param_lims(param_lims, ch_avail_lim, n_tasks)
+    def reform_param_lims(param_lims, ch_avail_lim, n_tasks):
+        new_lims = super(LinearDrop, LinearDrop).reform_param_lims(param_lims, ch_avail_lim, n_tasks)
         for param in ("t_drop", "l_drop"):
             new_lims[param] = (0.0, param_lims[param][1])
         return new_lims
 
 
-class Exponential(ShiftMixin, Base):
+class Exponential(ReformMixin, Base):
     """
     Task with an exponential loss function.
 
@@ -484,15 +483,15 @@ class Exponential(ShiftMixin, Base):
         self.t_release = t
 
     @staticmethod
-    def shift_param_lims(param_lims, ch_avail_lim, n_tasks):
-        new_lims = super(Exponential, Exponential).shift_param_lims(
+    def reform_param_lims(param_lims, ch_avail_lim, n_tasks):
+        new_lims = super(Exponential, Exponential).reform_param_lims(
             param_lims, ch_avail_lim, n_tasks
         )
 
         max_start = max(ch_avail_lim[1], param_lims["t_release"][1])
         max_ch_avail = max_start + n_tasks * param_lims["duration"][1]
-        max_shift = max_ch_avail - param_lims["t_release"][0]
+        max_ex = max_ch_avail - param_lims["t_release"][0]
 
-        high = param_lims["a"][1] * param_lims["b"][1] ** max_shift
+        high = param_lims["a"][1] * param_lims["b"][1] ** max_ex
         new_lims["a"] = (param_lims["a"][0], high)
         return new_lims

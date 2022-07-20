@@ -134,7 +134,7 @@ class StableBaselinesScheduler(BaseLearningScheduler):
                 self.env.features,
                 self.env.normalize,
                 self.env.sort_func,
-                self.env.time_shift,
+                self.env.reform,
             )
             eval_env = Monitor(eval_env)
             callback = EvalCallback(eval_env, **self.learn_params["eval_callback_kwargs"])

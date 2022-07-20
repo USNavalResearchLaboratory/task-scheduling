@@ -28,7 +28,7 @@ problem_gen = problem_gens.Dataset.load("data/continuous_linear_drop_c1t8", repe
 env_params = {
     "features": None,  # defaults to task parameters
     "sort_func": "t_release",
-    "time_shift": True,
+    "reform": True,
 }
 
 trainer_kwargs = {

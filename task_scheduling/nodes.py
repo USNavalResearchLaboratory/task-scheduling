@@ -502,7 +502,7 @@ class ScheduleNodeBound(ScheduleNode):
             return node_best
 
 
-class ScheduleNodeShift(ScheduleNode):
+class ScheduleNodeReform(ScheduleNode):
     """
     Node object that enables time origin shifting and task re-parameterization.
 
@@ -525,17 +525,17 @@ class ScheduleNodeShift(ScheduleNode):
         super().__init__(tasks, ch_avail, seq, rng)
 
         if len(seq) == 0:
-            self.shift_and_reparam()  # ensure initial update
+            self.reform()  # ensure initial update
 
     def __str__(self):
-        return f"ScheduleNodeShift(sequence: {self.seq}, loss incurred:{self.loss:.3f})"
+        return f"ScheduleNodeReform(sequence: {self.seq}, loss incurred:{self.loss:.3f})"
 
     def _update_sch(self, n):
         super()._update_sch(n)
         self._sch["t"][n] += self.t_origin  # convert from relative to absolute
-        self.shift_and_reparam()
+        self.reform()
 
-    def shift_and_reparam(self):
+    def reform(self):
         """Temporally shift and reparameterize tasks, update total loss."""
         ch_avail_min = min(self._ch_avail)
 
@@ -548,54 +548,54 @@ class ScheduleNodeShift(ScheduleNode):
                 self._loss += loss_inc  # add partial exescution loss if unscheduled
 
 
-class ScheduleNodeReparam(ScheduleNode):  # TODO: as mixin classes?
-    def __init__(self, tasks, ch_avail, seq=(), rng=None):
-        tasks = deepcopy(tasks)
-        super().__init__(tasks, ch_avail, seq, rng)
+# class ScheduleNodeReparam(ScheduleNode):
+#     def __init__(self, tasks, ch_avail, seq=(), rng=None):
+#         tasks = deepcopy(tasks)
+#         super().__init__(tasks, ch_avail, seq, rng)
 
-        if len(seq) == 0:
-            self.reparam()
+#         if len(seq) == 0:
+#             self.reparam()
 
-    def __str__(self):
-        return f"ScheduleNodeReparam(sequence: {self.seq}, loss incurred:{self.loss:.3f})"
+#     def __str__(self):
+#         return f"ScheduleNodeReparam(sequence: {self.seq}, loss incurred:{self.loss:.3f})"
 
-    def _update_sch(self, n):
-        super()._update_sch(n)
-        self.reparam()
+#     def _update_sch(self, n):
+#         super()._update_sch(n)
+#         self.reparam()
 
-    def reparam(self):
-        ch_avail_min = min(self._ch_avail)
-        for n, task in enumerate(self._tasks):
-            loss_inc = task.reparam(ch_avail_min)
-            if n in self._seq_rem:
-                # add partial exescution loss if unscheduled
-                self._loss += loss_inc
+#     def reparam(self):
+#         ch_avail_min = min(self._ch_avail)
+#         for n, task in enumerate(self._tasks):
+#             loss_inc = task.reparam(ch_avail_min)
+#             if n in self._seq_rem:
+#                 # add partial exescution loss if unscheduled
+#                 self._loss += loss_inc
 
 
-class ScheduleNodeShifter(ScheduleNode):
-    def __init__(self, tasks, ch_avail, seq=(), rng=None):
-        self.t_origin = 0.0
-        tasks = deepcopy(tasks)  # tasks are modified in-place
-        super().__init__(tasks, ch_avail, seq, rng)
+# class ScheduleNodeShift(ScheduleNode):
+#     def __init__(self, tasks, ch_avail, seq=(), rng=None):
+#         self.t_origin = 0.0
+#         tasks = deepcopy(tasks)  # tasks are modified in-place
+#         super().__init__(tasks, ch_avail, seq, rng)
 
-        if len(seq) == 0:
-            self.shift()  # ensure initial shift
+#         if len(seq) == 0:
+#             self.shift()  # ensure initial shift
 
-    def __str__(self):
-        return f"ScheduleNodeShifter(sequence: {self.seq}, loss incurred:{self.loss:.3f})"
+#     def __str__(self):
+#         return f"ScheduleNodeShifter(sequence: {self.seq}, loss incurred:{self.loss:.3f})"
 
-    def _update_sch(self, n):
-        super()._update_sch(n)
-        self._sch["t"][n] += self.t_origin  # convert from relative to absolute
-        self.shift()
+#     def _update_sch(self, n):
+#         super()._update_sch(n)
+#         self._sch["t"][n] += self.t_origin  # convert from relative to absolute
+#         self.shift()
 
-    def shift(self):
-        ch_avail_min = min(self._ch_avail)
+#     def shift(self):
+#         ch_avail_min = min(self._ch_avail)
 
-        self.t_origin += ch_avail_min
-        self._ch_avail -= ch_avail_min
-        for task in self._tasks:
-            task.shift(ch_avail_min)
+#         self.t_origin += ch_avail_min
+#         self._ch_avail -= ch_avail_min
+#         for task in self._tasks:
+#             task.shift(ch_avail_min)
 
 
 class MCTSNode(RandomGeneratorMixin):
