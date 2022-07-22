@@ -12,7 +12,6 @@ dill==0.3.4
 sortedcontainers==2.4.0
 torch==1.11.0
 pytorch-lightning==1.6.3
-protobuf==3.20.1
 stable-baselines3==1.5.0
 
 # Development
