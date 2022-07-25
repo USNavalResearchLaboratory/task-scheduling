@@ -20,7 +20,7 @@ from task_scheduling.mdp.supervised import BaseSupervised
 from task_scheduling.util import eval_wrapper, plot_schedule
 
 opt_name = "BB Optimal"
-pickle_figs = True
+pickle_figs = False
 
 # Logging
 logger = logging.getLogger(__name__)
@@ -56,7 +56,6 @@ def _log_and_fig(message, log_path, fig, img_path):
         img_path.parent.mkdir(parents=True, exist_ok=True)
 
         fig.savefig(img_path)
-        fig.savefig(img_path.parent / f"{img_path.stem}.png")  # save PNG for Markdown log
         if pickle_figs:
             mpl_file = img_path.parent / f"{img_path.stem}.mpl"
             with open(mpl_file, "wb") as f:
@@ -64,6 +63,7 @@ def _log_and_fig(message, log_path, fig, img_path):
 
         if log_path is not None:
             img_path_rel = img_path.relative_to(Path(log_path).parent)
+            fig.savefig(img_path.parent / f"{img_path.stem}.png")
             img_path_png = img_path_rel.parent / f"{img_path_rel.stem}.png"
             file_format += f"\n![]({img_path_png.as_posix()})\n"
 

@@ -424,7 +424,9 @@ class LinearDrop(PiecewiseLinear):
 
     @staticmethod
     def reform_param_lims(param_lims, ch_avail_lim, n_tasks):
-        new_lims = super(LinearDrop, LinearDrop).reform_param_lims(param_lims, ch_avail_lim, n_tasks)
+        new_lims = super(LinearDrop, LinearDrop).reform_param_lims(
+            param_lims, ch_avail_lim, n_tasks
+        )
         for param in ("t_drop", "l_drop"):
             new_lims[param] = (0.0, param_lims[param][1])
         return new_lims
