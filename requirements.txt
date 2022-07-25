@@ -3,7 +3,6 @@
 # Package
 numpy==1.22.3
 matplotlib==3.5.2
-PyQt5==5.15.6
 pandas==1.4.2
 tabulate==0.8.9
 tqdm==4.64.0
@@ -17,6 +16,7 @@ stable-baselines3==1.5.0
 # Development
 tensorboard==2.9.0
 pytest==7.1.2
+PyQt5==5.15.6
 toml==0.10.2
 black==22.3.0
 isort==5.10.1
