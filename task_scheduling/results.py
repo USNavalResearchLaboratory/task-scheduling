@@ -21,6 +21,7 @@ from task_scheduling.util import eval_wrapper, plot_schedule
 
 opt_name = "BB Optimal"
 pickle_figs = False
+plot_relative = False
 
 # Logging
 logger = logging.getLogger(__name__)
@@ -192,52 +193,6 @@ def _scatter_loss_runtime(t_run, loss, ax=None, ax_kwargs=None):
     ax.set(**ax_kwargs)
 
 
-# def _scatter_results(t_run, loss, label="Results", do_relative=False):
-#     if do_relative:  # relative to B&B
-#         figsize = plt.rcParams["figure.figsize"]
-#         with plt.rc_context({"figure.figsize": [figsize[0], 2 * figsize[1]]}):
-#             fig, ax = plt.subplots(2, num=label, clear=True)
-
-#         _scatter_loss_runtime(
-#             t_run,
-#             loss,
-#             ax=ax[0],
-#             # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
-#         )
-
-#         normalize = True
-
-#         loss_rel = _relative_loss(loss, normalize)
-
-#         names = list(loss.dtype.names)
-#         names.remove(opt_name)
-#         ylabel = "Excess Loss"
-#         if normalize:
-#             if plt.rcParams["text.usetex"]:
-#                 ylabel += r" (\%)"
-#             else:
-#                 ylabel += r" (%)"
-#         _scatter_loss_runtime(
-#             t_run[names],
-#             loss_rel[names],
-#             ax=ax[1],
-#             ax_kwargs={
-#                 "ylabel": ylabel,
-#                 # 'title': f'Relative performance, {problem_gen.n_tasks} tasks',
-#             },
-#         )
-#     else:
-#         fig, ax = plt.subplots(num=label, clear=True)
-#         _scatter_loss_runtime(
-#             t_run,
-#             loss,
-#             ax=ax,
-#             # ax_kwargs={'title': f'Performance, {problem_gen.n_tasks} tasks'}
-#         )
-
-#     return fig
-
-
 def _scatter_results(t_run, loss, label="Results", do_relative=False):
     fig, ax = plt.subplots(num=label, clear=True)
     _scatter_loss_runtime(t_run, loss, ax=ax)
@@ -260,9 +215,7 @@ def _scatter_results(t_run, loss, label="Results", do_relative=False):
             t_run[names], loss_rel[names], ax=ax_rel, ax_kwargs={"ylabel": ylabel}
         )
 
-        return fig_rel  # TODO
-
-    return fig
+    return fig_rel if plot_relative else fig
 
 
 def _print_averages(loss, t_run, do_relative=False):
