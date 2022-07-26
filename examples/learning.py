@@ -2,7 +2,6 @@ from functools import partial
 
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.utilities.seed import seed_everything
 from stable_baselines3.common.callbacks import StopTrainingOnNoModelImprovement
@@ -18,8 +17,6 @@ from task_scheduling.mdp.reinforcement import (
 )
 from task_scheduling.mdp.supervised import LitScheduler
 from task_scheduling.results import evaluate_algorithms_train
-
-# from task_scheduling.results import evaluate_algorithms_gen
 
 np.set_printoptions(precision=3)
 pd.options.display.float_format = "{:,.3f}".format
@@ -106,17 +103,6 @@ loss_mc, t_run_mc = evaluate_algorithms_train(
     solve=True,
     verbose=1,
     plotting=1,
+    img_path="loss.png",
     rng=seed,
 )
-# loss_mean, t_run_mean = evaluate_algorithms_gen(
-#     algorithms,
-#     problem_gen,
-#     n_gen,
-#     n_gen_learn,
-#     solve=True,
-#     verbose=1,
-#     plotting=1,
-#     rng=seed,
-# )
-
-plt.show()

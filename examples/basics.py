@@ -20,6 +20,7 @@ ch_avail = [0.0, 0.5]
 
 print(summarize_tasks(tasks))
 plot_task_losses(tasks)
+plt.savefig("Tasks.png")
 
 
 # Define and assess algorithms
@@ -28,12 +29,10 @@ algorithms = dict(
     Random=algorithms.random_sequencer,
 )
 
-__, axes = plt.subplots(len(algorithms))
-for (name, algorithm), ax in zip(algorithms.items(), axes):
+for name, algorithm in algorithms.items():
     sch = algorithm(tasks, ch_avail)
 
     check_schedule(tasks, sch)
     loss = evaluate_schedule(tasks, sch)
-    plot_schedule(tasks, sch, loss=loss, name=name, ax=ax)
-
-plt.show()
+    plot_schedule(tasks, sch, loss=loss, name=name)
+    plt.savefig(f"{name}.png")
