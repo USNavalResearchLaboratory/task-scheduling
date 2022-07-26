@@ -75,10 +75,7 @@ class Base(Env, ABC):
             self.sort_func = None
             self._sort_func_str = None
 
-        if reform:
-            self.node_cls = ScheduleNodeReform
-        else:
-            self.node_cls = ScheduleNode
+        self.reform = reform
 
         self.reward_range = (-np.inf, 0)
         self._loss_agg = 0.0
@@ -125,7 +122,7 @@ class Base(Env, ABC):
         str_ = f"{self.__class__.__name__}"
         str_ += f"\n- Features: {self.features['name'].tolist()}"
         str_ += f"\n- Sort: {self._sort_func_str}"
-        str_ += f"\n- Reform: {self.node_cls == ScheduleNodeReform}"
+        str_ += f"\n- Reform: {self.reform}"
         return str_
 
     @property
@@ -267,7 +264,8 @@ class Base(Env, ABC):
         # store problem before any in-place operations
         self._tasks_init, self._ch_avail_init = tasks, ch_avail
 
-        self.node = self.node_cls(tasks, ch_avail)
+        node_cls = ScheduleNodeReform if self.reform else ScheduleNode
+        self.node = node_cls(tasks, ch_avail)
 
         # loss can be non-zero due to problem reformation during node initialization
         self._loss_agg = self.node.loss
