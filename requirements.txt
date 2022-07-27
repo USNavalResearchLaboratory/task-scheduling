@@ -14,7 +14,7 @@ pytorch-lightning==1.6.3
 stable-baselines3==1.5.0
 
 # Development
-tensorboard==2.9.0
+tensorboard==2.9.1
 pytest==7.1.2
 PyQt5==5.15.6
 toml==0.10.2
