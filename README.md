@@ -29,13 +29,9 @@ Task objects must expose two attributes:
 - `duration` - the time required to execute a task
 - `t_release` - the earliest time at which a task may be executed
 
-The tasks must implement a `__call__` method that provides a monotonic non-decreasing loss function quantifying the
-penalty for delayed execution.
+The tasks must implement a `__call__` method that provides a monotonic non-decreasing loss function quantifying the penalty for delayed execution.
 
-One generic built-in task type is provided: `task_scheduling.tasks.PiecewiseLinear`; also included are special
-subclasses `Linear` and `LinearDrop`. The latter type is so-named because it implements a loss
-function that increases linearly from zero according to a positive parameter `slope` and then after a "drop" time
-`t_drop`, a large constant loss `l_drop` is incurred. Example loss functions are shown below.
+One generic built-in task type is provided: `task_scheduling.tasks.PiecewiseLinear`; also included are special subclasses `Linear` and `LinearDrop`. The latter type is so-named because it implements a loss function that increases linearly from zero according to a positive parameter `slope` and then after a "drop" time `t_drop`, a large constant loss `l_drop` is incurred. Example loss functions are shown below.
 
 ![Task loss functions](images/ex_tasks.png)
 
@@ -45,17 +41,13 @@ The task scheduling problem is defined using two variables:
 - `tasks`, an array of task objects
 - `ch_avail`, an array of channel availability times
 
-and the scheduling solution is defined using a
-[NumPy structured array](https://numpy.org/doc/stable/user/basics.rec.html) `sch` of length `len(tasks)` with two
-fields:
+and the scheduling solution is defined using a [NumPy structured array](https://numpy.org/doc/stable/user/basics.rec.html) `sch` of length `len(tasks)` with two fields:
 - `t`, execution times (`float`)
 - `c`, execution channels (`int`, in `range(len(ch_avail))`)
 
-To be valid (as assessed using `util.check_schedule`), the execution times, execution channels, and task
-durations must be such that no two tasks on the same channel are executing at the same time.
+To be valid (as assessed using `util.check_schedule`), the execution times, execution channels, and task durations must be such that no two tasks on the same channel are executing at the same time.
 
-Each algorithm is a Python `callable` implementing the same API; it takes two leading positional arguments `tasks` and
-`ch_avail` and returns the schedule array `sch`. An example schedule is shown below.
+Each algorithm is a Python `callable` implementing the same API; it takes two leading positional arguments `tasks` and `ch_avail` and returns the schedule array `sch`. An example schedule is shown below.
 
 ![Task schedule](images/ex_schedule.png)
 
@@ -73,31 +65,16 @@ A variety of classic schedulers are provided in the `algorithms` subpackage:
   - Random sequencer
 
 #### Learning schedulers
-Traditional schedulers typically suffer from one of two drawbacks: high computational load or poor performance. New
-algorithms that learn from related problems may generalize well, finding near-optimal schedules in a
-shorter, more practical amount of runtime.
+Traditional schedulers typically suffer from one of two drawbacks: high computational load or poor performance. New algorithms that learn from related problems may generalize well, finding near-optimal schedules in a shorter, more practical amount of runtime.
 
-The `mdp` subpackage implements the scheduling problem as a Markov decision process for supervised and reinforcement
-learning. Scheduling environments are provided in `mdp.environments`, following the
-[OpenAI Gym](https://gym.openai.com/) API. The primary `Env` class is `Index`; this environment uses single task
-assignments as actions and converts the scheduling problem (tasks and channel availabilities) into observed states,
-including the status of each task. The `mdp.supervised` submodule provides scheduler objects that use policy
-networks (implemented with [PyTorch](https://pytorch.org/)) to learn from these environments. The `mdp.reinforcement` submodule provides schedulers that implement and use agents from [Stable-Baselines3](https://stable-baselines3.readthedocs.io/en/master/); also included are special policies for Actor-Critic and DQN that enforce valid actions throughout the MDP episode.
+The `mdp` subpackage implements the scheduling problem as a Markov decision process for supervised and reinforcement learning. Scheduling environments are provided in `mdp.environments`, following the [OpenAI Gym](https://gym.openai.com/) API. The primary `Env` class is `Index`; this environment uses single task assignments as actions and converts the scheduling problem (tasks and channel availabilities) into observed states, including the status of each task. The `mdp.supervised` submodule provides scheduler objects that use policy networks (implemented with [PyTorch](https://pytorch.org/)) to learn from these environments. The `mdp.reinforcement` submodule provides schedulers that implement and use agents from [Stable-Baselines3](https://stable-baselines3.readthedocs.io/en/master/); also included are special policies for Actor-Critic and DQN that enforce valid actions throughout the MDP episode.
 
 ### Evaluation
-The primary metrics used to evaluate a scheduling algorithm are its achieved loss and its runtime. The
-`util.evaluate_schedule` function calculates the total loss; the `util.eval_wrapper` function allows
-any scheduler to be timed and assessed.
+The primary metrics used to evaluate a scheduling algorithm are its achieved loss and its runtime. The `util.evaluate_schedule` function calculates the total loss; the `util.eval_wrapper` function allows any scheduler to be timed and assessed.
 
-While these functions can be invoked directly, the package provides a number of convenient functions in the
-`results` submodule that automate this functionality, allow printing result tables to file, provide visuals, etc.
-The functions `evaluate_algorithms_single` and `evaluate_algorithms_gen` assess for single scheduling problems and
-across a set of generated problems, respectively. The function `evaluate_algorithms_train` adds an additional level of
-Monte Carlo iteration by re-training any learning schedulers a number of times.
+While these functions can be invoked directly, the package provides a number of convenient functions in the `results` submodule that automate this functionality, allow printing result tables to file, provide visuals, etc. The functions `evaluate_algorithms_single` and `evaluate_algorithms_gen` assess for single scheduling problems and across a set of generated problems, respectively. The function `evaluate_algorithms_train` adds an additional level of Monte Carlo iteration by re-training any learning schedulers a number of times.
 
-Example result outputs are shown below for `evaluate_algorithms_gen`. The first scatter plot shows raw loss-runtime
-pairs, one for each scheduling problem; the second plot shows excess loss values relative to optimal. The Markdown
-format table provides the average values.
+Example result outputs are shown below for `evaluate_algorithms_gen`. The first scatter plot shows raw loss-runtime pairs, one for each scheduling problem; the second plot shows excess loss values relative to optimal. The Markdown format table provides the average values.
 
 ![Loss-runtime results](./images/ex_scatter.png)
 ![Loss-runtime results](./images/ex_scatter_relative.png)
@@ -115,9 +92,7 @@ format table provides the average values.
 ## Examples
 
 ### Basics (`examples/basics.py`)
-The following example shows a single scheduling problem and solution. Tasks are created using one of the provided
-generators and a number of algorithms provide scheduling solutions. Built-in utilities help visualize the both the
-problem and the various solutions.
+The following example shows a single scheduling problem and solution. Tasks are created using one of the provided generators and a number of algorithms provide scheduling solutions. Built-in utilities help visualize the both the problem and the various solutions.
 
 ```python
 from matplotlib import pyplot as plt
@@ -162,13 +137,9 @@ for name, algorithm in algorithms.items():
 ```
 
 ### Policy learning and Monte Carlo assessment (`examples/learning.py`)
-The following example demonstrates the definition of a scheduling problem generator, the creation of a learning
-scheduler using PyTorch Lightning, and the comparison of traditional vs. learning schedulers using Monte Carlo
-evaluation.
+The following example demonstrates the definition of a scheduling problem generator, the creation of a learning scheduler using PyTorch Lightning, and the comparison of traditional vs. learning schedulers using Monte Carlo evaluation.
 
-Note that the problem generator is used to instantiate the Environment, which is used to create and train the
-supervised learning policy. Also, note the structure of the `algorithms` array; each algorithm is has a name, a
-`callable`, and a number of iterations to perform per problem (averaging is best-practice for stochastic schedulers).
+Note that the problem generator is used to instantiate the Environment, which is used to create and train the supervised learning policy. Also, note the structure of the `algorithms` array; each algorithm is has a name, a `callable`, and a number of iterations to perform per problem (averaging is best-practice for stochastic schedulers).
 
 ```python
 from functools import partial
