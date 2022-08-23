@@ -4,7 +4,7 @@
 This Python package provides a framework for implementing task scheduling algorithms and assessing their performance. It includes traditional schedulers as well as both supervised and reinforcement learning schedulers.
 
 ## Installation
-The `task_scheduling` package is developed for [Python 3.9](https://www.python.org/downloads/). It can installed directly from GitHub using
+The `task_scheduling` package is developed for [Python 3.9](https://www.python.org/downloads/). Best practice is to first create a [virtual environment](https://docs.python.org/3/tutorial/venv.html). The package can then be installed directly from GitHub using
 ```
 pip install git+https://github.com/USNavalResearchLaboratory/task-scheduling.git#egg=task_scheduling
 ```
