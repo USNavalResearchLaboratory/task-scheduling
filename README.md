@@ -17,7 +17,9 @@ Note that with both methods, the [editable option](https://pip.pypa.io/en/stable
 
 
 ## Documentation
-API documentation can be generated using the `sphinx` package and the `sphinx-rtd-theme`, both installable using `pip`. To build the HTML documentation, run `make html` from the `docs/` folder; the top level document will be `docs/build/html/index.html`
+Package API documentation is available [here](https://usnavalresearchlaboratory.github.io/task-scheduling/).
+
+Alternatively, the docs can be generated using the `sphinx` package and the `sphinx-rtd-theme`, both installable using `pip`. To build the HTML documentation, run `make html` from the `docs/` folder; the top level document will be `docs/build/html/index.html`
 
 ## Development
 `task-scheduling` is being developed for the Cognitive Resource Management project @ U.S. Naval Research Laboratory. It is maintained by [Paul Rademacher](https://github.com/rademacher-p) and NRL Radar Division. For contribution and/or collaboration, please [contact us](mailto:paul.rademacher@nrl.navy.mil,kevin.wagner@nrl.navy.mil).
@@ -80,13 +82,13 @@ Example result outputs are shown below for `evaluate_algorithms_gen`. The first 
 ![Loss-runtime results](./images/ex_scatter_relative.png)
 
 ```markdown
-|            |   Excess Loss (%) |    Loss |   Runtime (ms) |
-|------------|-------------------|---------|----------------|
-| BB Optimal |             0.000 | 182.440 |        207.535 |
-| Random     |            33.041 | 242.720 |          0.274 |
-| ERT        |            28.525 | 234.481 |          0.260 |
-| MCTS       |            13.284 | 206.675 |          6.340 |
-| Lit Policy |             4.188 | 190.079 |          4.438 |
+|            | Excess Loss (%) | Loss    | Runtime (ms) |
+| ---------- | --------------- | ------- | ------------ |
+| BB Optimal | 0.000           | 182.440 | 207.535      |
+| Random     | 33.041          | 242.720 | 0.274        |
+| ERT        | 28.525          | 234.481 | 0.260        |
+| MCTS       | 13.284          | 206.675 | 6.340        |
+| Lit Policy | 4.188           | 190.079 | 4.438        |
 ```
 
 ## Examples
