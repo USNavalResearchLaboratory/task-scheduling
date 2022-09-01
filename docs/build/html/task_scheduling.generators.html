@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>task_scheduling.generators package &mdash; Task Scheduling  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="task_scheduling.mdp package" href="task_scheduling.mdp.html" />
+    <link rel="prev" title="task_scheduling.algorithms package" href="task_scheduling.algorithms.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> Task Scheduling
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="task_scheduling.html">task_scheduling package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="task_scheduling.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="task_scheduling.algorithms.html">task_scheduling.algorithms package</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">task_scheduling.generators package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-task_scheduling.generators.channels">task_scheduling.generators.channels module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-task_scheduling.generators.problems">task_scheduling.generators.problems module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-task_scheduling.generators.tasks">task_scheduling.generators.tasks module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-task_scheduling.generators">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="task_scheduling.mdp.html">task_scheduling.mdp package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling.base">task_scheduling.base module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling.nodes">task_scheduling.nodes module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling.results">task_scheduling.results module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling.spaces">task_scheduling.spaces module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling.tasks">task_scheduling.tasks module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling.util">task_scheduling.util module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Task Scheduling</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="task_scheduling.html">task_scheduling package</a> &raquo;</li>
+      <li>task_scheduling.generators package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/task_scheduling.generators.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="task-scheduling-generators-package">
+<h1>task_scheduling.generators package<a class="headerlink" href="#task-scheduling-generators-package" title="Permalink to this headline"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline"></a></h2>
+</section>
+<section id="module-task_scheduling.generators.channels">
+<span id="task-scheduling-generators-channels-module"></span><h2>task_scheduling.generators.channels module<a class="headerlink" href="#module-task_scheduling.generators.channels" title="Permalink to this headline"></a></h2>
+<p>Generator objects for channel availabilities.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.generators.channels.Base">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.generators.channels.</span></span><span class="sig-name descname"><span class="pre">Base</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.channels.Base" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="task_scheduling.html#task_scheduling.base.RandomGeneratorMixin" title="task_scheduling.base.RandomGeneratorMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.base.RandomGeneratorMixin</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Base class for channel availability generators.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – Random number generator seed or object.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.channels.Base.__call__">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_ch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.channels.Base.__call__" title="Permalink to this definition"></a></dt>
+<dd><p>Generate channel availabilities.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_ch</strong> (<em>int</em>) – Number of channels to generate.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – Random number generator seed or object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Generator</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.channels.Base.summary">
+<span class="sig-name descname"><span class="pre">summary</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.channels.Base.summary" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.generators.channels.BaseIID">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.generators.channels.</span></span><span class="sig-name descname"><span class="pre">BaseIID</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.channels.BaseIID" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.generators.channels.Base" title="task_scheduling.generators.channels.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.generators.channels.Base</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.channels.BaseIID.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_ch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.channels.BaseIID.__call__" title="Permalink to this definition"></a></dt>
+<dd><p>Randomly generate channel availabilities.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_ch</strong> (<em>int</em>) – Number of channels to generate.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – Random number generator seed or object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Generator</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.generators.channels.Deterministic">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.generators.channels.</span></span><span class="sig-name descname"><span class="pre">Deterministic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_avail</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.channels.Deterministic" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.generators.channels.Base" title="task_scheduling.generators.channels.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.generators.channels.Base</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.channels.Deterministic.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_ch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.channels.Deterministic.__call__" title="Permalink to this definition"></a></dt>
+<dd><p>Generate deterministic channel availabilities.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_ch</strong> (<em>int</em>) – Number of channels to generate.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – Random number generator seed or object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Generator</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.channels.Deterministic.from_uniform">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_uniform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_ch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.0,</span> <span class="pre">0.0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.channels.Deterministic.from_uniform" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.channels.Deterministic.summary">
+<span class="sig-name descname"><span class="pre">summary</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.channels.Deterministic.summary" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.generators.channels.UniformIID">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.generators.channels.</span></span><span class="sig-name descname"><span class="pre">UniformIID</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.0,</span> <span class="pre">0.0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.channels.UniformIID" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.generators.channels.BaseIID" title="task_scheduling.generators.channels.BaseIID"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.generators.channels.BaseIID</span></code></a></p>
+<p>Generator of random channel availabilities.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lims</strong> (<em>Collection of float</em>) – Lower and upper channel limits.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – NumPy random number generator or seed. Instance RNG if None.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.channels.UniformIID.summary">
+<span class="sig-name descname"><span class="pre">summary</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.channels.UniformIID.summary" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-task_scheduling.generators.problems">
+<span id="task-scheduling-generators-problems-module"></span><h2>task_scheduling.generators.problems module<a class="headerlink" href="#module-task_scheduling.generators.problems" title="Permalink to this headline"></a></h2>
+<p>Generator objects for complete tasking problems with optimal solutions.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.Base">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.generators.problems.</span></span><span class="sig-name descname"><span class="pre">Base</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_ch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.problems.Base" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="task_scheduling.html#task_scheduling.base.RandomGeneratorMixin" title="task_scheduling.base.RandomGeneratorMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.base.RandomGeneratorMixin</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Base class for scheduling problem generators.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_tasks</strong> (<em>int</em>) – Number of tasks.</p></li>
+<li><p><strong>n_ch</strong> (<em>int</em>) – Number of channels.</p></li>
+<li><p><strong>task_gen</strong> (<a class="reference internal" href="#task_scheduling.generators.tasks.Base" title="task_scheduling.generators.tasks.Base"><em>generators.tasks.Base</em></a>) – Task generation object.</p></li>
+<li><p><strong>ch_avail_gen</strong> (<a class="reference internal" href="#task_scheduling.generators.channels.Base" title="task_scheduling.generators.channels.Base"><em>generators.channels.Base</em></a>) – Returns random initial channel availabilities.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – Random number generator seed or object.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.Base.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solve</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.problems.Base.__call__" title="Permalink to this definition"></a></dt>
+<dd><p>Call problem generator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_gen</strong> (<em>int</em>) – Number of scheduling problems to generate.</p></li>
+<li><p><strong>solve</strong> (<em>bool</em><em>, </em><em>optional</em>) – Enables generation of Branch &amp; Bound optimal solutions.</p></li>
+<li><p><strong>verbose</strong> (<em>int</em><em>, </em><em>optional</em>) – Progress print-out level. ‘0’ is silent, ‘1’ prints iteration number, ‘2’ prints solver
+progress.</p></li>
+<li><p><strong>save_path</strong> (<em>os.PathLike</em><em> or </em><em>str</em><em>, </em><em>optional</em>) – File path for saving data.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – NumPy random number generator or seed. Instance RNG if None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Yields</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><em>SchedulingProblem</em> – Scheduling problem namedtuple.</p></li>
+<li><p><em>SchedulingSolution, optional</em> – Scheduling solution namedtuple.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.Base.summary">
+<span class="sig-name descname"><span class="pre">summary</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.problems.Base.summary" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.Dataset">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.generators.problems.</span></span><span class="sig-name descname"><span class="pre">Dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problems</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solutions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shuffle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_gen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail_gen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.problems.Dataset" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.generators.problems.Base" title="task_scheduling.generators.problems.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.generators.problems.Base</span></code></a></p>
+<p>Generator of scheduling problems from a dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>problems</strong> (<em>Sequence of task_scheduling.base.SchedulingProblem</em>) – Stored problems to be yielded.</p></li>
+<li><p><strong>solutions</strong> (<em>Sequence of task_scheduling.base.SchedulingSolution</em><em>, </em><em>optional</em>) – Stored solutions to be yielded.</p></li>
+<li><p><strong>shuffle</strong> (<em>bool</em><em>, </em><em>optional</em>) – Shuffle task during instantiation.</p></li>
+<li><p><strong>repeat</strong> (<em>bool</em><em>, </em><em>optional</em>) – Allow tasks to be yielded more than once.</p></li>
+<li><p><strong>task_gen</strong> (<a class="reference internal" href="#task_scheduling.generators.tasks.Base" title="task_scheduling.generators.tasks.Base"><em>generators.tasks.Base</em></a>) – Task generation object.</p></li>
+<li><p><strong>ch_avail_gen</strong> (<a class="reference internal" href="#task_scheduling.generators.channels.Base" title="task_scheduling.generators.channels.Base"><em>generators.channels.Base</em></a>) – Returns random initial channel availabilities.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – Random number generator seed or object.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.Dataset.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problems</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solutions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.problems.Dataset.add" title="Permalink to this definition"></a></dt>
+<dd><p>Add problems and solutions to the data set.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.Dataset.load">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shuffle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.problems.Dataset.load" title="Permalink to this definition"></a></dt>
+<dd><p>Load problems/solutions from memory.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.Dataset.n_problems">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">n_problems</span></span><a class="headerlink" href="#task_scheduling.generators.problems.Dataset.n_problems" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.Dataset.shuffle">
+<span class="sig-name descname"><span class="pre">shuffle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.problems.Dataset.shuffle" title="Permalink to this definition"></a></dt>
+<dd><p>Shuffle problems and solutions in-place.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.Dataset.split">
+<span class="sig-name descname"><span class="pre">split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shuffle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.problems.Dataset.split" title="Permalink to this definition"></a></dt>
+<dd><p>Create a new Dataset from elements of own queue.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.Dataset.stack">
+<span class="sig-name descname"><span class="pre">stack</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">collections.deque</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#task_scheduling.generators.problems.Dataset.stack" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.Dataset.summary">
+<span class="sig-name descname"><span class="pre">summary</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.problems.Dataset.summary" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.DeterministicTasks">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.generators.problems.</span></span><span class="sig-name descname"><span class="pre">DeterministicTasks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_ch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.problems.DeterministicTasks" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.generators.problems.FixedTasks" title="task_scheduling.generators.problems.FixedTasks"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.generators.problems.FixedTasks</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.DeterministicTasks.cls_task_gen">
+<span class="sig-name descname"><span class="pre">cls_task_gen</span></span><a class="headerlink" href="#task_scheduling.generators.problems.DeterministicTasks.cls_task_gen" title="Permalink to this definition"></a></dt>
+<dd><p>alias of <a class="reference internal" href="#task_scheduling.generators.tasks.Deterministic" title="task_scheduling.generators.tasks.Deterministic"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.generators.tasks.Deterministic</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.FixedTasks">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.generators.problems.</span></span><span class="sig-name descname"><span class="pre">FixedTasks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_ch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.problems.FixedTasks" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.generators.problems.Base" title="task_scheduling.generators.problems.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.generators.problems.Base</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Problem generators with fixed set of tasks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_tasks</strong> (<em>int</em>) – Number of tasks.</p></li>
+<li><p><strong>n_ch</strong> (<em>int</em>) – Number of channels.</p></li>
+<li><p><strong>task_gen</strong> (<a class="reference internal" href="#task_scheduling.generators.tasks.Permutation" title="task_scheduling.generators.tasks.Permutation"><em>generators.tasks.Permutation</em></a>) – Task generation object.</p></li>
+<li><p><strong>ch_avail_gen</strong> (<a class="reference internal" href="#task_scheduling.generators.channels.Deterministic" title="task_scheduling.generators.channels.Deterministic"><em>generators.channels.Deterministic</em></a>) – Returns random initial channel availabilities.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – Random number generator seed or object.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.FixedTasks.cls_task_gen">
+<span class="sig-name descname"><span class="pre">cls_task_gen</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#task_scheduling.generators.problems.FixedTasks.cls_task_gen" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.FixedTasks.continuous_linear_drop">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">continuous_linear_drop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_ch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">task_gen_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.problems.FixedTasks.continuous_linear_drop" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.FixedTasks.discrete_linear_drop">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">discrete_linear_drop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_ch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">task_gen_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.problems.FixedTasks.discrete_linear_drop" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.FixedTasks.solution">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">solution</span></span><a class="headerlink" href="#task_scheduling.generators.problems.FixedTasks.solution" title="Permalink to this definition"></a></dt>
+<dd><p>Solution for the fixed task set.</p>
+<p>Performs Branch-and-Bound the first time the property is accessed.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.PermutedTasks">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.generators.problems.</span></span><span class="sig-name descname"><span class="pre">PermutedTasks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_ch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.problems.PermutedTasks" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.generators.problems.FixedTasks" title="task_scheduling.generators.problems.FixedTasks"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.generators.problems.FixedTasks</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.PermutedTasks.cls_task_gen">
+<span class="sig-name descname"><span class="pre">cls_task_gen</span></span><a class="headerlink" href="#task_scheduling.generators.problems.PermutedTasks.cls_task_gen" title="Permalink to this definition"></a></dt>
+<dd><p>alias of <a class="reference internal" href="#task_scheduling.generators.tasks.Permutation" title="task_scheduling.generators.tasks.Permutation"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.generators.tasks.Permutation</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.Random">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.generators.problems.</span></span><span class="sig-name descname"><span class="pre">Random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_ch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.problems.Random" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.generators.problems.Base" title="task_scheduling.generators.problems.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.generators.problems.Base</span></code></a></p>
+<p>Random scheduling problem generator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_tasks</strong> (<em>int</em>) – Number of tasks.</p></li>
+<li><p><strong>n_ch</strong> (<em>int</em>) – Number of channels.</p></li>
+<li><p><strong>task_gen</strong> (<a class="reference internal" href="#task_scheduling.generators.tasks.Base" title="task_scheduling.generators.tasks.Base"><em>generators.tasks.Base</em></a>) – Task generation object.</p></li>
+<li><p><strong>ch_avail_gen</strong> (<a class="reference internal" href="#task_scheduling.generators.channels.Base" title="task_scheduling.generators.channels.Base"><em>generators.channels.Base</em></a>) – Returns random initial channel availabilities.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – Random number generator seed or object.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.Random.continuous_exp">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">continuous_exp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_ch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail_lim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.0,</span> <span class="pre">0.0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">task_gen_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.problems.Random.continuous_exp" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.Random.continuous_linear">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">continuous_linear</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_ch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail_lim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.0,</span> <span class="pre">0.0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">task_gen_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.problems.Random.continuous_linear" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.Random.continuous_linear_drop">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">continuous_linear_drop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_ch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail_lim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.0,</span> <span class="pre">0.0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">task_gen_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.problems.Random.continuous_linear_drop" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.Random.discrete_linear">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">discrete_linear</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_ch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail_lim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.0,</span> <span class="pre">0.0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">task_gen_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.problems.Random.discrete_linear" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.problems.Random.discrete_linear_drop">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">discrete_linear_drop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_ch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail_lim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.0,</span> <span class="pre">0.0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">task_gen_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.problems.Random.discrete_linear_drop" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-task_scheduling.generators.tasks">
+<span id="task-scheduling-generators-tasks-module"></span><h2>task_scheduling.generators.tasks module<a class="headerlink" href="#module-task_scheduling.generators.tasks" title="Permalink to this headline"></a></h2>
+<p>Generator objects for tasks.</p>
+<p class="rubric">Notes</p>
+<p>Assumes all tasks are instances of the same class. Heterogeneous task types will be supported in a
+future version.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.Base">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.generators.tasks.</span></span><span class="sig-name descname"><span class="pre">Base</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls_task</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_spaces</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.Base" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="task_scheduling.html#task_scheduling.base.RandomGeneratorMixin" title="task_scheduling.base.RandomGeneratorMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.base.RandomGeneratorMixin</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Base class for generation of task objects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cls_task</strong> (<em>class</em>) – Class for instantiating task objects.</p></li>
+<li><p><strong>param_spaces</strong> (<em>dict</em><em>, </em><em>optional</em>) – Mapping of parameter name strings to gym.spaces.Space objects</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – Random number generator seed or object.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.Base.__call__">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.Base.__call__" title="Permalink to this definition"></a></dt>
+<dd><p>Generate tasks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_tasks</strong> (<em>int</em>) – Number of tasks.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – Random number generator seed or object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Generator</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.Base.summary">
+<span class="sig-name descname"><span class="pre">summary</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.Base.summary" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.BaseIID">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.generators.tasks.</span></span><span class="sig-name descname"><span class="pre">BaseIID</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls_task</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_spaces</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.BaseIID" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.generators.tasks.Base" title="task_scheduling.generators.tasks.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.generators.tasks.Base</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Base class for generation of independently and identically distributed task objects.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.BaseIID.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.BaseIID.__call__" title="Permalink to this definition"></a></dt>
+<dd><p>Randomly generate tasks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_tasks</strong> (<em>int</em>) – Number of tasks.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – Random number generator seed or object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Generator</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.ContinuousUniformIID">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.generators.tasks.</span></span><span class="sig-name descname"><span class="pre">ContinuousUniformIID</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls_task</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_lims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.ContinuousUniformIID" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.generators.tasks.BaseIID" title="task_scheduling.generators.tasks.BaseIID"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.generators.tasks.BaseIID</span></code></a></p>
+<p>Random generator of I.I.D. tasks with independently uniform continuous parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cls_task</strong> (<em>class</em>) – Class for instantiating task objects.</p></li>
+<li><p><strong>param_lims</strong> (<em>dict of Collection</em>) – Mapping of parameter name strings to 2-tuples of parameter limits.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – Random number generator seed or object.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.ContinuousUniformIID.exp">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">exp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">duration_lim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(1,</span> <span class="pre">2)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_release_lim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(-</span> <span class="pre">1,</span> <span class="pre">1)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_lim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.5,</span> <span class="pre">1.5)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b_lim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(1,</span> <span class="pre">5)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.ContinuousUniformIID.exp" title="Permalink to this definition"></a></dt>
+<dd><p>Construct <cite>Exponential</cite> task objects.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.ContinuousUniformIID.linear">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">linear</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">duration_lim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(3,</span> <span class="pre">6)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_release_lim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">4)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slope_lim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.5,</span> <span class="pre">2)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.ContinuousUniformIID.linear" title="Permalink to this definition"></a></dt>
+<dd><p>Construct <cite>Linear</cite> task objects.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.ContinuousUniformIID.linear_drop">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">linear_drop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">duration_lim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(3,</span> <span class="pre">6)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_release_lim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">4)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slope_lim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.5,</span> <span class="pre">2)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_drop_lim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(6,</span> <span class="pre">12)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l_drop_lim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(35,</span> <span class="pre">50)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.ContinuousUniformIID.linear_drop" title="Permalink to this definition"></a></dt>
+<dd><p>Construct <cite>LinearDrop</cite> task objects.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.ContinuousUniformIID.summary">
+<span class="sig-name descname"><span class="pre">summary</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.ContinuousUniformIID.summary" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.Dataset">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.generators.tasks.</span></span><span class="sig-name descname"><span class="pre">Dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shuffle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_spaces</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.Dataset" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.generators.tasks.Fixed" title="task_scheduling.generators.tasks.Fixed"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.generators.tasks.Fixed</span></code></a></p>
+<p>Generator of tasks from a dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tasks</strong> (<em>Sequence of task_scheduling.tasks.Base</em>) – Stored tasks to be yielded.</p></li>
+<li><p><strong>shuffle</strong> (<em>bool</em><em>, </em><em>optional</em>) – Shuffle task during instantiation.</p></li>
+<li><p><strong>repeat</strong> (<em>bool</em><em>, </em><em>optional</em>) – Allow tasks to be yielded more than once.</p></li>
+<li><p><strong>param_spaces</strong> (<em>dict</em><em>, </em><em>optional</em>) – Mapping of parameter name strings to gym.spaces.Space objects</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – Random number generator seed or object.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.Dataset.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.Dataset.__call__" title="Permalink to this definition"></a></dt>
+<dd><p>Yield tasks from the queue.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_tasks</strong> (<em>int</em>) – Number of tasks.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – Random number generator seed or object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Generator</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.Dataset.add_tasks">
+<span class="sig-name descname"><span class="pre">add_tasks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tasks</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.Dataset.add_tasks" title="Permalink to this definition"></a></dt>
+<dd><p>Add tasks to the queue.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.Dataset.shuffle">
+<span class="sig-name descname"><span class="pre">shuffle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.Dataset.shuffle" title="Permalink to this definition"></a></dt>
+<dd><p>Shuffle the task queue.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.Deterministic">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.generators.tasks.</span></span><span class="sig-name descname"><span class="pre">Deterministic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_spaces</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.Deterministic" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.generators.tasks.Fixed" title="task_scheduling.generators.tasks.Fixed"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.generators.tasks.Fixed</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.Deterministic.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.Deterministic.__call__" title="Permalink to this definition"></a></dt>
+<dd><p>Yield tasks in deterministic order.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.DiscreteIID">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.generators.tasks.</span></span><span class="sig-name descname"><span class="pre">DiscreteIID</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls_task</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.DiscreteIID" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.generators.tasks.BaseIID" title="task_scheduling.generators.tasks.BaseIID"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.generators.tasks.BaseIID</span></code></a></p>
+<p>Random generator of I.I.D. tasks with independent discrete-valued parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cls_task</strong> (<em>class</em>) – Class for instantiating task objects.</p></li>
+<li><p><strong>param_probs</strong> (<em>dict of str to dict</em>) – Mapping of parameter name strings to dictionaries mapping values to probabilities.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – Random number generator seed or object.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.DiscreteIID.linear_drop_uniform">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">linear_drop_uniform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">duration_vals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(3,</span> <span class="pre">6)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_release_vals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">4)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slope_vals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.5,</span> <span class="pre">2)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_drop_vals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(6,</span> <span class="pre">12)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l_drop_vals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(35,</span> <span class="pre">50)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.DiscreteIID.linear_drop_uniform" title="Permalink to this definition"></a></dt>
+<dd><p>Construct <cite>LinearDrop</cite> task objects.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.DiscreteIID.linear_uniform">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">linear_uniform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">duration_vals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(3,</span> <span class="pre">6)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_release_vals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">4)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slope_vals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.5,</span> <span class="pre">2)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.DiscreteIID.linear_uniform" title="Permalink to this definition"></a></dt>
+<dd><p>Construct <cite>Linear</cite> task objects.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.DiscreteIID.summary">
+<span class="sig-name descname"><span class="pre">summary</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.DiscreteIID.summary" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.Fixed">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.generators.tasks.</span></span><span class="sig-name descname"><span class="pre">Fixed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_spaces</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.Fixed" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.generators.tasks.Base" title="task_scheduling.generators.tasks.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.generators.tasks.Base</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Permutation task generator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tasks</strong> (<em>Collection of task_scheduling.tasks.Base</em>) – Tasks.</p></li>
+<li><p><strong>param_spaces</strong> (<em>dict</em><em>, </em><em>optional</em>) – Mapping of parameter name strings to gym.spaces.Space objects</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – Random number generator seed or object.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.Fixed.__call__">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.Fixed.__call__" title="Permalink to this definition"></a></dt>
+<dd><p>Generate fixed tasks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_tasks</strong> (<em>int</em>) – Number of tasks.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – Random number generator seed or object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Generator</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.Fixed.continuous_linear_drop">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">continuous_linear_drop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">task_gen_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.Fixed.continuous_linear_drop" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.Fixed.discrete_linear_drop">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">discrete_linear_drop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">task_gen_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.Fixed.discrete_linear_drop" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.GenericIID">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.generators.tasks.</span></span><span class="sig-name descname"><span class="pre">GenericIID</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls_task</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_spaces</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.GenericIID" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.generators.tasks.BaseIID" title="task_scheduling.generators.tasks.BaseIID"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.generators.tasks.BaseIID</span></code></a></p>
+<p>Generic generator of independently and identically distributed random task objects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cls_task</strong> (<em>class</em>) – Class for instantiating task objects.</p></li>
+<li><p><strong>param_gen</strong> (<em>callable</em>) – Invoked with ‘self’ argument, for use as the ‘_param_gen’ method.</p></li>
+<li><p><strong>param_spaces</strong> (<em>dict</em><em>, </em><em>optional</em>) – Mapping of parameter name strings to gym.spaces.Space objects</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – Random number generator seed or object.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.GenericIID.linear_drop">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">linear_drop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_spaces</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.GenericIID.linear_drop" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.Permutation">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.generators.tasks.</span></span><span class="sig-name descname"><span class="pre">Permutation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_spaces</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.Permutation" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.generators.tasks.Fixed" title="task_scheduling.generators.tasks.Fixed"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.generators.tasks.Fixed</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.generators.tasks.Permutation.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.generators.tasks.Permutation.__call__" title="Permalink to this definition"></a></dt>
+<dd><p>Yield tasks in a uniformly random order.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-task_scheduling.generators">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-task_scheduling.generators" title="Permalink to this headline"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="task_scheduling.algorithms.html" class="btn btn-neutral float-left" title="task_scheduling.algorithms package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="task_scheduling.mdp.html" class="btn btn-neutral float-right" title="task_scheduling.mdp package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Paul Rademacher.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

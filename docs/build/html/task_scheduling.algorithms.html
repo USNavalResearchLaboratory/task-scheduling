@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>task_scheduling.algorithms package &mdash; Task Scheduling  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="task_scheduling.generators package" href="task_scheduling.generators.html" />
+    <link rel="prev" title="task_scheduling package" href="task_scheduling.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> Task Scheduling
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="task_scheduling.html">task_scheduling package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="task_scheduling.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">task_scheduling.algorithms package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-task_scheduling.algorithms.base">task_scheduling.algorithms.base module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-task_scheduling.algorithms.wrappers">task_scheduling.algorithms.wrappers module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-task_scheduling.algorithms">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="task_scheduling.generators.html">task_scheduling.generators package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="task_scheduling.mdp.html">task_scheduling.mdp package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling.base">task_scheduling.base module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling.nodes">task_scheduling.nodes module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling.results">task_scheduling.results module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling.spaces">task_scheduling.spaces module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling.tasks">task_scheduling.tasks module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling.util">task_scheduling.util module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Task Scheduling</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="task_scheduling.html">task_scheduling package</a> &raquo;</li>
+      <li>task_scheduling.algorithms package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/task_scheduling.algorithms.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="task-scheduling-algorithms-package">
+<h1>task_scheduling.algorithms package<a class="headerlink" href="#task-scheduling-algorithms-package" title="Permalink to this headline"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline"></a></h2>
+</section>
+<section id="module-task_scheduling.algorithms.base">
+<span id="task-scheduling-algorithms-base-module"></span><h2>task_scheduling.algorithms.base module<a class="headerlink" href="#module-task_scheduling.algorithms.base" title="Permalink to this headline"></a></h2>
+<p>Classic scheduling algorithms.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="task_scheduling.algorithms.base.branch_bound">
+<span class="sig-prename descclassname"><span class="pre">task_scheduling.algorithms.base.</span></span><span class="sig-name descname"><span class="pre">branch_bound</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.algorithms.base.branch_bound" title="Permalink to this definition"></a></dt>
+<dd><p>Branch and Bound algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tasks</strong> (<em>Collection of task_scheduling.tasks.Base</em>) – Tasks.</p></li>
+<li><p><strong>ch_avail</strong> (<em>Collection of float</em>) – Channel availability times.</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em>) – Enables printing of algorithm state information.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – NumPy random number generator or seed. Instance RNG if None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Task schedule.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="task_scheduling.algorithms.base.branch_bound_priority">
+<span class="sig-prename descclassname"><span class="pre">task_scheduling.algorithms.base.</span></span><span class="sig-name descname"><span class="pre">branch_bound_priority</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heuristic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.algorithms.base.branch_bound_priority" title="Permalink to this definition"></a></dt>
+<dd><p>Branch-and-Bound with priority queueing and variable heuristic.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tasks</strong> (<em>Collection of task_scheduling.tasks.Base</em>) – Tasks.</p></li>
+<li><p><strong>ch_avail</strong> (<em>Collection of float</em>) – Channel availability times.</p></li>
+<li><p><strong>priority_func</strong> (<em>callable</em><em>, </em><em>optional</em>) – Key function that maps <cite>ScheduleNode</cite> objects to priority values. Defaults to negative
+lower bound.</p></li>
+<li><p><strong>heuristic</strong> (<em>callable</em><em>, </em><em>optional</em>) – Uses a partial node to generate a complete sequence node.</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em>) – Enables printing of algorithm state information.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – NumPy random number generator or seed. Instance RNG if None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Task schedule.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="task_scheduling.algorithms.base.brute_force">
+<span class="sig-prename descclassname"><span class="pre">task_scheduling.algorithms.base.</span></span><span class="sig-name descname"><span class="pre">brute_force</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.algorithms.base.brute_force" title="Permalink to this definition"></a></dt>
+<dd><p>Exhaustively search all complete sequences.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tasks</strong> (<em>Collection of task_scheduling.tasks.Base</em>) – Tasks.</p></li>
+<li><p><strong>ch_avail</strong> (<em>Collection of float</em>) – Channel availability times.</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em>) – Enables printing of algorithm state information.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Task schedule.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="task_scheduling.algorithms.base.earliest_drop">
+<span class="sig-prename descclassname"><span class="pre">task_scheduling.algorithms.base.</span></span><span class="sig-name descname"><span class="pre">earliest_drop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.algorithms.base.earliest_drop" title="Permalink to this definition"></a></dt>
+<dd><p>Earliest Drop Times Algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tasks</strong> (<em>Collection of task_scheduling.tasks.Base</em>) – Tasks.</p></li>
+<li><p><strong>ch_avail</strong> (<em>Collection of float</em>) – Channel availability times.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Task schedule.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="task_scheduling.algorithms.base.earliest_release">
+<span class="sig-prename descclassname"><span class="pre">task_scheduling.algorithms.base.</span></span><span class="sig-name descname"><span class="pre">earliest_release</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.algorithms.base.earliest_release" title="Permalink to this definition"></a></dt>
+<dd><p>Earliest Start Times Algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tasks</strong> (<em>Collection of task_scheduling.tasks.Base</em>) – Tasks.</p></li>
+<li><p><strong>ch_avail</strong> (<em>Collection of float</em>) – Channel availability times.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Task schedule.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="task_scheduling.algorithms.base.mcts">
+<span class="sig-prename descclassname"><span class="pre">task_scheduling.algorithms.base.</span></span><span class="sig-name descname"><span class="pre">mcts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_runtime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rollouts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_explore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">th_visit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.algorithms.base.mcts" title="Permalink to this definition"></a></dt>
+<dd><p>Monte Carlo tree search algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tasks</strong> (<em>Collection of task_scheduling.tasks.Base</em>) – Tasks.</p></li>
+<li><p><strong>ch_avail</strong> (<em>Collection of float</em>) – Channel availability times.</p></li>
+<li><p><strong>max_runtime</strong> (<em>float</em><em>, </em><em>optional</em>) – Allotted algorithm runtime.</p></li>
+<li><p><strong>max_rollouts</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum number of rollouts allowed.</p></li>
+<li><p><strong>c_explore</strong> (<em>float</em><em>, </em><em>optional</em>) – Exploration weight. Higher values prioritize less frequently visited notes.</p></li>
+<li><p><strong>th_visit</strong> (<em>int</em><em>, </em><em>optional</em>) – Nodes with up to this number of visits will select children using the <cite>expansion</cite> method.</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em>) – Enables printing of algorithm state information.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – NumPy random number generator or seed. Instance RNG if None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Task schedule.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="task_scheduling.algorithms.base.priority_sorter">
+<span class="sig-prename descclassname"><span class="pre">task_scheduling.algorithms.base.</span></span><span class="sig-name descname"><span class="pre">priority_sorter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.algorithms.base.priority_sorter" title="Permalink to this definition"></a></dt>
+<dd><p>Sort tasks based on function value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tasks</strong> (<em>Collection of task_scheduling.tasks.Base</em>) – Tasks.</p></li>
+<li><p><strong>ch_avail</strong> (<em>Collection of float</em>) – Channel availability times.</p></li>
+<li><p><strong>func</strong> (<em>callable</em>) – Returns scalar value for task priority.</p></li>
+<li><p><strong>reverse</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <cite>True</cite>, tasks are scheduled in order of decreasing priority value.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Task schedule.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="task_scheduling.algorithms.base.random_sequencer">
+<span class="sig-prename descclassname"><span class="pre">task_scheduling.algorithms.base.</span></span><span class="sig-name descname"><span class="pre">random_sequencer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.algorithms.base.random_sequencer" title="Permalink to this definition"></a></dt>
+<dd><p>Generate a random task sequence, determine execution times and channels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tasks</strong> (<em>Collection of task_scheduling.tasks.Base</em>) – Tasks.</p></li>
+<li><p><strong>ch_avail</strong> (<em>Collection of float</em>) – Channel availability times.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – NumPy random number generator or seed. Instance RNG if None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Task schedule.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-task_scheduling.algorithms.wrappers">
+<span id="task-scheduling-algorithms-wrappers-module"></span><h2>task_scheduling.algorithms.wrappers module<a class="headerlink" href="#module-task_scheduling.algorithms.wrappers" title="Permalink to this headline"></a></h2>
+<p>Algorithm wrappers.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="task_scheduling.algorithms.wrappers.ensemble_scheduler">
+<span class="sig-prename descclassname"><span class="pre">task_scheduling.algorithms.wrappers.</span></span><span class="sig-name descname"><span class="pre">ensemble_scheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">schedulers</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.algorithms.wrappers.ensemble_scheduler" title="Permalink to this definition"></a></dt>
+<dd><p>Create function that evaluates multiple schedulers and returns the best solution.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="task_scheduling.algorithms.wrappers.sort_wrapper">
+<span class="sig-prename descclassname"><span class="pre">task_scheduling.algorithms.wrappers.</span></span><span class="sig-name descname"><span class="pre">sort_wrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scheduler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.algorithms.wrappers.sort_wrapper" title="Permalink to this definition"></a></dt>
+<dd><p>Create a chained scheduler with pre-sort function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>scheduler</strong> (<em>callable</em>) – Task scheduler.</p></li>
+<li><p><strong>sort_func</strong> (<em>function</em><em> or </em><em>str</em><em>, </em><em>optional</em>) – Method that returns a sorting value for re-indexing given a task index ‘n’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>callable</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-task_scheduling.algorithms">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-task_scheduling.algorithms" title="Permalink to this headline"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="task_scheduling.html" class="btn btn-neutral float-left" title="task_scheduling package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="task_scheduling.generators.html" class="btn btn-neutral float-right" title="task_scheduling.generators package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Paul Rademacher.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

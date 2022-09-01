@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>task_scheduling.mdp package &mdash; Task Scheduling  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="task_scheduling.generators package" href="task_scheduling.generators.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> Task Scheduling
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="task_scheduling.html">task_scheduling package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="task_scheduling.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="task_scheduling.algorithms.html">task_scheduling.algorithms package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="task_scheduling.generators.html">task_scheduling.generators package</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">task_scheduling.mdp package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-task_scheduling.mdp.base">task_scheduling.mdp.base module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-task_scheduling.mdp.environments">task_scheduling.mdp.environments module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-task_scheduling.mdp.features">task_scheduling.mdp.features module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-task_scheduling.mdp.reinforcement">task_scheduling.mdp.reinforcement module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-task_scheduling.mdp.supervised">task_scheduling.mdp.supervised module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-task_scheduling.mdp">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling.base">task_scheduling.base module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling.nodes">task_scheduling.nodes module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling.results">task_scheduling.results module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling.spaces">task_scheduling.spaces module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling.tasks">task_scheduling.tasks module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling.util">task_scheduling.util module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="task_scheduling.html#module-task_scheduling">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Task Scheduling</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="task_scheduling.html">task_scheduling package</a> &raquo;</li>
+      <li>task_scheduling.mdp package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/task_scheduling.mdp.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="task-scheduling-mdp-package">
+<h1>task_scheduling.mdp package<a class="headerlink" href="#task-scheduling-mdp-package" title="Permalink to this headline"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline"></a></h2>
+</section>
+<section id="module-task_scheduling.mdp.base">
+<span id="task-scheduling-mdp-base-module"></span><h2>task_scheduling.mdp.base module<a class="headerlink" href="#module-task_scheduling.mdp.base" title="Permalink to this headline"></a></h2>
+<p>Base classes for MDP agent schedulers.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.base.Base">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.base.</span></span><span class="sig-name descname"><span class="pre">Base</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.base.Base" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Base class for agent schedulers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>env</strong> (<em>BaseEnv</em>) – OpenAi gym environment.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.base.Base.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tasks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.base.Base.__call__" title="Permalink to this definition"></a></dt>
+<dd><p>Call scheduler, produce execution times and channels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tasks</strong> (<em>Collection of task_scheduling.tasks.Base</em>) – Tasks.</p></li>
+<li><p><strong>ch_avail</strong> (<em>Collection of float</em>) – Channel availability times.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>ndarray</em> – Task execution times.</p></li>
+<li><p><em>ndarray</em> – Task execution channels.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.base.Base.predict">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.base.Base.predict" title="Permalink to this definition"></a></dt>
+<dd><p>Take an action given an observation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obs</strong> (<em>array_like</em>) – Observation.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Action.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>int or array_like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.base.Base.summary">
+<span class="sig-name descname"><span class="pre">summary</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.base.Base.summary" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.base.BaseLearning">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.base.</span></span><span class="sig-name descname"><span class="pre">BaseLearning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.base.BaseLearning" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.mdp.base.Base" title="task_scheduling.mdp.base.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.mdp.base.Base</span></code></a></p>
+<p>Base class for learning schedulers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>env</strong> (<em>BaseEnv</em>) – OpenAi gym environment.</p></li>
+<li><p><strong>model</strong> – The learning object.</p></li>
+<li><p><strong>learn_params</strong> (<em>dict</em><em>, </em><em>optional</em>) – Parameters used by the <cite>learn</cite> method.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.base.BaseLearning.learn">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">learn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.base.BaseLearning.learn" title="Permalink to this definition"></a></dt>
+<dd><p>Learn from the environment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_gen</strong> (<em>int</em>) – Number of problems to generate data from.</p></li>
+<li><p><strong>verbose</strong> (<em>int</em><em>, </em><em>optional</em>) – Progress print-out level.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="task_scheduling.mdp.base.BaseLearning.learn_params">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">learn_params</span></span><a class="headerlink" href="#task_scheduling.mdp.base.BaseLearning.learn_params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.base.BaseLearning.reset">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.base.BaseLearning.reset" title="Permalink to this definition"></a></dt>
+<dd><p>Reset the learner.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.base.BaseLearning.summary">
+<span class="sig-name descname"><span class="pre">summary</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.base.BaseLearning.summary" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.base.RandomAgent">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.base.</span></span><span class="sig-name descname"><span class="pre">RandomAgent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.base.RandomAgent" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.mdp.base.Base" title="task_scheduling.mdp.base.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.mdp.base.Base</span></code></a></p>
+<p>Uniformly random actor.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.base.RandomAgent.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.base.RandomAgent.predict" title="Permalink to this definition"></a></dt>
+<dd><p>Take an action given an observation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obs</strong> (<em>array_like</em>) – Observation.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Action.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>int or array_like</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-task_scheduling.mdp.environments">
+<span id="task-scheduling-mdp-environments-module"></span><h2>task_scheduling.mdp.environments module<a class="headerlink" href="#module-task_scheduling.mdp.environments" title="Permalink to this headline"></a></h2>
+<p>Gym Environments.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Base">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.environments.</span></span><span class="sig-name descname"><span class="pre">Base</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">features</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.environments.Base" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">gym.core.Env</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Base environment for task scheduling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>problem_gen</strong> (<a class="reference internal" href="task_scheduling.generators.html#task_scheduling.generators.problems.Base" title="task_scheduling.generators.problems.Base"><em>generators.problems.Base</em></a>) – Scheduling problem generation object.</p></li>
+<li><p><strong>features</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – Structured numpy array of features with fields ‘name’, ‘func’, and ‘space’.</p></li>
+<li><p><strong>normalize</strong> (<em>bool</em><em>, </em><em>optional</em>) – Rescale task features to unit interval.</p></li>
+<li><p><strong>sort_func</strong> (<em>function</em><em> or </em><em>str</em><em>, </em><em>optional</em>) – Method that returns a sorting value for re-indexing given a task index ‘n’.</p></li>
+<li><p><strong>reform</strong> (<em>bool</em><em>, </em><em>optional</em>) – Enables task re-parameterization after sequence updates.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Base.ch_avail">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ch_avail</span></span><a class="headerlink" href="#task_scheduling.mdp.environments.Base.ch_avail" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Base.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.environments.Base.close" title="Permalink to this definition"></a></dt>
+<dd><p>Override close in your subclass to perform any necessary cleanup.</p>
+<p>Environments will automatically close() themselves when
+garbage collected or when the program exits.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Base.get_problem_spaces">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_problem_spaces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.environments.Base.get_problem_spaces" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Base.infer_valid_mask">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">infer_valid_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.environments.Base.infer_valid_mask" title="Permalink to this definition"></a></dt>
+<dd><p>Create a binary valid action mask from an observation.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Base.n_ch">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">n_ch</span></span><a class="headerlink" href="#task_scheduling.mdp.environments.Base.n_ch" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Base.n_features">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">n_features</span></span><a class="headerlink" href="#task_scheduling.mdp.environments.Base.n_features" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Base.n_tasks">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">n_tasks</span></span><a class="headerlink" href="#task_scheduling.mdp.environments.Base.n_tasks" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Base.obs">
+<span class="sig-name descname"><span class="pre">obs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.environments.Base.obs" title="Permalink to this definition"></a></dt>
+<dd><p>Complete observation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Base.opt_action">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">opt_action</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.environments.Base.opt_action" title="Permalink to this definition"></a></dt>
+<dd><p>Optimal action based on current state.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Base.opt_rollouts">
+<span class="sig-name descname"><span class="pre">opt_rollouts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.environments.Base.opt_rollouts" title="Permalink to this definition"></a></dt>
+<dd><p>Generate observation-action data for learner training and evaluation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_gen</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of scheduling problems to generate data from.</p></li>
+<li><p><strong>verbose</strong> (<em>{0</em><em>, </em><em>1</em><em>, </em><em>2}</em><em>, </em><em>optional</em>) – 0: silent, 1: add batch info, 2: add problem info</p></li>
+<li><p><strong>save_path</strong> (<em>os.PathLike</em><em> or </em><em>str</em><em>, </em><em>optional</em>) – File path for saving data.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – NumPy random number generator or seed. Instance RNG if None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Yields</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><em>ndarray</em> – Predictor data.</p></li>
+<li><p><em>ndarray</em> – Target data.</p></li>
+<li><p><em>ndarray, optional</em> – Sample weights.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Base.problem_gen">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">problem_gen</span></span><a class="headerlink" href="#task_scheduling.mdp.environments.Base.problem_gen" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Base.render">
+<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'human'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.environments.Base.render" title="Permalink to this definition"></a></dt>
+<dd><p>Renders the environment.</p>
+<p>The set of supported modes varies per environment. (And some
+environments do not support rendering at all.) By convention,
+if mode is:</p>
+<ul class="simple">
+<li><p>human: render to the current display or terminal and
+return nothing. Usually for human consumption.</p></li>
+<li><p>rgb_array: Return an numpy.ndarray with shape (x, y, 3),
+representing RGB values for an x-by-y pixel image, suitable
+for turning into a video.</p></li>
+<li><p>ansi: Return a string (str) or StringIO.StringIO containing a
+terminal-style text representation. The text can include newlines
+and ANSI escape sequences (e.g. for colors).</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<dl class="simple">
+<dt>Make sure that your class’s metadata ‘render.modes’ key includes</dt><dd><p>the list of supported modes. It’s recommended to call super()
+in implementations to use the functionality of this method.</p>
+</dd>
+</dl>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>mode</strong> (<em>str</em>) – the mode to render with</p>
+</dd>
+</dl>
+<p>Example:</p>
+<dl>
+<dt>class MyEnv(Env):</dt><dd><p>metadata = {‘render.modes’: [‘human’, ‘rgb_array’]}</p>
+<dl class="simple">
+<dt>def render(self, mode=’human’):</dt><dd><dl class="simple">
+<dt>if mode == ‘rgb_array’:</dt><dd><p>return np.array(…) # return RGB frame suitable for video</p>
+</dd>
+<dt>elif mode == ‘human’:</dt><dd><p>… # pop up a window and render</p>
+</dd>
+<dt>else:</dt><dd><p>super(MyEnv, self).render(mode=mode) # just raise an exception</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Base.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tasks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ch_avail</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solve</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.environments.Base.reset" title="Permalink to this definition"></a></dt>
+<dd><p>Reset environment by re-initializing node object with new tasks/channels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tasks</strong> (<em>Collection of task_scheduling.tasks.Base</em><em>, </em><em>optional</em>) – Tasks for non-random reset.</p></li>
+<li><p><strong>ch_avail</strong> (<em>Collection of float</em><em>, </em><em>optional</em>) – Initial channel availabilities for non-random reset.</p></li>
+<li><p><strong>solve</strong> (<em>bool</em>) – Solves for and stores the Branch &amp; Bound optimal schedule.</p></li>
+<li><p><strong>rng</strong> (<em>int</em><em> or </em><em>RandomState</em><em> or </em><em>Generator</em><em>, </em><em>optional</em>) – NumPy random number generator or seed. Instance RNG if None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Observation.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Base.seed">
+<span class="sig-name descname"><span class="pre">seed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.environments.Base.seed" title="Permalink to this definition"></a></dt>
+<dd><p>Sets the seed for this env’s random number generator(s).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Some environments use multiple pseudorandom number generators.
+We want to capture all such seeds used in order to ensure that
+there aren’t accidental correlations between multiple generators.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>Returns the list of seeds used in this env’s random</dt><dd><p>number generators. The first value in the list should be the
+“main” seed, or the value which a reproducer should pass to
+‘seed’. Often, the main seed equals the provided ‘seed’, but
+this won’t be true if seed=None, for example.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>list&lt;bigint&gt;</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Base.sorted_index">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sorted_index</span></span><a class="headerlink" href="#task_scheduling.mdp.environments.Base.sorted_index" title="Permalink to this definition"></a></dt>
+<dd><p>Generate indices for re-ordering of observation rows.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Base.sorted_index_inv">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sorted_index_inv</span></span><a class="headerlink" href="#task_scheduling.mdp.environments.Base.sorted_index_inv" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Base.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">action</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.environments.Base.step" title="Permalink to this definition"></a></dt>
+<dd><p>Update environment state (node) based on task index input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>action</strong> (<em>int</em><em> or </em><em>Collection of int</em>) – Task indices.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>ndarray</em> – Observation.</p></li>
+<li><p><em>float</em> – Reward (negative loss) achieved by the complete sequence.</p></li>
+<li><p><em>bool</em> – Indicates the end of the learning episode.</p></li>
+<li><p><em>dict</em> – Auxiliary diagnostic information (helpful for debugging, and sometimes learning).</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Base.summary">
+<span class="sig-name descname"><span class="pre">summary</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.environments.Base.summary" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Base.tasks">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tasks</span></span><a class="headerlink" href="#task_scheduling.mdp.environments.Base.tasks" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Index">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.environments.</span></span><span class="sig-name descname"><span class="pre">Index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">features</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.environments.Index" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.mdp.environments.Base" title="task_scheduling.mdp.environments.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.mdp.environments.Base</span></code></a></p>
+<p>Tasking environment with actions of single task indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>problem_gen</strong> (<a class="reference internal" href="task_scheduling.generators.html#task_scheduling.generators.problems.Base" title="task_scheduling.generators.problems.Base"><em>generators.problems.Base</em></a>) – Scheduling problem generation object.</p></li>
+<li><p><strong>features</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – Structured numpy array of features with fields ‘name’, ‘func’, and ‘space’.</p></li>
+<li><p><strong>normalize</strong> (<em>bool</em><em>, </em><em>optional</em>) – Rescale task features to unit interval.</p></li>
+<li><p><strong>sort_func</strong> (<em>function</em><em> or </em><em>str</em><em>, </em><em>optional</em>) – Method that returns a sorting value for re-indexing given a task index ‘n’.</p></li>
+<li><p><strong>reform</strong> (<em>bool</em><em>, </em><em>optional</em>) – Enables task re-parameterization after sequence updates.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Index.infer_valid_mask">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">infer_valid_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.environments.Index.infer_valid_mask" title="Permalink to this definition"></a></dt>
+<dd><p>Create a binary valid action mask from an observation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.Index.opt_action">
+<span class="sig-name descname"><span class="pre">opt_action</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.environments.Index.opt_action" title="Permalink to this definition"></a></dt>
+<dd><p>Optimal action based on current state.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.int_to_seq">
+<span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.environments.</span></span><span class="sig-name descname"><span class="pre">int_to_seq</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_input</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.environments.int_to_seq" title="Permalink to this definition"></a></dt>
+<dd><p>Map a non-negative integer to an index sequence permutation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num</strong> (<em>int</em>) – In range(factorial(length))</p></li>
+<li><p><strong>length</strong> (<em>int</em>) – Length of the output sequence.</p></li>
+<li><p><strong>check_input</strong> (<em>bool</em>) – Enables value checking of input number.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Elements are unique in factorial(len(seq)).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>tuple of int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="task_scheduling.mdp.environments.seq_to_int">
+<span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.environments.</span></span><span class="sig-name descname"><span class="pre">seq_to_int</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_input</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.environments.seq_to_int" title="Permalink to this definition"></a></dt>
+<dd><p>Map an index sequence permutation to a non-negative integer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>seq</strong> (<em>Collection of int</em>) – Elements are unique in range(len(seq)).</p></li>
+<li><p><strong>check_input</strong> (<em>bool</em>) – Enables value checking of input sequence.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Takes values in range(factorial(len(seq))).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-task_scheduling.mdp.features">
+<span id="task-scheduling-mdp-features-module"></span><h2>task_scheduling.mdp.features module<a class="headerlink" href="#module-task_scheduling.mdp.features" title="Permalink to this headline"></a></h2>
+<p>Observation feature extractors and utilities.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="task_scheduling.mdp.features.encode_discrete_features">
+<span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.features.</span></span><span class="sig-name descname"><span class="pre">encode_discrete_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem_gen</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.features.encode_discrete_features" title="Permalink to this definition"></a></dt>
+<dd><p>Create parameter features, encoding DiscreteSet-typed parameters to Discrete-type.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="task_scheduling.mdp.features.normalize">
+<span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.features.</span></span><span class="sig-name descname"><span class="pre">normalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">features</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.features.normalize" title="Permalink to this definition"></a></dt>
+<dd><p>Make normalized features.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="task_scheduling.mdp.features.param_features">
+<span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.features.</span></span><span class="sig-name descname"><span class="pre">param_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_spaces</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.features.param_features" title="Permalink to this definition"></a></dt>
+<dd><p>Create array of parameter features from task parameter spaces.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>param_spaces</strong> (<em>dict</em><em>, </em><em>optional</em>) – Mapping of parameter name strings to gym.spaces.Space objects</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Feature array with fields ‘name’, ‘func’, and ‘space’.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-task_scheduling.mdp.reinforcement">
+<span id="task-scheduling-mdp-reinforcement-module"></span><h2>task_scheduling.mdp.reinforcement module<a class="headerlink" href="#module-task_scheduling.mdp.reinforcement" title="Permalink to this headline"></a></h2>
+<p>Reinforcement learning schedulers and custom policies.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.MultiExtractor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.reinforcement.</span></span><span class="sig-name descname"><span class="pre">MultiExtractor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observation_space</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">gym.spaces.dict.Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">net_ch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">net_tasks</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.reinforcement.MultiExtractor" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">stable_baselines3.common.torch_layers.BaseFeaturesExtractor</span></code></p>
+<p>Multiple-input feature extractor with valid action enforcement.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>observation_space</strong> (<em>gym.spaces.Space</em>) – </p></li>
+<li><p><strong>net_ch</strong> (<em>nn.Module</em>) – </p></li>
+<li><p><strong>net_tasks</strong> (<em>nn.Module</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.MultiExtractor.cnn">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">cnn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observation_space</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_ch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_tasks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_sizes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cnn_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.reinforcement.MultiExtractor.cnn" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.MultiExtractor.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.reinforcement.MultiExtractor.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.MultiExtractor.mlp">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mlp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observation_space</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_ch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_tasks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.reinforcement.MultiExtractor.mlp" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.MultiExtractor.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#task_scheduling.mdp.reinforcement.MultiExtractor.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.StableBaselinesScheduler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.reinforcement.</span></span><span class="sig-name descname"><span class="pre">StableBaselinesScheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.reinforcement.StableBaselinesScheduler" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.mdp.base.BaseLearning" title="task_scheduling.mdp.base.BaseLearning"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.mdp.base.BaseLearning</span></code></a></p>
+<p>Base class for learning schedulers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>env</strong> (<em>BaseEnv</em>) – OpenAi gym environment.</p></li>
+<li><p><strong>model</strong> – The learning object.</p></li>
+<li><p><strong>learn_params</strong> (<em>dict</em><em>, </em><em>optional</em>) – Parameters used by the <cite>learn</cite> method.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.StableBaselinesScheduler.env">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">env</span></span><a class="headerlink" href="#task_scheduling.mdp.reinforcement.StableBaselinesScheduler.env" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.StableBaselinesScheduler.learn">
+<span class="sig-name descname"><span class="pre">learn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.reinforcement.StableBaselinesScheduler.learn" title="Permalink to this definition"></a></dt>
+<dd><p>Learn from the environment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_gen</strong> (<em>int</em>) – Number of problems to generate data from.</p></li>
+<li><p><strong>verbose</strong> (<em>int</em><em>, </em><em>optional</em>) – Progress print-out level.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.StableBaselinesScheduler.load">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">load_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_cls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.reinforcement.StableBaselinesScheduler.load" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.StableBaselinesScheduler.make_model">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">make_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_cls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.reinforcement.StableBaselinesScheduler.make_model" title="Permalink to this definition"></a></dt>
+<dd><p>Construct scheduler from Stable-Baselines3 model specification.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.StableBaselinesScheduler.model_defaults">
+<span class="sig-name descname"><span class="pre">model_defaults</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'A2C':</span> <span class="pre">ModelDefault(cls=&lt;class</span> <span class="pre">'stable_baselines3.a2c.a2c.A2C'&gt;,</span> <span class="pre">params={'policy':</span> <span class="pre">'MlpPolicy',</span> <span class="pre">'verbose':</span> <span class="pre">1}),</span> <span class="pre">'DQN':</span> <span class="pre">ModelDefault(cls=&lt;class</span> <span class="pre">'stable_baselines3.dqn.dqn.DQN'&gt;,</span> <span class="pre">params={'policy':</span> <span class="pre">'MlpPolicy',</span> <span class="pre">'verbose':</span> <span class="pre">1}),</span> <span class="pre">'PPO':</span> <span class="pre">ModelDefault(cls=&lt;class</span> <span class="pre">'stable_baselines3.ppo.ppo.PPO'&gt;,</span> <span class="pre">params={'policy':</span> <span class="pre">'MlpPolicy',</span> <span class="pre">'verbose':</span> <span class="pre">1})}</span></em><a class="headerlink" href="#task_scheduling.mdp.reinforcement.StableBaselinesScheduler.model_defaults" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.StableBaselinesScheduler.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.reinforcement.StableBaselinesScheduler.predict" title="Permalink to this definition"></a></dt>
+<dd><p>Take an action given an observation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obs</strong> (<em>array_like</em>) – Observation.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Action.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>int or array_like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.StableBaselinesScheduler.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.reinforcement.StableBaselinesScheduler.reset" title="Permalink to this definition"></a></dt>
+<dd><p>Reset the learner.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.StableBaselinesScheduler.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">save_path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.reinforcement.StableBaselinesScheduler.save" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.ValidActorCriticPolicy">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.reinforcement.</span></span><span class="sig-name descname"><span class="pre">ValidActorCriticPolicy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infer_valid_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.reinforcement.ValidActorCriticPolicy" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">stable_baselines3.common.policies.ActorCriticPolicy</span></code></p>
+<p>Custom AC policy with valid action enforcement.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.ValidActorCriticPolicy.evaluate_actions">
+<span class="sig-name descname"><span class="pre">evaluate_actions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actions</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.reinforcement.ValidActorCriticPolicy.evaluate_actions" title="Permalink to this definition"></a></dt>
+<dd><p>Evaluate actions according to the current policy,
+given the observations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obs</strong> – </p></li>
+<li><p><strong>actions</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>estimated value, log likelihood of taking those actions
+and entropy of the action distribution.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.ValidActorCriticPolicy.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deterministic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.reinforcement.ValidActorCriticPolicy.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Forward pass in all the networks (actor and critic)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obs</strong> – Observation</p></li>
+<li><p><strong>deterministic</strong> – Whether to sample or use deterministic actions</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>action, value and log probability of the action</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.ValidActorCriticPolicy.get_distribution">
+<span class="sig-name descname"><span class="pre">get_distribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.reinforcement.ValidActorCriticPolicy.get_distribution" title="Permalink to this definition"></a></dt>
+<dd><p>Get the current policy distribution given the observations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obs</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the action distribution.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.ValidActorCriticPolicy.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#task_scheduling.mdp.reinforcement.ValidActorCriticPolicy.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.ValidDQNPolicy">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.reinforcement.</span></span><span class="sig-name descname"><span class="pre">ValidDQNPolicy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infer_valid_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.reinforcement.ValidDQNPolicy" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">stable_baselines3.dqn.policies.DQNPolicy</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.ValidDQNPolicy.make_q_net">
+<span class="sig-name descname"><span class="pre">make_q_net</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.reinforcement.ValidDQNPolicy.make_q_net" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.ValidDQNPolicy.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#task_scheduling.mdp.reinforcement.ValidDQNPolicy.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.ValidQNetwork">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.reinforcement.</span></span><span class="sig-name descname"><span class="pre">ValidQNetwork</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infer_valid_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.reinforcement.ValidQNetwork" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">stable_baselines3.dqn.policies.QNetwork</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.ValidQNetwork.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.reinforcement.ValidQNetwork.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Predict the q-values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obs</strong> – Observation</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The estimated Q-Value for each action.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="task_scheduling.mdp.reinforcement.ValidQNetwork.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#task_scheduling.mdp.reinforcement.ValidQNetwork.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-task_scheduling.mdp.supervised">
+<span id="task-scheduling-mdp-supervised-module"></span><h2>task_scheduling.mdp.supervised module<a class="headerlink" href="#module-task_scheduling.mdp.supervised" title="Permalink to this headline"></a></h2>
+<p>SL schedulers using PyTorch.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.BasePyTorch">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.supervised.</span></span><span class="sig-name descname"><span class="pre">BasePyTorch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.BasePyTorch" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.mdp.supervised.BaseSupervised" title="task_scheduling.mdp.supervised.BaseSupervised"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.mdp.supervised.BaseSupervised</span></code></a></p>
+<p>Base class for PyTorch-based schedulers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>env</strong> (<a class="reference internal" href="#task_scheduling.mdp.environments.Index" title="task_scheduling.mdp.environments.Index"><em>Index</em></a>) – OpenAi gym environment.</p></li>
+<li><p><strong>model</strong> (<em>torch.nn.Module</em>) – The learning network.</p></li>
+<li><p><strong>learn_params</strong> (<em>dict</em><em>, </em><em>optional</em>) – Parameters used by the <cite>learn</cite> method.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.BasePyTorch.from_gen">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_gen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_cls=&lt;class</span> <span class="pre">'task_scheduling.mdp.environments.Index'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_params=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.BasePyTorch.from_gen" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.BasePyTorch.load">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">load_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.BasePyTorch.load" title="Permalink to this definition"></a></dt>
+<dd><p>Load the scheduler model and environment.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.BasePyTorch.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.BasePyTorch.predict" title="Permalink to this definition"></a></dt>
+<dd><p>Take an action given an observation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obs</strong> (<em>array_like</em>) – Observation.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Action.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>int or array_like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.BasePyTorch.predict_prob">
+<span class="sig-name descname"><span class="pre">predict_prob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.BasePyTorch.predict_prob" title="Permalink to this definition"></a></dt>
+<dd><p>Formulate action probabilities for a given observation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obs</strong> (<em>array_like</em>) – Observation.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Action probabilities.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>array_like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.BasePyTorch.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.BasePyTorch.reset" title="Permalink to this definition"></a></dt>
+<dd><p>Reset the learner.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.BasePyTorch.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">save_path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.BasePyTorch.save" title="Permalink to this definition"></a></dt>
+<dd><p>Save the scheduler model and environment.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.BaseSupervised">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.supervised.</span></span><span class="sig-name descname"><span class="pre">BaseSupervised</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.BaseSupervised" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.mdp.base.BaseLearning" title="task_scheduling.mdp.base.BaseLearning"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.mdp.base.BaseLearning</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.BaseSupervised.learn">
+<span class="sig-name descname"><span class="pre">learn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.BaseSupervised.learn" title="Permalink to this definition"></a></dt>
+<dd><p>Learn from the environment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_gen</strong> (<em>int</em>) – Number of problems to generate data from.</p></li>
+<li><p><strong>verbose</strong> (<em>{0</em><em>, </em><em>1</em><em>, </em><em>2}</em><em>, </em><em>optional</em>) – Progress print-out level. 0: silent, 1: add batch info, 2: add problem info</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.BaseSupervised.predict">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.BaseSupervised.predict" title="Permalink to this definition"></a></dt>
+<dd><p>Take an action given an observation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obs</strong> (<em>array_like</em>) – Observation.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Action.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>int or array_like</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.BaseSupervised.reset">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.BaseSupervised.reset" title="Permalink to this definition"></a></dt>
+<dd><p>Reset the learner.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.BaseSupervised.train">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rew</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.BaseSupervised.train" title="Permalink to this definition"></a></dt>
+<dd><p>Train from observations, actions, and rewards.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obs</strong> (<em>nd.array</em>) – The observations. Shape: (n_rollouts, n_steps, …).</p></li>
+<li><p><strong>act</strong> (<em>nd.array</em>) – The optimal actions. Shape: (n_rollouts, n_steps, …).</p></li>
+<li><p><strong>rew</strong> (<em>nd.array</em>) – The rewards. Shape: (n_rollouts, n_steps, …).</p></li>
+<li><p><strong>verbose</strong> (<em>{0</em><em>, </em><em>1</em><em>, </em><em>2}</em><em>, </em><em>optional</em>) – Progress print-out level. 0: silent, 1: verbose.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.LitModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.supervised.</span></span><span class="sig-name descname"><span class="pre">LitModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_func=&lt;function</span> <span class="pre">cross_entropy&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_cls=&lt;class</span> <span class="pre">'torch.optim.adam.Adam'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_params=None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.LitModel" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">pytorch_lightning.core.lightning.LightningModule</span></code></p>
+<p>Basic PyTorch-Lightning model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>module</strong> (<em>nn.Module</em>) – </p></li>
+<li><p><strong>loss_func</strong> (<em>callable</em><em>, </em><em>optional</em>) – </p></li>
+<li><p><strong>optim_cls</strong> (<em>class</em><em>, </em><em>optional</em>) – </p></li>
+<li><p><strong>optim_params</strong> (<em>dict</em><em>, </em><em>optional</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.LitModel.configure_optimizers">
+<span class="sig-name descname"><span class="pre">configure_optimizers</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.LitModel.configure_optimizers" title="Permalink to this definition"></a></dt>
+<dd><p>Choose what optimizers and learning-rate schedulers to use in your optimization.
+Normally you’d need one. But in the case of GANs or similar you might have multiple.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><p>Any of these 6 options.</p>
+<ul class="simple">
+<li><p><strong>Single optimizer</strong>.</p></li>
+<li><p><strong>List or Tuple</strong> of optimizers.</p></li>
+<li><p><strong>Two lists</strong> - The first list has multiple optimizers, and the second has multiple LR schedulers
+(or multiple <code class="docutils literal notranslate"><span class="pre">lr_scheduler_config</span></code>).</p></li>
+<li><p><strong>Dictionary</strong>, with an <code class="docutils literal notranslate"><span class="pre">&quot;optimizer&quot;</span></code> key, and (optionally) a <code class="docutils literal notranslate"><span class="pre">&quot;lr_scheduler&quot;</span></code>
+key whose value is a single LR scheduler or <code class="docutils literal notranslate"><span class="pre">lr_scheduler_config</span></code>.</p></li>
+<li><p><strong>Tuple of dictionaries</strong> as described above, with an optional <code class="docutils literal notranslate"><span class="pre">&quot;frequency&quot;</span></code> key.</p></li>
+<li><p><strong>None</strong> - Fit will run without any optimizer.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p>The <code class="docutils literal notranslate"><span class="pre">lr_scheduler_config</span></code> is a dictionary which contains the scheduler and its associated configuration.
+The default configuration is shown below.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">lr_scheduler_config</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># REQUIRED: The scheduler instance</span>
+    <span class="s2">&quot;scheduler&quot;</span><span class="p">:</span> <span class="n">lr_scheduler</span><span class="p">,</span>
+    <span class="c1"># The unit of the scheduler&#39;s step size, could also be &#39;step&#39;.</span>
+    <span class="c1"># &#39;epoch&#39; updates the scheduler on epoch end whereas &#39;step&#39;</span>
+    <span class="c1"># updates it after a optimizer update.</span>
+    <span class="s2">&quot;interval&quot;</span><span class="p">:</span> <span class="s2">&quot;epoch&quot;</span><span class="p">,</span>
+    <span class="c1"># How many epochs/steps should pass between calls to</span>
+    <span class="c1"># `scheduler.step()`. 1 corresponds to updating the learning</span>
+    <span class="c1"># rate after every epoch/step.</span>
+    <span class="s2">&quot;frequency&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="c1"># Metric to to monitor for schedulers like `ReduceLROnPlateau`</span>
+    <span class="s2">&quot;monitor&quot;</span><span class="p">:</span> <span class="s2">&quot;val_loss&quot;</span><span class="p">,</span>
+    <span class="c1"># If set to `True`, will enforce that the value specified &#39;monitor&#39;</span>
+    <span class="c1"># is available when the scheduler is updated, thus stopping</span>
+    <span class="c1"># training if not found. If set to `False`, it will only produce a warning</span>
+    <span class="s2">&quot;strict&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># If using the `LearningRateMonitor` callback to monitor the</span>
+    <span class="c1"># learning rate progress, this keyword can be used to specify</span>
+    <span class="c1"># a custom logged name</span>
+    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>When there are schedulers in which the <code class="docutils literal notranslate"><span class="pre">.step()</span></code> method is conditioned on a value, such as the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">torch.optim.lr_scheduler.ReduceLROnPlateau</span></code> scheduler, Lightning requires that the
+<code class="docutils literal notranslate"><span class="pre">lr_scheduler_config</span></code> contains the keyword <code class="docutils literal notranslate"><span class="pre">&quot;monitor&quot;</span></code> set to the metric name that the scheduler
+should be conditioned on.</p>
+<p>Metrics can be made available to monitor by simply logging it using
+<code class="docutils literal notranslate"><span class="pre">self.log('metric_to_track',</span> <span class="pre">metric_val)</span></code> in your <code class="xref py py-class docutils literal notranslate"><span class="pre">LightningModule</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">frequency</span></code> value specified in a dict along with the <code class="docutils literal notranslate"><span class="pre">optimizer</span></code> key is an int corresponding
+to the number of sequential batches optimized with the specific optimizer.
+It should be given to none or to all of the optimizers.
+There is a difference between passing multiple optimizers in a list,
+and passing multiple optimizers in dictionaries with a frequency of 1:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>In the former case, all optimizers will operate on the given batch in each optimization step.</p></li>
+<li><p>In the latter, only one optimizer will operate on the given batch at every step.</p></li>
+</ul>
+</div></blockquote>
+<p>This is different from the <code class="docutils literal notranslate"><span class="pre">frequency</span></code> value specified in the <code class="docutils literal notranslate"><span class="pre">lr_scheduler_config</span></code> mentioned above.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">configure_optimizers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">optimizer_one</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+    <span class="n">optimizer_two</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">{</span><span class="s2">&quot;optimizer&quot;</span><span class="p">:</span> <span class="n">optimizer_one</span><span class="p">,</span> <span class="s2">&quot;frequency&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">},</span>
+        <span class="p">{</span><span class="s2">&quot;optimizer&quot;</span><span class="p">:</span> <span class="n">optimizer_two</span><span class="p">,</span> <span class="s2">&quot;frequency&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">},</span>
+    <span class="p">]</span>
+</pre></div>
+</div>
+<p>In this example, the first optimizer will be used for the first 5 steps,
+the second optimizer for the next 10 steps and that cycle will continue.
+If an LR scheduler is specified for an optimizer using the <code class="docutils literal notranslate"><span class="pre">lr_scheduler</span></code> key in the above dict,
+the scheduler will only be updated when its optimizer is being used.</p>
+</div>
+<p>Examples:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># most cases. no learning rate scheduler</span>
+<span class="k">def</span> <span class="nf">configure_optimizers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+
+<span class="c1"># multiple optimizer case (e.g.: GAN)</span>
+<span class="k">def</span> <span class="nf">configure_optimizers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">gen_opt</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_gen</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+    <span class="n">dis_opt</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_dis</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.02</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">gen_opt</span><span class="p">,</span> <span class="n">dis_opt</span>
+
+<span class="c1"># example with learning rate schedulers</span>
+<span class="k">def</span> <span class="nf">configure_optimizers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">gen_opt</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_gen</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+    <span class="n">dis_opt</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_dis</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.02</span><span class="p">)</span>
+    <span class="n">dis_sch</span> <span class="o">=</span> <span class="n">CosineAnnealing</span><span class="p">(</span><span class="n">dis_opt</span><span class="p">,</span> <span class="n">T_max</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">gen_opt</span><span class="p">,</span> <span class="n">dis_opt</span><span class="p">],</span> <span class="p">[</span><span class="n">dis_sch</span><span class="p">]</span>
+
+<span class="c1"># example with step-based learning rate schedulers</span>
+<span class="c1"># each optimizer has its own scheduler</span>
+<span class="k">def</span> <span class="nf">configure_optimizers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">gen_opt</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_gen</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+    <span class="n">dis_opt</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_dis</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.02</span><span class="p">)</span>
+    <span class="n">gen_sch</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;scheduler&#39;</span><span class="p">:</span> <span class="n">ExponentialLR</span><span class="p">(</span><span class="n">gen_opt</span><span class="p">,</span> <span class="mf">0.99</span><span class="p">),</span>
+        <span class="s1">&#39;interval&#39;</span><span class="p">:</span> <span class="s1">&#39;step&#39;</span>  <span class="c1"># called after each training step</span>
+    <span class="p">}</span>
+    <span class="n">dis_sch</span> <span class="o">=</span> <span class="n">CosineAnnealing</span><span class="p">(</span><span class="n">dis_opt</span><span class="p">,</span> <span class="n">T_max</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span> <span class="c1"># called every epoch</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">gen_opt</span><span class="p">,</span> <span class="n">dis_opt</span><span class="p">],</span> <span class="p">[</span><span class="n">gen_sch</span><span class="p">,</span> <span class="n">dis_sch</span><span class="p">]</span>
+
+<span class="c1"># example with optimizer frequencies</span>
+<span class="c1"># see training procedure in `Improved Training of Wasserstein GANs`, Algorithm 1</span>
+<span class="c1"># https://arxiv.org/abs/1704.00028</span>
+<span class="k">def</span> <span class="nf">configure_optimizers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">gen_opt</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_gen</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+    <span class="n">dis_opt</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_dis</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.02</span><span class="p">)</span>
+    <span class="n">n_critic</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="p">{</span><span class="s1">&#39;optimizer&#39;</span><span class="p">:</span> <span class="n">dis_opt</span><span class="p">,</span> <span class="s1">&#39;frequency&#39;</span><span class="p">:</span> <span class="n">n_critic</span><span class="p">},</span>
+        <span class="p">{</span><span class="s1">&#39;optimizer&#39;</span><span class="p">:</span> <span class="n">gen_opt</span><span class="p">,</span> <span class="s1">&#39;frequency&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Some things to know:</p>
+<ul class="simple">
+<li><p>Lightning calls <code class="docutils literal notranslate"><span class="pre">.backward()</span></code> and <code class="docutils literal notranslate"><span class="pre">.step()</span></code> on each optimizer and learning rate scheduler as needed.</p></li>
+<li><p>If you use 16-bit precision (<code class="docutils literal notranslate"><span class="pre">precision=16</span></code>), Lightning will automatically handle the optimizers.</p></li>
+<li><p>If you use multiple optimizers, <a class="reference internal" href="#task_scheduling.mdp.supervised.LitModel.training_step" title="task_scheduling.mdp.supervised.LitModel.training_step"><code class="xref py py-meth docutils literal notranslate"><span class="pre">training_step()</span></code></a> will have an additional <code class="docutils literal notranslate"><span class="pre">optimizer_idx</span></code> parameter.</p></li>
+<li><p>If you use <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.optim.LBFGS</span></code>, Lightning handles the closure function automatically for you.</p></li>
+<li><p>If you use multiple optimizers, gradients will be calculated only for the parameters of current optimizer
+at each training step.</p></li>
+<li><p>If you need to control how often those optimizers step or override the default <code class="docutils literal notranslate"><span class="pre">.step()</span></code> schedule,
+override the <code class="xref py py-meth docutils literal notranslate"><span class="pre">optimizer_step()</span></code> hook.</p></li>
+</ul>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.LitModel.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.LitModel.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Same as <code class="xref py py-meth docutils literal notranslate"><span class="pre">torch.nn.Module.forward()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*args</strong> – Whatever you decide to pass into the forward method.</p></li>
+<li><p><strong>**kwargs</strong> – Keyword arguments are also possible.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Your model’s output</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.LitModel.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#task_scheduling.mdp.supervised.LitModel.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.LitModel.training_step">
+<span class="sig-name descname"><span class="pre">training_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_idx</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.LitModel.training_step" title="Permalink to this definition"></a></dt>
+<dd><p>Here you compute and return the training loss and some additional metrics for e.g.
+the progress bar or logger.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>batch</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code> | (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, …) | [<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, …]) – The output of your <code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code>. A tensor, tuple or list.</p></li>
+<li><p><strong>batch_idx</strong> (<code class="docutils literal notranslate"><span class="pre">int</span></code>) – Integer displaying index of this batch</p></li>
+<li><p><strong>optimizer_idx</strong> (<code class="docutils literal notranslate"><span class="pre">int</span></code>) – When using multiple optimizers, this argument will also be present.</p></li>
+<li><p><strong>hiddens</strong> (<code class="docutils literal notranslate"><span class="pre">Any</span></code>) – Passed in if
+<a href="#id1"><span class="problematic" id="id2">:paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps`</span></a> &gt; 0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>Any of.</p>
+<ul class="simple">
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code> - The loss tensor</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dict</span></code> - A dictionary. Can include any keys, but must include the key <code class="docutils literal notranslate"><span class="pre">'loss'</span></code></p></li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">None</span></code> - Training will skip to the next batch. This is only for automatic optimization.</dt><dd><p>This is not supported for multi-GPU, TPU, IPU, or DeepSpeed.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</p>
+</dd>
+</dl>
+<p>In this step you’d normally do the forward pass and calculate the loss for a batch.
+You can also do fancier things like multiple forward passes or something model specific.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">training_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">batch_idx</span><span class="p">):</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">batch</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">loss</span>
+</pre></div>
+</div>
+<p>If you define multiple optimizers, this step will be called with an additional
+<code class="docutils literal notranslate"><span class="pre">optimizer_idx</span></code> parameter.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Multiple optimizers (e.g.: GANs)</span>
+<span class="k">def</span> <span class="nf">training_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">batch_idx</span><span class="p">,</span> <span class="n">optimizer_idx</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">optimizer_idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># do training_step with encoder</span>
+        <span class="o">...</span>
+    <span class="k">if</span> <span class="n">optimizer_idx</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="c1"># do training_step with decoder</span>
+        <span class="o">...</span>
+</pre></div>
+</div>
+<p>If you add truncated back propagation through time you will also get an additional
+argument with the hidden states of the previous step.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Truncated back-propagation through time</span>
+<span class="k">def</span> <span class="nf">training_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">batch_idx</span><span class="p">,</span> <span class="n">hiddens</span><span class="p">):</span>
+    <span class="c1"># hiddens are the hidden states from the previous truncated backprop step</span>
+    <span class="n">out</span><span class="p">,</span> <span class="n">hiddens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">hiddens</span><span class="p">)</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="o">...</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;loss&quot;</span><span class="p">:</span> <span class="n">loss</span><span class="p">,</span> <span class="s2">&quot;hiddens&quot;</span><span class="p">:</span> <span class="n">hiddens</span><span class="p">}</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The loss value shown in the progress bar is smoothed (averaged) over the last values,
+so it differs from the actual loss returned in train/validation step.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.LitModel.validation_step">
+<span class="sig-name descname"><span class="pre">validation_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_idx</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.LitModel.validation_step" title="Permalink to this definition"></a></dt>
+<dd><p>Operates on a single batch of data from the validation set.
+In this step you’d might generate examples or calculate anything of interest like accuracy.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># the pseudocode for these calls</span>
+<span class="n">val_outs</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">val_batch</span> <span class="ow">in</span> <span class="n">val_data</span><span class="p">:</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">validation_step</span><span class="p">(</span><span class="n">val_batch</span><span class="p">)</span>
+    <span class="n">val_outs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+<span class="n">validation_epoch_end</span><span class="p">(</span><span class="n">val_outs</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>batch</strong> – The output of your <code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code>.</p></li>
+<li><p><strong>batch_idx</strong> – The index of this batch.</p></li>
+<li><p><strong>dataloader_idx</strong> – The index of the dataloader that produced this batch.
+(only if multiple val dataloaders used)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>Any object or value</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code> - Validation will skip to the next batch</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># pseudocode of order</span>
+<span class="n">val_outs</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">val_batch</span> <span class="ow">in</span> <span class="n">val_data</span><span class="p">:</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">validation_step</span><span class="p">(</span><span class="n">val_batch</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">defined</span><span class="p">(</span><span class="s2">&quot;validation_step_end&quot;</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">validation_step_end</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+    <span class="n">val_outs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+<span class="n">val_outs</span> <span class="o">=</span> <span class="n">validation_epoch_end</span><span class="p">(</span><span class="n">val_outs</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># if you have one val dataloader:</span>
+<span class="k">def</span> <span class="nf">validation_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">batch_idx</span><span class="p">):</span>
+    <span class="o">...</span>
+
+
+<span class="c1"># if you have multiple val dataloaders:</span>
+<span class="k">def</span> <span class="nf">validation_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">batch_idx</span><span class="p">,</span> <span class="n">dataloader_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<p>Examples:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># CASE 1: A single validation dataset</span>
+<span class="k">def</span> <span class="nf">validation_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">batch_idx</span><span class="p">):</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">batch</span>
+
+    <span class="c1"># implement your own</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+    <span class="c1"># log 6 example images</span>
+    <span class="c1"># or generated text... or whatever</span>
+    <span class="n">sample_imgs</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:</span><span class="mi">6</span><span class="p">]</span>
+    <span class="n">grid</span> <span class="o">=</span> <span class="n">torchvision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">make_grid</span><span class="p">(</span><span class="n">sample_imgs</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">experiment</span><span class="o">.</span><span class="n">add_image</span><span class="p">(</span><span class="s1">&#39;example_images&#39;</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># calculate acc</span>
+    <span class="n">labels_hat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">val_acc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y</span> <span class="o">==</span> <span class="n">labels_hat</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">/</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.0</span><span class="p">)</span>
+
+    <span class="c1"># log the outputs!</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">log_dict</span><span class="p">({</span><span class="s1">&#39;val_loss&#39;</span><span class="p">:</span> <span class="n">loss</span><span class="p">,</span> <span class="s1">&#39;val_acc&#39;</span><span class="p">:</span> <span class="n">val_acc</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>If you pass in multiple val dataloaders, <a class="reference internal" href="#task_scheduling.mdp.supervised.LitModel.validation_step" title="task_scheduling.mdp.supervised.LitModel.validation_step"><code class="xref py py-meth docutils literal notranslate"><span class="pre">validation_step()</span></code></a> will have an additional argument. We recommend
+setting the default value of 0 so that you can quickly switch between single and multiple dataloaders.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># CASE 2: multiple validation dataloaders</span>
+<span class="k">def</span> <span class="nf">validation_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">batch_idx</span><span class="p">,</span> <span class="n">dataloader_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="c1"># dataloader_idx tells you which dataset this is.</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you don’t need to validate you don’t need to implement this method.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When the <a class="reference internal" href="#task_scheduling.mdp.supervised.LitModel.validation_step" title="task_scheduling.mdp.supervised.LitModel.validation_step"><code class="xref py py-meth docutils literal notranslate"><span class="pre">validation_step()</span></code></a> is called, the model has been put in eval mode
+and PyTorch gradients have been disabled. At the end of validation,
+the model goes back to training mode and gradients are enabled.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.LitScheduler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.supervised.</span></span><span class="sig-name descname"><span class="pre">LitScheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trainer_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.LitScheduler" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.mdp.supervised.BasePyTorch" title="task_scheduling.mdp.supervised.BasePyTorch"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.mdp.supervised.BasePyTorch</span></code></a></p>
+<p>Base class for PyTorch Lightning-based schedulers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>env</strong> (<a class="reference internal" href="#task_scheduling.mdp.environments.Index" title="task_scheduling.mdp.environments.Index"><em>Index</em></a>) – OpenAi gym environment.</p></li>
+<li><p><strong>model</strong> (<em>torch.nn.Module</em>) – The PyTorch-Lightning network.</p></li>
+<li><p><strong>trainer_kwargs</strong> (<em>dict</em><em>, </em><em>optional</em>) – Arguments passed to instantiation of pl.Trainer object.</p></li>
+<li><p><strong>learn_params</strong> (<em>dict</em><em>, </em><em>optional</em>) – Parameters used by the <cite>learn</cite> method.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.LitScheduler.from_gen_mlp">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_gen_mlp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_cls=&lt;class</span> <span class="pre">'task_scheduling.mdp.environments.Index'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_params=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_ch=()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_tasks=()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_joint=()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_kwargs=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trainer_kwargs=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params=None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.LitScheduler.from_gen_mlp" title="Permalink to this definition"></a></dt>
+<dd><p>Construct scheduler with MLP policy from problem generator.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.LitScheduler.from_gen_module">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_gen_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_cls=&lt;class</span> <span class="pre">'task_scheduling.mdp.environments.Index'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_params=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_kwargs=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trainer_kwargs=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params=None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.LitScheduler.from_gen_module" title="Permalink to this definition"></a></dt>
+<dd><p>Construct scheduler from a <cite>nn.Module</cite> and a problem generator.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.LitScheduler.from_module">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trainer_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.LitScheduler.from_module" title="Permalink to this definition"></a></dt>
+<dd><p>Construct scheduler from a <cite>nn.Module</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.LitScheduler.mlp">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mlp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_ch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_tasks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_joint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trainer_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.LitScheduler.mlp" title="Permalink to this definition"></a></dt>
+<dd><p>Construct scheduler with MLP policy.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.LitScheduler.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.LitScheduler.reset" title="Permalink to this definition"></a></dt>
+<dd><p>Reset the learner.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.LitScheduler.train">
+<span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rew</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.LitScheduler.train" title="Permalink to this definition"></a></dt>
+<dd><p>Train from observations, actions, and rewards.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obs</strong> (<em>nd.array</em>) – The observations. Shape: (n_rollouts, n_steps, …).</p></li>
+<li><p><strong>act</strong> (<em>nd.array</em>) – The optimal actions. Shape: (n_rollouts, n_steps, …).</p></li>
+<li><p><strong>rew</strong> (<em>nd.array</em>) – The rewards. Shape: (n_rollouts, n_steps, …).</p></li>
+<li><p><strong>verbose</strong> (<em>{0</em><em>, </em><em>1</em><em>, </em><em>2}</em><em>, </em><em>optional</em>) – Progress print-out level. 0: silent, 1: verbose.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.TorchScheduler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">task_scheduling.mdp.supervised.</span></span><span class="sig-name descname"><span class="pre">TorchScheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_func=&lt;function</span> <span class="pre">cross_entropy&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_cls=&lt;class</span> <span class="pre">'torch.optim.adam.Adam'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_params=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params=None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.TorchScheduler" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#task_scheduling.mdp.supervised.BasePyTorch" title="task_scheduling.mdp.supervised.BasePyTorch"><code class="xref py py-class docutils literal notranslate"><span class="pre">task_scheduling.mdp.supervised.BasePyTorch</span></code></a></p>
+<p>Base class for pure PyTorch-based schedulers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>env</strong> (<a class="reference internal" href="#task_scheduling.mdp.environments.Index" title="task_scheduling.mdp.environments.Index"><em>Index</em></a>) – OpenAi gym environment.</p></li>
+<li><p><strong>module</strong> (<em>torch.nn.Module</em>) – The PyTorch network.</p></li>
+<li><p><strong>loss_func</strong> (<em>callable</em><em>, </em><em>optional</em>) – </p></li>
+<li><p><strong>optim_cls</strong> (<em>class</em><em>, </em><em>optional</em>) – Optimizer class from <cite>torch.nn.optim</cite>.</p></li>
+<li><p><strong>optim_params</strong> (<em>dict</em><em>, </em><em>optional</em>) – Arguments for optimizer instantiation.</p></li>
+<li><p><strong>learn_params</strong> (<em>dict</em><em>, </em><em>optional</em>) – Parameters used by the <cite>learn</cite> method.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.TorchScheduler.device">
+<span class="sig-name descname"><span class="pre">device</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">device(type='cpu')</span></em><a class="headerlink" href="#task_scheduling.mdp.supervised.TorchScheduler.device" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.TorchScheduler.from_gen_mlp">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_gen_mlp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problem_gen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_cls=&lt;class</span> <span class="pre">'task_scheduling.mdp.environments.Index'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_params=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_ch=()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_tasks=()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_joint=()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_func=&lt;function</span> <span class="pre">cross_entropy&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_cls=&lt;class</span> <span class="pre">'torch.optim.adam.Adam'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_params=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params=None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.TorchScheduler.from_gen_mlp" title="Permalink to this definition"></a></dt>
+<dd><p>Construct scheduler with MLP policy from problem generator.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.TorchScheduler.mlp">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mlp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_ch=()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_tasks=()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_sizes_joint=()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_func=&lt;function</span> <span class="pre">cross_entropy&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_cls=&lt;class</span> <span class="pre">'torch.optim.adam.Adam'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_params=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_params=None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.TorchScheduler.mlp" title="Permalink to this definition"></a></dt>
+<dd><p>Construct scheduler with MLP policy.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_scheduling.mdp.supervised.TorchScheduler.train">
+<span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rew</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_scheduling.mdp.supervised.TorchScheduler.train" title="Permalink to this definition"></a></dt>
+<dd><p>Train from observations, actions, and rewards.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obs</strong> (<em>nd.array</em>) – The observations. Shape: (n_rollouts, n_steps, …).</p></li>
+<li><p><strong>act</strong> (<em>nd.array</em>) – The optimal actions. Shape: (n_rollouts, n_steps, …).</p></li>
+<li><p><strong>rew</strong> (<em>nd.array</em>) – The rewards. Shape: (n_rollouts, n_steps, …).</p></li>
+<li><p><strong>verbose</strong> (<em>{0</em><em>, </em><em>1</em><em>, </em><em>2}</em><em>, </em><em>optional</em>) – Progress print-out level. 0: silent, 1: verbose.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-task_scheduling.mdp">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-task_scheduling.mdp" title="Permalink to this headline"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="task_scheduling.generators.html" class="btn btn-neutral float-left" title="task_scheduling.generators package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Paul Rademacher.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
